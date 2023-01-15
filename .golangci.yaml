@@ -200,3 +200,10 @@ issues:
       linters:
         - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
         - funlen  # Allow test functions of any length
+
+    # Allow patterns that are considered best practises for Corba CLI applications
+    - path: arrower/cmd
+      linters:
+        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
+        - gochecknoglobals # Allow globals, as this is Cobras way of defining new commands
+        - gochecknoinits # Allow inits, as this is Cobras way of adding new commands to the CLI application
