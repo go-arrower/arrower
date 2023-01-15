@@ -1,0 +1,202 @@
+run:
+  build-tags:
+
+linters-settings:
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # The default order of sections is `standard > default > custom > blank > dot`,
+    # If `custom-order` is `true`, it follows the order of `sections` option.
+    # Default: ["standard", "default"]
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(github.com/go-arrower/arrower) # Custom section: groups all imports with the specified Prefix.
+      - blank # Blank section: contains all blank imports. This section is not present unless explicitly enabled.
+      - dot # Dot section: contains all dot imports. This section is not present unless explicitly enabled.
+  gocognit:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 10
+  gocyclo:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 10
+  goimports:
+    # A comma-separated list of prefixes, which, if set, checks import paths
+    # with the given prefixes are grouped after 3rd-party packages.
+    # Default: ""
+    local-prefixes: github.com/go-arrower/arrower
+  govet:
+    # Report about shadowed variables.
+    # Default: false
+    check-shadowing: true
+    # Enable analyzers by name (in addition to default).
+    # Run `go tool vet help` to see all analyzers.
+    # Default: []
+    enable:
+      - asmdecl
+      - assign
+      - atomic
+      - atomicalign
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - errorsas
+      - fieldalignment
+      - findcall
+      - framepointer
+      - httpresponse
+      - ifaceassert
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - nilness
+      - printf
+      - reflectvaluecompare
+      - shadow
+      - shift
+      - sigchanyzer
+      - sortslice
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
+      - unusedwrite
+  maligned:
+    # Print struct with more effective memory layout or not.
+    # Default: false
+    suggest-new: true
+  misspell:
+    locale: UK
+
+linters:
+  # Disable all linters.
+  # Default: false
+  disable-all: true
+  # Explicitly enable a linter, to prevent new versions of golangci-lint to suddenly fail the build.
+  # To keep the maintenance of this list simple, it lists all linters in the same order as: https://golangci-lint.run/usage/linters/
+  # Disabled linters are commented out instead of removed, to aid that comparison.
+  # Last comparison with: 1.50.1
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    #- deadcode # deprecated
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    #- exhaustivestruct # deprecated
+    - exhaustruct
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    #- ginkgolinter # golangci-lint --version 1.50.1 does fail, contrary to the docs, with "unknown linter" error
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    #- golint # deprecated
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - grouper
+    #- ifshort # deprecated
+    - importas
+    - interfacebloat
+    #- interfacer # deprecated
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    #- maligned # deprecated
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    #- nosnakecase # deprecated
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    #- scopelint # deprecated
+    - sqlclosecheck
+    #- structcheck # deprecated
+    - stylecheck
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    #- varcheck # deprecated
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl
+
+issues:
+  exclude-rules:
+    # Exclude lll issues for long lines with go:generate
+    - linters:
+        - lll
+      source: "^//go:generate "
+
+    - path: _test.go
+      linters:
+        - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
+        - funlen  # Allow test functions of any length
