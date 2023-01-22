@@ -10,9 +10,11 @@ import (
 
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the version number of Arrower",
-		Long:  ``,
+		Use:                   "version",
+		Short:                 "Print the version number of Arrower",
+		Long:                  ``,
+		Args:                  cobra.NoArgs,
+		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			hash, ts := getVersionHashAndTimestamp()
 

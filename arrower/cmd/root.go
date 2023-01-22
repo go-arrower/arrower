@@ -13,7 +13,8 @@ func newRootCmd() *cobra.Command {
 		Short: "Arrower is your aid, you focus on your DDD and arrower gives you a fullstack serverless experience.",
 		Long: `A toolkit to get you started with your next modular monolith.
 Complete documentation is available at http://arrower.org`,
-		Args: cobra.NoArgs,
+		Args:                  cobra.NoArgs,
+		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = cmd.Help()
 		},

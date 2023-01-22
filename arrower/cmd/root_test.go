@@ -48,4 +48,12 @@ func TestRootCmd(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, output, "Available Commands:")
 	})
+
+	t.Run("help message does not show use of flags", func(t *testing.T) {
+		t.Parallel()
+
+		output, err := executeCommand(cmd.NewArrowerCLI(), []string{}...)
+		assert.NoError(t, err)
+		assert.NotContains(t, output, "[flags]")
+	})
 }
