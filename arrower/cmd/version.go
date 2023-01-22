@@ -8,19 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
+func newVersionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Arrower",
+		Long:  ``,
+		Run: func(cmd *cobra.Command, args []string) {
+			hash, ts := getVersionHashAndTimestamp()
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the version number of Arrower",
-	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		hash, ts := getVersionHashAndTimestamp()
-
-		fmt.Printf("arrower version: %s from %s\n", hash, ts) //nolint:forbidigo
-	},
+			fmt.Fprintf(cmd.OutOrStdout(), "arrower version: %s from %s\n", hash, ts)
+		},
+	}
 }
 
 // getVersionHashAndTimestamp returns the last git hash and commit timestamp.

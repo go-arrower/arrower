@@ -1,3 +1,9 @@
+# arrower specific
+cover.*
+
+
+
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

@@ -9,6 +9,20 @@ help: ## Display this help screen
 static-check: ## Run static code checks
 	golangci-lint run
 
+.PHONY: generate
+generate: ## Generate all code to run the service
+	go generate ./...
+
+.PHONY: test
+test: static-check generate test-unit ## Run all tests
+	go tool cover -html=cover.out -o cover.html; xdg-open cover.html
+	go tool cover -func cover.out | grep total:
+
+
+.PHONY: test-unit
+test-unit:
+	go test -race ./... -count=1 -coverprofile cover.out
+
 
 
 

@@ -205,5 +205,3 @@ issues:
     - path: arrower/cmd
       linters:
         - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
-        - gochecknoglobals # Allow globals, as this is Cobras way of defining new commands
-        - gochecknoinits # Allow inits, as this is Cobras way of adding new commands to the CLI application
