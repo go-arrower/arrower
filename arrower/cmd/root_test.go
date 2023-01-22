@@ -36,7 +36,7 @@ func TestRootCmd(t *testing.T) {
 		t.Parallel()
 
 		// leaving args empty or "" leads to: unknown command error, so it's set explicitly to empty slice
-		output, err := executeCommand(cmd.NewArrowerCLI(), []string{}...)
+		output, err := executeCommand(NewTestArrowerCLI(), []string{}...)
 		assert.NoError(t, err)
 		assert.Contains(t, output, "Available Commands:")
 	})
@@ -44,7 +44,7 @@ func TestRootCmd(t *testing.T) {
 	t.Run("unknown command: show help & list of commands", func(t *testing.T) {
 		t.Parallel()
 
-		output, err := executeCommand(cmd.NewArrowerCLI(), "non-ex-command")
+		output, err := executeCommand(NewTestArrowerCLI(), "non-ex-command")
 		assert.Error(t, err)
 		assert.Contains(t, output, "Available Commands:")
 	})
@@ -52,7 +52,7 @@ func TestRootCmd(t *testing.T) {
 	t.Run("help message does not show use of flags", func(t *testing.T) {
 		t.Parallel()
 
-		output, err := executeCommand(cmd.NewArrowerCLI(), []string{}...)
+		output, err := executeCommand(NewTestArrowerCLI(), []string{}...)
 		assert.NoError(t, err)
 		assert.NotContains(t, output, "[flags]")
 	})

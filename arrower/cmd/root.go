@@ -21,15 +21,18 @@ Complete documentation is available at http://arrower.org`,
 	}
 }
 
-func NewArrowerCLI() *cobra.Command {
+// NewArrowerCLI initialises the complete arrower cli with its commands and returns the root command.
+func NewArrowerCLI(osSignal <-chan os.Signal) *cobra.Command {
 	rootCmd := newRootCmd()
 	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newRunCmd(osSignal))
 
 	return rootCmd
 }
 
+// Execute runs the arrower cli.
 func Execute() {
-	if err := NewArrowerCLI().Execute(); err != nil {
+	if err := NewArrowerCLI(NewInterruptSignalChannel()).Execute(); err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
