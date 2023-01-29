@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/spf13/cobra"
+
+	"github.com/go-arrower/arrower/arrower/internal"
 )
 
 // NewInterruptSignalChannel returns a channel listening for os.Signals the arrower cli will react to.
@@ -35,8 +38,13 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 
 			waitUntilShutdownFinished := make(chan struct{})
 
-			// app := internal.NewApp()
-			// go app.WatchBuildAndServeArrowApp()
+			ctx, cancel := context.WithCancel(context.Background())
+			go func(ctx context.Context) {
+				err := internal.WatchBuildAndRunApp(ctx, ".")
+				if err != nil {
+					panic(err)
+				}
+			}(ctx)
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
 
@@ -44,7 +52,7 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 				<-osSignal
 				fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
 
-				// app.Shutdown()
+				cancel()
 				close(waitUntilShutdownFinished)
 			}(cmd)
 
