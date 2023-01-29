@@ -38,17 +38,17 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 			// app := internal.NewApp()
 			// go app.WatchBuildAndServeArrowApp()
 
-			go func() {
+			fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
+
+			go func(cmd *cobra.Command) {
 				<-osSignal
 				fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
 
 				// app.Shutdown()
 				close(waitUntilShutdownFinished)
-			}()
+			}(cmd)
 
-			fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
 			<-waitUntilShutdownFinished
-
 			fmt.Fprintln(cmd.OutOrStdout(), "Done")
 		},
 	}
