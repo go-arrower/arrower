@@ -22,7 +22,7 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 
 	// ! ensure only one process is running at the same time and others are "queued"
 
-	stop, err := BuildAndRunApp(path)
+	stop, err := BuildAndRunApp(path, "")
 	if err != nil {
 		red("build & run failed: ", err)
 	}
@@ -34,7 +34,7 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 
 			checkAndStop(stop)
 
-			stop, err = BuildAndRunApp(path)
+			stop, err = BuildAndRunApp(path, "")
 			if err != nil {
 				red("build & run failed: ", err)
 			}

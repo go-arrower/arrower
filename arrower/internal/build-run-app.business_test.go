@@ -13,15 +13,14 @@ import (
 func TestBuildAndRunApp(t *testing.T) {
 	t.Parallel()
 
-	binaryPath := "./app"
-
 	t.Run("build, run, and delete the app", func(t *testing.T) {
 		t.Parallel()
 
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
+		binaryPath, _ := internal.RandomBinaryPath()
 
-		cleanup, err := internal.BuildAndRunApp(dir + "/example-cli")
+		cleanup, err := internal.BuildAndRunApp(dir+"/example-cli", binaryPath)
 		assert.NoError(t, err)
 		assert.NotNil(t, cleanup)
 
@@ -30,36 +29,39 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.NoFileExists(t, binaryPath)
 	})
 
-	t.Run("use non local path", func(t *testing.T) {
+	t.Run("empty binaryPath", func(t *testing.T) {
 		t.Parallel()
 
 		dir := t.TempDir()
-		copyDir(t, "./testdata/example-server", dir)
+		copyDir(t, "./testdata/example-cli", dir)
 
-		cleanup, err := internal.BuildAndRunApp(dir + "/example-server")
+		cleanup, err := internal.BuildAndRunApp(dir+"/example-cli", "")
 		assert.NoError(t, err)
+		assert.NotNil(t, cleanup)
 
 		err = cleanup()
 		assert.NoError(t, err)
-		assert.NoFileExists(t, binaryPath)
 	})
 
 	t.Run("invalid path fails the build", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := internal.BuildAndRunApp("/non/existing/path")
+		binaryPath, _ := internal.RandomBinaryPath()
+
+		_, err := internal.BuildAndRunApp("/non/existing/path", binaryPath)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, internal.ErrBuildFailed))
 		assert.NoFileExists(t, binaryPath)
 	})
 
-	t.Run("stop webserver", func(t *testing.T) {
+	t.Run("run and stop a webserver", func(t *testing.T) {
 		t.Parallel()
 
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
+		binaryPath, _ := internal.RandomBinaryPath()
 
-		stop, err := internal.BuildAndRunApp(dir + "/example-server")
+		stop, err := internal.BuildAndRunApp(dir+"/example-server", binaryPath)
 		assert.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond) // wait so the process can actually start
@@ -74,8 +76,9 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-panic", dir)
+		binaryPath, _ := internal.RandomBinaryPath()
 
-		stop, err := internal.BuildAndRunApp(dir + "/example-panic")
+		stop, err := internal.BuildAndRunApp(dir+"/example-panic", binaryPath)
 		assert.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond) // wait so the process can actually start
@@ -83,12 +86,4 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoFileExists(t, binaryPath)
 	})
-
-	/*
-		test cases:
-			a path that is not the current path, but in t.TempDir dir := t.TempDir()
-			program that ignores sigterm
-	*/
-
-	_ = 0
 }

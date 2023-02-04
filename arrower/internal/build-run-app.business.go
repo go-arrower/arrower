@@ -17,11 +17,19 @@ var (
 	ErrBuildCleanFailed = errors.New("could not delete app binary")
 )
 
-// BuildAndRunApp will build and run the developer's app at the given path. It returns a cleanup function,
-// used to stop the app and leave a clean directory.
-func BuildAndRunApp(appPath string) (func() error, error) {
+// BuildAndRunApp will build the developer's app at the given appPath to the destination binaryPath.
+// It returns a cleanup function, used to stop the app and leave a clean directory.
+func BuildAndRunApp(appPath string, binaryPath string) (func() error, error) {
 	yellow := color.New(color.FgYellow, color.Bold).PrintlnFunc()
-	binaryPath := "./app"
+
+	if binaryPath == "" {
+		randPath, err := RandomBinaryPath()
+		if err != nil {
+			return nil, fmt.Errorf("%w", err)
+		}
+
+		binaryPath = randPath
+	}
 
 	//
 	// build the app
@@ -33,6 +41,11 @@ func BuildAndRunApp(appPath string) (func() error, error) {
 
 	err := cmd.Run()
 	if err != nil {
+		err = os.Remove(binaryPath)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
+		}
+
 		return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
 	}
 
@@ -49,7 +62,12 @@ func BuildAndRunApp(appPath string) (func() error, error) {
 		return nil, fmt.Errorf("%w: %v", ErrRunFailed, err)
 	}
 
-	return func() error { // this function does shutdown and cleanup for the running app from cmd.
+	return stopAndCleanup(cmd, binaryPath), nil
+}
+
+// stopAndCleanup returns a function that: shuts down running app from cmd and cleans up afterwards.
+func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
+	return func() error {
 		//
 		// send shutdown signal for graceful shutdown to app.
 		err := cmd.Process.Signal(syscall.SIGTERM)
@@ -68,11 +86,21 @@ func BuildAndRunApp(appPath string) (func() error, error) {
 
 		//
 		// delete the app binary, to leave a clean working directory.
-		err = os.Remove(fmt.Sprintf("%s/%s", appPath, binaryPath))
+		err = os.Remove(binaryPath)
 		if err != nil {
 			return fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
 		}
 
 		return nil
-	}, nil
+	}
+}
+
+// RandomBinaryPath return a unique path to build the app binary in the operating systems /tmp folder.
+func RandomBinaryPath() (string, error) {
+	f, err := os.CreateTemp(os.TempDir(), "arrower-app-")
+	if err != nil {
+		return "", fmt.Errorf("%w: could not create random build path: %v", ErrBuildFailed, err)
+	}
+
+	return f.Name(), nil
 }
