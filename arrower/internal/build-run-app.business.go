@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+
+	"github.com/fatih/color" //nolint:misspell
 )
 
 var (
@@ -18,10 +20,13 @@ var (
 // BuildAndRunApp will build and run the developer's app at the given path. It returns a cleanup function,
 // used to stop the app and leave a clean directory.
 func BuildAndRunApp(appPath string) (func() error, error) {
+	yellow := color.New(color.FgYellow, color.Bold).PrintlnFunc()
 	binaryPath := "./app"
 
 	//
 	// build the app
+	yellow("building...")
+
 	cmd := exec.Command("go", "build", "-o", binaryPath, appPath)
 	cmd.Dir = appPath
 	// cmd.Stderr = os.Stdout // show error message of the `go build` command
@@ -33,6 +38,8 @@ func BuildAndRunApp(appPath string) (func() error, error) {
 
 	//
 	// run the app
+	yellow("running...")
+
 	cmd = exec.Command(binaryPath)
 	cmd.Stdout = os.Stdout // stream output of app to same terminal as arrower is running in
 	cmd.Dir = appPath

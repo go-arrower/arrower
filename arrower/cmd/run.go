@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
+	"github.com/fatih/color" //nolint:misspell
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/internal"
@@ -34,30 +35,40 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintln(cmd.OutOrStdout(), "Run arrower")
+			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
+
+			version, _ := getVersionHashAndTimestamp()
+			blue(cmd.OutOrStdout(), "Arrower version %s\n", version)
 
 			waitUntilShutdownFinished := make(chan struct{})
 
+			path := "."
+			blue(cmd.OutOrStdout(), "watching %s\n", path)
+			path, err := filepath.Abs(path)
+			if err != nil {
+				panic(err)
+			}
+
 			ctx, cancel := context.WithCancel(context.Background())
 			go func(ctx context.Context) {
-				err := internal.WatchBuildAndRunApp(ctx, ".")
+				err := internal.WatchBuildAndRunApp(ctx, path)
 				if err != nil {
 					panic(err)
 				}
 			}(ctx)
 
-			fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
+			// fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
 
-			go func(cmd *cobra.Command) {
+			go func() {
 				<-osSignal
-				fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
+				// fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
 
 				cancel()
 				close(waitUntilShutdownFinished)
-			}(cmd)
+			}()
 
 			<-waitUntilShutdownFinished
-			fmt.Fprintln(cmd.OutOrStdout(), "Done")
+			blue(cmd.OutOrStdout(), "done\n")
 		},
 	}
 }

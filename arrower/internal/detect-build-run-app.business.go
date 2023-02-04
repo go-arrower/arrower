@@ -2,10 +2,15 @@ package internal
 
 import (
 	"context"
-	"log"
+	"strings"
+
+	"github.com/fatih/color" //nolint:misspell
 )
 
 func WatchBuildAndRunApp(ctx context.Context, path string) error {
+	red := color.New(color.FgRed, color.Bold).PrintlnFunc()
+	magenta := color.New(color.FgMagenta, color.Bold).PrintlnFunc()
+
 	filesChanged := make(chan File)
 
 	go func() {
@@ -19,19 +24,19 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 
 	stop, err := BuildAndRunApp(path)
 	if err != nil {
-		log.Println("Arrower: build & run failed: ", err)
+		red("build & run failed: ", err)
 	}
 
 	for {
 		select {
 		case f := <-filesChanged:
-			log.Println("Arrower: change detected: ", f)
+			magenta("changed:", filesRelativePath(f, path))
 
 			checkAndStop(stop)
 
 			stop, err = BuildAndRunApp(path)
 			if err != nil {
-				log.Println("Arrower: build & run failed: ", err)
+				red("build & run failed: ", err)
 			}
 		case <-ctx.Done():
 			checkAndStop(stop)
@@ -42,10 +47,17 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 }
 
 func checkAndStop(stop func() error) {
+	red := color.New(color.FgRed, color.Bold).PrintlnFunc()
+
 	if stop != nil {
 		err := stop()
 		if err != nil {
-			log.Println("Arrower: shutdown failed: ", err)
+			red("shutdown failed: ", err)
 		}
 	}
+}
+
+// filesRelativePath assumes File f is an absolute path and turns it into a relative path by removing absolutePrefix.
+func filesRelativePath(f File, absolutePrefix string) string {
+	return strings.TrimPrefix(string(f), absolutePrefix+"/")
 }
