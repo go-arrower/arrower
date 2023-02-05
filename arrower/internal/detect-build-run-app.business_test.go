@@ -71,14 +71,12 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		_ = os.WriteFile(fmt.Sprintf("%s/%s", dir, "/test0.go"), []byte(`package main`), 0o644) //nolint:gosec
 
 		time.Sleep(500 * time.Millisecond) // time for arrower to detect the fs change
+
 		assert.Contains(t, buf.String(), arrowerCLIChangeDetected)
+		assert.NotContains(t, buf.String(), internal.ErrBuildFailed.Error())
 
 		cancel()
 		wg.Wait()
-	})
-
-	t.Run("debounce app runs", func(t *testing.T) {
-		t.Parallel()
 	})
 }
 

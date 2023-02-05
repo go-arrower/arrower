@@ -41,7 +41,7 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { 
 
 			checkAndStop(w, stop)
 
-			stop, err = BuildAndRunApp(nil, path, "")
+			stop, err = BuildAndRunApp(w, path, "")
 			if err != nil {
 				red(w, "build & run failed: ", err)
 			}
