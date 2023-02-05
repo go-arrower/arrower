@@ -19,7 +19,9 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { 
 
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) { //nolint:wsl
-		err := WatchFolder(ctx, path, filesChanged)
+		const interval = 350
+
+		err := WatchFolder(ctx, path, filesChanged, interval)
 		if err != nil {
 			panic(err)
 		}

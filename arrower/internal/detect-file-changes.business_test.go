@@ -29,7 +29,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, ".", filesChanged)
+			err := internal.WatchFolder(ctx, ".", filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -59,7 +59,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, dir, filesChanged)
+			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -80,7 +80,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, dir, filesChanged)
+			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -90,6 +90,66 @@ func TestWatchFolder(t *testing.T) {
 
 		file := <-filesChanged // expect to pull one File from the channel
 		assert.Contains(t, file, "test.go")
+
+		cancel()
+		wg.Wait()
+	})
+
+	t.Run("debounce changes", func(t *testing.T) { //nolint:dupl // triggers the debounce
+		t.Parallel()
+
+		wg := sync.WaitGroup{}
+
+		filesChanged := make(chan internal.File, 10)
+		ctx, cancel := context.WithCancel(context.Background())
+
+		dir := t.TempDir()
+
+		wg.Add(1)
+		go func() {
+			err := internal.WatchFolder(ctx, dir, filesChanged, 20)
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
+
+		time.Sleep(10 * time.Millisecond) // wait to enforce order of filesChanged elements
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
+
+		time.Sleep(10 * time.Millisecond) // wait for watcher to detect changes
+		assert.Equal(t, 1, len(filesChanged))
+
+		cancel()
+		wg.Wait()
+	})
+
+	t.Run("debounce changes until interval", func(t *testing.T) { //nolint:dupl // doesn't trigger debounce
+		t.Parallel()
+
+		wg := sync.WaitGroup{}
+
+		filesChanged := make(chan internal.File, 10)
+		ctx, cancel := context.WithCancel(context.Background())
+
+		dir := t.TempDir()
+
+		wg.Add(1)
+		go func() {
+			err := internal.WatchFolder(ctx, dir, filesChanged, 20)
+			assert.NoError(t, err)
+			wg.Done()
+		}()
+
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
+
+		time.Sleep(40 * time.Millisecond) // wait to enforce order of filesChanged elements
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
+
+		time.Sleep(10 * time.Millisecond) // wait for watcher to detect changes
+		assert.Equal(t, 2, len(filesChanged))
 
 		cancel()
 		wg.Wait()
@@ -107,7 +167,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, dir, filesChanged)
+			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}()

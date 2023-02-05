@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/rjeczalik/notify"
 )
@@ -15,8 +16,9 @@ var ErrObserverFSFailed = errors.New("could not listen to file system changes")
 type File string
 
 // WatchFolder watches the folder of path and sends a File to fileChanged each time a IsObservedFile changed.
+// The debounceInterval is a time in ms in which no new changes will be sent to fileChanged.
 // It terminates once the ctx is cancelled.
-func WatchFolder(ctx context.Context, path string, fileChanged chan<- File) error {
+func WatchFolder(ctx context.Context, path string, fileChanged chan<- File, debounceInterval int) error {
 	fsEvents := make(chan notify.EventInfo, 1)
 
 	path = fmt.Sprintf("%s/...", path)
@@ -26,6 +28,8 @@ func WatchFolder(ctx context.Context, path string, fileChanged chan<- File) erro
 	}
 	defer notify.Stop(fsEvents)
 
+	var debounceActive bool
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -33,8 +37,14 @@ func WatchFolder(ctx context.Context, path string, fileChanged chan<- File) erro
 		case e := <-fsEvents:
 			f := File(e.Path())
 			if IsObservedFile(f) {
-				fileChanged <- f
+				if !debounceActive { // not fired within the last interval => event can be fired
+					fileChanged <- f
+
+					debounceActive = true
+				}
 			}
+		case <-time.After(time.Duration(debounceInterval) * time.Millisecond):
+			debounceActive = false // reset debounce, so events will fire again
 		}
 	}
 }
