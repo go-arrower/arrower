@@ -54,7 +54,7 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			wg.Add(1)
 			go func(ctx context.Context, wg *sync.WaitGroup) {
-				err := internal.WatchBuildAndRunApp(ctx, path)
+				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path)
 				if err != nil {
 					panic(err)
 				}

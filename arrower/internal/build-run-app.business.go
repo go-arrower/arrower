@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
@@ -19,8 +20,12 @@ var (
 
 // BuildAndRunApp will build the developer's app at the given appPath to the destination binaryPath.
 // It returns a cleanup function, used to stop the app and leave a clean directory.
-func BuildAndRunApp(appPath string, binaryPath string) (func() error, error) {
-	yellow := color.New(color.FgYellow, color.Bold).PrintlnFunc()
+func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() error, error) { //nolint:varnamelen
+	yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
+
+	if w == nil {
+		return nil, fmt.Errorf("%w: missing io.Writer", ErrBuildFailed)
+	}
 
 	if binaryPath == "" {
 		randPath, err := RandomBinaryPath()
@@ -33,7 +38,7 @@ func BuildAndRunApp(appPath string, binaryPath string) (func() error, error) {
 
 	//
 	// build the app
-	yellow("building...")
+	yellow(w, "building...")
 
 	cmd := exec.Command("go", "build", "-o", binaryPath, appPath)
 	cmd.Dir = appPath
@@ -51,10 +56,10 @@ func BuildAndRunApp(appPath string, binaryPath string) (func() error, error) {
 
 	//
 	// run the app
-	yellow("running...")
+	yellow(w, "running...")
 
 	cmd = exec.Command(binaryPath)
-	cmd.Stdout = os.Stdout // stream output of app to same terminal as arrower is running in
+	cmd.Stdout = w // stream output to some io.Writer
 	cmd.Dir = appPath
 	// prevent the cmd to be stopped on strg +c from parent, so graceful shutdown works,
 	// see: https://stackoverflow.com/a/33171307

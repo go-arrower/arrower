@@ -22,6 +22,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
+		buf := &SyncBuffer{} //nolint:exhaustruct
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += "/example-server"
@@ -30,15 +31,20 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, dir)
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
 
-		time.Sleep(100 * time.Millisecond) // time for the example-server to start
+		time.Sleep(500 * time.Millisecond) // time for the example-server to start
 
 		cancel()
 		wg.Wait()
+
+		assert.Contains(t, buf.String(), exampleServerStart)
+		assert.Contains(t, buf.String(), exampleServerWaitForShutdown)
+		assert.Contains(t, buf.String(), exampleServerShutdown)
+		assert.Contains(t, buf.String(), exampleServerDone)
 	})
 
 	t.Run("restart app on detected file change", func(t *testing.T) {
@@ -46,6 +52,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
+		buf := &SyncBuffer{} //nolint:exhaustruct
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += "/example-server"
@@ -54,7 +61,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, dir)
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -64,6 +71,8 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		_ = os.WriteFile(fmt.Sprintf("%s/%s", dir, "/test0.go"), []byte(`package main`), 0o644) //nolint:gosec
 
 		time.Sleep(500 * time.Millisecond) // time for arrower to detect the fs change
+		assert.Contains(t, buf.String(), arrowerCLIChangeDetected)
+
 		cancel()
 		wg.Wait()
 	})

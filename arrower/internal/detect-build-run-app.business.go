@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"io"
 	"strings"
 	"sync"
 
@@ -9,9 +10,9 @@ import (
 )
 
 // WatchBuildAndRunApp controls the whole `arrower run` cycle and orchestrates it.
-func WatchBuildAndRunApp(ctx context.Context, path string) error {
-	red := color.New(color.FgRed, color.Bold).PrintlnFunc()
-	magenta := color.New(color.FgMagenta, color.Bold).PrintlnFunc()
+func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { //nolint:varnamelen
+	red := color.New(color.FgRed, color.Bold).FprintlnFunc()
+	magenta := color.New(color.FgMagenta, color.Bold).FprintlnFunc()
 	wg := sync.WaitGroup{}
 
 	filesChanged := make(chan File)
@@ -28,24 +29,24 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 
 	// ! ensure only one process is running at the same time and others are "queued"
 
-	stop, err := BuildAndRunApp(path, "")
+	stop, err := BuildAndRunApp(w, path, "")
 	if err != nil {
-		red("build & run failed: ", err)
+		red(w, "build & run failed: ", err)
 	}
 
 	for {
 		select {
 		case f := <-filesChanged:
-			magenta("changed:", filesRelativePath(f, path))
+			magenta(w, "changed:", filesRelativePath(f, path))
 
-			checkAndStop(stop)
+			checkAndStop(w, stop)
 
-			stop, err = BuildAndRunApp(path, "")
+			stop, err = BuildAndRunApp(nil, path, "")
 			if err != nil {
-				red("build & run failed: ", err)
+				red(w, "build & run failed: ", err)
 			}
 		case <-ctx.Done():
-			checkAndStop(stop)
+			checkAndStop(w, stop)
 			wg.Wait()
 
 			return nil
@@ -53,13 +54,13 @@ func WatchBuildAndRunApp(ctx context.Context, path string) error {
 	}
 }
 
-func checkAndStop(stop func() error) {
-	red := color.New(color.FgRed, color.Bold).PrintlnFunc()
+func checkAndStop(w io.Writer, stop func() error) {
+	red := color.New(color.FgRed, color.Bold).FprintlnFunc()
 
 	if stop != nil {
 		err := stop()
 		if err != nil {
-			red("shutdown failed: ", err)
+			red(w, "shutdown failed: ", err)
 		}
 	}
 }
