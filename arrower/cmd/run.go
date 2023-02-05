@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"github.com/fatih/color" //nolint:misspell
@@ -36,6 +37,7 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
+			wg := sync.WaitGroup{}
 
 			version, _ := getVersionHashAndTimestamp()
 			blue(cmd.OutOrStdout(), "Arrower version %s\n", version)
@@ -50,12 +52,15 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 			}
 
 			ctx, cancel := context.WithCancel(context.Background())
-			go func(ctx context.Context) {
+			wg.Add(1)
+			go func(ctx context.Context, wg *sync.WaitGroup) {
 				err := internal.WatchBuildAndRunApp(ctx, path)
 				if err != nil {
 					panic(err)
 				}
-			}(ctx)
+
+				wg.Done()
+			}(ctx, &wg)
 
 			// fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
 
@@ -64,6 +69,8 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 				// fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
 
 				cancel()
+				wg.Wait()
+
 				close(waitUntilShutdownFinished)
 			}()
 

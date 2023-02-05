@@ -56,6 +56,11 @@ func BuildAndRunApp(appPath string, binaryPath string) (func() error, error) {
 	cmd = exec.Command(binaryPath)
 	cmd.Stdout = os.Stdout // stream output of app to same terminal as arrower is running in
 	cmd.Dir = appPath
+	// prevent the cmd to be stopped on strg +c from parent, so graceful shutdown works,
+	// see: https://stackoverflow.com/a/33171307
+	cmd.SysProcAttr = &syscall.SysProcAttr{ //nolint:exhaustruct
+		Setpgid: true,
+	}
 
 	err = cmd.Start()
 	if err != nil {
