@@ -27,8 +27,6 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { 
 		wg.Done()
 	}(&wg)
 
-	// ! ensure only one process is running at the same time and others are "queued"
-
 	stop, err := BuildAndRunApp(w, path, "")
 	if err != nil {
 		red(w, "build & run failed: ", err)
@@ -39,7 +37,7 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { 
 		case f := <-filesChanged:
 			magenta(w, "changed:", filesRelativePath(f, path))
 
-			checkAndStop(w, stop)
+			checkAndStop(w, stop) // ensures that no two builds are running at the same time
 
 			stop, err = BuildAndRunApp(w, path, "")
 			if err != nil {
