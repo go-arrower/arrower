@@ -20,7 +20,7 @@ var (
 
 // BuildAndRunApp will build the developer's app at the given appPath to the destination binaryPath.
 // It returns a cleanup function, used to stop the app and leave a clean directory.
-func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() error, error) { //nolint:varnamelen
+func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() error, error) {
 	yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 	if w == nil {

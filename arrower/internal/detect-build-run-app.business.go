@@ -10,7 +10,7 @@ import (
 )
 
 // WatchBuildAndRunApp controls the whole `arrower run` cycle and orchestrates it.
-func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error { //nolint:varnamelen
+func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error {
 	red := color.New(color.FgRed, color.Bold).FprintlnFunc()
 	magenta := color.New(color.FgMagenta, color.Bold).FprintlnFunc()
 	wg := sync.WaitGroup{}

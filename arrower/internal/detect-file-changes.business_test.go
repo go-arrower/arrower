@@ -246,3 +246,39 @@ func TestIsObservedFile(t *testing.T) {
 		})
 	}
 }
+
+func TestFile_IsCSS(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		testName string
+		file     internal.File
+		observed bool
+	}{
+		{
+			"empty",
+			"",
+			false,
+		},
+		{
+			"some file",
+			"some.html",
+			false,
+		},
+		{
+			"css file",
+			"some.css",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.file.IsCSS()
+			assert.Equal(t, tt.observed, got)
+		})
+	}
+}

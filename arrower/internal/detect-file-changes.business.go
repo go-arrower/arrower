@@ -65,3 +65,8 @@ func IsObservedFile(fn File) bool {
 
 	return false
 }
+
+// IsCSS checks if the given File f is a css file.
+func (f File) IsCSS() bool {
+	return strings.HasSuffix(string(f), ".css")
+}
