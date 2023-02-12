@@ -61,7 +61,8 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 	yellow(w, "running...")
 
 	cmd = exec.Command(binaryPath)
-	cmd.Stdout = w // stream output to some io.Writer
+	cmd.Stdout = w // stream output to same io.Writer
+	cmd.Stderr = w // stream output to same io.Writer
 	cmd.Dir = appPath
 	// prevent the cmd to be stopped on strg +c from parent, so graceful shutdown works,
 	// see: https://stackoverflow.com/a/33171307
