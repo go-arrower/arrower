@@ -29,7 +29,8 @@ func NewInterruptSignalChannel() chan os.Signal {
 	return osSignal
 }
 
-func newRunCmd(osSignal <-chan os.Signal) *cobra.Command { //nolint:funlen // allow length because of init work
+//nolint:funlen // allow length because of init work
+func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) *cobra.Command {
 	return &cobra.Command{
 		Use:                   "run",
 		Short:                 "run and hot reload the application",
@@ -58,7 +59,7 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command { //nolint:funlen // al
 			wg.Add(1)
 			go func(ctx context.Context, wg *sync.WaitGroup) {
 				//nolint:govet // shadowing err prevents a race condition
-				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hotReload)
+				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hotReload, openBrowser)
 				if err != nil {
 					panic(err)
 				}

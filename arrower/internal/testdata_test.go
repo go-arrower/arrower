@@ -39,3 +39,5 @@ func (b *SyncBuffer) String() string {
 
 	return b.b.String()
 }
+
+func noBrowser(url string) error { return nil }

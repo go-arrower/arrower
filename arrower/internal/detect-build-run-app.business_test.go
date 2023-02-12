@@ -30,12 +30,19 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
 
+		browserStarted := false
+
 		ctx, cancel := context.WithCancel(context.Background())
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1))
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), func(url string) error {
+				browserStarted = true
+
+				return nil
+			})
 			assert.NoError(t, err)
+			assert.True(t, browserStarted)
 			wg.Done()
 		}()
 
@@ -64,7 +71,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1))
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), noBrowser)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -97,7 +104,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hotReload)
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hotReload, noBrowser)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -126,4 +133,30 @@ func copyDir(t *testing.T, oldDir string, newDir string) {
 	cmd := exec.Command("cp", "--recursive", oldDir, newDir)
 	err := cmd.Run()
 	assert.NoError(t, err)
+}
+
+func TestOpenBrowser(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct { //nolint:govet
+		testName string
+		url      string
+		err      error
+	}{
+		{
+			"empty url",
+			"",
+			fmt.Errorf("%w: invalid url", internal.ErrCommandFailed),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := internal.OpenBrowser(tt.url)
+			assert.Equal(t, tt.err, got)
+		})
+	}
 }

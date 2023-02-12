@@ -25,7 +25,7 @@ func TestRunCmd(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			output, err := executeCommand(cmd.NewArrowerCLI(osSignal), "run")
+			output, err := executeCommand(cmd.NewArrowerCLI(osSignal, noBrowser), "run")
 			output = strings.ToLower(output)
 			assert.NoError(t, err)
 

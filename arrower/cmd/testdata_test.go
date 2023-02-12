@@ -7,5 +7,7 @@ import (
 )
 
 func NewTestArrowerCLI() *cobra.Command {
-	return cmd.NewArrowerCLI(cmd.NewInterruptSignalChannel())
+	return cmd.NewArrowerCLI(cmd.NewInterruptSignalChannel(), noBrowser)
 }
+
+func noBrowser(url string) error { return nil }
