@@ -85,7 +85,12 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		appStopped := make(chan error)
 		go func() { //nolint:wsl
 			err := cmd.Wait()
-			log.Println("failed to wait: ", err)
+			if err != nil &&
+				err.Error() != "signal: terminated" && // in case: this cleanup function is called before the app started
+				err.Error() != "exit status 2" { // in case of a panic: don't return so cleanup can continue
+				// return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err)
+				log.Printf("%v: could not wait for app to complete: %v\n", ErrStopFailed, err)
+			}
 
 			close(appStopped)
 		}()
