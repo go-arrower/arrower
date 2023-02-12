@@ -5,6 +5,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -36,6 +37,7 @@ func TestRunCmd(t *testing.T) {
 			wg.Done()
 		}()
 
+		time.Sleep(50 * time.Millisecond)
 		osSignal <- syscall.SIGTERM
 		wg.Wait()
 	})

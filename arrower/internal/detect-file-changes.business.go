@@ -63,6 +63,26 @@ func IsObservedFile(fn File) bool {
 		return true
 	}
 
+	if fn.IsFrontendSource() {
+		return true
+	}
+
+	return false
+}
+
+// IsFrontendSource checks if a given File f is a frontend resource.
+func (f File) IsFrontendSource() bool {
+	if strings.HasSuffix(string(f), ".html") ||
+		strings.HasSuffix(string(f), ".css") ||
+		strings.HasSuffix(string(f), ".js") ||
+		strings.HasSuffix(string(f), ".png") ||
+		strings.HasSuffix(string(f), ".jpg") ||
+		strings.HasSuffix(string(f), ".jpeg") ||
+		strings.HasSuffix(string(f), ".gif") ||
+		strings.HasSuffix(string(f), ".ico") {
+		return true
+	}
+
 	return false
 }
 

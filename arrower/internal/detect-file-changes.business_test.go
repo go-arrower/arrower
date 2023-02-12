@@ -234,6 +234,16 @@ func TestIsObservedFile(t *testing.T) {
 			"test.go",
 			true,
 		},
+		{
+			"some.html",
+			"some.html",
+			true,
+		},
+		{
+			"some.css",
+			"some.css",
+			true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -278,6 +288,72 @@ func TestFile_IsCSS(t *testing.T) {
 			t.Parallel()
 
 			got := tt.file.IsCSS()
+			assert.Equal(t, tt.observed, got)
+		})
+	}
+}
+
+func TestFile_IsFrontendSource(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		testName string
+		file     internal.File
+		observed bool
+	}{
+		{
+			"empty",
+			"",
+			false,
+		},
+		{
+			"some file",
+			"some.html",
+			true,
+		},
+		{
+			"css file",
+			"some.css",
+			true,
+		},
+		{
+			"js file",
+			"some.js",
+			true,
+		},
+		{
+			"png file",
+			"some.png",
+			true,
+		},
+		{
+			"jpg file",
+			"some.jpg",
+			true,
+		},
+		{
+			"jpeg file",
+			"some.jpeg",
+			true,
+		},
+		{
+			"gif file",
+			"some.gif",
+			true,
+		},
+		{
+			"favicon",
+			"some.ico",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.testName, func(t *testing.T) {
+			t.Parallel()
+
+			got := tt.file.IsFrontendSource()
 			assert.Equal(t, tt.observed, got)
 		})
 	}

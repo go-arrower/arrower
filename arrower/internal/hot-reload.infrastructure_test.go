@@ -35,14 +35,14 @@ func TestNewHotReloadServer(t *testing.T) {
 		server, _ := internal.NewHotReloadServer(make(chan internal.File))
 
 		wg.Add(1)
-		go func() {
+		go func(server *echo.Echo) {
 			wg.Done()
 
 			err := server.Start(fmt.Sprintf(":%d", internal.HotReloadPort))
 			if !errors.Is(err, http.ErrServerClosed) {
 				assert.NoError(t, err)
 			}
-		}()
+		}(server)
 
 		wg.Wait()
 		err := server.Shutdown(context.Background())
@@ -52,7 +52,7 @@ func TestNewHotReloadServer(t *testing.T) {
 	t.Run("receive ws reload messages", func(t *testing.T) {
 		t.Parallel()
 
-		ch := make(chan internal.File)
+		ch := make(chan internal.File, 1)
 		s, err := internal.NewHotReloadServer(ch)
 		assert.NoError(t, err)
 
@@ -83,5 +83,44 @@ func TestNewHotReloadServer(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, internal.RefreshCSSCmd, msg)
 		})
+	})
+
+	t.Run("receive ws reload messages on multiple browser connections", func(t *testing.T) {
+		t.Parallel()
+
+		ch := make(chan internal.File)
+		s, err := internal.NewHotReloadServer(ch)
+		assert.NoError(t, err)
+
+		server := httptest.NewServer(s.Server.Handler)
+		defer server.CloseClientConnections()
+		defer server.Close()
+
+		addr := server.Listener.Addr().String()
+
+		wg := sync.WaitGroup{}
+		wgBrowsersConnected := sync.WaitGroup{}
+
+		wg.Add(5)
+		wgBrowsersConnected.Add(5)
+		for i := 0; i < 5; i++ {
+			go func() {
+				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
+				assert.NoError(t, err)
+				defer ws.Close()
+				wgBrowsersConnected.Done()
+
+				msg := ""
+				err = websocket.Message.Receive(ws, &msg)
+				assert.NoError(t, err)
+				assert.Equal(t, internal.ReloadCmd, msg)
+
+				wg.Done()
+			}()
+		}
+
+		wgBrowsersConnected.Wait()
+		ch <- "some.html"
+		wg.Wait()
 	})
 }

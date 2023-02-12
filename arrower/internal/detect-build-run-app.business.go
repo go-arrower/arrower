@@ -10,7 +10,7 @@ import (
 )
 
 // WatchBuildAndRunApp controls the whole `arrower run` cycle and orchestrates it.
-func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error {
+func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string, hotReload chan File) error {
 	red := color.New(color.FgRed, color.Bold).FprintlnFunc()
 	magenta := color.New(color.FgMagenta, color.Bold).FprintlnFunc()
 	wg := sync.WaitGroup{}
@@ -36,8 +36,14 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error {
 
 	for {
 		select {
-		case f := <-filesChanged:
-			magenta(w, "changed:", filesRelativePath(f, path))
+		case file := <-filesChanged:
+			magenta(w, "changed:", filesRelativePath(file, path))
+
+			if file.IsFrontendSource() {
+				hotReload <- file
+
+				continue
+			}
 
 			checkAndStop(w, stop) // ensures that no two builds are running at the same time
 
@@ -45,6 +51,8 @@ func WatchBuildAndRunApp(ctx context.Context, w io.Writer, path string) error {
 			if err != nil {
 				red(w, "build & run failed: ", err)
 			}
+
+			hotReload <- file // reload browser tabs
 		case <-ctx.Done():
 			checkAndStop(w, stop)
 			wg.Wait()

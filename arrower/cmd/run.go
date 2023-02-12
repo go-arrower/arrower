@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -28,7 +29,7 @@ func NewInterruptSignalChannel() chan os.Signal {
 	return osSignal
 }
 
-func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
+func newRunCmd(osSignal <-chan os.Signal) *cobra.Command { //nolint:funlen // allow length because of init work
 	return &cobra.Command{
 		Use:                   "run",
 		Short:                 "run and hot reload the application",
@@ -51,16 +52,35 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 				panic(err)
 			}
 
+			hotReload := make(chan internal.File, 1)
+
 			ctx, cancel := context.WithCancel(context.Background())
 			wg.Add(1)
 			go func(ctx context.Context, wg *sync.WaitGroup) {
-				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path)
+				//nolint:govet // shadowing err prevents a race condition
+				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hotReload)
 				if err != nil {
 					panic(err)
 				}
 
 				wg.Done()
 			}(ctx, &wg)
+
+			hotReloadServer, err := internal.NewHotReloadServer(hotReload)
+			if err != nil {
+				panic(err)
+			}
+
+			wg.Add(1)
+			go func() {
+				if err != nil {
+					panic(err)
+				}
+
+				_ = hotReloadServer.Start(fmt.Sprintf(":%d", internal.HotReloadPort))
+
+				wg.Done()
+			}()
 
 			// fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
 
@@ -69,6 +89,11 @@ func newRunCmd(osSignal <-chan os.Signal) *cobra.Command {
 				// fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
 
 				cancel()
+				err = hotReloadServer.Shutdown(context.Background())
+				if err != nil {
+					panic(err)
+				}
+
 				wg.Wait()
 
 				close(waitUntilShutdownFinished)
