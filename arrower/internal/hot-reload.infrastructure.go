@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"sync"
 	"time"
@@ -25,7 +26,7 @@ const (
 
 func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 	e := echo.New()
-	e.HideBanner = true
+	e.Logger.SetOutput(io.Discard)
 
 	e.GET("/ws", HotReloadHandler(notify))
 
