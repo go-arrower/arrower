@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/fatih/color" //nolint:misspell
 )
@@ -79,19 +81,30 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 	return func() error {
 		//
+		// wait for shutdown of the app.
+		appStopped := make(chan error)
+		go func() { //nolint:wsl
+			err := cmd.Wait()
+			log.Println("failed to wait: ", err)
+
+			close(appStopped)
+		}()
+
+		//
 		// send shutdown signal for graceful shutdown to app.
 		err := cmd.Process.Signal(syscall.SIGTERM)
 		if err != nil {
 			return fmt.Errorf("%w: send sigterm failed: %v", ErrStopFailed, err)
 		}
 
-		//
-		// wait for shutdown of the app.
-		err = cmd.Wait()
-		if err != nil &&
-			err.Error() != "signal: terminated" && // in case: this cleanup function is called before the app started
-			err.Error() != "exit status 2" { // in case of a panic: don't return so cleanup can continue
-			return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err)
+		// wait for our process to die before we return or hard kill
+		const waitBeforeKill = 2
+		select {
+		case <-time.After(waitBeforeKill * time.Second):
+			if err = cmd.Process.Kill(); err != nil {
+				log.Println("failed to kill: ", err)
+			}
+		case <-appStopped:
 		}
 
 		//

@@ -111,4 +111,24 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.Contains(t, buf.String(), arrowerCLIRun)
 	})
+
+	t.Run("stop if sigterm is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &SyncBuffer{} //nolint:exhaustruct
+		dir := t.TempDir()
+		copyDir(t, "./testdata/example-ignore-sigterm", dir)
+		binaryPath, _ := internal.RandomBinaryPath()
+
+		stop, err := internal.BuildAndRunApp(buf, dir+"/example-ignore-sigterm", binaryPath)
+		assert.NoError(t, err)
+
+		time.Sleep(50 * time.Millisecond) // wait so the process can actually start
+
+		err = stop()
+		assert.NoError(t, err)
+		assert.NoFileExists(t, binaryPath)
+		assert.Contains(t, buf.String(), arrowerCLIBuild)
+		assert.Contains(t, buf.String(), arrowerCLIRun)
+	})
 }
