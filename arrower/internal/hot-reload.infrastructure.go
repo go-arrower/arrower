@@ -65,12 +65,18 @@ func (l *browserSessions) add(id string, ws *websocket.Conn) chan struct{} {
 	return c
 }
 
-func (l *browserSessions) remove(id string) {
+func (l *browserSessions) notify(msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	close(l.openConnections[id].close)
-	delete(l.openConnections, id)
+	for id, conn := range l.openConnections {
+		err := conn.notify(msg)
+		if err != nil {
+			// remove connection, assuming it got closed by the client
+			close(l.openConnections[id].close)
+			delete(l.openConnections, id)
+		}
+	}
 }
 
 func HotReloadHandler(notify <-chan File) func(c echo.Context) error {
@@ -81,25 +87,11 @@ func HotReloadHandler(notify <-chan File) func(c echo.Context) error {
 
 	go func() {
 		for file := range notify {
-			var err error
-
-			browsers.mu.Lock()
-
-			for id, conn := range browsers.openConnections {
-				if file.IsCSS() {
-					err = conn.notify(RefreshCSSCmd)
-				} else {
-					err = conn.notify(ReloadCmd)
-				}
-
-				if err != nil {
-					browsers.remove(id)
-
-					continue
-				}
+			if file.IsCSS() {
+				browsers.notify(RefreshCSSCmd)
+			} else {
+				browsers.notify(ReloadCmd)
 			}
-
-			browsers.mu.Unlock()
 		}
 	}()
 

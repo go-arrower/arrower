@@ -38,6 +38,8 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, args []string) {
+			// log.Debug().Msg("start command `run`")
+
 			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
 			wg := sync.WaitGroup{}
 
@@ -58,6 +60,8 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			ctx, cancel := context.WithCancel(context.Background())
 			wg.Add(1)
 			go func(ctx context.Context, wg *sync.WaitGroup) {
+				// log.Debug().Str("path", path).Msg("start to watch file system")
+
 				//nolint:govet // shadowing err prevents a race condition
 				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hotReload, openBrowser)
 				if err != nil {
@@ -74,20 +78,18 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 
 			wg.Add(1)
 			go func() {
-				if err != nil {
-					panic(err)
-				}
+				// log.Debug().Msg("start hot reload server")
 
 				_ = hotReloadServer.Start(fmt.Sprintf(":%d", internal.HotReloadPort))
 
 				wg.Done()
 			}()
 
-			// fmt.Fprintln(cmd.OutOrStdout(), "Waiting for shutdown")
+			// log.Debug().Msg("Waiting for shutdown")
 
 			go func() {
 				<-osSignal
-				// fmt.Fprintln(cmd.OutOrStdout(), "Shutdown signal received")
+				// log.Debug().Msg("Shutdown signal received")
 
 				cancel()
 				err = hotReloadServer.Shutdown(context.Background())

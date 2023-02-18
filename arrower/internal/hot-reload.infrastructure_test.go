@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -85,10 +86,12 @@ func TestNewHotReloadServer(t *testing.T) {
 		})
 	})
 
-	t.Run("receive ws reload messages on multiple browser connections", func(t *testing.T) {
+	t.Run("receive ws reload messages on multiple (dropping out) browser connections", func(t *testing.T) {
 		t.Parallel()
 
-		ch := make(chan internal.File)
+		const maxConnections = 100
+		ch := make(chan internal.File, maxConnections)
+
 		s, err := internal.NewHotReloadServer(ch)
 		assert.NoError(t, err)
 
@@ -101,26 +104,37 @@ func TestNewHotReloadServer(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wgBrowsersConnected := sync.WaitGroup{}
 
-		wg.Add(5)
-		wgBrowsersConnected.Add(5)
-		for i := 0; i < 5; i++ {
+		wg.Add(maxConnections)
+		wgBrowsersConnected.Add(maxConnections)
+		for i := 0; i < maxConnections; i++ {
 			go func() {
 				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
 				assert.NoError(t, err)
 				defer ws.Close()
 				wgBrowsersConnected.Done()
 
-				msg := ""
-				err = websocket.Message.Receive(ws, &msg)
-				assert.NoError(t, err)
-				assert.Equal(t, internal.ReloadCmd, msg)
+				for {
+					msg := ""
+					err = websocket.Message.Receive(ws, &msg)
+					assert.NoError(t, err)
+					assert.Equal(t, internal.ReloadCmd, msg)
+
+					// simulate a browser disconnection
+					if rand.Int()%2 == 0 { //nolint:gosec //weak rand is alright
+						break
+					}
+				}
 
 				wg.Done()
 			}()
 		}
 
 		wgBrowsersConnected.Wait()
-		ch <- "some.html"
+
+		for i := 0; i < maxConnections; i++ {
+			ch <- "some.html"
+		}
+
 		wg.Wait()
 	})
 }
