@@ -39,7 +39,8 @@ func TestNewHotReloadServer(t *testing.T) {
 		go func(server *echo.Echo) {
 			wg.Done()
 
-			err := server.Start(fmt.Sprintf(":%d", internal.HotReloadPort))
+			port := 1024 * rand.Intn(10) //nolint:gosec // rand does not need to be secure for port number
+			err := server.Start(fmt.Sprintf(":%d", port))
 			if !errors.Is(err, http.ErrServerClosed) {
 				assert.NoError(t, err)
 			}
