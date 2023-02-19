@@ -37,7 +37,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.Contains(t, buf.String(), arrowerCLIRun)
 
-		// wait so the example-cli application can start & run
+		// wait so the example application can start & run
 		time.Sleep(50 * time.Millisecond)
 
 		err = cleanup()
@@ -117,6 +117,21 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.NoFileExists(t, binaryPath)
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.Contains(t, buf.String(), arrowerCLIRun)
+	})
+
+	t.Run("app does not compile", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &SyncBuffer{} //nolint:exhaustruct
+		dir := t.TempDir()
+		copyDir(t, "./testdata/example-compile-error", dir)
+		binaryPath, _ := internal.RandomBinaryPath()
+
+		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-compile-error", binaryPath)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, internal.ErrBuildFailed))
+		assert.Contains(t, err.Error(), "is not in GOROOT")
+		assert.Nil(t, cleanup)
 	})
 
 	t.Run("stop if sigterm is ignored", func(t *testing.T) {

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -42,18 +43,20 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 	// build the app
 	yellow(w, "building...")
 
+	buf := &bytes.Buffer{}
+
 	cmd := exec.Command("go", "build", "-o", binaryPath, appPath)
 	cmd.Dir = appPath
-	// cmd.Stderr = os.Stdout // show error message of the `go build` command
+	cmd.Stderr = buf // show error message of the `go build` command
 
 	err := cmd.Run()
 	if err != nil {
-		err = os.Remove(binaryPath)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
+		err2 := os.Remove(binaryPath)
+		if err2 != nil {
+			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
 		}
 
-		return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
+		return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
 	}
 
 	//
