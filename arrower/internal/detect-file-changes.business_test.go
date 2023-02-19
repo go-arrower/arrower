@@ -118,8 +118,9 @@ func TestWatchFolder(t *testing.T) {
 		time.Sleep(10 * time.Millisecond) // wait to enforce order of filesChanged elements
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
-		time.Sleep(10 * time.Millisecond) // wait for watcher to detect changes
-		assert.Equal(t, 1, len(filesChanged))
+		const expected = 1
+		wait(filesChanged, expected)
+		assert.Equal(t, expected, len(filesChanged))
 
 		cancel()
 		wg.Wait()
@@ -148,8 +149,9 @@ func TestWatchFolder(t *testing.T) {
 		time.Sleep(40 * time.Millisecond) // wait to enforce order of filesChanged elements
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
-		time.Sleep(10 * time.Millisecond) // wait for watcher to detect changes
-		assert.Equal(t, 2, len(filesChanged))
+		const expected = 2
+		wait(filesChanged, expected)
+		assert.Equal(t, expected, len(filesChanged))
 
 		cancel()
 		wg.Wait()
@@ -356,5 +358,16 @@ func TestFile_IsFrontendSource(t *testing.T) {
 			got := tt.file.IsFrontendSource()
 			assert.Equal(t, tt.observed, got)
 		})
+	}
+}
+
+// wait is a helper to pass time, until the watcher detects changes.
+func wait(filesChanged chan internal.File, expected int) {
+	for {
+		if len(filesChanged) == expected {
+			time.Sleep(10 * time.Millisecond)
+
+			break
+		}
 	}
 }
