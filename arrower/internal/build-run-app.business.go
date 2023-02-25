@@ -84,16 +84,20 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 // stopAndCleanup returns a function that: shuts down running app from cmd and cleans up afterwards.
 func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 	return func() error {
+		defer func() {
+			err := deleteAppBinary(binaryPath)
+			if err != nil {
+				log.Println(err)
+			}
+		}()
+
 		//
 		// wait for shutdown of the app.
 		appStopped := make(chan error)
 		go func() { //nolint:wsl
-			err := cmd.Wait()
-			if err != nil &&
-				err.Error() != "signal: terminated" && // in case: this cleanup function is called before the app started
-				err.Error() != "exit status 2" { // in case of a panic: don't return so cleanup can continue
-				// return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err)
-				log.Printf("%v: could not wait for app to complete: %v\n", ErrStopFailed, err)
+			err := waitForCmdToFinish(cmd)
+			if err != nil {
+				log.Println(err)
 			}
 
 			close(appStopped)
@@ -102,7 +106,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		//
 		// send shutdown signal for graceful shutdown to app.
 		err := cmd.Process.Signal(syscall.SIGTERM)
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrProcessDone) {
 			return fmt.Errorf("%w: send sigterm failed: %v", ErrStopFailed, err)
 		}
 
@@ -111,20 +115,35 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		select {
 		case <-time.After(waitBeforeKill * time.Second):
 			if err = cmd.Process.Kill(); err != nil {
-				log.Println("failed to kill: ", err)
+				return fmt.Errorf("%w: failed to kill: %v", ErrStopFailed, err)
 			}
 		case <-appStopped:
 		}
 
-		//
-		// delete the app binary, to leave a clean working directory.
-		err = os.Remove(binaryPath)
-		if err != nil {
-			return fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
-		}
-
 		return nil
 	}
+}
+
+// deleteAppBinary deletes the app binary, to leave a clean working directory.
+func deleteAppBinary(binaryPath string) error {
+	err := os.Remove(binaryPath)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
+	}
+
+	return nil
+}
+
+func waitForCmdToFinish(cmd *exec.Cmd) error {
+	err := cmd.Wait()
+	if err != nil &&
+		err.Error() != "signal: terminated" && // in case: this cleanup function is called before the app started
+		err.Error() != "signal: killed" && // UNCLEAR: check required when test is run from CLI, not if it is run from IDE
+		err.Error() != "exit status 2" { // in case of a panic: don't return so cleanup can continue
+		return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err)
+	}
+
+	return nil
 }
 
 // RandomBinaryPath return a unique path to build the app binary in the operating systems /tmp folder.
