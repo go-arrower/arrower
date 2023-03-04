@@ -21,7 +21,7 @@ test: static-check generate test-unit ## Run all tests
 
 .PHONY: test-unit
 test-unit:
-	go test -race ./... -count=1 -coverprofile cover.out
+	go test -race ./... -coverprofile cover.out
 
 
 
