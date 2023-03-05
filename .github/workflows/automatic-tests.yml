@@ -31,3 +31,22 @@ jobs:
         run: |
           go test ./...
           go test -race ./...
+
+  integration-test:
+    strategy:
+      matrix:
+        go: [ 1.19.x, 1.20.x ]
+        os: [ ubuntu-latest ] # macos-latest & windows-latest fail for arrower cli tests
+    runs-on: ${{ matrix.os }}
+    services:
+      dind:
+        image: docker:23.0-rc-dind-rootless
+        ports:
+          - 2375:2375
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Integration tests with Docker
+        run: go test -race --tags="integration"
