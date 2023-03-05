@@ -79,5 +79,5 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 // If called in a CI environment, it connects to a running service.
 // If run locally, if spins up and connects to a db instance in a new docker container.
 func GetDBConnectionForIntegrationTesting() (*postgres.Handler, func()) {
-	return &postgres.Handler{PGx: nil}, func() {}
+	return &postgres.Handler{PGx: nil, DB: nil}, func() {}
 }

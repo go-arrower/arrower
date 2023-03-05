@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/assert"
 
@@ -37,7 +38,7 @@ func TestConnect(t *testing.T) {
 			return func() error {
 				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
-				handler, err := postgres.Connect(postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
@@ -56,6 +57,8 @@ func TestConnect(t *testing.T) {
 
 		err := pgHandler.PGx.Ping(context.Background())
 		assert.NoError(t, err)
+		assert.NotEmpty(t, pgHandler.PGx)
+		assert.NotEmpty(t, pgHandler.DB)
 
 		_ = cleanup()
 	})
@@ -68,7 +71,7 @@ func TestConnect(t *testing.T) {
 			return func() error {
 				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
-				handler, err := postgres.Connect(postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
@@ -96,4 +99,72 @@ func TestConnect(t *testing.T) {
 
 		_ = cleanup()
 	})
+}
+
+func TestConnectAndMigrate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ensure db migration run", func(t *testing.T) {
+		t.Parallel()
+
+		var pgHandler *postgres.Handler
+		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
+			return func() error {
+				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+
+				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{ //nolint:exhaustruct
+					Host:     "localhost",
+					Port:     port,
+					User:     "username",
+					Password: "secret",
+					Database: "dbname",
+				})
+				if err != nil {
+					return err //nolint:wrapcheck
+				}
+
+				pgHandler = handler
+
+				return nil
+			}
+		})
+
+		err := pgHandler.PGx.Ping(context.Background())
+		assert.NoError(t, err)
+		ensureMigrationsRun(t, pgHandler.PGx)
+		ensureMigrationFilesLoadedAndApplied(t, pgHandler.PGx)
+
+		_ = cleanup()
+	})
+}
+
+func ensureMigrationsRun(t *testing.T, pgx *pgxpool.Pool) {
+	t.Helper()
+
+	row := pgx.QueryRow(
+		context.Background(),
+		`SELECT EXISTS (
+				SELECT FROM information_schema.tables
+					WHERE  table_schema = 'public'
+					AND    table_name   = 'schema_migrations'
+			);`)
+
+	var exists bool
+
+	err := row.Scan(&exists)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
+func ensureMigrationFilesLoadedAndApplied(t *testing.T, pgx *pgxpool.Pool) {
+	t.Helper()
+
+	row := pgx.QueryRow(
+		context.Background(),
+		`select pg_get_functiondef('set_updated_at()'::regprocedure);`)
+
+	var funcExists string
+
+	err := row.Scan(&funcExists)
+	assert.NoError(t, err)
 }
