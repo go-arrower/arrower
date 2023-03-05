@@ -53,6 +53,7 @@ func TestStartDockerContainer(t *testing.T) {
 			return func() error {
 				port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
 				url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname", port)
+
 				conn, err := pgx.Connect(context.Background(), url)
 				if err != nil {
 					log.Println(err)
