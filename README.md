@@ -28,10 +28,10 @@
 ## Create new Database Migration
 ```shell
 export POSTGRESQL_URL='postgres://arrower:secret@localhost:5432/arrower?sslmode=disable'
-migrate create -ext sql -dir postgresql/migrations -seq create_test_table
+migrate create -ext sql -dir postgres/migrations -seq create_test_table
 
-migrate -database ${POSTGRESQL_URL} -path postgresql/migrations up
-migrate -database ${POSTGRESQL_URL} -path postgresql/migrations down
+migrate -database ${POSTGRESQL_URL} -path postgres/migrations up
+migrate -database ${POSTGRESQL_URL} -path postgres/migrations down
 ```
 
 

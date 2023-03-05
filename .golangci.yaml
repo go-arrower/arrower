@@ -1,5 +1,6 @@
 run:
   build-tags:
+    - integration
 
 linters-settings:
   gci:

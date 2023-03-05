@@ -14,7 +14,7 @@ generate: ## Generate all code to run the service
 	go generate ./...
 
 .PHONY: test
-test: static-check generate test-unit ## Run all tests
+test: static-check generate test-unit test-integration ## Run all tests
 	go tool cover -html=cover.out -o cover.html; xdg-open cover.html
 	go tool cover -func cover.out | grep total:
 
@@ -22,6 +22,10 @@ test: static-check generate test-unit ## Run all tests
 .PHONY: test-unit
 test-unit:
 	go test -race ./... -coverprofile cover.out
+
+.PHONY: test-integration
+test-integration:
+	go test -race --tags="integration" ./... -coverprofile cover.out
 
 
 
