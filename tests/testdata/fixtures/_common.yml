@@ -1,0 +1,3 @@
+admin.setting:
+  - setting: some_test_setting
+    value: some_value

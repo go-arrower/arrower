@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -44,7 +43,7 @@ func TestStartDockerContainer(t *testing.T) {
 			Env: []string{
 				"POSTGRES_PASSWORD=secret",
 				"POSTGRES_USER=username",
-				"POSTGRES_DB=dbname",
+				"POSTGRES_DB=dbname_test",
 				"listen_addresses = '*'",
 			},
 		}
@@ -52,12 +51,10 @@ func TestStartDockerContainer(t *testing.T) {
 		retryFunc := func(resource *dockertest.Resource) func() error {
 			return func() error {
 				port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
-				url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname", port)
+				url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname_test", port)
 
 				conn, err := pgx.Connect(context.Background(), url)
 				if err != nil {
-					log.Println(err)
-
 					return err //nolint:wrapcheck
 				}
 
@@ -76,4 +73,11 @@ func TestStartDockerContainer(t *testing.T) {
 
 func TestGetDBConnectionForIntegrationTesting(t *testing.T) {
 	t.Parallel()
+
+	pgHandler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
+	assert.NotNil(t, pgHandler)
+	assert.NotNil(t, cleanup)
+
+	err := cleanup()
+	assert.NoError(t, err)
 }

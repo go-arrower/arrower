@@ -45,8 +45,8 @@ func (c Config) toURL() string {
 }
 
 // Connect connects to a PostgreSQL database.
-func Connect(ctx context.Context, c Config) (*Handler, error) {
-	config, err := pgxpool.ParseConfig(c.toURL())
+func Connect(ctx context.Context, pgConf Config) (*Handler, error) {
+	config, err := pgxpool.ParseConfig(pgConf.toURL())
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not parse config: %v", ErrConnectionFailed, err)
 	}
@@ -61,14 +61,14 @@ func Connect(ctx context.Context, c Config) (*Handler, error) {
 		return nil, fmt.Errorf("%w: could not ping db: %v", ErrConnectionFailed, err)
 	}
 
-	connStr := stdlib.RegisterConnConfig(config.ConnConfig)
+	connStr := stdlib.RegisterConnConfig(config.ConnConfig) // offer std SQL if a library would need it.
 
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not connect via the std lib registration: %v", ErrConnectionFailed, err)
 	}
 
-	return &Handler{PGx: dbpool, DB: db}, nil
+	return &Handler{PGx: dbpool, DB: db, Config: pgConf}, nil
 }
 
 // ConnectAndMigrate connects to a PostgreSQL database and
@@ -112,8 +112,9 @@ func migrateUp(db *sql.DB, dbName string, migrationsFS fs.FS) error {
 }
 
 type Handler struct {
-	PGx *pgxpool.Pool
-	DB  *sql.DB // keep a sql.DB connection around for migration & integration test cases, e.g. setting up test fixtures.
+	PGx    *pgxpool.Pool
+	DB     *sql.DB // keep a sql.DB connection around for migration & integration tests, e.g. setting up test fixtures.
+	Config Config
 }
 
 // Shutdown waits & closes all connections to PostgreSQL.

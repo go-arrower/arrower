@@ -22,7 +22,7 @@ var runOptions = &dockertest.RunOptions{ //nolint:exhaustruct
 	Env: []string{
 		"POSTGRES_PASSWORD=secret",
 		"POSTGRES_USER=username",
-		"POSTGRES_DB=dbname",
+		"POSTGRES_DB=dbname_test",
 		"listen_addresses = '*'",
 	},
 }
@@ -35,15 +35,15 @@ func TestConnect(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			return func() error {
-				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
+			return func() error {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
 					Password: "secret",
-					Database: "dbname",
+					Database: "dbname_test",
 				})
 				if err != nil {
 					return err //nolint:wrapcheck
@@ -68,15 +68,15 @@ func TestConnect(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			return func() error {
-				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
+			return func() error {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
 					Password: "secret",
-					Database: "dbname",
+					Database: "dbname_test",
 				})
 				if err != nil {
 					return err //nolint:wrapcheck
@@ -109,15 +109,15 @@ func TestConnectAndMigrate(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			return func() error {
-				port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
+			return func() error {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{ //nolint:exhaustruct
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
 					Password: "secret",
-					Database: "dbname",
+					Database: "dbname_test",
 				})
 				if err != nil {
 					return err //nolint:wrapcheck

@@ -9,8 +9,6 @@ import (
 
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-
-	"github.com/go-arrower/arrower/postgres"
 )
 
 var ErrDockerFailure = errors.New("docker failure")
@@ -72,12 +70,4 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 
 		return nil
 	}, nil
-}
-
-// GetDBConnectionForIntegrationTesting returns a fully connected Handler and a function to clean up
-// after the integration tests are done.
-// If called in a CI environment, it connects to a running service.
-// If run locally, if spins up and connects to a db instance in a new docker container.
-func GetDBConnectionForIntegrationTesting() (*postgres.Handler, func()) {
-	return &postgres.Handler{PGx: nil, DB: nil}, func() {}
 }
