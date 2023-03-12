@@ -43,12 +43,13 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 		retryFunc = func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 			conf := postgres.Config{
-				User:     "username",
-				Password: "secret",
-				Database: "dbname_test",
-				Host:     "localhost",
-				Port:     port,
-				MaxConns: 10, //nolint:gomnd
+				User:       "username",
+				Password:   "secret",
+				Database:   "dbname_test",
+				Host:       "localhost",
+				Port:       port,
+				MaxConns:   10, //nolint:gomnd
+				Migrations: postgres.ArrowerDefaultMigrations,
 			}
 
 			return func() error {

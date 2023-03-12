@@ -18,7 +18,7 @@ import (
 )
 
 //go:embed migrations/*.sql
-var migrationsFS embed.FS
+var ArrowerDefaultMigrations embed.FS
 
 var (
 	ErrConnectionFailed = errors.New("connection failed")
@@ -27,12 +27,13 @@ var (
 
 // Config holds all values used to configure and connect to a postgres database.
 type Config struct {
-	User     string
-	Password string
-	Database string
-	Host     string
-	Port     int
-	MaxConns int
+	Migrations fs.FS
+	User       string
+	Password   string
+	Database   string
+	Host       string
+	Port       int
+	MaxConns   int
 }
 
 func (c Config) toURL() string {
@@ -74,12 +75,16 @@ func Connect(ctx context.Context, pgConf Config) (*Handler, error) {
 // ConnectAndMigrate connects to a PostgreSQL database and
 // runs all migrations to ensure that the schema is on the latest version.
 func ConnectAndMigrate(ctx context.Context, conf Config) (*Handler, error) {
+	if conf.Migrations == nil {
+		return nil, fmt.Errorf("%w: no migration files given", ErrMigrationFailed)
+	}
+
 	handler, err := Connect(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	err = migrateUp(handler.DB, conf.Database, migrationsFS)
+	err = migrateUp(handler.DB, conf.Database, conf.Migrations)
 	if err != nil {
 		return nil, err
 	}

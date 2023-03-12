@@ -4,6 +4,7 @@ package postgres_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -104,11 +105,10 @@ func TestConnect(t *testing.T) {
 func TestConnectAndMigrate(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ensure db migration run", func(t *testing.T) {
+	t.Run("missing migration path fails", func(t *testing.T) {
 		t.Parallel()
 
-		var pgHandler *postgres.Handler
-		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
+		_, _ = tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
 			return func() error {
@@ -118,6 +118,36 @@ func TestConnectAndMigrate(t *testing.T) {
 					User:     "username",
 					Password: "secret",
 					Database: "dbname_test",
+				})
+				if err != nil && !errors.Is(err, postgres.ErrMigrationFailed) {
+					return err //nolint:wrapcheck
+				}
+
+				t.Log(err)
+				assert.Error(t, err)
+				assert.True(t, errors.Is(err, postgres.ErrMigrationFailed), err)
+				assert.Nil(t, handler)
+
+				return nil
+			}
+		})
+	})
+
+	t.Run("ensure db migration run", func(t *testing.T) {
+		t.Parallel()
+
+		var pgHandler *postgres.Handler
+		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+
+			return func() error {
+				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{ //nolint:exhaustruct
+					Host:       "localhost",
+					Port:       port,
+					User:       "username",
+					Password:   "secret",
+					Database:   "dbname_test",
+					Migrations: postgres.ArrowerDefaultMigrations,
 				})
 				if err != nil {
 					return err //nolint:wrapcheck
