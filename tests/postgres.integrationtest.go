@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-testfixtures/testfixtures/v3"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 
 	"github.com/go-arrower/arrower/postgres"
@@ -81,6 +80,7 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 // If there is a file named `testdata/fixtures/_common.yml`, it's always loaded by default.
 // In case of an issue it panics.
 // It can be used in parallel and works around the limitations of go-testfixtures/testfixtures.
+// If there is a folder `testdata/migrations` it is used to migrate the database up on.
 func PrepareTestDatabase(pg *postgres.Handler, files ...string) *postgres.Handler {
 	pgHandler := createAndConnectToNewRandomDatabase(pg)
 
@@ -114,22 +114,24 @@ func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler
 		panic(err)
 	}
 
-	c := pg.Config
-	c.Database = newDB
+	newConfig := pg.Config
+	newConfig.Database = newDB
 
-	newHandler, err := postgres.ConnectAndMigrate(context.Background(), c)
+	if _, err = os.Stat("testdata/migrations/"); errors.Is(err, nil) { // custom migrations exist
+		newConfig.Migrations = os.DirFS("testdata/")
+	}
+
+	newHandler, err := postgres.ConnectAndMigrate(context.Background(), newConfig)
 	if err != nil {
 		panic(err)
 	}
-
-	setupSeedDBSchema(newHandler.PGx)
 
 	return newHandler
 }
 
 var validPGDatabaseLetters = []rune("abcdefghijklmnopqrstuvwxyz") //nolint:gochecknoglobals
 func randomDatabaseName() string {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // used for ids, not security
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // used for name, not security
 
 	const n = 16
 	b := make([]rune, n)
@@ -139,20 +141,4 @@ func randomDatabaseName() string {
 	}
 
 	return string(b) + "_test"
-}
-
-func setupSeedDBSchema(pgx *pgxpool.Pool) {
-	_, _ = pgx.Exec(context.Background(), `CREATE SCHEMA admin;`)
-	_, _ = pgx.Exec(context.Background(), `CREATE TABLE admin.setting (
-        setting	TEXT PRIMARY KEY,
-    	value   TEXT NOT NULL DEFAULT ''
-	);`)
-
-	_, _ = pgx.Exec(context.Background(), `CREATE TABLE "some_table" (
-        name	TEXT PRIMARY KEY
-	);`)
-
-	_, _ = pgx.Exec(context.Background(), `CREATE TABLE "other_table" (
-        name	TEXT PRIMARY KEY
-	);`)
 }
