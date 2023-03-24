@@ -1,0 +1,5 @@
+public.some_table:
+  - name: "some_table: value 1"
+
+public.other_table:
+  - name: "other_table: value 1"

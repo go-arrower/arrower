@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: arrower
+      POSTGRES_PASSWORD: secret
+      # Set the locale, see: https://stackoverflow.com/a/28406007
+      LANG: en_US.UTF-8
+      LANGUAGE: en_US:en
+      LC_ALL: en_US.UTF-8
+
+  # helper services
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 8081:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@localhost.tdl
+      PGADMIN_DEFAULT_PASSWORD: secret
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    links:
+      - postgres:postgres
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-data:
+  pgadmin-data:
