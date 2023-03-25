@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/jobs"
@@ -344,14 +345,17 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 		_ = jq.Shutdown(ctx)
 	})
+}
+
+func TestGueHandler_History(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ensure successful jobs are logged into gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
-		t.Skip() // move hist and KPIs to own Test Function
 
-		ensureJobHistoryTablesAreEmpty(t)
+		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error { return nil })
@@ -361,28 +365,34 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 
 		// job history table is empty before first job is enqueued
-		ensureJobHistoryTableRows(t, 0)
+		ensureJobHistoryTableRows(t, pg, 0)
 
 		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
 		assert.NoError(t, err)
 
 		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup in the JobFunc does not work,
 		// because wg.Done() can only be called from the worker func and not the hooks (where it would need to be placed).
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond * 100)
 
 		_ = jq.Shutdown(ctx)
 
 		// job history table contains finished job
-		ensureJobHistoryTableRows(t, 1)
+		ensureJobHistoryTableRows(t, pg, 1)
+
+		// ensure the job is finished successful
+		var success bool
+		var finishedAt pgtype.Timestamptz
+		_ = pg.PGx.QueryRow(ctx, `SELECT success, finished_at FROM public.gue_jobs_history LIMIT 1`).Scan(&success, &finishedAt) //nolint:lll
+		assert.True(t, success)
+		assert.NotEmpty(t, finishedAt)
 	})
 
-	t.Run("ensure failed jobs are not logged into gue_jobs_history table", func(t *testing.T) {
+	t.Run("ensure failed jobs are updated in gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
-		t.Skip()
 
-		ensureJobHistoryTablesAreEmpty(t)
+		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
@@ -394,19 +404,25 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 
 		// job history table is empty before first job is enqueued
-		ensureJobHistoryTableRows(t, 0)
+		ensureJobHistoryTableRows(t, pg, 0)
 
 		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
 		assert.NoError(t, err)
 
 		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup does not work,
 		// because Done() can only be called from the worker func and not the hooks.
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 
 		_ = jq.Shutdown(ctx)
 
-		// job history table remains empty
-		ensureJobHistoryTableRows(t, 0)
+		ensureJobHistoryTableRows(t, pg, 1)
+
+		// ensure the job is finished with fail conditions
+		var success bool
+		var finishedAt pgtype.Timestamptz
+		_ = pg.PGx.QueryRow(ctx, `SELECT success, finished_at FROM public.gue_jobs_history LIMIT 1`).Scan(&success, &finishedAt) //nolint:lll
+		assert.False(t, success)
+		assert.Empty(t, finishedAt)
 	})
 }
 
@@ -427,9 +443,9 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		t.Parallel()
 		t.Skip()
 
-		ensureJobHistoryTablesAreEmpty(t)
+		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
@@ -448,8 +464,8 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		err = jq.Shutdown(ctx)
 		assert.NoError(t, err)
 
-		ensureJobTableRows(t, pgHandler, 1)
-		ensureJobHistoryTableRows(t, 0)
+		ensureJobTableRows(t, pg, 1)
+		ensureJobHistoryTableRows(t, pg, 0)
 	})
 }
 
@@ -460,8 +476,6 @@ func TestGueHandler_Tx(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
-
-		ensureJobHistoryTablesAreEmpty(t)
 
 		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
@@ -494,8 +508,6 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		// ensureJobHistoryTablesAreEmpty(t)
-
 		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
 
@@ -524,8 +536,6 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		ensureJobHistoryTablesAreEmpty(t)
-
 		var wg sync.WaitGroup
 
 		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
@@ -551,27 +561,20 @@ func TestGueHandler_Tx(t *testing.T) {
 	})
 }
 
-func ensureJobHistoryTablesAreEmpty(t *testing.T) {
-	t.Helper()
-
-	_, _ = pgHandler.PGx.Exec(ctx, `TRUNCATE public.gue_jobs;`)
-	_, _ = pgHandler.PGx.Exec(ctx, `TRUNCATE public.gue_jobs_history;`)
-}
-
-func ensureJobHistoryTableRows(t *testing.T, num int) {
-	t.Helper()
-
-	var c int
-	_ = pgHandler.PGx.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs_history;`).Scan(&c)
-
-	assert.Equal(t, num, c)
-}
-
 func ensureJobTableRows(t *testing.T, pgHandler *postgres.Handler, num int) {
 	t.Helper()
 
 	var c int
 	_ = pgHandler.PGx.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs;`).Scan(&c)
+
+	assert.Equal(t, num, c)
+}
+
+func ensureJobHistoryTableRows(t *testing.T, pgHandler *postgres.Handler, num int) {
+	t.Helper()
+
+	var c int
+	_ = pgHandler.PGx.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs_history;`).Scan(&c)
 
 	assert.Equal(t, num, c)
 }

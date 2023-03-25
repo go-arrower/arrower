@@ -290,7 +290,8 @@ func (h *GueHandler) StartWorkers() error {
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue),
 		gue.WithPoolPollInterval(h.pollInterval),
-		// gue.WithPoolHooksJobDone(logSuccessfullyFinishedJobs(h.logger)), // todo
+		gue.WithPoolHooksJobLocked(logStartedJobs()),
+		gue.WithPoolHooksJobDone(logFinishedJobs()),
 	)
 	if err != nil {
 		return fmt.Errorf("could not create gue worker pool: %w", err)
@@ -315,6 +316,34 @@ func (h *GueHandler) StartWorkers() error {
 	h.hasStarted = true
 
 	return nil
+}
+
+func logStartedJobs() func(context.Context, *gue.Job, error) {
+	return func(ctx context.Context, job *gue.Job, err error) {
+		// if err is set, the job could not be pulled from the DB.
+		if err != nil {
+			return
+		}
+
+		_, _ = job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), FALSE, NULL);`, //nolint:lll,dupword
+			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
+		)
+	}
+}
+
+// logFinishedJobs takes each job that's finished and logs it into a new table,
+// so it's persisted for later analytics.
+// gue does delete finished jobs from the gue_jobs table and the information would be lost otherwise.
+func logFinishedJobs() func(context.Context, *gue.Job, error) {
+	return func(ctx context.Context, job *gue.Job, err error) {
+		if err != nil { // job returned with an error and worker JobFunc failed
+			_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET finished_at = NOW() WHERE job_id = $1 AND finished_at = NULL;`, job.ID.String()) //nolint:lll
+
+			return
+		}
+
+		_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET success = TRUE, finished_at = NOW() WHERE job_id = $1 AND finished_at IS NULL;`, job.ID.String()) //nolint:lll
+	}
 }
 
 func (h *GueHandler) Shutdown(ctx context.Context) error {
