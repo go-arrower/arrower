@@ -1,0 +1,7 @@
+BEGIN;
+
+
+DROP TABLE IF EXISTS gue_jobs;
+
+
+COMMIT;
