@@ -325,7 +325,7 @@ func logStartedJobs() func(context.Context, *gue.Job, error) {
 			return
 		}
 
-		_, _ = job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), FALSE, NULL);`, //nolint:lll,dupword
+		_, _ = job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), FALSE, NULL);`, //nolint:lll,dupword
 			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
 		)
 	}
@@ -337,12 +337,16 @@ func logStartedJobs() func(context.Context, *gue.Job, error) {
 func logFinishedJobs() func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, err error) {
 		if err != nil { // job returned with an error and worker JobFunc failed
-			_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET finished_at = NOW() WHERE job_id = $1 AND finished_at = NULL;`, job.ID.String()) //nolint:lll
+			_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_error = $1, finished_at = NOW() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
+				err.Error(), job.ID.String(), job.ErrorCount,
+			)
 
 			return
 		}
 
-		_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET success = TRUE, finished_at = NOW() WHERE job_id = $1 AND finished_at IS NULL;`, job.ID.String()) //nolint:lll
+		_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_count = $1, run_error = '', success = TRUE, finished_at = NOW() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
+			job.ErrorCount, job.ID.String(), job.ErrorCount,
+		)
 	}
 }
 

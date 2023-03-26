@@ -5,6 +5,7 @@ package jobs_test
 
 import (
 	"context"
+	"time"
 )
 
 var (
@@ -33,4 +34,19 @@ func (j jobWithJobType) JobType() string {
 
 func (j jobWithSameNameAsSimpleJob) JobType() string {
 	return "simpleJob"
+}
+
+type GueJobHistory struct {
+	JobID      string
+	JobType    string
+	Queue      string
+	RunError   string
+	RunAt      time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	FinishedAt *time.Time
+	Args       []byte
+	RunCount   int
+	Priority   int
+	Success    bool
 }

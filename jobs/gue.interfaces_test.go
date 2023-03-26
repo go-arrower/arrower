@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/jobs"
@@ -380,23 +380,39 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 1)
 
 		// ensure the job is finished successful
-		var success bool
-		var finishedAt pgtype.Timestamptz
-		_ = pg.PGx.QueryRow(ctx, `SELECT success, finished_at FROM public.gue_jobs_history LIMIT 1`).Scan(&success, &finishedAt) //nolint:lll
-		assert.True(t, success)
-		assert.NotEmpty(t, finishedAt)
+		var hJob GueJobHistory
+		err = pgxscan.Get(ctx, pg.PGx, &hJob, `SELECT * FROM public.gue_jobs_history`)
+		assert.NoError(t, err)
+
+		assert.True(t, hJob.Success)
+		assert.NotEmpty(t, hJob.FinishedAt)
+		assert.Equal(t, hJob.RunCount, 0)
+		assert.Empty(t, hJob.RunError)
 	})
 
-	t.Run("ensure failed jobs are updated in gue_jobs_history table", func(t *testing.T) {
+	t.Run("ensure failed jobs are tracked in gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
+
+		var (
+			count int
+			wg    sync.WaitGroup
+		)
 
 		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
-			return errors.New("job returns with error") //nolint:goerr113
+			if count == 0 {
+				count++
+
+				return errors.New("job returns with error") //nolint:goerr113
+			}
+
+			wg.Done()
+
+			return nil
 		})
 		assert.NoError(t, err)
 
@@ -406,23 +422,34 @@ func TestGueHandler_History(t *testing.T) {
 		// job history table is empty before first job is enqueued
 		ensureJobHistoryTableRows(t, pg, 0)
 
+		wg.Add(1)
 		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
 		assert.NoError(t, err)
 
+		wg.Wait()
 		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup does not work,
 		// because Done() can only be called from the worker func and not the hooks.
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 50)
 
 		_ = jq.Shutdown(ctx)
 
-		ensureJobHistoryTableRows(t, pg, 1)
+		ensureJobHistoryTableRows(t, pg, 2)
 
 		// ensure the job is finished with fail conditions
-		var success bool
-		var finishedAt pgtype.Timestamptz
-		_ = pg.PGx.QueryRow(ctx, `SELECT success, finished_at FROM public.gue_jobs_history LIMIT 1`).Scan(&success, &finishedAt) //nolint:lll
-		assert.False(t, success)
-		assert.Empty(t, finishedAt)
+		var hJobs []GueJobHistory
+		err = pgxscan.Select(ctx, pg.PGx, &hJobs, `SELECT * FROM public.gue_jobs_history`)
+		assert.NoError(t, err)
+		assert.Len(t, hJobs, 2)
+
+		assert.False(t, hJobs[0].Success)
+		assert.NotEmpty(t, hJobs[0].FinishedAt)
+		assert.Equal(t, hJobs[0].RunCount, 0)
+		assert.NotEmpty(t, hJobs[0].RunError)
+
+		assert.True(t, hJobs[1].Success)
+		assert.NotEmpty(t, hJobs[1].FinishedAt)
+		assert.Equal(t, hJobs[1].RunCount, 1)
+		assert.Empty(t, hJobs[1].RunError)
 	})
 }
 

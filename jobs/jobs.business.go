@@ -12,7 +12,7 @@ var (
 	ErrInvalidJobType = errors.New("invalid job type")
 	ErrInvalidJobOpt  = errors.New("invalid job option")
 	ErrNotAllowed     = errors.New("not allowed")
-	ErrWorkerFailed   = errors.New("job worker failed")
+	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
 
 // CtxTX contains a database transaction, only if set by e.g. a middleware.

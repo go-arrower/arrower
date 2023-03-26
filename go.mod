@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/fatih/color v1.15.0
+	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/go-testfixtures/testfixtures/v3 v3.8.1
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/jackc/pgx/v5 v5.3.1
