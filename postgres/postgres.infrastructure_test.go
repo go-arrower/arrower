@@ -166,6 +166,40 @@ func TestConnectAndMigrate(t *testing.T) {
 
 		_ = cleanup()
 	})
+
+	t.Run("ensure migration does not fail, if the schema is already up to date", func(t *testing.T) {
+		t.Parallel()
+
+		var config postgres.Config
+
+		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			config = postgres.Config{
+				Host:       "localhost",
+				Port:       port,
+				User:       "username",
+				Password:   "secret",
+				Database:   "dbname_test",
+				Migrations: postgres.ArrowerDefaultMigrations,
+				MaxConns:   10,
+			}
+
+			return func() error {
+				_, err := postgres.ConnectAndMigrate(context.Background(), config)
+				if err != nil {
+					return err //nolint:wrapcheck
+				}
+
+				return nil
+			}
+		})
+
+		// container is up and running => connect a second time to run migrations again
+		_, err := postgres.ConnectAndMigrate(context.Background(), config)
+		assert.NoError(t, err)
+
+		_ = cleanup()
+	})
 }
 
 func ensureMigrationsRun(t *testing.T, pgx *pgxpool.Pool) {

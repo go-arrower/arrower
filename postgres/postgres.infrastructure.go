@@ -109,7 +109,7 @@ func migrateUp(db *sql.DB, dbName string, migrationsFS fs.FS) error {
 	}
 
 	err = m.Up()
-	if err != nil {
+	if !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("%w: could not migrate up: %v", ErrMigrationFailed, err)
 	}
 
