@@ -1,0 +1,20 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "postgres/query.sql"
+    schema: "postgres/migrations"
+    strict_function_checks: true
+    gen:
+      go:
+        package: "models"
+        out: "postgres/models"
+        sql_package: "pgx/v5"
+  - engine: "postgresql"
+    queries: "jobs/query.sql"
+    schema: "postgres/migrations"
+    strict_function_checks: true
+    gen:
+      go:
+        package: "models"
+        out: "jobs/models"
+        sql_package: "pgx/v5"

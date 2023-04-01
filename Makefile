@@ -12,6 +12,7 @@ static-check: ## Run static code checks
 .PHONY: generate
 generate: ## Generate all code to run the service
 	go generate ./...
+	sqlc generate --experimental
 
 .PHONY: test
 test: static-check generate test-unit test-integration ## Run all tests
@@ -34,6 +35,7 @@ test-integration:
 dev-tools: ## Initialise this machine with development dependencies
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.51.1
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
 
 .PHONY: dev-run
 dev-run:

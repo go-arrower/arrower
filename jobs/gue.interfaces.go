@@ -13,6 +13,8 @@ import (
 	"github.com/vgarvardt/gue/v5"
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/go-arrower/arrower/postgres"
 )
 
 // QueueOpt are functions that allow the GueHandler different behaviour.
@@ -123,7 +125,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOp
 	}
 
 	// if db transaction is present in ctx use it, otherwise enqueue without transactional safety.
-	tx, txOk := ctx.Value(CtxTX).(pgx.Tx)
+	tx, txOk := ctx.Value(postgres.CtxTX).(pgx.Tx)
 	if txOk {
 		err = h.gueClient.EnqueueTx(ctx, job, pgxv5.NewTx(tx))
 		if err != nil {
@@ -259,7 +261,7 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unwrap gue job tx for use in the worker", ErrWorkerFailed)
 		}
 
-		ctx = context.WithValue(ctx, CtxTX, txHandle)
+		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		// call the JobFunc
 		fn := reflect.ValueOf(workerFn)

@@ -3,8 +3,6 @@ package jobs
 import (
 	"context"
 	"errors"
-
-	"github.com/go-arrower/arrower/shared"
 )
 
 var (
@@ -14,9 +12,6 @@ var (
 	ErrNotAllowed     = errors.New("not allowed")
 	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
-
-// CtxTX contains a database transaction, only if set by e.g. a middleware.
-const CtxTX shared.CTXKeyType = iota
 
 type (
 	// JobFunc is the subscriber's handler and must have the signature:

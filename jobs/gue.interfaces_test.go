@@ -372,7 +372,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup in the JobFunc does not work,
 		// because wg.Done() can only be called from the worker func and not the hooks (where it would need to be placed).
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 200)
 
 		_ = jq.Shutdown(ctx)
 
@@ -514,7 +514,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		newCtx := context.Background()
 		txHandle, err := pg.PGx.Begin(newCtx)
 		assert.NoError(t, err)
-		newCtx = context.WithValue(newCtx, jobs.CtxTX, txHandle)
+		newCtx = context.WithValue(newCtx, postgres.CtxTX, txHandle)
 
 		err = jq.Enqueue(newCtx, simpleJob{})
 		assert.NoError(t, err)
@@ -545,7 +545,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		newCtx := context.Background()
 		txHandle, err := pg.PGx.Begin(newCtx)
 		assert.NoError(t, err)
-		newCtx = context.WithValue(newCtx, jobs.CtxTX, txHandle)
+		newCtx = context.WithValue(newCtx, postgres.CtxTX, txHandle)
 
 		err = jq.Enqueue(newCtx, simpleJob{})
 		assert.NoError(t, err)
@@ -570,7 +570,7 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		wg.Add(1)
 		err = jq.RegisterWorker(func(ctx context.Context, j simpleJob) error {
-			tx, txOk := ctx.Value(jobs.CtxTX).(pgx.Tx)
+			tx, txOk := ctx.Value(postgres.CtxTX).(pgx.Tx)
 			assert.True(t, txOk)
 			assert.NotEmpty(t, tx)
 

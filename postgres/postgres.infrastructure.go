@@ -15,7 +15,12 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/go-arrower/arrower/shared"
 )
+
+// CtxTX contains a database transaction, only if set by e.g. a middleware.
+const CtxTX shared.CTXKeyType = iota
 
 //go:embed migrations/*.sql
 var ArrowerDefaultMigrations embed.FS
