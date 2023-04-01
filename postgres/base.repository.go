@@ -33,6 +33,7 @@ func (repo BaseRepository[T]) ConnOrTX(ctx context.Context) T { //nolint:ireturn
 }
 
 // TX wraps the models.Queries into the transaction in ctx.
+// If no transaction is present in the given context, it returns nil.
 func (repo BaseRepository[T]) TX(ctx context.Context) T { //nolint:ireturn
 	if tx, ok := ctx.Value(CtxTX).(pgx.Tx); ok {
 		return repo.queries.WithTx(tx)

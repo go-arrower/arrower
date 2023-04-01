@@ -62,6 +62,7 @@ func TestBaseRepository(t *testing.T) {
 
 		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
 
+		assert.Nil(t, repo.TX(ctx))
 		assert.Panics(t, func() {
 			res, err := repo.TX(ctx).GetTrue(ctx)
 			_ = err
