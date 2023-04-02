@@ -43,3 +43,27 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 		assert.Len(t, q, 2)
 	})
 }
+
+func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+
+		pendingJobs, err := repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(pendingJobs))
+
+		jq0, _ := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		_ = jq0.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
+		_ = jq0.Enqueue(ctx, simpleJob{})
+
+		pendingJobs, err = repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(pendingJobs))
+	})
+}

@@ -9,6 +9,41 @@ import (
 	"context"
 )
 
+const getPendingJobs = `-- name: GetPendingJobs :many
+SELECT job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at FROM public.gue_jobs WHERE queue = $1 ORDER BY priority, run_at ASC LIMIT 100
+`
+
+func (q *Queries) GetPendingJobs(ctx context.Context, queue string) ([]GueJob, error) {
+	rows, err := q.db.Query(ctx, getPendingJobs, queue)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GueJob
+	for rows.Next() {
+		var i GueJob
+		if err := rows.Scan(
+			&i.JobID,
+			&i.Priority,
+			&i.RunAt,
+			&i.JobType,
+			&i.Args,
+			&i.ErrorCount,
+			&i.LastError,
+			&i.Queue,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getQueues = `-- name: GetQueues :many
 SELECT queue FROM public.gue_jobs
 UNION
