@@ -69,3 +69,65 @@ func (q *Queries) GetQueues(ctx context.Context) ([]string, error) {
 	}
 	return items, nil
 }
+
+const statsAvgDurationOfJobs = `-- name: StatsAvgDurationOfJobs :one
+SELECT AVG(EXTRACT(MICROSECONDS FROM (finished_at - created_at))) AS durration_in_microseconds FROM public.gue_jobs_history WHERE queue = $1
+`
+
+func (q *Queries) StatsAvgDurationOfJobs(ctx context.Context, queue string) (float64, error) {
+	row := q.db.QueryRow(ctx, statsAvgDurationOfJobs, queue)
+	var durration_in_microseconds float64
+	err := row.Scan(&durration_in_microseconds)
+	return durration_in_microseconds, err
+}
+
+const statsFailedJobs = `-- name: StatsFailedJobs :one
+SELECT COUNT(*) FROM public.gue_jobs WHERE queue = $1 AND error_count <> 0
+`
+
+func (q *Queries) StatsFailedJobs(ctx context.Context, queue string) (int64, error) {
+	row := q.db.QueryRow(ctx, statsFailedJobs, queue)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const statsPendingJobs = `-- name: StatsPendingJobs :one
+SELECT COUNT(*) FROM public.gue_jobs WHERE queue = $1
+`
+
+func (q *Queries) StatsPendingJobs(ctx context.Context, queue string) (int64, error) {
+	row := q.db.QueryRow(ctx, statsPendingJobs, queue)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const statsPendingJobsPerType = `-- name: StatsPendingJobsPerType :many
+SELECT job_type, COUNT(*) as count FROM public.gue_jobs WHERE queue = $1 GROUP BY job_type
+`
+
+type StatsPendingJobsPerTypeRow struct {
+	JobType string
+	Count   int64
+}
+
+func (q *Queries) StatsPendingJobsPerType(ctx context.Context, queue string) ([]StatsPendingJobsPerTypeRow, error) {
+	rows, err := q.db.Query(ctx, statsPendingJobsPerType, queue)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StatsPendingJobsPerTypeRow
+	for rows.Next() {
+		var i StatsPendingJobsPerTypeRow
+		if err := rows.Scan(&i.JobType, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
