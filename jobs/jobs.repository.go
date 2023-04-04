@@ -32,12 +32,14 @@ type (
 		PendingJobsPerType map[string]int
 		PendingJobs        int
 		FailedJobs         int
+		ProcessedJobs      int
 		AvailableWorkers   int
 		AverageTimePerJob  time.Duration
 	}
 
 	// Repository manages the data access to the underlying Jobs implementation.
 	Repository interface {
+		Queues(ctx context.Context) ([]string, error)
 		PendingJobs(ctx context.Context, queue string) ([]PendingJob, error)
 		QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error)
 	}
@@ -114,6 +116,13 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	}
 
 	kpis.FailedJobs = int(jf)
+
+	jt, err := repo.db.ConnOrTX(ctx).StatsProcessedJobs(ctx, queue)
+	if err != nil {
+		return QueueKPIs{}, fmt.Errorf("%w: could not query processed jobs: %v", ErrQueryFailed, err)
+	}
+
+	kpis.ProcessedJobs = int(jt)
 
 	avg, err := repo.db.ConnOrTX(ctx).StatsAvgDurationOfJobs(ctx, queue)
 	if err != nil && !errors.As(err, &pgx.ScanArgError{}) { //nolint:exhaustruct // Scan() fails if history table is empty

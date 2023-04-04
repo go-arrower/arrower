@@ -131,3 +131,14 @@ func (q *Queries) StatsPendingJobsPerType(ctx context.Context, queue string) ([]
 	}
 	return items, nil
 }
+
+const statsProcessedJobs = `-- name: StatsProcessedJobs :one
+SELECT COUNT(*) FROM public.gue_jobs_history WHERE queue = $1
+`
+
+func (q *Queries) StatsProcessedJobs(ctx context.Context, queue string) (int64, error) {
+	row := q.db.QueryRow(ctx, statsProcessedJobs, queue)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}

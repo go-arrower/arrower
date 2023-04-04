@@ -19,3 +19,6 @@ SELECT AVG(EXTRACT(MICROSECONDS FROM (finished_at - created_at))) AS durration_i
 
 -- name: StatsPendingJobsPerType :many
 SELECT job_type, COUNT(*) as count FROM public.gue_jobs WHERE queue = $1 GROUP BY job_type;
+
+-- name: StatsProcessedJobs :one
+SELECT COUNT(*) FROM public.gue_jobs_history WHERE queue = $1;

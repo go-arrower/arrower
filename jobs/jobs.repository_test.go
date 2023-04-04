@@ -82,6 +82,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, stats.PendingJobs, 0)
 		assert.Equal(t, stats.FailedJobs, 0)
+		assert.Equal(t, stats.ProcessedJobs, 0)
 		assert.Equal(t, stats.AverageTimePerJob, time.Duration(0))
 		assert.Equal(t, stats.AvailableWorkers, 10)
 		assert.Empty(t, stats.PendingJobsPerType)
@@ -98,6 +99,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, stats.PendingJobs, 3)
 		assert.Equal(t, stats.FailedJobs, 1)
+		assert.Equal(t, stats.ProcessedJobs, 2)
 		assert.Equal(t, stats.AverageTimePerJob, time.Duration(1500)*time.Millisecond)
 		assert.Equal(t, stats.AvailableWorkers, 10)
 		assert.Equal(t, stats.PendingJobsPerType, map[string]int{
