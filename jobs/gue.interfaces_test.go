@@ -427,8 +427,9 @@ func TestGueHandler_History(t *testing.T) {
 		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
 		assert.NoError(t, err)
 
-		wg.Wait()
-		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup does not work,
+		wg.Wait() // wait for the worker
+
+		// wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
 		// because Done() can only be called from the worker func and not the hooks.
 		time.Sleep(time.Millisecond * 50)
 
@@ -446,6 +447,73 @@ func TestGueHandler_History(t *testing.T) {
 		assert.NotEmpty(t, hJobs[0].FinishedAt)
 		assert.Equal(t, hJobs[0].RunCount, 0)
 		assert.NotEmpty(t, hJobs[0].RunError)
+		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
+
+		assert.True(t, hJobs[1].Success)
+		assert.NotEmpty(t, hJobs[1].FinishedAt)
+		assert.Equal(t, hJobs[1].RunCount, 1)
+		assert.Empty(t, hJobs[1].RunError)
+	})
+
+	t.Run("ensure panicked workers are tracked in the gue_jobs_history table", func(t *testing.T) {
+		t.Parallel()
+
+		t.Skip() // gue does not run WithPoolHooksJobDone functions, if a panic occurs
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		var (
+			count int
+			wg    sync.WaitGroup
+		)
+
+		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
+			if count == 0 {
+				count++
+
+				panic("job panics with error")
+			}
+
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.StartWorkers()
+		assert.NoError(t, err)
+
+		// job history table is empty before first job is enqueued
+		ensureJobHistoryTableRows(t, pg, 0)
+
+		wg.Add(1)
+		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
+		assert.NoError(t, err)
+
+		wg.Wait() // waits for the worker
+
+		// wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
+		// because Done() can only be called from the worker func and not the hooks.
+		time.Sleep(time.Millisecond * 50)
+
+		_ = jq.Shutdown(ctx)
+
+		ensureJobHistoryTableRows(t, pg, 2)
+
+		// ensure the job is finished with fail conditions
+		var hJobs []GueJobHistory
+		err = pgxscan.Select(ctx, pg.PGx, &hJobs, `SELECT * FROM public.gue_jobs_history`)
+		assert.NoError(t, err)
+		assert.Len(t, hJobs, 2)
+
+		assert.False(t, hJobs[0].Success)
+		assert.NotEmpty(t, hJobs[0].FinishedAt)
+		assert.Equal(t, hJobs[0].RunCount, 0)
+		assert.NotEmpty(t, hJobs[0].RunError)
+		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
 
 		assert.True(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
