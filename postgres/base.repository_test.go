@@ -74,6 +74,7 @@ func TestBaseRepository(t *testing.T) {
 		t.Parallel()
 
 		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
+		ctx := context.Background()
 
 		tx, err := pgHandler.PGx.Begin(ctx)
 		assert.NoError(t, err)

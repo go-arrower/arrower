@@ -42,4 +42,18 @@ CREATE TABLE IF NOT EXISTS public.gue_jobs_history
 SELECT enable_automatic_updated_at('public.gue_jobs_history');
 
 
+--
+CREATE UNLOGGED TABLE public.gue_jobs_worker_pool
+(
+    id         TEXT        NOT NULL PRIMARY KEY,
+    queue      TEXT        NOT NULL,
+    workers    SMALLINT    NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+
+SELECT enable_automatic_updated_at('public.gue_jobs_worker_pool');
+
+
 COMMIT;

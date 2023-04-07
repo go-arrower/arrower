@@ -35,3 +35,11 @@ type GueJobsHistory struct {
 	Success    bool
 	FinishedAt pgtype.Timestamptz
 }
+
+type GueJobsWorkerPool struct {
+	ID        string
+	Queue     string
+	Workers   int16
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}

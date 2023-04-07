@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -37,11 +38,20 @@ type (
 		AverageTimePerJob  time.Duration
 	}
 
+	WorkerPool struct {
+		LastSeen time.Time
+		ID       string
+		Queue    string
+		Workers  int
+	}
+
 	// Repository manages the data access to the underlying Jobs implementation.
 	Repository interface {
 		Queues(ctx context.Context) ([]string, error)
 		PendingJobs(ctx context.Context, queue string) ([]PendingJob, error)
 		QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error)
+		WorkerPools(ctx context.Context) ([]WorkerPool, error)
+		RegisterWorkerPool(ctx context.Context, wp WorkerPool) error
 	}
 )
 
@@ -101,8 +111,6 @@ func jobToDomain(job models.GueJob) PendingJob {
 func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) {
 	var kpis QueueKPIs
 
-	kpis.AvailableWorkers = 10
-
 	jp, err := repo.db.ConnOrTX(ctx).StatsPendingJobs(ctx, queue)
 	if err != nil {
 		return QueueKPIs{}, fmt.Errorf("%w: could not query pending jobs: %v", ErrQueryFailed, err)
@@ -139,6 +147,13 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 
 	kpis.PendingJobsPerType = pendingJobTypesToDomain(nt)
 
+	w, err := repo.db.ConnOrTX(ctx).StatsQueueWorkerPoolSize(ctx, queue)
+	if err != nil {
+		return QueueKPIs{}, fmt.Errorf("%w: could not query total queue worker size: %v", ErrQueryFailed, err)
+	}
+
+	kpis.AvailableWorkers = int(w)
+
 	return kpis, nil
 }
 
@@ -150,4 +165,42 @@ func pendingJobTypesToDomain(jobTypes []models.StatsPendingJobsPerTypeRow) map[s
 	}
 
 	return ret
+}
+
+func (repo *PostgresJobsRepository) WorkerPools(ctx context.Context) ([]WorkerPool, error) {
+	w, err := repo.db.ConnOrTX(ctx).GetWorkerPools(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrQueryFailed, err)
+	}
+
+	return workersToDomain(w), nil
+}
+
+func workersToDomain(w []models.GueJobsWorkerPool) []WorkerPool {
+	workers := make([]WorkerPool, len(w))
+
+	for i, w := range w {
+		workers[i] = WorkerPool{
+			ID:       w.ID,
+			Queue:    w.Queue,
+			Workers:  int(w.Workers),
+			LastSeen: w.UpdatedAt.Time,
+		}
+	}
+
+	return workers
+}
+
+func (repo *PostgresJobsRepository) RegisterWorkerPool(ctx context.Context, wp WorkerPool) error {
+	err := repo.db.ConnOrTX(ctx).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
+		ID:        wp.ID,
+		Queue:     wp.Queue,
+		Workers:   int16(wp.Workers),
+		UpdatedAt: pgtype.Timestamptz{Time: wp.LastSeen, Valid: true, InfinityModifier: pgtype.Finite},
+	})
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrQueryFailed, err)
+	}
+
+	return nil
 }

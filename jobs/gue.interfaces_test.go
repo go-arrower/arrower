@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/jobs"
+	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/tests"
 )
@@ -344,6 +345,35 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.Error(t, err)
 
 		_ = jq.Shutdown(ctx)
+	})
+
+	t.Run("ensure worker pool is registered & unregistered", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+
+		jp, err := jobs.NewGueJobs(pg.PGx, jobs.WithPoolName("pool_name"), jobs.WithPoolSize(1337))
+		assert.NoError(t, err)
+
+		err = jp.StartWorkers()
+		assert.NoError(t, err)
+
+		time.Sleep(100 * time.Millisecond) // wait for the StartWorkers to register itself as online.
+
+		wp, err := repo.WorkerPools(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, wp, 1)
+		assert.Equal(t, "pool_name", wp[0].ID)
+		assert.Equal(t, 1337, wp[0].Workers)
+
+		err = jp.Shutdown(ctx)
+		assert.NoError(t, err)
+
+		wp, err = repo.WorkerPools(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, wp, 1)
+		assert.Equal(t, 0, wp[0].Workers)
 	})
 }
 

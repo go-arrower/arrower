@@ -84,7 +84,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 		assert.Equal(t, stats.FailedJobs, 0)
 		assert.Equal(t, stats.ProcessedJobs, 0)
 		assert.Equal(t, stats.AverageTimePerJob, time.Duration(0))
-		assert.Equal(t, stats.AvailableWorkers, 10)
+		assert.Equal(t, stats.AvailableWorkers, 0)
 		assert.Empty(t, stats.PendingJobsPerType)
 	})
 
@@ -101,10 +101,49 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 		assert.Equal(t, stats.FailedJobs, 1)
 		assert.Equal(t, stats.ProcessedJobs, 2)
 		assert.Equal(t, stats.AverageTimePerJob, time.Duration(1500)*time.Millisecond)
-		assert.Equal(t, stats.AvailableWorkers, 10)
+		assert.Equal(t, stats.AvailableWorkers, 1337)
 		assert.Equal(t, stats.PendingJobsPerType, map[string]int{
 			"type_0": 2,
 			"type_1": 1,
 		})
+	})
+}
+
+func TestPostgresJobsRepository_RegisterWorkerPool(t *testing.T) {
+	t.Parallel()
+
+	t.Run("register worker pool", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+
+		workerPool := jobs.WorkerPool{
+			ID:       "1337",
+			Queue:    "",
+			Workers:  1337,
+			LastSeen: time.Now(),
+		}
+
+		// register new worker pool
+		err := repo.RegisterWorkerPool(context.Background(), workerPool)
+		assert.NoError(t, err)
+
+		// ensure worker pool got registered
+		wp, err := repo.WorkerPools(context.Background())
+		assert.NoError(t, err)
+		assert.Len(t, wp, 1)
+		wpLastSeen := wp[0].LastSeen
+
+		// ensure same pool updates it's registration
+		workerPool.Workers = 1
+		err = repo.RegisterWorkerPool(context.Background(), workerPool)
+		assert.NoError(t, err)
+		wp, err = repo.WorkerPools(context.Background())
+		assert.NoError(t, err)
+		assert.Len(t, wp, 1)
+		assert.True(t, wp[0].LastSeen.After(wpLastSeen))
+		assert.Equal(t, 1, wp[0].Workers)
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
 
@@ -38,6 +40,12 @@ func WithPoolSize(n int) QueueOpt {
 	}
 }
 
+func WithPoolName(n string) QueueOpt {
+	return func(h *GueHandler) {
+		h.poolName = n
+	}
+}
+
 // NewGueJobs returns an initialised GueHandler.
 // Each Worker in the pool default to a poll interval of 5 seconds, which can be
 // overridden by WithPollInterval option. The default queue is the
@@ -45,12 +53,14 @@ func WithPoolSize(n int) QueueOpt {
 func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
 	const (
 		// defaults of gue, set it here, so it can be overwritten by QueueOpt.
-		defaultQueue        = ""
-		defaultPollInterval = 5 * time.Second
-		defaultPoolSize     = 10
+		defaultQueue          = ""
+		defaultPollInterval   = 5 * time.Second
+		defaultPoolSize       = 10
+		defaultPoolNameLength = 5
 	)
 
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
+	repo := NewPostgresJobsRepository(models.New(pgxPool))
 
 	gc, err := gue.NewClient(poolAdapter)
 	if err != nil {
@@ -58,10 +68,12 @@ func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
 	}
 
 	handler := &GueHandler{
+		repo:         repo,
 		gueClient:    gc,
 		gueWorkMap:   gue.WorkMap{},
 		pollInterval: defaultPollInterval,
 		queue:        defaultQueue,
+		poolName:     randomPoolName(defaultPoolNameLength),
 		poolSize:     defaultPoolSize,
 		shutdown:     nil,
 		group:        nil,
@@ -79,10 +91,13 @@ func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
 
 // GueHandler is the main jobs' abstraction.
 type GueHandler struct { //nolint:govet // accept fieldalignment so the struct fields are grouped by meaning
+	repo Repository
+
 	gueClient    *gue.Client
 	gueWorkMap   gue.WorkMap
 	pollInterval time.Duration
 	queue        string
+	poolName     string
 	poolSize     int
 
 	shutdown context.CancelFunc
@@ -301,6 +316,27 @@ func (h *GueHandler) StartWorkers() error {
 
 	ctx, shutdown := context.WithCancel(context.Background())
 
+	go func(ctx context.Context) { // register worker pool regularly, so it stays "active" for monitoring
+		const refreshDuration = 30 * time.Second
+
+		workerPool := WorkerPool{
+			ID:       h.poolName,
+			Queue:    h.queue,
+			Workers:  h.poolSize,
+			LastSeen: time.Now(),
+		}
+		_ = h.repo.RegisterWorkerPool(ctx, workerPool)
+
+		for {
+			select {
+			case <-time.NewTicker(refreshDuration).C:
+				_ = h.repo.RegisterWorkerPool(ctx, workerPool)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx)
+
 	// work jobs in goroutine
 	group, gctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
@@ -367,6 +403,15 @@ func (h *GueHandler) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("could not shutdown job workers: %w", err)
 	}
 
+	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
+		ID:       h.poolName,
+		Queue:    h.queue,
+		Workers:  0,
+		LastSeen: time.Now(),
+	}); err != nil {
+		return fmt.Errorf("could not unregister worker pool: %w", err)
+	}
+
 	return nil
 }
 
@@ -409,4 +454,16 @@ func getJobTypeFromReflectValue(jobFunc reflect.Type) string {
 	}
 
 	return jobType
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") //nolint:gochecknoglobals
+func randomPoolName(n int) string {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // used for ids, not security
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rnd.Intn(len(letters))]
+	}
+
+	return string(b)
 }

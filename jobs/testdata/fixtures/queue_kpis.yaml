@@ -65,3 +65,10 @@ public.gue_jobs_history:
     updated_at: "2006-01-02 15:04:07.000000+00"
     success: true
     finished_at: "2006-01-02 15:04:07.000000+00" # 2 seconds execution time
+
+public.gue_jobs_worker_pool:
+  - id: "some_id"
+    queue: ""
+    workers: 1337
+    created_at: "2006-01-02 15:04:05.000000+00"
+    updated_at: RAW=NOW()
