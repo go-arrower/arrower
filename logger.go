@@ -1,4 +1,4 @@
-package log
+package arrower
 
 import (
 	"io"
@@ -7,15 +7,15 @@ import (
 )
 
 const (
-	// ArrowerLevelDebug is used for arrower debug messages.
-	ArrowerLevelDebug = slog.Level(-8)
+	// LevelDebug is used for arrower debug messages.
+	LevelDebug = slog.Level(-8)
 
-	// ArrowerLevelTrace is used for arrower trace information, if you really want to know what is going on.
-	ArrowerLevelTrace = slog.Level(-12)
+	// LevelTrace is used for arrower trace information, if you really want to know what is going on.
+	LevelTrace = slog.Level(-12)
 )
 
-// SetLevel allows to set the global level for the loggers.
-func SetLevel(l slog.Level) {
+// SetLogLevel allows to set the global level for the loggers.
+func SetLogLevel(l slog.Level) {
 	arrowerLevel.Set(l)
 }
 
@@ -39,8 +39,8 @@ var (
 
 	// levelNames maps the arrower log levels to human readable names.
 	levelNames = map[slog.Leveler]string{
-		ArrowerLevelDebug: "Arrower:DEBUG",
-		ArrowerLevelTrace: "Arrower:TRACE",
+		LevelDebug: "ARROWER:DEBUG",
+		LevelTrace: "ARROWER:TRACE",
 	}
 )
 
