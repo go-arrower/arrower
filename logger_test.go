@@ -1,13 +1,12 @@
-package log_test
+package arrower_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/go-arrower/arrower"
 
-	"github.com/go-arrower/arrower/log"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewDevelopment(t *testing.T) {
@@ -17,7 +16,7 @@ func TestNewDevelopment(t *testing.T) {
 		t.Parallel()
 
 		buf := &bytes.Buffer{}
-		logger := log.NewDevelopment(buf)
+		logger := arrower.NewDevelopment(buf)
 		logger.Info("hello logger")
 
 		assert.Contains(t, buf.String(), "hello logger")
@@ -26,13 +25,11 @@ func TestNewDevelopment(t *testing.T) {
 	t.Run("level debug by default", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := context.Background()
-
 		buf := &bytes.Buffer{}
-		logger := log.NewDevelopment(buf)
+		logger := arrower.NewDevelopment(buf)
 
-		logger.Log(ctx, log.ArrowerLevelDebug, "arrower debug")
-		logger.Log(ctx, log.ArrowerLevelTrace, "arrower trance")
+		logger.Log(nil, arrower.LevelDebug, "arrower debug")
+		logger.Log(nil, arrower.LevelTrace, "arrower trance")
 		assert.Empty(t, buf.String())
 
 		logger.Debug("application debug msg")
@@ -43,29 +40,27 @@ func TestNewDevelopment(t *testing.T) {
 func TestSetLevel(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-
 	t.Run("set level arrower:debug", func(t *testing.T) {
 		t.Parallel()
 
 		buf := &bytes.Buffer{}
-		logger := log.NewDevelopment(buf)
+		logger := arrower.NewDevelopment(buf)
 
-		log.SetLevel(log.ArrowerLevelDebug)
-		logger.Log(ctx, log.ArrowerLevelDebug, "arrower debug")
+		arrower.SetLogLevel(arrower.LevelDebug)
+		logger.Log(nil, arrower.LevelDebug, "arrower debug")
 		assert.Contains(t, buf.String(), `msg="arrower debug"`)
-		assert.Contains(t, buf.String(), `level=Arrower:DEBUG`)
+		assert.Contains(t, buf.String(), `level=ARROWER:DEBUG`)
 	})
 
 	t.Run("set level arrower:trance", func(t *testing.T) {
 		t.Parallel()
 
 		buf := &bytes.Buffer{}
-		logger := log.NewDevelopment(buf)
+		logger := arrower.NewDevelopment(buf)
 
-		log.SetLevel(log.ArrowerLevelTrace)
-		logger.Log(ctx, log.ArrowerLevelTrace, "arrower trace")
+		arrower.SetLogLevel(arrower.LevelTrace)
+		logger.Log(nil, arrower.LevelTrace, "arrower trace")
 		assert.Contains(t, buf.String(), `msg="arrower trace"`)
-		assert.Contains(t, buf.String(), `level=Arrower:TRACE`)
+		assert.Contains(t, buf.String(), `level=ARROWER:TRACE`)
 	})
 }
