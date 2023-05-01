@@ -2,11 +2,12 @@ package arrower_test
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
-	"github.com/go-arrower/arrower"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-arrower/arrower"
 )
 
 func TestNewDevelopment(t *testing.T) {
@@ -28,8 +29,8 @@ func TestNewDevelopment(t *testing.T) {
 		buf := &bytes.Buffer{}
 		logger := arrower.NewDevelopment(buf)
 
-		logger.Log(nil, arrower.LevelDebug, "arrower debug")
-		logger.Log(nil, arrower.LevelTrace, "arrower trance")
+		logger.Log(context.Background(), arrower.LevelDebug, "arrower debug")
+		logger.Log(context.Background(), arrower.LevelTrace, "arrower trance")
 		assert.Empty(t, buf.String())
 
 		logger.Debug("application debug msg")
@@ -47,7 +48,7 @@ func TestSetLevel(t *testing.T) {
 		logger := arrower.NewDevelopment(buf)
 
 		arrower.SetLogLevel(arrower.LevelDebug)
-		logger.Log(nil, arrower.LevelDebug, "arrower debug")
+		logger.Log(context.Background(), arrower.LevelDebug, "arrower debug")
 		assert.Contains(t, buf.String(), `msg="arrower debug"`)
 		assert.Contains(t, buf.String(), `level=ARROWER:DEBUG`)
 	})
@@ -59,7 +60,7 @@ func TestSetLevel(t *testing.T) {
 		logger := arrower.NewDevelopment(buf)
 
 		arrower.SetLogLevel(arrower.LevelTrace)
-		logger.Log(nil, arrower.LevelTrace, "arrower trace")
+		logger.Log(context.Background(), arrower.LevelTrace, "arrower trace")
 		assert.Contains(t, buf.String(), `msg="arrower trace"`)
 		assert.Contains(t, buf.String(), `level=ARROWER:TRACE`)
 	})
