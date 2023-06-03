@@ -40,8 +40,10 @@ dev-tools: ## Initialise this machine with development dependencies
 .PHONY: dev-run
 dev-run:
 	docker-compose pull
-	docker-compose up -d postgres pgadmin
+	docker-compose up -d
 	xdg-open http://localhost:8081 # open pgadmin in the browser
+	#xdg-open http://localhost:9090 # open prometheus in the browser
+	xdg-open http://localhost:3000 # open grafana in the browser
 
 .PHONY: dev-db
 dev-db:
