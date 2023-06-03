@@ -1,10 +1,11 @@
 version: '3.8'
 
 services:
+  # direct dependencies
   postgres:
     image: postgres
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -15,11 +16,37 @@ services:
       LANGUAGE: en_US:en
       LC_ALL: en_US.UTF-8
 
-  # helper services
+  # observability
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./conf/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    extra_hosts: # enable container to access host, so it can scape locally running applications, see: https://stackoverflow.com/a/68106309
+      host.docker.internal: host-gateway
+
+  grafana:
+      image: grafana/grafana
+      # default admin user credentials are admin/admin.
+      ports:
+        - "3000:3000"
+      volumes:
+        - ./conf/grafana/:/etc/grafana/provisioning/datasources
+        - grafana-data:/var/lib/grafana
+
+  # development helper services
   pgadmin:
     image: dpage/pgadmin4
     ports:
-      - 8081:80
+      - "8081:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: root@localhost.tdl
       PGADMIN_DEFAULT_PASSWORD: secret
@@ -33,3 +60,5 @@ services:
 volumes:
   postgres-data:
   pgadmin-data:
+  prometheus-data:
+  grafana-data:
