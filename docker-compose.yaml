@@ -17,6 +17,12 @@ services:
       LC_ALL: en_US.UTF-8
 
   # observability
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
   prometheus:
     image: prom/prometheus:latest
     volumes:
@@ -33,14 +39,27 @@ services:
     extra_hosts: # enable container to access host, so it can scape locally running applications, see: https://stackoverflow.com/a/68106309
       host.docker.internal: host-gateway
 
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./conf/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "4317:4317"  # otlp grpc
+
   grafana:
-      image: grafana/grafana
-      # default admin user credentials are admin/admin.
-      ports:
-        - "3000:3000"
-      volumes:
-        - ./conf/grafana/:/etc/grafana/provisioning/datasources
-        - grafana-data:/var/lib/grafana
+    image: grafana/grafana
+    # default admin user credentials are admin/admin.
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./conf/grafana/:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
 
   # development helper services
   pgadmin:
@@ -61,4 +80,6 @@ volumes:
   postgres-data:
   pgadmin-data:
   prometheus-data:
+  tempo-data:
   grafana-data:
+  # TODO add loki data
