@@ -2,7 +2,12 @@ package arrower
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strings"
+	"time"
+
+	"github.com/afiskon/promtail-client/promtail"
 
 	"golang.org/x/exp/slog"
 )
@@ -74,6 +79,50 @@ func (f *filteredLogger) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (f *filteredLogger) Handle(ctx context.Context, record slog.Record) error {
 	if f.orig.Enabled(ctx, record.Level) {
+		label := fmt.Sprintf("{%s=\"%s\"}", "job", "somejob")
+
+		attrs := ""
+		record.Attrs(func(a slog.Attr) bool {
+			// this is high cardinality and can kill loki
+			// https://grafana.com/docs/loki/latest/fundamentals/labels/#cardinality
+			attrs += fmt.Sprintf(",%s=%s ", a.Key, a.Value.String())
+			return true
+		})
+		attrs = strings.TrimPrefix(attrs, ",")
+		attrs = strings.TrimSpace(attrs)
+
+		conf := promtail.ClientConfig{
+			PushURL:            "http://localhost:3100/api/prom/push",
+			BatchWait:          1 * time.Second,
+			BatchEntriesNumber: 1,
+			SendLevel:          promtail.DEBUG,
+			PrintLevel:         promtail.DISABLE,
+			//Labels:             "{job=\"somejob\"}",
+			Labels: label,
+		}
+
+		// Do not handle error here, because promtail method always returns `nil`.
+		client, _ := promtail.NewClientJson(conf)
+
+		client.Infof(record.Message + " " + attrs) // in grafana: green
+		//client.Debugf(record.Message) // in grafana: blue
+		//client.Errorf(record.Message) // in grafana: red
+		//client.Warnf(record.Message)  // in grafana: yellow
+
+		// !!! Query in grafana with !!!
+		// {job="somejob"} | logfmt | command="GetWorkersRequest"
+		//
+		// https://grafana.com/docs/loki/latest/logql/log_queries/#logfmt
+
+		/*
+			TODO TRY THE FOLLOWING ALTERNATIVE TO SEE IF THIS LOGGER CAn be not required and not implemented at all
+			PROBABLY WORKS FOR OTHER SERVICES IN DOCKER-COMPOSE, BUT NOT FOR THIS APP
+			    logging:
+			      driver: loki
+			      options:
+			        loki-url: 'http://localhost:3100/api/prom/push'
+		*/
+
 		return f.orig.Handle(ctx, record) //nolint:wrapcheck // slog.Logger is exposed and used by the app developer.
 	}
 
