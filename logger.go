@@ -1,6 +1,7 @@
 package arrower
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -104,7 +105,19 @@ func (f *filteredLogger) Handle(ctx context.Context, record slog.Record) error {
 		// Do not handle error here, because promtail method always returns `nil`.
 		client, _ := promtail.NewClientJson(conf)
 
+		// generate json log by writing to local buffer with slog default json
+		buf := &bytes.Buffer{}
+		jsonLog := slog.HandlerOptions{
+			Level:       &record.Level,
+			AddSource:   false,
+			ReplaceAttr: nameArrowerLogLevels,
+		}.NewJSONHandler(buf)
+		jsonLog.Handle(ctx, record)
+
 		client.Infof(record.Message + " " + attrs) // in grafana: green
+		client.Infof(buf.String())                 // in grafana: green
+		fmt.Println(buf.String())
+
 		//client.Debugf(record.Message) // in grafana: blue
 		//client.Errorf(record.Message) // in grafana: red
 		//client.Warnf(record.Message)  // in grafana: yellow

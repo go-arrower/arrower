@@ -7,7 +7,15 @@ datasources:
     type: loki
     url: http://loki:3100
     access: proxy
-    basicAuth: false
+    basicAuth: false # todo test if this can be removed
+    editable: true
+    jsonData:
+      derivedFields:
+        - datasourceUid: Tempo
+          matcherRegex: .*\,\"traceID\":\"(\w+)\" # from https://community.grafana.com/t/override-url-label-for-loki-derivedfields/67596
+          #matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: '$${__value.raw}' # url will be interpreted as query for the datasource
 
   - name: Prometheus
     type: prometheus
@@ -18,3 +26,27 @@ datasources:
     type: tempo
     url: http://tempo:3200
     access: proxy
+    editable: true
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        datasourceUid: Loki
+        tags: [ 'job' ] # MATCH MATCH LOGGING LABELS
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '-1h'
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: Prometheus
+        spanStartTimeShift: '1h'
+        spanEndTimeShift: '-1h'
+        tags: [ { key: 'job' } ]
+        queries:
+          #          - name: 'Sample query'
+          #            query: 'sum(rate(traces_spanmetrics_latency_bucket{$__tags}[5m]))'
+          - name: 'Simple Query'
+            query: 'foo_total'
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: Loki
