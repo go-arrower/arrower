@@ -7,6 +7,6 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'arrower-skeleton'
+  - job_name: 'arrower.skeleton'
     static_configs:
       - targets: ['host.docker.internal:2223']

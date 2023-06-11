@@ -8,6 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/afiskon/promtail-client/promtail"
 
 	"golang.org/x/exp/slog"
@@ -80,14 +85,78 @@ func (f *filteredLogger) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (f *filteredLogger) Handle(ctx context.Context, record slog.Record) error {
 	if f.orig.Enabled(ctx, record.Level) {
-		label := fmt.Sprintf("{%s=\"%s\"}", "job", "somejob")
+		label := fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton")
+
+		span := trace.SpanFromContext(ctx)
+		if !span.IsRecording() {
+			fmt.Println("NOT RECORDING")
+			//	return s.h.Handle(r)
+		}
+
+		{ // (a) adds TraceIds & spanIds to logs.
+			//
+			// TODO: (komuw) add stackTraces maybe.
+			//
+			sCtx := span.SpanContext()
+			attrs := make([]slog.Attr, 0)
+			if sCtx.HasTraceID() {
+				attrs = append(attrs,
+					slog.Attr{Key: "traceID", Value: slog.StringValue(sCtx.TraceID().String())},
+				)
+			}
+			if sCtx.HasSpanID() {
+				attrs = append(attrs,
+					slog.Attr{Key: "spanID", Value: slog.StringValue(sCtx.SpanID().String())},
+				)
+			}
+			if len(attrs) > 0 {
+				record.AddAttrs(attrs...)
+			}
+		}
+
+		{ // (b) adds logs to the active span as events.
+
+			// code from: https://github.com/uptrace/opentelemetry-go-extra/tree/main/otellogrus
+			// which is BSD 2-Clause license.
+
+			attrs := make([]attribute.KeyValue, 0)
+
+			logSeverityKey := attribute.Key("log.severity")
+			logMessageKey := attribute.Key("log.message")
+			attrs = append(attrs, logSeverityKey.String(record.Level.String()))
+			attrs = append(attrs, logMessageKey.String(record.Message))
+
+			// TODO: Obey the following rules form the slog documentation:
+			//
+			// Handle methods that produce output should observe the following rules:
+			//   - If r.Time is the zero time, ignore the time.
+			//   - If an Attr's key is the empty string, ignore the Attr.
+			//
+			record.Attrs(func(a slog.Attr) bool {
+				attrs = append(attrs,
+					attribute.KeyValue{
+						Key:   attribute.Key(a.Key),
+						Value: attribute.StringValue(a.Value.String()),
+					},
+				)
+
+				return true //process next attr
+			})
+			// todo: add caller info.
+
+			span.AddEvent("log", trace.WithAttributes(attrs...))
+			if record.Level >= slog.LevelError {
+				span.SetStatus(codes.Error, record.Message)
+			}
+		}
 
 		attrs := ""
 		record.Attrs(func(a slog.Attr) bool {
 			// this is high cardinality and can kill loki
 			// https://grafana.com/docs/loki/latest/fundamentals/labels/#cardinality
 			attrs += fmt.Sprintf(",%s=%s ", a.Key, a.Value.String())
-			return true
+
+			return true // process next attr
 		})
 		attrs = strings.TrimPrefix(attrs, ",")
 		attrs = strings.TrimSpace(attrs)
