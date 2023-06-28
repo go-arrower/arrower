@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -26,17 +27,133 @@ const (
 	LevelTrace = slog.Level(-12)
 )
 
+// Ensure ArrowerLogger implements slog.Handler.
+var _ slog.Handler = (*ArrowerLogger)(nil)
+
+// ArrowerLogger is the main handler of arrower, offering to log to multiple handlers,
+// filtering of context & users.
+// It's also doing all the lifting for observability, see #adl.
+type ArrowerLogger struct {
+	handlers []slog.Handler
+
+	// level reports the minimum record level that will be logged.
+	// The handler discards records with lower levels.
+	// If level is nil, the handler assumes LevelInfo.
+	// The handler calls level.level for each record processed;
+	// to adjust the minimum level dynamically, use a LevelVar.
+	// This IS the level for all handlers. The level of the handlers set via
+	// WithHandler are ignored.
+	level slog.Leveler
+}
+
+func (l *ArrowerLogger) Handlers() []slog.Handler {
+	return l.handlers
+}
+
+func (l *ArrowerLogger) Level() slog.Level {
+	return l.level.Level()
+}
+
+func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
+	minLevel := slog.LevelInfo
+
+	if l.level != nil {
+		minLevel = l.level.Level()
+	}
+
+	return level >= minLevel
+}
+
+func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
+	for _, h := range l.handlers {
+		_ = h.Handle(ctx, record)
+	}
+
+	return nil
+}
+
+func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
+	// return &JSONHandler{commonHandler: h.commonHandler.withAttrs(attrs)}
+
+	handlers := make([]slog.Handler, len(l.handlers))
+
+	for i, h := range l.handlers {
+		handlers[i] = h.WithAttrs(attrs)
+	}
+
+	return &ArrowerLogger{
+		handlers: handlers,
+		level:    l.level,
+	}
+}
+
+func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
+	//TODO implement me
+	panic("implement me")
+}
+
+type LoggerOpt func(logger *ArrowerLogger)
+
+func WithHandler(h slog.Handler) LoggerOpt {
+	return func(l *ArrowerLogger) {
+		l.handlers = append(l.handlers, h)
+	}
+}
+
+func WithLevel(level slog.Level) LoggerOpt {
+	return func(l *ArrowerLogger) {
+		l.level = level
+	}
+}
+
+func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
+	var (
+		defaultLevel    = slog.LevelInfo
+		defaultHandlers = []slog.Handler{
+			slog.NewJSONHandler(
+				os.Stderr,
+				&slog.HandlerOptions{
+					AddSource:   false,
+					Level:       defaultLevel,
+					ReplaceAttr: nil, // todo create an assertion for this: NameArrowerLogLevels,
+				},
+			),
+		}
+	)
+
+	logger := &ArrowerLogger{
+		level: defaultLevel,
+	}
+
+	for _, opt := range opts {
+		opt(logger)
+	}
+
+	hasCustomHandlers := len(logger.handlers) != 0
+	if !hasCustomHandlers {
+		logger.handlers = defaultHandlers
+	}
+
+	return logger
+}
+
+func NewLogger(opts ...LoggerOpt) *slog.Logger {
+	return slog.New(NewLogHandler(opts...))
+}
+
+// --- --- --- --- --- ---
+
 func NewFilteredLogger(w io.Writer) *Handler {
 	level := slog.LevelDebug
 
-	opts := slog.HandlerOptions{
+	opts := &slog.HandlerOptions{
 		Level:       &level,
 		AddSource:   false,
-		ReplaceAttr: nameArrowerLogLevels,
-	}.NewTextHandler(w)
+		ReplaceAttr: NameArrowerLogLevels,
+	}
 
 	filteredLogger := &filteredLogger{
-		orig:          opts,
+		orig:          slog.NewTextHandler(w, opts),
 		observedUsers: map[string]struct{}{},
 	}
 
@@ -179,9 +296,9 @@ func (f *filteredLogger) Handle(ctx context.Context, record slog.Record) error {
 		jsonLog := slog.HandlerOptions{
 			Level:       &record.Level,
 			AddSource:   false,
-			ReplaceAttr: nameArrowerLogLevels,
-		}.NewJSONHandler(buf)
-		jsonLog.Handle(ctx, record)
+			ReplaceAttr: NameArrowerLogLevels,
+		}
+		_ = slog.NewJSONHandler(buf, &jsonLog).Handle(ctx, record)
 
 		client.Infof(record.Message + " " + attrs) // in grafana: green
 		client.Infof(buf.String())                 // in grafana: green
@@ -237,7 +354,7 @@ func (f *filteredLogger) WithGroup(name string) slog.Handler { //nolint:ireturn 
 	return f.orig.WithGroup(name)
 }
 
-//nolint:gochecknoglobals // recommended by slog documentation.
+//nolint:gochecknoglobals // recommended by slog documentation. // todo make it a function to prevent global variable
 var (
 	// levelNames maps the arrower log levels to human-readable names.
 	levelNames = map[slog.Leveler]string{
@@ -246,7 +363,7 @@ var (
 	}
 )
 
-func nameArrowerLogLevels(groups []string, attr slog.Attr) slog.Attr {
+func NameArrowerLogLevels(groups []string, attr slog.Attr) slog.Attr {
 	if attr.Key == slog.LevelKey {
 		level, _ := attr.Value.Any().(slog.Level)
 
