@@ -3,6 +3,7 @@ package arrower
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -68,11 +69,67 @@ func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
-	for _, h := range l.handlers {
-		_ = h.Handle(ctx, record)
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() {
+		//	return s.h.Handle(r)
 	}
 
-	return nil
+	{ // (a) adds TraceIDs & spanIDs to logs.
+		sCtx := span.SpanContext()
+		attrs := make([]slog.Attr, 0)
+
+		if sCtx.HasTraceID() {
+			attrs = append(attrs,
+				slog.Attr{Key: "traceID", Value: slog.StringValue(sCtx.TraceID().String())},
+			)
+		}
+
+		if sCtx.HasSpanID() {
+			attrs = append(attrs,
+				slog.Attr{Key: "spanID", Value: slog.StringValue(sCtx.SpanID().String())},
+			)
+		}
+
+		if len(attrs) > 0 {
+			record.AddAttrs(attrs...)
+		}
+	}
+
+	{ // (b) adds logs to the active span as events.
+		attrs := make([]attribute.KeyValue, 0)
+
+		logSeverityKey := attribute.Key("log.severity")
+		logMessageKey := attribute.Key("log.message")
+
+		attrs = append(attrs, logSeverityKey.String(record.Level.String()))
+		attrs = append(attrs, logMessageKey.String(record.Message))
+
+		record.Attrs(func(a slog.Attr) bool {
+			attrs = append(attrs,
+				attribute.KeyValue{
+					Key:   attribute.Key(a.Key),
+					Value: attribute.StringValue(a.Value.String()),
+				},
+			)
+
+			return true //process next attr
+		})
+
+		span.AddEvent("log", trace.WithAttributes(attrs...))
+
+		if record.Level >= slog.LevelError {
+			span.SetStatus(codes.Error, record.Message)
+		}
+	}
+
+	var retErr error
+
+	for _, h := range l.handlers {
+		err := h.Handle(ctx, record)
+		retErr = errors.Join(retErr, err)
+	}
+
+	return retErr
 }
 
 func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required to implement slog.Handler
@@ -149,6 +206,14 @@ func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
 
 func NewLogger(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(NewLogHandler(opts...))
+}
+
+func NewTestLogger(w io.Writer) *slog.Logger {
+	return slog.New(
+		NewLogHandler(WithHandler(
+			slog.NewTextHandler(w, &slog.HandlerOptions{})),
+		),
+	)
 }
 
 func LogHandlerFromLogger(logger *slog.Logger) *ArrowerLogger {

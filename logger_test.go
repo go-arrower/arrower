@@ -3,10 +3,14 @@ package arrower_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
 	"github.com/go-arrower/arrower"
@@ -189,6 +193,20 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.Contains(t, buf.String(), "hello2")
 		assert.Contains(t, buf.String(), "some=attr")
 	})
+
+	t.Run("ignore handler specific level settings", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &bytes.Buffer{}
+		h := slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelError})
+
+		logger := arrower.NewLogger(
+			arrower.WithHandler(h),
+		)
+
+		logger.Info(applicationMsg)
+		assert.Contains(t, buf.String(), applicationMsg)
+	})
 }
 
 func TestArrowerLogger_Handle(t *testing.T) {
@@ -212,7 +230,70 @@ func TestArrowerLogger_Handle(t *testing.T) {
 		assert.Contains(t, buf1.String(), applicationMsg)
 	})
 
-	// todo case: if one or multiple handlers return an error
+	t.Run("handler fails", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &bytes.Buffer{}
+		h := slog.NewTextHandler(buf, &slog.HandlerOptions{})
+
+		logger := arrower.NewLogger(
+			arrower.WithHandler(h),
+			arrower.WithHandler(failingHandler{}),
+		)
+
+		logger.Info(applicationMsg)
+		assert.Contains(t, buf.String(), applicationMsg)
+	})
+
+	t.Run("observability", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("add trace and span IDs", func(t *testing.T) {
+			t.Parallel()
+
+			buf := &bytes.Buffer{}
+			logger := arrower.NewTestLogger(buf)
+
+			logger.Info(applicationMsg)
+			assert.NotContains(t, buf.String(), "traceID")
+
+			buf.Reset()
+			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{ID: 1})
+			logger.InfoCtx(ctx, applicationMsg)
+			assert.Contains(t, buf.String(), "traceID=")
+			assert.Contains(t, buf.String(), "spanID=")
+		})
+
+		t.Run("add logs to span as event", func(t *testing.T) {
+			t.Parallel()
+
+			buf := &bytes.Buffer{}
+			logger := arrower.NewTestLogger(buf)
+
+			span := fakeSpan{ID: 1}
+			ctx := trace.ContextWithSpan(context.Background(), &span)
+			logger.ErrorCtx(ctx, applicationMsg)
+
+			assert.Equal(t, "log", span.lastEventName)
+			assert.NotEmpty(t, span.lastEventOptions)
+			assert.Equal(t, codes.Error, span.lastErrorCode)
+			assert.Equal(t, applicationMsg, span.lastErrorMsg)
+		})
+	})
+
+	/*
+		Logger log
+			~~call all children~~
+			~~handle errors in on eof the children handlers~~
+			filter for User
+			filter for Context
+			Assertions
+				filters work
+				~~traceID is set as attr~~
+				~~spanID is set as attr~~
+				~~log event is added to span~~
+				Options like source are working properly
+	*/
 }
 
 func TestArrowerLogger_WithAttrs(t *testing.T) {
@@ -285,34 +366,50 @@ func TestLogHandlerFromLogger(t *testing.T) {
 
 /*
 	NewDevelopLogger
-	NewTestLogger
 	NewProdLogger
-	Change level of handler
-		Assertions
-			~~for single logger~~
-			~~for all handlers~~
-			for all handlers ignoring handler specific settings
-			~~for "derived" logger created via WithX~~
-			~~case: change level after 2 group/components are created. Expect level to change for both~~
-	Logger log
-		~~call all children~~
-		handle errors in on eof the children handlers
-		set level (only top level is used, withLoggers levels are ignored)
-		filter for User
-		filter for Context
-		Assertions
-			is enabled for all loggers
-			filters work
-			traceID is set as attr
-			spanID is set as attr
-			log event is added to span
-			Options like source are working properly
-	~~Logger WithX~~
-		~~set attr in each child logger~~
-		Assertions
-			~~ensure all children have new attr~~
-			~~ensure ex. loggers are unchanged~~
+	Test with parallel calls and race conditions
+	Trace the Handle method, so we can measure the loggers overhead ???
 */
+
+// fakeSpan is an implementation of Span that is minimal for asserting tests.
+type fakeSpan struct {
+	ID byte
+
+	lastEventName    string
+	lastEventOptions []trace.EventOption
+	lastErrorCode    codes.Code
+	lastErrorMsg     string
+}
+
+var _ trace.Span = (*fakeSpan)(nil)
+
+func (fakeSpan) SpanContext() trace.SpanContext {
+	return trace.SpanContext{}.WithTraceID([16]byte{1}).WithSpanID([8]byte{1})
+}
+
+func (s *fakeSpan) IsRecording() bool { return false }
+
+func (s *fakeSpan) SetStatus(code codes.Code, msg string) {
+	s.lastErrorCode = code
+	s.lastErrorMsg = msg
+}
+
+func (s *fakeSpan) SetError(bool) {}
+
+func (s *fakeSpan) SetAttributes(...attribute.KeyValue) {}
+
+func (s *fakeSpan) End(...trace.SpanEndOption) {}
+
+func (s *fakeSpan) RecordError(error, ...trace.EventOption) {}
+
+func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
+	s.lastEventName = name
+	s.lastEventOptions = opts
+}
+
+func (s *fakeSpan) SetName(string) {}
+
+func (s *fakeSpan) TracerProvider() trace.TracerProvider { return nil }
 
 // --- --- ---
 
@@ -467,3 +564,23 @@ func TestSomeStuff(t *testing.T) {
 		slog.New(nil)
 	})
 }
+
+type failingHandler struct{}
+
+func (f failingHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return true
+}
+
+func (f failingHandler) Handle(ctx context.Context, record slog.Record) error {
+	return errors.New("some error")
+}
+
+func (f failingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	panic("implement me")
+}
+
+func (f failingHandler) WithGroup(name string) slog.Handler {
+	panic("implement me")
+}
+
+var _ slog.Handler = (*failingHandler)(nil)
