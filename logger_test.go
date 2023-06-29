@@ -27,11 +27,7 @@ func TestNewLogHandler(t *testing.T) {
 	t.Parallel()
 
 	/*
-		~~bare with nothing => default json to Stdout?~~
-		~~with loggers, to output to multiple~~
 		Assertions
-			~~level info by default~~
-			~~level can be initialised with WithLevel~~
 			source is xy and the right file name & line numbers
 			replace attributes is set (for arrower levels)
 	*/
@@ -283,15 +279,10 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 	/*
 		Logger log
-			~~call all children~~
-			~~handle errors in on eof the children handlers~~
 			filter for User
 			filter for Context
 			Assertions
 				filters work
-				~~traceID is set as attr~~
-				~~spanID is set as attr~~
-				~~log event is added to span~~
 				Options like source are working properly
 	*/
 }
