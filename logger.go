@@ -208,6 +208,14 @@ func NewLogger(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(NewLogHandler(opts...))
 }
 
+func NewDevelopmentLogger() *slog.Logger {
+	return NewLogger(
+		WithLevel(slog.LevelDebug),
+		WithHandler(NewLokiHandler(&LokiHandlerOptions{})),
+		WithHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})),
+	)
+}
+
 func NewTestLogger(w io.Writer) *slog.Logger {
 	return slog.New(
 		NewLogHandler(WithHandler(
@@ -222,6 +230,111 @@ func LogHandlerFromLogger(logger *slog.Logger) *ArrowerLogger {
 	}
 
 	return &ArrowerLogger{}
+}
+
+type (
+	LokiHandlerOptions struct {
+		PushURL string
+		Label   string
+	}
+	LokiHandler struct {
+		client   promtail.Client
+		renderer slog.Handler
+		output   *bytes.Buffer
+	}
+)
+
+var _ slog.Handler = (*LokiHandler)(nil)
+
+func (l LokiHandler) Handle(ctx context.Context, record slog.Record) error {
+	_ = l.renderer.Handle(ctx, record)
+
+	attrs := ""
+	record.Attrs(func(a slog.Attr) bool {
+		// this is high cardinality and can kill loki
+		// https://grafana.com/docs/loki/latest/fundamentals/labels/#cardinality
+		attrs += fmt.Sprintf(",%s=%s ", a.Key, a.Value.String())
+
+		return true // process next attr
+	})
+	attrs = strings.TrimPrefix(attrs, ",")
+	attrs = strings.TrimSpace(attrs)
+
+	l.client.Infof(record.Message + " " + attrs) // in grafana: green
+	l.client.Infof(l.output.String())            // in grafana: green
+
+	l.output.Reset()
+
+	//client.Debugf(record.Message) // in grafana: blue
+	//client.Errorf(record.Message) // in grafana: red
+	//client.Warnf(record.Message)  // in grafana: yellow
+
+	// !!! Query in grafana with !!!
+	// {job="somejob"} | logfmt | command="GetWorkersRequest"
+	//
+	// https://grafana.com/docs/loki/latest/logql/log_queries/#logfmt
+
+	return nil
+}
+
+func (l LokiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return true
+}
+
+func (l LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &LokiHandler{
+		client:   l.client,
+		renderer: l.renderer.WithAttrs(attrs),
+		output:   l.output,
+	}
+}
+
+func (l LokiHandler) WithGroup(name string) slog.Handler {
+	return &LokiHandler{
+		client:   l.client,
+		renderer: l.renderer.WithGroup(name),
+		output:   l.output,
+	}
+}
+
+func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
+	pushURL := "http://localhost:3100/api/prom/push"
+	label := fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton")
+
+	if opt.PushURL != "" {
+		pushURL = opt.PushURL
+	}
+
+	if opt.Label != "" {
+		label = opt.Label
+	}
+
+	conf := promtail.ClientConfig{
+		PushURL:            pushURL,
+		BatchWait:          1 * time.Second,
+		BatchEntriesNumber: 1,
+		SendLevel:          promtail.DEBUG,
+		PrintLevel:         promtail.DISABLE,
+		Labels:             label,
+	}
+
+	// Do not handle error here, because promtail method always returns `nil`.
+	client, _ := promtail.NewClientJson(conf)
+
+	// generate json log by writing to local buffer with slog default json
+	buf := &bytes.Buffer{}
+	jsonLog := slog.HandlerOptions{
+		Level:       LevelTrace, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
+		AddSource:   false,
+		ReplaceAttr: NameArrowerLogLevels,
+	}
+	renderer := slog.NewJSONHandler(buf, &jsonLog)
+
+	return &LokiHandler{
+		client:   client,
+		renderer: renderer,
+		output:   buf,
+	}
 }
 
 // --- --- --- --- --- ---
