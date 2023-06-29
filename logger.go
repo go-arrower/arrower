@@ -9,13 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/afiskon/promtail-client/promtail"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/afiskon/promtail-client/promtail"
-
 	"golang.org/x/exp/slog"
 )
 
@@ -43,7 +40,7 @@ type ArrowerLogger struct {
 	// to adjust the minimum level dynamically, use a LevelVar.
 	// This IS the level for all handlers. The level of the handlers set via
 	// WithHandler are ignored.
-	level slog.Leveler
+	level *slog.Level
 }
 
 func (l *ArrowerLogger) Handlers() []slog.Handler {
@@ -52,6 +49,12 @@ func (l *ArrowerLogger) Handlers() []slog.Handler {
 
 func (l *ArrowerLogger) Level() slog.Level {
 	return l.level.Level()
+}
+
+// SetLevel changes the level for all Loggers. Even the ones "copied" via any WithX method.
+// All groups will have the same level.
+func (l *ArrowerLogger) SetLevel(level slog.Level) {
+	*l.level = level
 }
 
 func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
@@ -72,9 +75,7 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	return nil
 }
 
-func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
-	// return &JSONHandler{commonHandler: h.commonHandler.withAttrs(attrs)}
-
+func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required to implement slog.Handler
 	handlers := make([]slog.Handler, len(l.handlers))
 
 	for i, h := range l.handlers {
@@ -87,9 +88,17 @@ func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 }
 
-func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
-	//TODO implement me
-	panic("implement me")
+func (l *ArrowerLogger) WithGroup(name string) slog.Handler { //nolint:ireturn // required to implement slog.Handler
+	handlers := make([]slog.Handler, len(l.handlers))
+
+	for i, h := range l.handlers {
+		handlers[i] = h.WithGroup(name)
+	}
+
+	return &ArrowerLogger{
+		handlers: handlers,
+		level:    l.level,
+	}
 }
 
 type LoggerOpt func(logger *ArrowerLogger)
@@ -102,7 +111,7 @@ func WithHandler(h slog.Handler) LoggerOpt {
 
 func WithLevel(level slog.Level) LoggerOpt {
 	return func(l *ArrowerLogger) {
-		l.level = level
+		l.level = &level
 	}
 }
 
@@ -122,7 +131,8 @@ func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
 	)
 
 	logger := &ArrowerLogger{
-		level: defaultLevel,
+		handlers: []slog.Handler{},
+		level:    &defaultLevel,
 	}
 
 	for _, opt := range opts {
@@ -139,6 +149,14 @@ func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
 
 func NewLogger(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(NewLogHandler(opts...))
+}
+
+func LogHandlerFromLogger(logger *slog.Logger) *ArrowerLogger {
+	if l, ok := logger.Handler().(*ArrowerLogger); ok {
+		return l
+	}
+
+	return &ArrowerLogger{}
 }
 
 // --- --- --- --- --- ---
