@@ -220,6 +220,7 @@ issues:
       linters:
         - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
         - funlen  # Allow test functions of any length
+        - exhaustruct # Don't force complete struct initialisation to keep test cases simpler to read
 
     # Allow patterns that are considered best practises for Corba CLI applications
     - path: arrower/cmd

@@ -57,14 +57,14 @@ func TestNewLogHandler(t *testing.T) {
 		h0 := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})
 		h1 := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{})
 
-		h := arrower.NewLogHandler(
+		handler := arrower.NewLogHandler(
 			arrower.WithHandler(h0),
 			arrower.WithHandler(h1),
 		)
 
-		assert.Len(t, h.Handlers(), 2)
-		assert.IsType(t, &slog.TextHandler{}, h.Handlers()[0])
-		assert.IsType(t, &slog.JSONHandler{}, h.Handlers()[1])
+		assert.Len(t, handler.Handlers(), 2)
+		assert.IsType(t, &slog.TextHandler{}, handler.Handlers()[0])
+		assert.IsType(t, &slog.JSONHandler{}, handler.Handlers()[1])
 	})
 
 	t.Run("info is default level", func(t *testing.T) {
@@ -84,6 +84,7 @@ func TestNewLogHandler(t *testing.T) {
 		assert.Equal(t, arrower.LevelTrace, h.Level())
 	})
 }
+
 func TestNewLogger(t *testing.T) {
 	t.Parallel()
 
@@ -102,6 +103,91 @@ func TestNewLogger(t *testing.T) {
 
 		logger.Info("application info msg")
 		assert.Contains(t, buf.String(), `msg="application info msg"`)
+	})
+}
+
+func TestArrowerLogger_SetLevel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("log level is changed for all handlers", func(t *testing.T) {
+		t.Parallel()
+
+		buf0 := &bytes.Buffer{}
+		h0 := slog.NewTextHandler(buf0, &slog.HandlerOptions{})
+		buf1 := &bytes.Buffer{}
+		h1 := slog.NewTextHandler(buf1, &slog.HandlerOptions{})
+
+		logger := arrower.NewLogger(
+			arrower.WithHandler(h0),
+			arrower.WithHandler(h1),
+		)
+
+		logger.Debug(applicationMsg)
+		assert.NotContains(t, buf0.String(), applicationMsg)
+		assert.NotContains(t, buf1.String(), applicationMsg)
+
+		arrower.LogHandlerFromLogger(logger).SetLevel(slog.LevelDebug)
+		logger.Debug(applicationMsg)
+		assert.Contains(t, buf0.String(), applicationMsg)
+		assert.Contains(t, buf1.String(), applicationMsg)
+	})
+
+	t.Run("log level changes for all groups", func(t *testing.T) {
+		t.Parallel()
+
+		buf0 := &bytes.Buffer{}
+		h0 := slog.NewTextHandler(buf0, &slog.HandlerOptions{})
+		buf1 := &bytes.Buffer{}
+		h1 := slog.NewTextHandler(buf1, &slog.HandlerOptions{})
+
+		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger2 := logger1.WithGroup("componentA")
+
+		logger1.Debug("hello0", slog.String("some", "attr"))
+		assert.NotContains(t, buf0.String(), "hello0")
+
+		logger2.Debug("hello1", slog.String("some", "attr"))
+		assert.NotContains(t, buf1.String(), "hello1")
+		assert.NotContains(t, buf1.String(), "componentA.some=attr")
+
+		// change level of logger1 and expect it to change for logger2 as well
+		arrower.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		logger1.Debug("hello0 debug")
+		assert.Contains(t, buf0.String(), "hello0 debug")
+
+		logger2.Debug("hello1 debug")
+		assert.Contains(t, buf1.String(), "hello1 debug")
+
+		// change level on logger2 and expect it to change for logger1 as well
+		arrower.LogHandlerFromLogger(logger2).SetLevel(arrower.LevelTrace)
+		logger1.Debug("hello0 trace")
+		assert.Contains(t, buf0.String(), "hello0 trace")
+
+		logger2.Debug("hello1 trace")
+		assert.Contains(t, buf1.String(), "hello1 trace")
+	})
+
+	t.Run("change levels for loggers with attr", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &bytes.Buffer{}
+		h := slog.NewTextHandler(buf, &slog.HandlerOptions{})
+
+		logger1 := arrower.NewLogger(arrower.WithHandler(h))
+		logger2 := logger1.With(slog.String("some", "attr"))
+
+		logger1.Debug("hello")
+		logger2.Debug("hello")
+		assert.NotContains(t, buf.String(), "hello")
+		assert.NotContains(t, buf.String(), "some")
+
+		arrower.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		logger1.Debug("hello1")
+		logger2.Debug("hello2")
+
+		assert.Contains(t, buf.String(), "hello1")
+		assert.Contains(t, buf.String(), "hello2")
+		assert.Contains(t, buf.String(), "some=attr")
 	})
 }
 
@@ -140,30 +226,61 @@ func TestArrowerLogger_WithAttrs(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewTextHandler(buf1, &slog.HandlerOptions{})
 
-		logger := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
-		logger.Info("hello")
+		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger2 := logger1.With(slog.String("some", "attr"))
+
+		logger1.Info("hello")
 		assert.NotContains(t, buf0.String(), "some")
 		assert.NotContains(t, buf1.String(), "some")
 
-		logger2 := logger.With(slog.String("some", "attr"))
 		logger2.Info("hello")
 		assert.Contains(t, buf0.String(), "some=attr")
 		assert.Contains(t, buf1.String(), "some=attr")
 	})
-
-	// todo case: change level in orig logger, see how it does in child logger
 }
 
-func TestExtract(t *testing.T) {
+func TestArrowerLogger_WithGroup(t *testing.T) {
 	t.Parallel()
 
-	buf := &bytes.Buffer{}
-	h0 := slog.NewTextHandler(buf, &slog.HandlerOptions{})
+	t.Run("", func(t *testing.T) {
+		t.Parallel()
 
-	logger := arrower.NewLogger(arrower.WithHandler(h0))
-	_ = logger
-	//assert.Len(t, l.Handlers(), 1)
-	//assert.IsType(t, &slog.TextHandler{}, h.Handlers()[0])
+		buf0 := &bytes.Buffer{}
+		h0 := slog.NewTextHandler(buf0, &slog.HandlerOptions{})
+		buf1 := &bytes.Buffer{}
+		h1 := slog.NewTextHandler(buf1, &slog.HandlerOptions{})
+
+		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger2 := logger1.WithGroup("componentA")
+
+		logger1.Info("hello0", slog.String("some", "attr"))
+		assert.NotContains(t, buf0.String(), "componentA")
+
+		logger2.Info("hello1", slog.String("some", "attr"))
+		assert.Contains(t, buf1.String(), "componentA.some=attr")
+	})
+}
+
+func TestLogHandlerFromLogger(t *testing.T) {
+	t.Parallel()
+
+	t.Run("arrower logger", func(t *testing.T) {
+		t.Parallel()
+
+		logger := arrower.NewLogger()
+
+		h := arrower.LogHandlerFromLogger(logger)
+		assert.IsType(t, &arrower.ArrowerLogger{}, h)
+	})
+
+	t.Run("other slog", func(t *testing.T) {
+		t.Parallel()
+
+		logger := slog.Default()
+
+		h := arrower.LogHandlerFromLogger(logger)
+		assert.IsType(t, &arrower.ArrowerLogger{}, h)
+	})
 }
 
 /*
@@ -172,10 +289,11 @@ func TestExtract(t *testing.T) {
 	NewProdLogger
 	Change level of handler
 		Assertions
-			for single logger
-			for all handlers
+			~~for single logger~~
+			~~for all handlers~~
 			for all handlers ignoring handler specific settings
-			for "derived" logger created via WithX
+			~~for "derived" logger created via WithX~~
+			~~case: change level after 2 group/components are created. Expect level to change for both~~
 	Logger log
 		~~call all children~~
 		handle errors in on eof the children handlers
@@ -189,19 +307,11 @@ func TestExtract(t *testing.T) {
 			spanID is set as attr
 			log event is added to span
 			Options like source are working properly
-	Logger WithX
-		set attr in each child logger
+	~~Logger WithX~~
+		~~set attr in each child logger~~
 		Assertions
-			ensure all children have new attr
-			ensure ex. loggers are unchanged
-
-	Open Questions:
-		should the methods to change levels and filter be implemented in the arrower logger/handler or in an extra wrapping struct like with the DB?
-			don't like the DB-Handler like approach:
-				I prototyped it out and it feels bulky and cumbersome to use
-				It does not respect the creation of new logger with the WITH-Methods so easily.
-			=> helper to cast logger into arrower Logger, so change Level methods become available and local to the logger that uses it
-			? DOES THIS WORK FOR ALL DERIVED LOGGERS ?
+			~~ensure all children have new attr~~
+			~~ensure ex. loggers are unchanged~~
 */
 
 // --- --- ---
