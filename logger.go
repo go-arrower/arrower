@@ -246,6 +246,8 @@ type (
 		PushURL string
 		Label   string
 	}
+
+	// LokiHandler, see NewLokiHandler.
 	LokiHandler struct {
 		client   promtail.Client
 		renderer slog.Handler
@@ -308,6 +310,12 @@ func (l LokiHandler) WithGroup(name string) slog.Handler { //nolint:ireturn // r
 	}
 }
 
+// NewLokiHandler use this handler only for local development!
+//
+// Its purpose is to mimic your production setting in case you're using loki & grafana.
+// It ships your logs to a local loki instance, so you can use the same setup for development.
+// It does not care about performance, as in production you would log to `stdout` and the
+// container-runtime's drivers (docker, kubernetes) or something will ship your logs to loki.
 func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 	defaultOpt := &LokiHandlerOptions{
 		PushURL: "http://localhost:3100/api/prom/push",
