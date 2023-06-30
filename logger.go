@@ -25,12 +25,6 @@ const (
 	LevelTrace = slog.Level(-12)
 )
 
-var defaultHandlerOptions = &slog.HandlerOptions{
-	AddSource:   true,
-	Level:       nil, // this level is ignored, Logger's level is used for all handlers.
-	ReplaceAttr: NameArrowerLogLevels,
-}
-
 // LoggerOpt allows to initialise a logger with custom options.
 type LoggerOpt func(logger *Logger)
 
@@ -60,8 +54,8 @@ func NewLogger(opts ...LoggerOpt) *slog.Logger {
 func NewDevelopmentLogger() *slog.Logger {
 	return NewLogger(
 		WithLevel(slog.LevelDebug),
-		WithHandler(slog.NewTextHandler(os.Stderr, defaultHandlerOptions)),
-		WithHandler(NewLokiHandler(&LokiHandlerOptions{})),
+		WithHandler(slog.NewTextHandler(os.Stderr, getDefaultHandlerOptions())),
+		WithHandler(NewLokiHandler(nil)),
 	)
 }
 
@@ -80,7 +74,7 @@ func NewTestLogger(w io.Writer) *slog.Logger {
 func NewLogHandler(opts ...LoggerOpt) *Logger {
 	var (
 		defaultLevel    = slog.LevelInfo
-		defaultHandlers = []slog.Handler{slog.NewJSONHandler(os.Stderr, defaultHandlerOptions)}
+		defaultHandlers = []slog.Handler{slog.NewJSONHandler(os.Stderr, getDefaultHandlerOptions())}
 	)
 
 	logger := &Logger{
@@ -146,57 +140,12 @@ func (l *Logger) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (l *Logger) Handle(ctx context.Context, record slog.Record) error {
 	span := trace.SpanFromContext(ctx)
-	if !span.IsRecording() {
+	if !span.IsRecording() { //nolint:staticcheck // here as a tmp note => remove once this method is cleaned up
 		//	return s.h.Handle(r)
 	}
 
-	{ // (a) adds TraceIDs & spanIDs to logs.
-		sCtx := span.SpanContext()
-		attrs := make([]slog.Attr, 0)
-
-		if sCtx.HasTraceID() {
-			attrs = append(attrs,
-				slog.Attr{Key: "traceID", Value: slog.StringValue(sCtx.TraceID().String())},
-			)
-		}
-
-		if sCtx.HasSpanID() {
-			attrs = append(attrs,
-				slog.Attr{Key: "spanID", Value: slog.StringValue(sCtx.SpanID().String())},
-			)
-		}
-
-		if len(attrs) > 0 {
-			record.AddAttrs(attrs...)
-		}
-	}
-
-	{ // (b) adds logs to the active span as events.
-		attrs := make([]attribute.KeyValue, 0)
-
-		logSeverityKey := attribute.Key("log.severity")
-		logMessageKey := attribute.Key("log.message")
-
-		attrs = append(attrs, logSeverityKey.String(record.Level.String()))
-		attrs = append(attrs, logMessageKey.String(record.Message))
-
-		record.Attrs(func(a slog.Attr) bool {
-			attrs = append(attrs,
-				attribute.KeyValue{
-					Key:   attribute.Key(a.Key),
-					Value: attribute.StringValue(a.Value.String()),
-				},
-			)
-
-			return true // process next attr
-		})
-
-		span.AddEvent("log", trace.WithAttributes(attrs...))
-
-		if record.Level >= slog.LevelError {
-			span.SetStatus(codes.Error, record.Message)
-		}
-	}
+	record = addTraceAndSpanIDsToLogs(span, record)
+	addLogsToActiveSpanAsEvent(span, record)
 
 	var retErr error
 
@@ -206,6 +155,56 @@ func (l *Logger) Handle(ctx context.Context, record slog.Record) error {
 	}
 
 	return retErr
+}
+
+func addTraceAndSpanIDsToLogs(span trace.Span, record slog.Record) slog.Record {
+	sCtx := span.SpanContext()
+	attrs := make([]slog.Attr, 0)
+
+	if sCtx.HasTraceID() {
+		attrs = append(attrs,
+			slog.Attr{Key: "traceID", Value: slog.StringValue(sCtx.TraceID().String())},
+		)
+	}
+
+	if sCtx.HasSpanID() {
+		attrs = append(attrs,
+			slog.Attr{Key: "spanID", Value: slog.StringValue(sCtx.SpanID().String())},
+		)
+	}
+
+	if len(attrs) > 0 {
+		record.AddAttrs(attrs...)
+	}
+
+	return record
+}
+
+func addLogsToActiveSpanAsEvent(span trace.Span, record slog.Record) {
+	attrs := make([]attribute.KeyValue, 0)
+
+	logSeverityKey := attribute.Key("log.severity")
+	logMessageKey := attribute.Key("log.message")
+
+	attrs = append(attrs, logSeverityKey.String(record.Level.String()))
+	attrs = append(attrs, logMessageKey.String(record.Message))
+
+	record.Attrs(func(a slog.Attr) bool {
+		attrs = append(attrs,
+			attribute.KeyValue{
+				Key:   attribute.Key(a.Key),
+				Value: attribute.StringValue(a.Value.String()),
+			},
+		)
+
+		return true // process next attr
+	})
+
+	span.AddEvent("log", trace.WithAttributes(attrs...))
+
+	if record.Level >= slog.LevelError {
+		span.SetStatus(codes.Error, record.Message)
+	}
 }
 
 func (l *Logger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required for slog.Handler
@@ -310,24 +309,30 @@ func (l LokiHandler) WithGroup(name string) slog.Handler { //nolint:ireturn // r
 }
 
 func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
-	pushURL := "http://localhost:3100/api/prom/push"
-	label := fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton")
+	defaultOpt := &LokiHandlerOptions{
+		PushURL: "http://localhost:3100/api/prom/push",
+		Label:   fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton"),
+	}
+
+	if opt == nil {
+		opt = defaultOpt
+	}
 
 	if opt.PushURL != "" {
-		pushURL = opt.PushURL
+		opt.PushURL = defaultOpt.PushURL
 	}
 
 	if opt.Label != "" {
-		label = opt.Label
+		opt.Label = defaultOpt.Label
 	}
 
 	conf := promtail.ClientConfig{
-		PushURL:            pushURL,
+		PushURL:            opt.PushURL,
 		BatchWait:          1 * time.Second,
 		BatchEntriesNumber: 1,
 		SendLevel:          promtail.DEBUG,
 		PrintLevel:         promtail.DISABLE,
-		Labels:             label,
+		Labels:             opt.Label,
 	}
 
 	// Do not handle error here, because promtail method always returns `nil`.
@@ -349,20 +354,19 @@ func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 	}
 }
 
-//nolint:gochecknoglobals // recommended by slog documentation. // todo make it a function to prevent global variable
-var (
-	// levelNames maps the arrower log levels to human-readable names.
-	levelNames = map[slog.Leveler]string{
+// getLevelNames maps the arrower log levels to human-readable names.
+func getLevelNames() map[slog.Leveler]string {
+	return map[slog.Leveler]string{
 		LevelDebug: "ARROWER:DEBUG",
 		LevelTrace: "ARROWER:TRACE",
 	}
-)
+}
 
 func NameArrowerLogLevels(groups []string, attr slog.Attr) slog.Attr {
 	if attr.Key == slog.LevelKey {
 		level, _ := attr.Value.Any().(slog.Level)
 
-		levelLabel, exists := levelNames[level]
+		levelLabel, exists := getLevelNames()[level]
 		if !exists {
 			levelLabel = level.String()
 		}
@@ -371,4 +375,12 @@ func NameArrowerLogLevels(groups []string, attr slog.Attr) slog.Attr {
 	}
 
 	return attr
+}
+
+func getDefaultHandlerOptions() *slog.HandlerOptions {
+	return &slog.HandlerOptions{
+		AddSource:   true,
+		Level:       nil, // this level is ignored, Logger's level is used for all handlers.
+		ReplaceAttr: NameArrowerLogLevels,
+	}
 }
