@@ -25,6 +25,81 @@ const (
 	LevelTrace = slog.Level(-12)
 )
 
+var defaultHandlerOptions = &slog.HandlerOptions{
+	AddSource:   true,
+	Level:       nil, // this level is ignored, ArrowerLogger's level is used for all handlers.
+	ReplaceAttr: NameArrowerLogLevels,
+}
+
+// LoggerOpt allows to initialise a logger with custom options.
+type LoggerOpt func(logger *ArrowerLogger)
+
+// WithHandler adds a slog.Handler to be logged to. You can set as many as you want.
+func WithHandler(h slog.Handler) LoggerOpt {
+	return func(l *ArrowerLogger) {
+		l.handlers = append(l.handlers, h)
+	}
+}
+
+// WithLevel initialises the logger with a starting level.
+// To change the level at runtime use *ArrowerLogger.SetLevel.
+func WithLevel(level slog.Level) LoggerOpt {
+	return func(l *ArrowerLogger) {
+		l.level = &level
+	}
+}
+
+// NewLogger returns a production ready logger.
+//
+// If no options are given it creates a default handler, logging JSON to Stderr.
+// Otherwise, use WithHandler to set your own loggers. For an example, see NewDevelopmentLogger.
+func NewLogger(opts ...LoggerOpt) *slog.Logger {
+	return slog.New(NewLogHandler(opts...))
+}
+
+func NewDevelopmentLogger() *slog.Logger {
+	return NewLogger(
+		WithLevel(slog.LevelDebug),
+		WithHandler(slog.NewTextHandler(os.Stderr, defaultHandlerOptions)),
+		WithHandler(NewLokiHandler(&LokiHandlerOptions{})),
+	)
+}
+
+func NewTestLogger(w io.Writer) *slog.Logger {
+	return slog.New(
+		NewLogHandler(WithHandler(
+			slog.NewTextHandler(w, &slog.HandlerOptions{})),
+		),
+	)
+}
+
+// NewLogHandler implements the main arrower specific logging logic and features.
+// It does not output anything directly and relies on other slog.Handlers to do so.
+//
+// For the options, see NewLogger.
+func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
+	var (
+		defaultLevel    = slog.LevelInfo
+		defaultHandlers = []slog.Handler{slog.NewJSONHandler(os.Stderr, defaultHandlerOptions)}
+	)
+
+	logger := &ArrowerLogger{
+		handlers: []slog.Handler{},
+		level:    &defaultLevel,
+	}
+
+	for _, opt := range opts {
+		opt(logger)
+	}
+
+	hasCustomHandlers := len(logger.handlers) != 0
+	if !hasCustomHandlers {
+		logger.handlers = defaultHandlers
+	}
+
+	return logger
+}
+
 // Ensure ArrowerLogger implements slog.Handler.
 var _ slog.Handler = (*ArrowerLogger)(nil)
 
@@ -156,72 +231,6 @@ func (l *ArrowerLogger) WithGroup(name string) slog.Handler { //nolint:ireturn /
 		handlers: handlers,
 		level:    l.level,
 	}
-}
-
-type LoggerOpt func(logger *ArrowerLogger)
-
-func WithHandler(h slog.Handler) LoggerOpt {
-	return func(l *ArrowerLogger) {
-		l.handlers = append(l.handlers, h)
-	}
-}
-
-func WithLevel(level slog.Level) LoggerOpt {
-	return func(l *ArrowerLogger) {
-		l.level = &level
-	}
-}
-
-func NewLogHandler(opts ...LoggerOpt) *ArrowerLogger {
-	var (
-		defaultLevel    = slog.LevelInfo
-		defaultHandlers = []slog.Handler{
-			slog.NewJSONHandler(
-				os.Stderr,
-				&slog.HandlerOptions{
-					AddSource:   false,
-					Level:       defaultLevel,
-					ReplaceAttr: nil, // todo create an assertion for this: NameArrowerLogLevels,
-				},
-			),
-		}
-	)
-
-	logger := &ArrowerLogger{
-		handlers: []slog.Handler{},
-		level:    &defaultLevel,
-	}
-
-	for _, opt := range opts {
-		opt(logger)
-	}
-
-	hasCustomHandlers := len(logger.handlers) != 0
-	if !hasCustomHandlers {
-		logger.handlers = defaultHandlers
-	}
-
-	return logger
-}
-
-func NewLogger(opts ...LoggerOpt) *slog.Logger {
-	return slog.New(NewLogHandler(opts...))
-}
-
-func NewDevelopmentLogger() *slog.Logger {
-	return NewLogger(
-		WithLevel(slog.LevelDebug),
-		WithHandler(NewLokiHandler(&LokiHandlerOptions{})),
-		WithHandler(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})),
-	)
-}
-
-func NewTestLogger(w io.Writer) *slog.Logger {
-	return slog.New(
-		NewLogHandler(WithHandler(
-			slog.NewTextHandler(w, &slog.HandlerOptions{})),
-		),
-	)
 }
 
 func LogHandlerFromLogger(logger *slog.Logger) *ArrowerLogger {
