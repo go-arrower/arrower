@@ -29,7 +29,7 @@ func TestStartDockerContainer(t *testing.T) {
 	t.Run("invalid docker retry func", func(t *testing.T) {
 		t.Parallel()
 
-		cleanup, err := tests.StartDockerContainer(&dockertest.RunOptions{Repository: "postgres"}, nil) //nolint:exhaustruct
+		cleanup, err := tests.StartDockerContainer(&dockertest.RunOptions{Repository: "postgres"}, nil)
 		assert.True(t, errors.Is(err, tests.ErrDockerFailure))
 		assert.Nil(t, cleanup)
 	})
@@ -37,7 +37,7 @@ func TestStartDockerContainer(t *testing.T) {
 	t.Run("start docker container", func(t *testing.T) {
 		t.Parallel()
 
-		runOptions := &dockertest.RunOptions{ //nolint:exhaustruct
+		runOptions := &dockertest.RunOptions{
 			Repository: "postgres",
 			Tag:        "15",
 			Env: []string{

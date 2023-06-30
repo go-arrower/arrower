@@ -17,7 +17,7 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var runOptions = &dockertest.RunOptions{ //nolint:exhaustruct
+var runOptions = &dockertest.RunOptions{
 	Repository: "postgres",
 	Tag:        "15",
 	Env: []string{
@@ -39,7 +39,7 @@ func TestConnect(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
 			return func() error {
-				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.Connect(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
@@ -72,7 +72,7 @@ func TestConnect(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
 			return func() error {
-				handler, err := postgres.Connect(context.Background(), postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.Connect(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
@@ -112,7 +112,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "username",
@@ -141,7 +141,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{ //nolint:exhaustruct
+				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
 					Host:       "localhost",
 					Port:       port,
 					User:       "username",
