@@ -25,7 +25,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
@@ -62,7 +62,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
@@ -94,7 +94,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer

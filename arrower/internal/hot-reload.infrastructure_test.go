@@ -26,7 +26,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		s, err := internal.NewHotReloadServer(make(chan internal.File))
 		assert.NoError(t, err)
 		assert.NotNil(t, s)
-		assert.IsType(t, &echo.Echo{}, s) //nolint:exhaustruct
+		assert.IsType(t, &echo.Echo{}, s)
 	})
 
 	t.Run("start server", func(t *testing.T) {

@@ -26,7 +26,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("build, run, and delete the app", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 		binaryPath, _ := internal.RandomBinaryPath()
@@ -52,7 +52,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("empty binaryPath", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 
@@ -69,7 +69,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("invalid path fails the build", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		binaryPath, _ := internal.RandomBinaryPath()
 
 		_, err := internal.BuildAndRunApp(buf, "/non/existing/path", binaryPath)
@@ -83,7 +83,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("run and stop a webserver", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		binaryPath, _ := internal.RandomBinaryPath()
@@ -103,7 +103,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("panic", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-panic", dir)
 		binaryPath, _ := internal.RandomBinaryPath()
@@ -122,7 +122,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("app does not compile", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-compile-error", dir)
 		binaryPath, _ := internal.RandomBinaryPath()
@@ -137,7 +137,7 @@ func TestBuildAndRunApp(t *testing.T) {
 	t.Run("stop if sigterm is ignored", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &SyncBuffer{} //nolint:exhaustruct
+		buf := &SyncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-ignore-sigterm", dir)
 		binaryPath, _ := internal.RandomBinaryPath()

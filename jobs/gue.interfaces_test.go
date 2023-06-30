@@ -397,7 +397,7 @@ func TestGueHandler_History(t *testing.T) {
 		// job history table is empty before first job is enqueued
 		ensureJobHistoryTableRows(t, pg, 0)
 
-		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
+		err = jq.Enqueue(ctx, jobWithArgs{})
 		assert.NoError(t, err)
 
 		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup in the JobFunc does not work,
@@ -454,7 +454,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		wg.Add(1)
-		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
+		err = jq.Enqueue(ctx, jobWithArgs{})
 		assert.NoError(t, err)
 
 		wg.Wait() // wait for the worker
@@ -520,7 +520,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		wg.Add(1)
-		err = jq.Enqueue(ctx, jobWithArgs{}) //nolint:exhaustruct
+		err = jq.Enqueue(ctx, jobWithArgs{})
 		assert.NoError(t, err)
 
 		wg.Wait() // waits for the worker
