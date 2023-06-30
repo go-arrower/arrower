@@ -47,9 +47,7 @@ func TestNewLogger(t *testing.T) {
 	})
 }
 
-func TestDefaultOutputFormat(t *testing.T) {
-	t.Parallel()
-
+func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // concurrent access to os.Stderr will lead to race condition.
 	// The default loggers constructed with NewLogHandler, NewDevelopmentLogger, NewLogger
 	// log to os.Stderr. This is a good default, but for testing the HandlerOptions,
 	// I need to inspect the output.
