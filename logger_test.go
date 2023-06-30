@@ -24,6 +24,8 @@ const (
 	applicationMsg = "application message"
 )
 
+var errSomething = errors.New("some error")
+
 func TestNewLogger(t *testing.T) {
 	t.Parallel()
 
@@ -54,10 +56,11 @@ func TestDefaultOutputFormat(t *testing.T) {
 	// At the same time the API should stay as simple as possible and not take any io.Writer
 	// as parameter. To make this possible this tests intercept os.Stderr.
 
-	r, w, _ := os.Pipe()
+	pipeRead, pipeWrite, _ := os.Pipe()
 
 	stderr := os.Stderr
-	os.Stderr = w
+
+	os.Stderr = pipeWrite
 	defer func() {
 		os.Stderr = stderr
 	}()
@@ -69,10 +72,10 @@ func TestDefaultOutputFormat(t *testing.T) {
 	arrower.LogHandlerFromLogger(logger).SetLevel(arrower.LevelTrace)
 	logger.Log(context.Background(), arrower.LevelTrace, applicationMsg)
 
-	_ = w.Close()
+	_ = pipeWrite.Close()
 
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, pipeRead)
 
 	assert.Contains(t, buf.String(), `"source":`)
 	assert.Contains(t, buf.String(), `"function":`)
@@ -307,15 +310,6 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			assert.Equal(t, applicationMsg, span.lastErrorMsg)
 		})
 	})
-
-	/*
-		Logger log
-			filter for User
-			filter for Context
-			Assertions
-				filters work
-				Options like source are working properly
-	*/
 }
 
 func TestArrowerLogger_WithAttrs(t *testing.T) {
@@ -373,7 +367,7 @@ func TestLogHandlerFromLogger(t *testing.T) {
 		logger := arrower.NewLogger()
 
 		h := arrower.LogHandlerFromLogger(logger)
-		assert.IsType(t, &arrower.ArrowerLogger{}, h)
+		assert.IsType(t, &arrower.Logger{}, h)
 	})
 
 	t.Run("other slog", func(t *testing.T) {
@@ -382,7 +376,7 @@ func TestLogHandlerFromLogger(t *testing.T) {
 		logger := slog.Default()
 
 		h := arrower.LogHandlerFromLogger(logger)
-		assert.IsType(t, &arrower.ArrowerLogger{}, h)
+		assert.IsType(t, &arrower.Logger{}, h)
 	})
 }
 
@@ -390,6 +384,10 @@ func TestLogHandlerFromLogger(t *testing.T) {
 	Test with parallel calls and race conditions
 	Trace the Handle method, so we can measure the loggers overhead ???
 */
+
+// // //  ///  /// /// ///
+// // // fakes /// /// ///
+// // //  ///  /// /// ///
 
 // fakeSpan is an implementation of Span that is minimal for asserting tests.
 type fakeSpan struct {
@@ -429,178 +427,24 @@ func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
 
 func (s *fakeSpan) SetName(string) {}
 
-func (s *fakeSpan) TracerProvider() trace.TracerProvider { return nil }
-
-// --- --- ---
-
-func TestNewDevelopment(t *testing.T) {
-	t.Parallel()
-
-	t.Run("log hello", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		h := arrower.NewFilteredLogger(buf)
-		h.Logger.Info("hello logger")
-
-		assert.Contains(t, buf.String(), "hello logger")
-	})
-
-	t.Run("level debug by default", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		h := arrower.NewFilteredLogger(buf)
-
-		h.Logger.Log(context.Background(), arrower.LevelDebug, "arrower debug")
-		h.Logger.Log(context.Background(), arrower.LevelTrace, "arrower trance")
-		assert.Empty(t, buf.String())
-
-		h.Logger.Debug("application debug msg")
-		assert.Contains(t, buf.String(), `msg="application debug msg"`)
-	})
-}
-
-func TestSetLevel(t *testing.T) {
-	t.Parallel()
-
-	t.Run("set level arrower:debug", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		h := arrower.NewFilteredLogger(buf)
-
-		h.SetLogLevel(arrower.LevelDebug)
-		h.Logger.Log(context.Background(), arrower.LevelDebug, "arrower debug")
-		assert.Contains(t, buf.String(), `msg="arrower debug"`)
-		assert.Contains(t, buf.String(), `level=ARROWER:DEBUG`)
-	})
-
-	t.Run("set level arrower:trance", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		h := arrower.NewFilteredLogger(buf)
-
-		h.SetLogLevel(arrower.LevelTrace)
-		h.Logger.Log(context.Background(), arrower.LevelTrace, "arrower trace")
-		assert.Contains(t, buf.String(), `msg="arrower trace"`)
-		assert.Contains(t, buf.String(), `level=ARROWER:TRACE`)
-	})
-}
-
-func TestFilteredLogger_Handle(t *testing.T) {
-	t.Parallel()
-
-	buf := &bytes.Buffer{}
-	handler := arrower.NewFilteredLogger(buf)
-	logger := handler.Logger
-
-	buf.Reset()
-	logger.Debug("message")
-	assert.Contains(t, buf.String(), "message")
-
-	buf.Reset()
-	logger.Debug("", userKey, "default")
-	assert.Contains(t, buf.String(), "default", "not observed user")
-
-	handler.SetLogLevel(slog.LevelError)
-
-	buf.Reset()
-	logger.Debug("", userKey, "default")
-	assert.NotContains(t, buf.String(), "default", "not observed user")
-
-	buf.Reset()
-	logger.Debug("", userKey, userName)
-	assert.NotContains(t, buf.String(), userFormatted, "not observed yet")
-
-	buf.Reset()
-	handler.SetUserFilter("1337")
-	logger.Debug("", userKey, userName)
-	assert.Contains(t, buf.String(), userFormatted, "observed user")
-
-	buf.Reset()
-	handler.RemoveUserFilter(userName)
-	logger.Debug("", userKey, userName)
-	assert.NotContains(t, buf.String(), userFormatted, "removed user")
-
-	buf.Reset()
-	handler.SetLogLevel(slog.LevelDebug)
-
-	logger = logger.WithGroup("arrower")
-
-	handler.SetUserFilter(userName)
-	logger.Debug("", userKey, userName)
-	assert.Contains(t, buf.String(), userFormatted, "observed user with group")
-
-	buf.Reset()
-	handler.SetLogLevel(slog.LevelDebug)
-
-	logger = logger.With("app", "logger")
-	logger.Debug("", userKey, userName)
-	assert.Contains(t, buf.String(), "app=logger")
-}
-
-func TestFilteredLogger_Enabled(t *testing.T) {
-	t.Parallel()
-
-	buf := &bytes.Buffer{}
-	handler := arrower.NewFilteredLogger(buf)
-	logger := handler.Logger
-
-	handler.SetLogLevel(slog.LevelDebug)
-	logger.Debug("message", userKey, userName)
-	assert.Contains(t, buf.String(), userFormatted)
-
-	buf.Reset()
-	handler.SetLogLevel(slog.LevelError)
-	logger.Debug("message", userKey, userName)
-	assert.NotContains(t, buf.String(), userFormatted)
-
-	handler.SetUserFilter("1337")
-	logger.Debug("message", userKey, userName)
-	assert.Contains(t, buf.String(), userFormatted)
-}
-
-func TestSomeStuff(t *testing.T) {
-	t.Skip()
-
-	buf := &bytes.Buffer{}
-	handler := arrower.NewFilteredLogger(buf)
-	logger := handler.Logger
-
-	logger = logger.With(
-		slog.String("some", "arg"),
-		slog.String("other", "arg"),
-	)
-
-	handler.SetUserFilter("1337")
-	logger.Debug("message", userKey, userName)
-	logger.Debug("DONT SHOW message")
-
-	t.Log(buf.String())
-
-	t.Run("", func(t *testing.T) {
-		slog.New(nil)
-	})
-}
+func (s *fakeSpan) TracerProvider() trace.TracerProvider { return nil } //nolint:ireturn
 
 type failingHandler struct{}
+
+var _ slog.Handler = (*failingHandler)(nil)
 
 func (f failingHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return true
 }
 
 func (f failingHandler) Handle(ctx context.Context, record slog.Record) error {
-	return errors.New("some error")
+	return errSomething
 }
 
-func (f failingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (f failingHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn
 	panic("implement me")
 }
 
-func (f failingHandler) WithGroup(name string) slog.Handler {
+func (f failingHandler) WithGroup(name string) slog.Handler { //nolint:ireturn
 	panic("implement me")
 }
-
-var _ slog.Handler = (*failingHandler)(nil)
