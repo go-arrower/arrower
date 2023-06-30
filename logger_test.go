@@ -304,10 +304,10 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			ctx := trace.ContextWithSpan(context.Background(), &span)
 			logger.ErrorCtx(ctx, applicationMsg)
 
-			assert.Equal(t, "log", span.lastEventName)
-			assert.NotEmpty(t, span.lastEventOptions)
-			assert.Equal(t, codes.Error, span.lastErrorCode)
-			assert.Equal(t, applicationMsg, span.lastErrorMsg)
+			assert.Equal(t, "log", span.eventName)
+			assert.NotEmpty(t, span.eventOptions)
+			assert.Equal(t, codes.Error, span.statusErrorCode)
+			assert.Equal(t, applicationMsg, span.statusErrorMsg)
 		})
 	})
 }
@@ -380,23 +380,19 @@ func TestLogHandlerFromLogger(t *testing.T) {
 	})
 }
 
-/*
-	Test with parallel calls and race conditions
-	Trace the Handle method, so we can measure the loggers overhead ???
-*/
-
 // // //  ///  /// /// ///
 // // // fakes /// /// ///
 // // //  ///  /// /// ///
 
 // fakeSpan is an implementation of Span that is minimal for asserting tests.
-type fakeSpan struct {
+type fakeSpan struct { //nolint:govet // fieldalignment does not matter in test cases
 	ID byte
 
-	lastEventName    string
-	lastEventOptions []trace.EventOption
-	lastErrorCode    codes.Code
-	lastErrorMsg     string
+	eventName    string
+	eventOptions []trace.EventOption
+
+	statusErrorCode codes.Code
+	statusErrorMsg  string
 }
 
 var _ trace.Span = (*fakeSpan)(nil)
@@ -408,8 +404,8 @@ func (fakeSpan) SpanContext() trace.SpanContext {
 func (s *fakeSpan) IsRecording() bool { return false }
 
 func (s *fakeSpan) SetStatus(code codes.Code, msg string) {
-	s.lastErrorCode = code
-	s.lastErrorMsg = msg
+	s.statusErrorCode = code
+	s.statusErrorMsg = msg
 }
 
 func (s *fakeSpan) SetError(bool) {}
@@ -421,8 +417,8 @@ func (s *fakeSpan) End(...trace.SpanEndOption) {}
 func (s *fakeSpan) RecordError(error, ...trace.EventOption) {}
 
 func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
-	s.lastEventName = name
-	s.lastEventOptions = opts
+	s.eventName = name
+	s.eventOptions = opts
 }
 
 func (s *fakeSpan) SetName(string) {}
