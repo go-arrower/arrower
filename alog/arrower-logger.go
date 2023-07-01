@@ -38,6 +38,7 @@ func New(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(NewArrowerHandler(opts...))
 }
 
+// NewDevelopment returns a logger ready for local development purposes.
 func NewDevelopment() *slog.Logger {
 	return New(
 		WithLevel(slog.LevelDebug),
@@ -46,6 +47,7 @@ func NewDevelopment() *slog.Logger {
 	)
 }
 
+// NewTest returns a logger suited for test cases. It writes to the given io.Writer.
 func NewTest(w io.Writer) *slog.Logger {
 	return slog.New(NewArrowerHandler(WithHandler(slog.NewTextHandler(w, nil))))
 }
@@ -101,11 +103,12 @@ func (l *ArrowerLogger) Handlers() []slog.Handler {
 	return l.handlers
 }
 
+// Level returns the log level of the handler.
 func (l *ArrowerLogger) Level() slog.Level {
 	return l.level.Level()
 }
 
-// SetLevel changes the level for all Loggers. Even the ones "copied" via any WithX method.
+// SetLevel changes the level for all loggers set with WithHandler(). Even the ones "copied" via any WithX method.
 // All groups will have the same level.
 func (l *ArrowerLogger) SetLevel(level slog.Level) {
 	*l.level = level
@@ -216,9 +219,9 @@ func (l *ArrowerLogger) WithGroup(name string) slog.Handler { //nolint:ireturn /
 	}
 }
 
-// LogHandlerFromLogger unwraps the given logger and returns a ArrowerLogger.
+// Unwrap unwraps the given logger and returns a ArrowerLogger.
 // In case of an invalid implementation of logger, it returns nil instead of an empty ArrowerLogger.
-func LogHandlerFromLogger(logger Logger) *ArrowerLogger {
+func Unwrap(logger Logger) *ArrowerLogger {
 	if l, ok := logger.(*slog.Logger).Handler().(*ArrowerLogger); ok {
 		return l
 	}
