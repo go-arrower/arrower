@@ -121,7 +121,7 @@ func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 	jsonLog := slog.HandlerOptions{
 		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
 		AddSource:   false,
-		ReplaceAttr: NameLogLevels,
+		ReplaceAttr: MapLogLevelsToName,
 	}
 	renderer := slog.NewJSONHandler(buf, &jsonLog)
 

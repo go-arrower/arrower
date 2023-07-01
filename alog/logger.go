@@ -26,8 +26,8 @@ const (
 	LevelDebug = slog.Level(-12)
 )
 
-// NameLogLevels replaces the default name of a custom log level with an speaking name for the arrower levels.
-func NameLogLevels(groups []string, attr slog.Attr) slog.Attr {
+// MapLogLevelsToName replaces the default name of a custom log level with an speaking name for the arrower levels.
+func MapLogLevelsToName(groups []string, attr slog.Attr) slog.Attr {
 	if attr.Key == slog.LevelKey {
 		level, _ := attr.Value.Any().(slog.Level)
 

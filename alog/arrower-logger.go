@@ -233,6 +233,6 @@ func getDefaultHandlerOptions() *slog.HandlerOptions {
 	return &slog.HandlerOptions{
 		AddSource:   true,
 		Level:       nil, // this level is ignored, ArrowerLogger's level is used for all handlers.
-		ReplaceAttr: NameLogLevels,
+		ReplaceAttr: MapLogLevelsToName,
 	}
 }
