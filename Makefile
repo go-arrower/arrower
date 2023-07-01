@@ -48,3 +48,7 @@ dev-run:
 .PHONY: dev-db
 dev-db:
 	PGPASSWORD=secret psql -U arrower -d arrower -h localhost
+
+.PHONY: dev-upgrade
+dev-upgrade:
+	go get -t -u ./...
