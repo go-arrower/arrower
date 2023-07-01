@@ -3,28 +3,17 @@ package alog_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"os"
 	"testing"
 
-	"github.com/go-arrower/arrower/alog"
-
 	"github.com/stretchr/testify/assert"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
-)
 
-const (
-	userKey        = "user_id"
-	userName       = "1337"
-	userFormatted  = "user_id=1337"
-	applicationMsg = "application message"
+	"github.com/go-arrower/arrower/alog"
 )
-
-var errSomething = errors.New("some error")
 
 func TestNewLogger(t *testing.T) {
 	t.Parallel()
@@ -67,7 +56,7 @@ func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // co
 	// The reason is unclear to me, but because of this we can not loop over a set of loggers.
 	// NewDevelopment is not tested, and assumed it just works, if New works.
 	logger := alog.New()
-	alog.LogHandlerFromLogger(logger).SetLevel(alog.LevelDebug)
+	alog.Unwrap(logger).SetLevel(alog.LevelDebug)
 	logger.Log(context.Background(), alog.LevelDebug, applicationMsg)
 
 	_ = pipeWrite.Close()
@@ -79,7 +68,7 @@ func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // co
 	assert.Contains(t, buf.String(), `"function":`)
 	assert.Contains(t, buf.String(), `"file":`)
 	assert.Contains(t, buf.String(), `"line":`)
-	assert.Contains(t, buf.String(), `"level":"ARROWER:TRACE"`)
+	assert.Contains(t, buf.String(), `"level":"ARROWER:DEBUG"`)
 }
 
 func TestNewLogHandler(t *testing.T) {
@@ -158,7 +147,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.NotContains(t, buf0.String(), applicationMsg)
 		assert.NotContains(t, buf1.String(), applicationMsg)
 
-		alog.LogHandlerFromLogger(logger).SetLevel(slog.LevelDebug)
+		alog.Unwrap(logger).SetLevel(slog.LevelDebug)
 		logger.Debug(applicationMsg)
 		assert.Contains(t, buf0.String(), applicationMsg)
 		assert.Contains(t, buf1.String(), applicationMsg)
@@ -183,7 +172,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.NotContains(t, buf1.String(), "componentA.some=attr")
 
 		// change level of logger1 and expect it to change for logger2 as well
-		alog.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		alog.Unwrap(logger1).SetLevel(slog.LevelDebug)
 		logger1.Debug("hello0 debug")
 		assert.Contains(t, buf0.String(), "hello0 debug")
 
@@ -191,7 +180,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.Contains(t, buf1.String(), "hello1 debug")
 
 		// change level on logger2 and expect it to change for logger1 as well
-		alog.LogHandlerFromLogger(logger2).SetLevel(alog.LevelDebug)
+		alog.Unwrap(logger2).SetLevel(alog.LevelDebug)
 		logger1.Debug("hello0 trace")
 		assert.Contains(t, buf0.String(), "hello0 trace")
 
@@ -213,7 +202,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.NotContains(t, buf.String(), "hello")
 		assert.NotContains(t, buf.String(), "some")
 
-		alog.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		alog.Unwrap(logger1).SetLevel(slog.LevelDebug)
 		logger1.Debug("hello1")
 		logger2.Debug("hello2")
 
@@ -364,7 +353,7 @@ func TestLogHandlerFromLogger(t *testing.T) {
 
 		logger := alog.New()
 
-		h := alog.LogHandlerFromLogger(logger)
+		h := alog.Unwrap(logger)
 		assert.IsType(t, &alog.ArrowerLogger{}, h)
 	})
 
@@ -373,73 +362,8 @@ func TestLogHandlerFromLogger(t *testing.T) {
 
 		logger := slog.Default()
 
-		h := alog.LogHandlerFromLogger(logger)
+		h := alog.Unwrap(logger)
 		assert.IsType(t, &alog.ArrowerLogger{}, h)
 		assert.Nil(t, h)
 	})
-}
-
-// // //  ///  /// /// ///
-// // // fakes /// /// ///
-// // //  ///  /// /// ///
-
-// fakeSpan is an implementation of Span that is minimal for asserting tests.
-type fakeSpan struct { //nolint:govet // fieldalignment does not matter in test cases
-	ID byte
-
-	eventName    string
-	eventOptions []trace.EventOption
-
-	statusErrorCode codes.Code
-	statusErrorMsg  string
-}
-
-var _ trace.Span = (*fakeSpan)(nil)
-
-func (fakeSpan) SpanContext() trace.SpanContext {
-	return trace.SpanContext{}.WithTraceID([16]byte{1}).WithSpanID([8]byte{1})
-}
-
-func (s *fakeSpan) IsRecording() bool { return false }
-
-func (s *fakeSpan) SetStatus(code codes.Code, msg string) {
-	s.statusErrorCode = code
-	s.statusErrorMsg = msg
-}
-
-func (s *fakeSpan) SetError(bool) {}
-
-func (s *fakeSpan) SetAttributes(...attribute.KeyValue) {}
-
-func (s *fakeSpan) End(...trace.SpanEndOption) {}
-
-func (s *fakeSpan) RecordError(error, ...trace.EventOption) {}
-
-func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
-	s.eventName = name
-	s.eventOptions = opts
-}
-
-func (s *fakeSpan) SetName(string) {}
-
-func (s *fakeSpan) TracerProvider() trace.TracerProvider { return nil } //nolint:ireturn
-
-type failingHandler struct{}
-
-var _ slog.Handler = (*failingHandler)(nil)
-
-func (f failingHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return true
-}
-
-func (f failingHandler) Handle(ctx context.Context, record slog.Record) error {
-	return errSomething
-}
-
-func (f failingHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn
-	panic("implement me")
-}
-
-func (f failingHandler) WithGroup(name string) slog.Handler { //nolint:ireturn
-	panic("implement me")
 }
