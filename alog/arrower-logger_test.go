@@ -1,4 +1,4 @@
-package arrower_test
+package alog_test
 
 import (
 	"bytes"
@@ -8,13 +8,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-arrower/arrower/alog"
+
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
-
-	"github.com/go-arrower/arrower"
 )
 
 const (
@@ -35,10 +35,10 @@ func TestNewLogger(t *testing.T) {
 		buf := &bytes.Buffer{}
 		h0 := slog.NewTextHandler(buf, nil)
 
-		logger := arrower.NewLogger(arrower.WithHandler(h0))
+		logger := alog.New(alog.WithHandler(h0))
 
-		logger.Log(context.Background(), arrower.LevelDebug, "arrower debug")
-		logger.Log(context.Background(), arrower.LevelTrace, "arrower trance")
+		logger.Log(context.Background(), alog.LevelInfo, "arrower debug")
+		logger.Log(context.Background(), alog.LevelDebug, "arrower trance")
 		logger.Log(context.Background(), slog.LevelDebug, "application debug msg")
 		assert.Empty(t, buf.String())
 
@@ -48,7 +48,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // concurrent access to os.Stderr will lead to race condition.
-	// The default loggers constructed with NewLogHandler, NewDevelopmentLogger, NewLogger
+	// The default loggers constructed with NewArrowerHandler, NewDevelopment, New
 	// log to os.Stderr. This is a good default, but for testing the HandlerOptions,
 	// I need to inspect the output.
 	// At the same time the API should stay as simple as possible and not take any io.Writer
@@ -65,10 +65,10 @@ func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // co
 
 	// logger has to be initialised after os.Stderr is redirected. Otherwise, it will not work.
 	// The reason is unclear to me, but because of this we can not loop over a set of loggers.
-	// NewDevelopmentLogger is not tested, and assumed it just works, if NewLogger works.
-	logger := arrower.NewLogger()
-	arrower.LogHandlerFromLogger(logger).SetLevel(arrower.LevelTrace)
-	logger.Log(context.Background(), arrower.LevelTrace, applicationMsg)
+	// NewDevelopment is not tested, and assumed it just works, if New works.
+	logger := alog.New()
+	alog.LogHandlerFromLogger(logger).SetLevel(alog.LevelDebug)
+	logger.Log(context.Background(), alog.LevelDebug, applicationMsg)
 
 	_ = pipeWrite.Close()
 
@@ -88,7 +88,7 @@ func TestNewLogHandler(t *testing.T) {
 	t.Run("default handler exists", func(t *testing.T) {
 		t.Parallel()
 
-		h := arrower.NewLogHandler()
+		h := alog.NewArrowerHandler()
 
 		assert.Len(t, h.Handlers(), 1)
 		assert.IsType(t, &slog.JSONHandler{}, h.Handlers()[0])
@@ -99,7 +99,7 @@ func TestNewLogHandler(t *testing.T) {
 
 		h0 := slog.NewTextHandler(os.Stderr, nil)
 
-		h := arrower.NewLogHandler(arrower.WithHandler(h0))
+		h := alog.NewArrowerHandler(alog.WithHandler(h0))
 		assert.Len(t, h.Handlers(), 1)
 		assert.IsType(t, &slog.TextHandler{}, h.Handlers()[0])
 	})
@@ -110,9 +110,9 @@ func TestNewLogHandler(t *testing.T) {
 		h0 := slog.NewTextHandler(os.Stderr, nil)
 		h1 := slog.NewJSONHandler(os.Stderr, nil)
 
-		handler := arrower.NewLogHandler(
-			arrower.WithHandler(h0),
-			arrower.WithHandler(h1),
+		handler := alog.NewArrowerHandler(
+			alog.WithHandler(h0),
+			alog.WithHandler(h1),
 		)
 
 		assert.Len(t, handler.Handlers(), 2)
@@ -123,18 +123,18 @@ func TestNewLogHandler(t *testing.T) {
 	t.Run("info is default level", func(t *testing.T) {
 		t.Parallel()
 
-		h := arrower.NewLogHandler()
+		h := alog.NewArrowerHandler()
 		assert.Equal(t, slog.LevelInfo, h.Level())
 	})
 
 	t.Run("set level", func(t *testing.T) {
 		t.Parallel()
 
-		h := arrower.NewLogHandler(arrower.WithLevel(slog.LevelDebug))
+		h := alog.NewArrowerHandler(alog.WithLevel(slog.LevelDebug))
 		assert.Equal(t, slog.LevelDebug, h.Level())
 
-		h = arrower.NewLogHandler(arrower.WithLevel(arrower.LevelTrace))
-		assert.Equal(t, arrower.LevelTrace, h.Level())
+		h = alog.NewArrowerHandler(alog.WithLevel(alog.LevelDebug))
+		assert.Equal(t, alog.LevelDebug, h.Level())
 	})
 }
 
@@ -149,16 +149,16 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewTextHandler(buf1, nil)
 
-		logger := arrower.NewLogger(
-			arrower.WithHandler(h0),
-			arrower.WithHandler(h1),
+		logger := alog.New(
+			alog.WithHandler(h0),
+			alog.WithHandler(h1),
 		)
 
 		logger.Debug(applicationMsg)
 		assert.NotContains(t, buf0.String(), applicationMsg)
 		assert.NotContains(t, buf1.String(), applicationMsg)
 
-		arrower.LogHandlerFromLogger(logger).SetLevel(slog.LevelDebug)
+		alog.LogHandlerFromLogger(logger).SetLevel(slog.LevelDebug)
 		logger.Debug(applicationMsg)
 		assert.Contains(t, buf0.String(), applicationMsg)
 		assert.Contains(t, buf1.String(), applicationMsg)
@@ -172,7 +172,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewTextHandler(buf1, nil)
 
-		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
 		logger2 := logger1.WithGroup("componentA")
 
 		logger1.Debug("hello0", slog.String("some", "attr"))
@@ -183,7 +183,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.NotContains(t, buf1.String(), "componentA.some=attr")
 
 		// change level of logger1 and expect it to change for logger2 as well
-		arrower.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		alog.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
 		logger1.Debug("hello0 debug")
 		assert.Contains(t, buf0.String(), "hello0 debug")
 
@@ -191,7 +191,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.Contains(t, buf1.String(), "hello1 debug")
 
 		// change level on logger2 and expect it to change for logger1 as well
-		arrower.LogHandlerFromLogger(logger2).SetLevel(arrower.LevelTrace)
+		alog.LogHandlerFromLogger(logger2).SetLevel(alog.LevelDebug)
 		logger1.Debug("hello0 trace")
 		assert.Contains(t, buf0.String(), "hello0 trace")
 
@@ -205,7 +205,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		buf := &bytes.Buffer{}
 		h := slog.NewTextHandler(buf, nil)
 
-		logger1 := arrower.NewLogger(arrower.WithHandler(h))
+		logger1 := alog.New(alog.WithHandler(h))
 		logger2 := logger1.With(slog.String("some", "attr"))
 
 		logger1.Debug("hello")
@@ -213,7 +213,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		assert.NotContains(t, buf.String(), "hello")
 		assert.NotContains(t, buf.String(), "some")
 
-		arrower.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
+		alog.LogHandlerFromLogger(logger1).SetLevel(slog.LevelDebug)
 		logger1.Debug("hello1")
 		logger2.Debug("hello2")
 
@@ -228,8 +228,8 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		buf := &bytes.Buffer{}
 		h := slog.NewTextHandler(buf, &slog.HandlerOptions{Level: slog.LevelError})
 
-		logger := arrower.NewLogger(
-			arrower.WithHandler(h),
+		logger := alog.New(
+			alog.WithHandler(h),
 		)
 
 		logger.Info(applicationMsg)
@@ -248,9 +248,9 @@ func TestArrowerLogger_Handle(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewJSONHandler(buf1, nil)
 
-		logger := arrower.NewLogger(
-			arrower.WithHandler(h0),
-			arrower.WithHandler(h1),
+		logger := alog.New(
+			alog.WithHandler(h0),
+			alog.WithHandler(h1),
 		)
 
 		logger.Info(applicationMsg)
@@ -264,9 +264,9 @@ func TestArrowerLogger_Handle(t *testing.T) {
 		buf := &bytes.Buffer{}
 		h := slog.NewTextHandler(buf, nil)
 
-		logger := arrower.NewLogger(
-			arrower.WithHandler(h),
-			arrower.WithHandler(failingHandler{}),
+		logger := alog.New(
+			alog.WithHandler(h),
+			alog.WithHandler(failingHandler{}),
 		)
 
 		logger.Info(applicationMsg)
@@ -280,7 +280,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			logger := arrower.NewTestLogger(buf)
+			logger := alog.NewTest(buf)
 
 			logger.Info(applicationMsg)
 			assert.NotContains(t, buf.String(), "traceID")
@@ -296,7 +296,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			logger := arrower.NewTestLogger(buf)
+			logger := alog.NewTest(buf)
 
 			span := fakeSpan{ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), &span)
@@ -321,7 +321,7 @@ func TestArrowerLogger_WithAttrs(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewTextHandler(buf1, nil)
 
-		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
 		logger2 := logger1.With(slog.String("some", "attr"))
 
 		logger1.Info("hello")
@@ -345,7 +345,7 @@ func TestArrowerLogger_WithGroup(t *testing.T) {
 		buf1 := &bytes.Buffer{}
 		h1 := slog.NewTextHandler(buf1, nil)
 
-		logger1 := arrower.NewLogger(arrower.WithHandler(h0), arrower.WithHandler(h1))
+		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
 		logger2 := logger1.WithGroup("componentA")
 
 		logger1.Info("hello0", slog.String("some", "attr"))
@@ -362,10 +362,10 @@ func TestLogHandlerFromLogger(t *testing.T) {
 	t.Run("arrower logger", func(t *testing.T) {
 		t.Parallel()
 
-		logger := arrower.NewLogger()
+		logger := alog.New()
 
-		h := arrower.LogHandlerFromLogger(logger)
-		assert.IsType(t, &arrower.Logger{}, h)
+		h := alog.LogHandlerFromLogger(logger)
+		assert.IsType(t, &alog.ArrowerLogger{}, h)
 	})
 
 	t.Run("other slog", func(t *testing.T) {
@@ -373,8 +373,9 @@ func TestLogHandlerFromLogger(t *testing.T) {
 
 		logger := slog.Default()
 
-		h := arrower.LogHandlerFromLogger(logger)
-		assert.IsType(t, &arrower.Logger{}, h)
+		h := alog.LogHandlerFromLogger(logger)
+		assert.IsType(t, &alog.ArrowerLogger{}, h)
+		assert.Nil(t, h)
 	})
 }
 
