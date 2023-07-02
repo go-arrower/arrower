@@ -222,7 +222,7 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 func TestGueHandler_Enqueue(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid payload", func(t *testing.T) {
+	t.Run("invalid job", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),

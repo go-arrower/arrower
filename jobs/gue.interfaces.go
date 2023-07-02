@@ -141,23 +141,23 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 
 var _ Queue = (*GueHandler)(nil)
 
-func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOpt) error {
-	err := ensureValidPayloadForEnqueue(payload)
+func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
+	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err
 	}
 
-	jobType, err := getJobTypeFromPayloadStruct(payload)
+	jobType, err := getJobTypeFromJobStruct(job)
 	if err != nil {
 		return ErrInvalidJobType
 	}
 
-	args, err := json.Marshal(payload)
+	args, err := json.Marshal(job)
 	if err != nil {
-		return fmt.Errorf("could not marshal job payload: %w", err)
+		return fmt.Errorf("could not marshal job: %w", err)
 	}
 
-	job := &gue.Job{ //nolint:exhaustruct // only set required properties
+	gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
 		Queue: h.queue,
 		Type:  jobType,
 		Args:  args,
@@ -165,7 +165,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOp
 
 	// apply all options to the job.
 	for _, opt := range opts {
-		err = opt(job)
+		err = opt(gueJob)
 		if err != nil {
 			return fmt.Errorf("could not apply job option: %w", err)
 		}
@@ -174,7 +174,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOp
 	// if db transaction is present in ctx use it, otherwise enqueue without transactional safety.
 	tx, txOk := ctx.Value(postgres.CtxTX).(pgx.Tx)
 	if txOk {
-		err = h.gueClient.EnqueueTx(ctx, job, pgxv5.NewTx(tx))
+		err = h.gueClient.EnqueueTx(ctx, gueJob, pgxv5.NewTx(tx))
 		if err != nil {
 			return fmt.Errorf("could not enqueue gue job with transaction: %w", err)
 		}
@@ -182,7 +182,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOp
 		return nil
 	}
 
-	err = h.gueClient.Enqueue(ctx, job)
+	err = h.gueClient.Enqueue(ctx, gueJob)
 	if err != nil {
 		return fmt.Errorf("could not enqueue gue job: %w", err)
 	}
@@ -190,12 +190,12 @@ func (h *GueHandler) Enqueue(ctx context.Context, payload Payload, opts ...JobOp
 	return nil
 }
 
-func ensureValidPayloadForEnqueue(payload Payload) error {
-	if payload == nil {
+func ensureValidJobTypeForEnqueue(job Job) error {
+	if job == nil {
 		return ErrInvalidJobType
 	}
 
-	pt := reflect.TypeOf(payload)
+	pt := reflect.TypeOf(job)
 
 	// ensure primitive data types like string or int are not allowed
 	if pt.Kind() != reflect.Struct {
@@ -205,16 +205,16 @@ func ensureValidPayloadForEnqueue(payload Payload) error {
 	return nil
 }
 
-// getJobTypeFromPayloadStruct returns a name for a job.
+// getJobTypeFromJobStruct returns a name for a job.
 // If the parameter implements the JobType interface, then that type is returned as the JobType.
-// Otherwise, it is expected, that the Payload is a struct and the name of that type is returned.
-func getJobTypeFromPayloadStruct(payload Payload) (string, error) {
-	jt, ok := payload.(JobType)
+// Otherwise, it is expected, that the Job is a struct and the name of that type is returned.
+func getJobTypeFromJobStruct(job Job) (string, error) {
+	jt, ok := job.(JobType)
 	if ok {
 		return jt.JobType(), nil
 	}
 
-	structTypeName := reflect.TypeOf(payload).Name()
+	structTypeName := reflect.TypeOf(job).Name()
 	if structTypeName == "" {
 		return "", ErrInvalidJobType
 	}
@@ -299,7 +299,7 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		argsP := args.Interface()
 
 		if err := json.Unmarshal(job.Args, argsP); err != nil {
-			return fmt.Errorf("could not unmarshal job args to job payload type: %w", err)
+			return fmt.Errorf("could not unmarshal job args to job type: %w", err)
 		}
 
 		// make the job's tx available in the context of the worker, so they are consistent
