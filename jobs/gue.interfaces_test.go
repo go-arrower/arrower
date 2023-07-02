@@ -14,18 +14,25 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/metric/noop"
+	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/tests"
 )
 
-var pgHandler *postgres.Handler
+var (
+	pgHandler *postgres.Handler
+	logger    alog.Logger
+)
 
 func TestMain(m *testing.M) {
 	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
 	pgHandler = handler
+	logger = alog.NewTest(os.Stderr)
 
 	//
 	// Run tests
@@ -45,7 +52,7 @@ func TestNewGueJobs(t *testing.T) {
 	t.Run("initialise a new GueHandler", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx)
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
 	})
@@ -53,7 +60,9 @@ func TestNewGueJobs(t *testing.T) {
 	t.Run("initialise a new GueHandler with queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithQueue("name"))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pgHandler.PGx, jobs.WithQueue("name"),
+		)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
 	})
@@ -61,7 +70,9 @@ func TestNewGueJobs(t *testing.T) {
 	t.Run("initialise a new GueHandler with poll interval", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
 	})
@@ -69,7 +80,9 @@ func TestNewGueJobs(t *testing.T) {
 	t.Run("initialise a new GueHandler with pool size", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPoolSize(1))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pgHandler.PGx, jobs.WithPoolSize(1),
+		)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
 	})
@@ -81,7 +94,7 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 	t.Run("ensure JobFunc is func and signature has two arguments with first ctx and returns error", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx)
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(nil)
@@ -120,7 +133,7 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 	t.Run("ensure only one worker can register for a JobType name", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx)
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
@@ -137,7 +150,9 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 
 		var wg sync.WaitGroup
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		wg.Add(1)
@@ -170,7 +185,9 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 			retryCount int
 		)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		wg.Add(1)
@@ -208,7 +225,9 @@ func TestGueHandler_Enqueue(t *testing.T) {
 	t.Run("invalid payload", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.Enqueue(ctx, "")
@@ -239,7 +258,9 @@ func TestGueHandler_Enqueue(t *testing.T) {
 
 		var wg sync.WaitGroup
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		wg.Add(1)
@@ -273,7 +294,9 @@ func TestGueHandler_Enqueue(t *testing.T) {
 			order int
 		)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond), jobs.WithPoolSize(1))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond), jobs.WithPoolSize(1),
+		)
 		assert.NoError(t, err)
 
 		wg.Add(2)
@@ -320,7 +343,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 	t.Run("ensure workers can not be started multiple times", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx)
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 
 		err = jq.StartWorkers()
@@ -335,7 +358,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 	t.Run("ensure no new JobFunc can be registered after the queue got started", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx)
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 
 		err = jq.StartWorkers()
@@ -353,7 +376,9 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		pg := tests.PrepareTestDatabase(pgHandler)
 		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
 
-		jp, err := jobs.NewGueJobs(pg.PGx, jobs.WithPoolName("pool_name"), jobs.WithPoolSize(1337))
+		jp, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPoolName("pool_name"), jobs.WithPoolSize(1337),
+		)
 		assert.NoError(t, err)
 
 		err = jp.StartWorkers()
@@ -385,7 +410,9 @@ func TestGueHandler_History(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error { return nil })
@@ -431,7 +458,9 @@ func TestGueHandler_History(t *testing.T) {
 			wg    sync.WaitGroup
 		)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
@@ -497,7 +526,9 @@ func TestGueHandler_History(t *testing.T) {
 			wg    sync.WaitGroup
 		)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
@@ -558,7 +589,9 @@ func TestGueHandler_Shutdown(t *testing.T) {
 	t.Run("ensure shutdown is not called before StartWorkers()", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pgHandler.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.Shutdown(ctx)
@@ -571,7 +604,9 @@ func TestGueHandler_Shutdown(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
@@ -603,7 +638,9 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j simpleJob) error { return nil })
@@ -634,7 +671,9 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j simpleJob) error { return nil })
@@ -664,7 +703,9 @@ func TestGueHandler_Tx(t *testing.T) {
 
 		var wg sync.WaitGroup
 
-		jq, err := jobs.NewGueJobs(pg.PGx, jobs.WithPollInterval(time.Nanosecond))
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+		)
 		assert.NoError(t, err)
 
 		wg.Add(1)
