@@ -16,6 +16,9 @@ type Logger interface {
 	LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr)
 	DebugCtx(ctx context.Context, msg string, args ...any)
 	InfoCtx(ctx context.Context, msg string, args ...any)
+
+	With(args ...any) *slog.Logger
+	WithGroup(name string) *slog.Logger
 }
 
 const (

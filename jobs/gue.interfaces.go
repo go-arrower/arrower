@@ -12,9 +12,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vgarvardt/gue/v5"
+	"github.com/vgarvardt/gue/v5/adapter"
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -50,7 +54,13 @@ func WithPoolName(n string) QueueOpt {
 // Each Worker in the pool default to a poll interval of 5 seconds, which can be
 // overridden by WithPollInterval option. The default queue is the
 // nameless queue "", which can be overridden by WithQueue option.
-func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
+func NewGueJobs(
+	logger alog.Logger,
+	meterProvider metric.MeterProvider,
+	traceProvider trace.TracerProvider,
+	pgxPool *pgxpool.Pool,
+	opts ...QueueOpt,
+) (*GueHandler, error) {
 	const (
 		// defaults of gue, set it here, so it can be overwritten by QueueOpt.
 		defaultQueue          = ""
@@ -59,21 +69,38 @@ func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
 		defaultPoolNameLength = 5
 	)
 
+	logger = logger.WithGroup("jobs")
+	gueLogger := &gueLogAdapter{l: logger.WithGroup("gue")}
+
+	meter := meterProvider.Meter("jobs")
+	tracer := traceProvider.Tracer("jobs")
+
+	poolName := randomPoolName(defaultPoolNameLength)
+
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
 	repo := NewPostgresJobsRepository(models.New(pgxPool))
 
-	gc, err := gue.NewClient(poolAdapter)
+	gc, err := gue.NewClient(
+		poolAdapter,
+		gue.WithClientID(poolName),
+		gue.WithClientLogger(gueLogger),
+		gue.WithClientMeter(meter),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("could not connect gue to the database: %w", err)
 	}
 
 	handler := &GueHandler{
+		logger:       logger,
+		gueLogger:    gueLogger,
+		meter:        meter,
+		tracer:       tracer,
 		repo:         repo,
 		gueClient:    gc,
 		gueWorkMap:   gue.WorkMap{},
 		pollInterval: defaultPollInterval,
 		queue:        defaultQueue,
-		poolName:     randomPoolName(defaultPoolNameLength),
+		poolName:     poolName,
 		poolSize:     defaultPoolSize,
 		shutdown:     nil,
 		group:        nil,
@@ -91,6 +118,11 @@ func NewGueJobs(pgxPool *pgxpool.Pool, opts ...QueueOpt) (*GueHandler, error) {
 
 // GueHandler is the main jobs' abstraction.
 type GueHandler struct { //nolint:govet // accept fieldalignment so the struct fields are grouped by meaning
+	logger    alog.Logger
+	gueLogger adapter.Logger
+	meter     metric.Meter
+	tracer    trace.Tracer
+
 	repo Repository
 
 	gueClient    *gue.Client
@@ -305,10 +337,13 @@ func (h *GueHandler) StartWorkers() error {
 	}
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
-		gue.WithPoolQueue(h.queue),
-		gue.WithPoolPollInterval(h.pollInterval),
+		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
 		gue.WithPoolHooksJobLocked(logStartedJobs()),
 		gue.WithPoolHooksJobDone(logFinishedJobs()),
+
+		gue.WithPoolID(h.poolName), gue.WithPoolLogger(h.gueLogger),
+		gue.WithPoolMeter(h.meter),
+		gue.WithPoolTracer(h.tracer),
 	)
 	if err != nil {
 		return fmt.Errorf("could not create gue worker pool: %w", err)

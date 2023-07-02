@@ -42,7 +42,7 @@ func New(opts ...LoggerOpt) *slog.Logger {
 func NewDevelopment() *slog.Logger {
 	return New(
 		WithLevel(slog.LevelDebug),
-		WithHandler(slog.NewTextHandler(os.Stderr, getDefaultHandlerOptions())),
+		WithHandler(slog.NewTextHandler(os.Stderr, getDebugHandlerOptions())),
 		WithHandler(NewLokiHandler(nil)),
 	)
 }
@@ -51,7 +51,7 @@ func NewDevelopment() *slog.Logger {
 func NewTest(w io.Writer) *slog.Logger {
 	return slog.New(NewArrowerHandler(
 		WithLevel(slog.LevelDebug),
-		WithHandler(slog.NewTextHandler(w, nil)),
+		WithHandler(slog.NewTextHandler(w, getDebugHandlerOptions())),
 	))
 }
 
@@ -238,4 +238,12 @@ func getDefaultHandlerOptions() *slog.HandlerOptions {
 		Level:       nil, // this level is ignored, ArrowerLogger's level is used for all handlers.
 		ReplaceAttr: MapLogLevelsToName,
 	}
+}
+
+// getDebugHandlerOptions is to keep the log output more readable, by removing not essential keys.
+func getDebugHandlerOptions() *slog.HandlerOptions {
+	opt := getDefaultHandlerOptions()
+	opt.AddSource = false
+
+	return opt
 }
