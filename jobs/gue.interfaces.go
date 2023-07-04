@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vgarvardt/gue/v5"
@@ -82,7 +84,7 @@ func NewGueJobs(
 
 	gc, err := gue.NewClient(
 		poolAdapter,
-		gue.WithClientID(poolName),
+		gue.WithClientID(poolName), // FIXME: the poolName does not work, if it is overwritten in the options
 		gue.WithClientLogger(gueLogger),
 		gue.WithClientMeter(meter),
 	)
@@ -91,27 +93,36 @@ func NewGueJobs(
 	}
 
 	handler := &GueHandler{
-		logger:       logger,
-		gueLogger:    gueLogger,
-		meter:        meter,
-		tracer:       tracer,
-		repo:         repo,
-		gueClient:    gc,
-		gueWorkMap:   gue.WorkMap{},
-		pollInterval: defaultPollInterval,
-		queue:        defaultQueue,
-		poolName:     poolName,
-		poolSize:     defaultPoolSize,
-		shutdown:     nil,
-		group:        nil,
-		mu:           sync.Mutex{},
-		hasStarted:   false,
+		logger:             logger,
+		gueLogger:          gueLogger,
+		meter:              meter,
+		tracer:             tracer,
+		repo:               repo,
+		gueClient:          gc,
+		gueWorkMap:         gue.WorkMap{},
+		pollInterval:       defaultPollInterval,
+		queue:              defaultQueue,
+		poolName:           poolName,
+		poolSize:           defaultPoolSize,
+		shutdownWorkerPool: nil,
+		groupWorkerPool:    nil,
+		mu:                 sync.RWMutex{},
+		hasStarted:         false,
 	}
 
 	// apply all options to the job.
 	for _, opt := range opts {
 		opt(handler)
 	}
+
+	go func() { // todo remove this again, as only register worker should start the queue. IF removed => fix tests
+		time.Sleep(handler.pollInterval)
+
+		err = handler.startWorkers()
+		if err != nil {
+			fmt.Println("ERR", err)
+		}
+	}()
 
 	return handler, nil
 }
@@ -132,10 +143,10 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 	poolName     string
 	poolSize     int
 
-	shutdown context.CancelFunc
-	group    *errgroup.Group
+	shutdownWorkerPool context.CancelFunc
+	groupWorkerPool    *errgroup.Group
 
-	mu         sync.Mutex
+	mu         sync.RWMutex
 	hasStarted bool
 }
 
@@ -228,10 +239,6 @@ func (h *GueHandler) RegisterWorker(jf JobFunc) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	if h.hasStarted {
-		return ErrNotAllowed
-	}
-
 	jobFunc, err := isValidJobFunc(jf)
 	if err != nil {
 		return err
@@ -242,7 +249,23 @@ func (h *GueHandler) RegisterWorker(jf JobFunc) error {
 		return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrNotAllowed, jobType)
 	}
 
+	if h.hasStarted {
+		h.logger.Log(context.Background(), alog.LevelInfo, "restart workers",
+			slog.String("queue", h.queue), slog.String("pool_name", h.poolName))
+
+		timeout, _ := context.WithTimeout(context.Background(), time.Millisecond*100) // todo check if timout has an effect
+		err := h.shutdown(timeout)
+		if err != nil {
+			return fmt.Errorf("could not shutdown after registration of new JobFunc: %w", err)
+		}
+	}
+
 	h.gueWorkMap[jobType] = gueWorkerAdapter(jf)
+
+	err = h.startWorkers()
+	if err != nil {
+		return fmt.Errorf("could not start workers after registration of new JobFunc: %w", err)
+	}
 
 	return nil
 }
@@ -328,11 +351,9 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 	}
 }
 
-func (h *GueHandler) StartWorkers() error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	if h.hasStarted {
+// startWorkers expects the locking of h.mu to happen at the caller!
+func (h *GueHandler) startWorkers() error {
+	if h.hasStarted { // todo can this check return withour error, if its already running?
 		return ErrNotAllowed
 	}
 
@@ -349,7 +370,7 @@ func (h *GueHandler) StartWorkers() error {
 		return fmt.Errorf("could not create gue worker pool: %w", err)
 	}
 
-	ctx, shutdown := context.WithCancel(context.Background())
+	ctx, shutdown := context.WithCancel(context.Background()) // todo investigate if ong running process would respect timeout here?
 
 	go func(ctx context.Context) { // register worker pool regularly, so it stays "active" for monitoring
 		const refreshDuration = 30 * time.Second
@@ -383,8 +404,8 @@ func (h *GueHandler) StartWorkers() error {
 		return nil
 	})
 
-	h.shutdown = shutdown
-	h.group = group
+	h.shutdownWorkerPool = shutdown
+	h.groupWorkerPool = group
 
 	h.hasStarted = true
 
@@ -427,18 +448,23 @@ func (h *GueHandler) Shutdown(ctx context.Context) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	return h.shutdown(ctx)
+}
+
+// shutdown expects the locking of h.mu to happen at the caller!
+func (h *GueHandler) shutdown(ctx context.Context) error {
 	if !h.hasStarted {
 		return nil
 	}
 
 	// send shutdown signal to worker
-	h.shutdown()
+	h.shutdownWorkerPool()
 
-	if err := h.group.Wait(); err != nil {
+	if err := h.groupWorkerPool.Wait(); err != nil {
 		return fmt.Errorf("could not shutdown job workers: %w", err)
 	}
 
-	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
+	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{ // todo why is this called here? It looks like it is sending the last ping, but this would mark it as active. Should it not be removed by being inactive or explicit removal?
 		ID:       h.poolName,
 		Queue:    h.queue,
 		Workers:  0,
@@ -446,6 +472,8 @@ func (h *GueHandler) Shutdown(ctx context.Context) error {
 	}); err != nil {
 		return fmt.Errorf("could not unregister worker pool: %w", err)
 	}
+
+	h.hasStarted = false
 
 	return nil
 }

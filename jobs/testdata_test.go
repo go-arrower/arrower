@@ -36,6 +36,8 @@ func (j jobWithSameNameAsSimpleJob) JobType() string {
 	return "simpleJob"
 }
 
+var emptyWorkerFunc = func(context.Context, simpleJob) error { return nil } // todo remove OR use in more test cases
+
 type GueJobHistory struct {
 	JobID      string
 	JobType    string
