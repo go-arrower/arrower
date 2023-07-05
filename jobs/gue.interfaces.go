@@ -115,15 +115,6 @@ func NewGueJobs(
 		opt(handler)
 	}
 
-	go func() { // todo remove this again, as only register worker should start the queue. IF removed => fix tests
-		time.Sleep(handler.pollInterval)
-
-		err = handler.startWorkers()
-		if err != nil {
-			fmt.Println("ERR", err)
-		}
-	}()
-
 	return handler, nil
 }
 
@@ -466,10 +457,10 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 		return fmt.Errorf("could not shutdown job workers: %w", err)
 	}
 
-	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{ // todo why is this called here? It looks like it is sending the last ping, but this would mark it as active. Should it not be removed by being inactive or explicit removal?
+	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
 		ID:       h.poolName,
 		Queue:    h.queue,
-		Workers:  0,
+		Workers:  0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		LastSeen: time.Now(),
 	}); err != nil {
 		return fmt.Errorf("could not unregister worker pool: %w", err)

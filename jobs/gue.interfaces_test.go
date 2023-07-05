@@ -343,7 +343,6 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 	/*
 		todo
-		- start the workers only after the first register (not on constructor), because that is when worker funcs are there => change tests above
 		- Queue starts automatically (after 2* pollintervall of last register (should register reset the interval?)
 			- register "debounces" the call to start, so subsequent calls to register can follow
 		- test if timeout for shutdown in considered, if a registerWorker has to restart a long running job
@@ -392,7 +391,8 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		time.Sleep(100 * time.Millisecond) // wait for the startWorkers to register itself as online.
+		_ = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil }) // pool only starts after a call to RegisterWorker.
+		time.Sleep(100 * time.Millisecond)                                           // wait for the startWorkers to register itself as online.
 
 		wp, err := repo.WorkerPools(ctx)
 		assert.NoError(t, err)
