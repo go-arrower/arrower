@@ -137,8 +137,10 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
 
-	mu         sync.RWMutex
-	hasStarted bool
+	mu                sync.RWMutex
+	startTimer        *time.Timer
+	isStartInProgress bool
+	hasStarted        bool
 }
 
 var _ Queue = (*GueHandler)(nil)
@@ -253,9 +255,21 @@ func (h *GueHandler) RegisterWorker(jf JobFunc) error {
 
 	h.gueWorkMap[jobType] = gueWorkerAdapter(jf)
 
-	err = h.startWorkers()
-	if err != nil {
-		return fmt.Errorf("could not start workers after registration of new JobFunc: %w", err)
+	needsToStartWorkers := !h.hasStarted
+	if needsToStartWorkers {
+		if h.isStartInProgress {
+			_ = h.startTimer.Reset(h.pollInterval)
+			return nil
+		}
+
+		h.isStartInProgress = true
+		h.startTimer = time.AfterFunc(h.pollInterval, func() {
+			err = h.startWorkers()
+			if err != nil {
+				h.logger.InfoCtx(context.Background(), "could not start workers after registration of new JobFunc",
+					slog.Any("err", err))
+			}
+		})
 	}
 
 	return nil
@@ -399,6 +413,7 @@ func (h *GueHandler) startWorkers() error {
 	h.groupWorkerPool = group
 
 	h.hasStarted = true
+	h.isStartInProgress = false
 
 	return nil
 }

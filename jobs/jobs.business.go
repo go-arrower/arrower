@@ -25,8 +25,10 @@ type Queue interface {
 	// RegisterWorker registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
 	// as the job type, except Job implements the JobType interface, than that is used as a job type.
 	//
-	// The queue starts processing Jobs automatically after 2x the given poll interval.
-	// Subsequent calls to RegisterWorker, will restart the queue, as gue requires all workers to be known before start.
+	// The queue starts processing Jobs automatically after the given poll interval via WithPollInterval (default 5 sec),
+	// as a waiting time for more JobFuncs to be registered. Consecutive calls to RegisterWorker reset the interval.
+	// Subsequent calls to RegisterWorker, will restart the queue, as the underlying library gue
+	// requires all workers to be known before start.
 	RegisterWorker(f JobFunc) error
 
 	// Shutdown blocks and wait for all started jobs are finished or for the context timed out, whichever happens first.

@@ -3,6 +3,7 @@
 package jobs_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -343,8 +344,6 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 	/*
 		todo
-		- Queue starts automatically (after 2* pollintervall of last register (should register reset the interval?)
-			- register "debounces" the call to start, so subsequent calls to register can follow
 		- test if timeout for shutdown in considered, if a registerWorker has to restart a long running job
 	*/
 
@@ -378,6 +377,46 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 		wg.Wait()
 		_ = jq.Shutdown(ctx)
+	})
+
+	t.Run("queue starts only after poll interval time, after the last registered job func", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		// To understand if the job queue has started its underlying worker pool already, this test relies on the
+		// log output from RegisterWorker in case it is restarting.
+		buf := &bytes.Buffer{}
+		logger := alog.NewTest(buf)
+		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
+
+		pollInterval := time.Millisecond
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(pollInterval),
+		)
+		assert.NoError(t, err)
+
+		// register first worker, no restart of the queue required anyway
+		err = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil })
+		assert.NoError(t, err)
+		assert.Empty(t, buf.String())
+
+		time.Sleep(time.Microsecond) // wait a bit, but not longer than the pollInterval
+
+		// register second worker, expect no restart of the queue, as it is not started yet
+		err = jq.RegisterWorker(func(context.Context, jobWithArgs) error { return nil })
+		assert.NoError(t, err)
+		assert.Empty(t, buf.String())
+		assert.NotContains(t, buf.String(), `msg="restart workers"`)
+		t.Log(buf.String())
+
+		time.Sleep(2 * pollInterval) // wait longer than the pollInterval, so the queue is started
+
+		// register third worker, expect restart of the queue
+		err = jq.RegisterWorker(func(context.Context, jobWithJobType) error { return nil })
+		assert.NoError(t, err)
+		assert.NotEmpty(t, buf.String())
+		assert.Contains(t, buf.String(), `msg="restart workers"`)
 	})
 
 	t.Run("ensure worker pool is registered & unregistered", func(t *testing.T) {
