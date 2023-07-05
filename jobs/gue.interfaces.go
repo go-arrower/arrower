@@ -412,13 +412,14 @@ func (h *GueHandler) startWorkers() error {
 	return nil
 }
 
-func logStartedJobs() func(context.Context, *gue.Job, error) {
+func logStartedJobs() func(context.Context, *gue.Job, error) { // is "log" still the right name => persist?
 	return func(ctx context.Context, job *gue.Job, err error) {
 		// if err is set, the job could not be pulled from the DB.
 		if err != nil {
 			return
 		}
 
+		// todo consider to log the error to the developer, if it should appear, should the tx be rolled back in this case?
 		_, _ = job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,  STATEMENT_TIMESTAMP(),  STATEMENT_TIMESTAMP(), FALSE, NULL);`, //nolint:lll,dupword
 			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
 		)
@@ -428,6 +429,7 @@ func logStartedJobs() func(context.Context, *gue.Job, error) {
 // logFinishedJobs takes each job that's finished and logs it into a new table,
 // so it's persisted for later analytics.
 // gue does delete finished jobs from the gue_jobs table and the information would be lost otherwise.
+// todo same 2 points from logStartedJobs.
 func logFinishedJobs() func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, err error) {
 		if err != nil { // job returned with an error and worker JobFunc failed

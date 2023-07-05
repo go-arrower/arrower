@@ -149,6 +149,9 @@ func TestGueHandler_RegisterWorker(t *testing.T) {
 		err = jq.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
 		assert.NoError(t, err)
 
+		err = jq.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
+		assert.Error(t, err)
+
 		err = jq.RegisterWorker(func(ctx context.Context, job jobWithSameNameAsSimpleJob) error { return nil })
 		assert.Error(t, err)
 	})
@@ -340,7 +343,6 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 	/*
 		todo
-		- Ensure a JobFunc with a name already registered returns an error
 		- start the workers only after the first register (not on constructor), because that is when worker funcs are there => change tests above
 		- Queue starts automatically (after 2* pollintervall of last register (should register reset the interval?)
 			- register "debounces" the call to start, so subsequent calls to register can follow
