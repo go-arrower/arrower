@@ -342,11 +342,6 @@ func TestGueHandler_Enqueue(t *testing.T) {
 func TestGueHandler_StartWorkers(t *testing.T) {
 	t.Parallel()
 
-	/*
-		todo
-		- test if timeout for shutdown in considered, if a registerWorker has to restart a long running job
-	*/
-
 	t.Run("restart queue if RegisterWorker is called after start", func(t *testing.T) {
 		t.Parallel()
 
@@ -446,6 +441,57 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, wp, 1)
 		assert.Equal(t, 0, wp[0].Workers)
+	})
+
+	t.Run("ensure long running jobs persist after shutdown of workers", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(context.Context, simpleJob) error {
+			time.Sleep(time.Minute * 60 * 24) // simulate long-running job
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(context.Background(), simpleJob{})
+		assert.NoError(t, err)
+
+		time.Sleep(time.Millisecond) // wait a bit for the job to start processing
+		err = jq.Shutdown(context.Background())
+		assert.NoError(t, err)
+		ensureJobTableRows(t, pg, 1)
+	})
+
+	t.Run("ensure long running jobs persist after restart of workers", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(context.Context, simpleJob) error {
+			t.Log("Started long running job")
+			time.Sleep(time.Minute * 60 * 24) // simulate long-running job
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(context.Background(), simpleJob{})
+		assert.NoError(t, err)
+
+		time.Sleep(time.Millisecond) // wait a bit for the job to start processing
+		err = jq.RegisterWorker(func(context.Context, jobWithArgs) error { return nil })
+		assert.NoError(t, err)
+		ensureJobTableRows(t, pg, 1)
 	})
 }
 
@@ -624,8 +670,7 @@ func TestGueHandler_History(t *testing.T) {
 func TestGueHandler_Shutdown(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ensure shutdown is not called before startWorkers()", func(t *testing.T) {
-		// TODO change this test: ensure shutdown can be called on a queue not started yet
+	t.Run("ensure shutdown can be called without workers started", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx,
