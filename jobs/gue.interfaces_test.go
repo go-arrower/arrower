@@ -354,7 +354,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		_ = jq.RegisterWorker(emptyWorkerFunc)
+		_ = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil })
 		time.Sleep(time.Millisecond) // wait until the workers have started
 
 		err = jq.Enqueue(ctx, payloadJob)
@@ -425,8 +425,10 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		_ = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil }) // pool only starts after a call to RegisterWorker.
-		time.Sleep(100 * time.Millisecond)                                           // wait for the startWorkers to register itself as online.
+		// pool only starts after a call to RegisterWorker
+		_ = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil })
+		// wait for the startWorkers to register itself as online
+		time.Sleep(100 * time.Millisecond)
 
 		wp, err := repo.WorkerPools(ctx)
 		assert.NoError(t, err)
@@ -643,18 +645,14 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j simpleJob) error {
-			fmt.Println("HIER")
 			t.Log("Started long running job")
 
 			for {
-				fmt.Println("loop")
 				time.Sleep(time.Second)
 				select {
 				case <-ctx.Done():
-					fmt.Println("DONE")
-					//return nil
+					// return nil
 				case <-time.After(500 * time.Millisecond):
-					fmt.Println("nix")
 				}
 			}
 		})
@@ -664,8 +662,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		assert.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond) // wait a bit for the job to start processing
-		timeout, _ := context.WithTimeout(context.Background(), time.Second)
-		_ = timeout
+
 		err = jq.Shutdown(context.Background())
 		assert.NoError(t, err)
 		ensureJobTableRows(t, pg, 1)
@@ -686,6 +683,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		err = jq.RegisterWorker(func(context.Context, simpleJob) error {
 			t.Log("Started long running job")
 			time.Sleep(time.Minute * 60 * 24) // simulate long-running job
+
 			return nil
 		})
 		assert.NoError(t, err)

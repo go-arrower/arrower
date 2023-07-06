@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/exp/slog"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vgarvardt/gue/v5"
@@ -18,6 +16,7 @@ import (
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
@@ -56,6 +55,8 @@ func WithPoolName(n string) QueueOpt {
 // Each Worker in the pool default to a poll interval of 5 seconds, which can be
 // overridden by WithPollInterval option. The default queue is the
 // nameless queue "", which can be overridden by WithQueue option.
+//
+//nolint:funlen // as of writing the function length is alright, just initialising GueHandler takes a lot of lines.
 func NewGueJobs(
 	logger alog.Logger,
 	meterProvider metric.MeterProvider,
@@ -108,9 +109,11 @@ func NewGueJobs(
 		groupWorkerPool:    nil,
 		mu:                 sync.RWMutex{},
 		hasStarted:         false,
+		isStartInProgress:  false,
+		startTimer:         nil,
 	}
 
-	// apply all options to the job.
+	// apply all options to the job
 	for _, opt := range opts {
 		opt(handler)
 	}
@@ -246,8 +249,7 @@ func (h *GueHandler) RegisterWorker(jf JobFunc) error {
 		h.logger.Log(context.Background(), alog.LevelInfo, "restart workers",
 			slog.String("queue", h.queue), slog.String("pool_name", h.poolName))
 
-		timeout, _ := context.WithTimeout(context.Background(), time.Millisecond*100) // todo check if timout has an effect
-		err := h.shutdown(timeout)
+		err = h.shutdown(context.Background())
 		if err != nil {
 			return fmt.Errorf("could not shutdown after registration of new JobFunc: %w", err)
 		}
@@ -259,6 +261,7 @@ func (h *GueHandler) RegisterWorker(jf JobFunc) error {
 	if needsToStartWorkers {
 		if h.isStartInProgress {
 			_ = h.startTimer.Reset(h.pollInterval)
+
 			return nil
 		}
 
@@ -358,8 +361,8 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 
 // startWorkers expects the locking of h.mu to happen at the caller!
 func (h *GueHandler) startWorkers() error {
-	if h.hasStarted { // todo can this check return withour error, if its already running?
-		return ErrNotAllowed
+	if h.hasStarted {
+		return fmt.Errorf("%w: queue already started", ErrNotAllowed)
 	}
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
