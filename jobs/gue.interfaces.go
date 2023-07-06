@@ -375,7 +375,7 @@ func (h *GueHandler) startWorkers() error {
 		return fmt.Errorf("could not create gue worker pool: %w", err)
 	}
 
-	ctx, shutdown := context.WithCancel(context.Background()) // todo investigate if ong running process would respect timeout here?
+	ctx, shutdown := context.WithCancel(context.Background())
 
 	go func(ctx context.Context) { // register worker pool regularly, so it stays "active" for monitoring
 		const refreshDuration = 30 * time.Second
