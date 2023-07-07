@@ -83,23 +83,13 @@ func NewGueJobs(
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
 	repo := NewPostgresJobsRepository(models.New(pgxPool))
 
-	gc, err := gue.NewClient(
-		poolAdapter,
-		gue.WithClientID(poolName), // FIXME: the poolName does not work, if it is overwritten in the options
-		gue.WithClientLogger(gueLogger),
-		gue.WithClientMeter(meter),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("could not connect gue to the database: %w", err)
-	}
-
 	handler := &GueHandler{
 		logger:             logger,
 		gueLogger:          gueLogger,
 		meter:              meter,
 		tracer:             tracer,
 		repo:               repo,
-		gueClient:          gc,
+		gueClient:          nil, // has to be set after all opts have been applied
 		gueWorkMap:         gue.WorkMap{},
 		pollInterval:       defaultPollInterval,
 		queue:              defaultQueue,
@@ -117,6 +107,18 @@ func NewGueJobs(
 	for _, opt := range opts {
 		opt(handler)
 	}
+
+	gc, err := gue.NewClient(
+		poolAdapter,
+		gue.WithClientID(handler.poolName), // after potential overwrite from opts
+		gue.WithClientLogger(gueLogger),
+		gue.WithClientMeter(meter),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("could not connect gue to the database: %w", err)
+	}
+
+	handler.gueClient = gc
 
 	return handler, nil
 }

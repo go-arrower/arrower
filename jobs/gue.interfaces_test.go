@@ -91,11 +91,31 @@ func TestNewGueJobs(t *testing.T) {
 	t.Run("initialise a new GueHandler with pool name", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx,
-			jobs.WithPoolName(argName),
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		buf := &bytes.Buffer{}
+		logger := alog.NewTest(buf)
+		alog.Unwrap(logger).SetLevel(alog.LevelDebug)
+
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPoolName(argName), jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
+
+		_ = jq.RegisterWorker(func(context.Context, simpleJob) error { return nil }) // register JobFunc to start workers
+		_ = jq.Enqueue(ctx, simpleJob{})
+		time.Sleep(100 * time.Millisecond) // wait for worker to start and process the job
+
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		wp, err := repo.WorkerPools(ctx)
+		assert.NoError(t, err)
+
+		// expect one worker with right name to be registered in the db
+		assert.Len(t, wp, 1)
+		assert.Equal(t, argName, wp[0].ID)
+		// expect the gue-logs to contain the right name as client-id
+		assert.Contains(t, buf.String(), "jobs.gue.client-id="+argName)
 	})
 }
 
