@@ -15,8 +15,10 @@ var (
 
 // Queuer is an interface that allows new jobs to be enqueued.
 type Queuer interface {
-	Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
-	// todo make a version that can take batches
+	// Enqueue schedules new Jobs. Use the JobOpts to configure the jobs scheduled.
+	// You can schedule and individual or multiple jobs at the same time.
+	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new jobs.
+	Enqueue(ctx context.Context, jobs Job, opts ...JobOpt) error
 }
 
 type Queue interface {

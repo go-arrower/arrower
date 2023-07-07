@@ -308,6 +308,91 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		_ = jq.Shutdown(ctx)
 	})
 
+	t.Run("slice of same job type, struct name and custom", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		var wg sync.WaitGroup
+
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
+			assert.Equal(t, argName, j.Name)
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(ctx context.Context, j jobWithJobType) error {
+			assert.Equal(t, argName, j.Name)
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		wg.Add(2)
+		err = jq.Enqueue(ctx, []jobWithArgs{{Name: argName}, {Name: argName}})
+		assert.NoError(t, err)
+
+		wg.Add(2)
+		err = jq.Enqueue(ctx, []jobWithJobType{{Name: argName}, {Name: argName}})
+		assert.NoError(t, err)
+
+		wg.Wait()                          // all workers are done, and now:
+		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
+
+		ensureJobTableRows(t, pg, 0)        // all jobs are processed
+		ensureJobHistoryTableRows(t, pg, 4) // history has all jobs
+
+		_ = jq.Shutdown(ctx)
+	})
+
+	t.Run("slice of different job types", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		var wg sync.WaitGroup
+
+		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterWorker(func(ctx context.Context, j jobWithArgs) error {
+			assert.Equal(t, argName, j.Name)
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+		err = jq.RegisterWorker(func(ctx context.Context, j jobWithJobType) error {
+			assert.Equal(t, argName, j.Name)
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		wg.Add(2)
+		err = jq.Enqueue(ctx, []any{jobWithArgs{Name: argName}, jobWithJobType{Name: argName}})
+		assert.NoError(t, err)
+
+		wg.Wait()                          // all workers are done, and now:
+		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
+
+		ensureJobTableRows(t, pg, 0)        // all jobs are processed
+		ensureJobHistoryTableRows(t, pg, 2) // history has all jobs
+
+		_ = jq.Shutdown(ctx)
+	})
+
 	t.Run("ensure priority is set", func(t *testing.T) {
 		t.Parallel()
 
@@ -780,7 +865,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		err = txHandle.Commit(newCtx)
 		assert.NoError(t, err)
 
-		ensureJobTableRows(t, pg, 1)
+		ensureJobTableRows(t, pg, 1) // FIXME this assertion fails sometimes
 
 		_ = jq.Shutdown(newCtx)
 	})

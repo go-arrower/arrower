@@ -156,34 +156,71 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 		return err
 	}
 
-	jobType, err := getJobTypeFromJobStruct(job)
-	if err != nil {
-		return ErrInvalidJobType
-	}
+	gueJobs := []*gue.Job{}
 
-	args, err := json.Marshal(job)
-	if err != nil {
-		return fmt.Errorf("could not marshal job: %w", err)
-	}
-
-	gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
-		Queue: h.queue,
-		Type:  jobType,
-		Args:  args,
-	}
-
-	// apply all options to the job.
-	for _, opt := range opts {
-		err = opt(gueJob)
+	if reflect.ValueOf(job).Kind() == reflect.Struct {
+		jobType, err := getJobTypeFromJobStruct(job)
 		if err != nil {
-			return fmt.Errorf("could not apply job option: %w", err)
+			return ErrInvalidJobType
+		}
+
+		args, err := json.Marshal(job)
+		if err != nil {
+			return fmt.Errorf("could not marshal job: %w", err)
+		}
+
+		gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
+			Queue: h.queue,
+			Type:  jobType,
+			Args:  args,
+		}
+
+		// apply all options to the job.
+		for _, opt := range opts {
+			err = opt(gueJob)
+			if err != nil {
+				return fmt.Errorf("could not apply job option: %w", err)
+			}
+		}
+
+		gueJobs = append(gueJobs, gueJob)
+	} else { // slice
+		allJobs := reflect.ValueOf(job)
+		for i := 0; i < allJobs.Len(); i++ {
+			job := allJobs.Index(i)
+
+			jobType, err := getJobTypeFromJobSliceElement(job)
+			if err != nil {
+				return ErrInvalidJobType
+			}
+
+			args, err := json.Marshal(job.Interface())
+			if err != nil {
+				return fmt.Errorf("could not marshal job: %w", err)
+			}
+
+			gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
+				Queue: h.queue,
+				Type:  jobType,
+				Args:  args,
+			}
+
+			// apply all options to the job.
+			for _, opt := range opts {
+				err = opt(gueJob)
+				if err != nil {
+					return fmt.Errorf("could not apply job option: %w", err)
+				}
+			}
+
+			gueJobs = append(gueJobs, gueJob)
 		}
 	}
 
 	// if db transaction is present in ctx use it, otherwise enqueue without transactional safety.
 	tx, txOk := ctx.Value(postgres.CtxTX).(pgx.Tx)
 	if txOk {
-		err = h.gueClient.EnqueueTx(ctx, gueJob, pgxv5.NewTx(tx))
+		err = h.gueClient.EnqueueBatchTx(ctx, gueJobs, pgxv5.NewTx(tx))
 		if err != nil {
 			return fmt.Errorf("could not enqueue gue job with transaction: %w", err)
 		}
@@ -191,7 +228,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 		return nil
 	}
 
-	err = h.gueClient.Enqueue(ctx, gueJob)
+	err = h.gueClient.EnqueueBatch(ctx, gueJobs)
 	if err != nil {
 		return fmt.Errorf("could not enqueue gue job: %w", err)
 	}
@@ -199,6 +236,9 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 	return nil
 }
 
+// ensureValidJobTypeForEnqueue checks if a Job is of an valid type to be enqueued. Valid are:
+// - struct
+// - slice of struct.
 func ensureValidJobTypeForEnqueue(job Job) error {
 	if job == nil {
 		return ErrInvalidJobType
@@ -206,12 +246,35 @@ func ensureValidJobTypeForEnqueue(job Job) error {
 
 	pt := reflect.TypeOf(job)
 
-	// ensure primitive data types like string or int are not allowed
-	if pt.Kind() != reflect.Struct {
-		return ErrInvalidJobType
+	if pt.Kind() == reflect.Struct {
+		return nil
 	}
 
-	return nil
+	if pt.Kind() == reflect.Slice {
+		jv := reflect.ValueOf(job)
+		if jv.Len() == 0 {
+			return ErrInvalidJobType
+		}
+
+		// don't allow slice of primitives like string or int are not allowed
+		for i := 0; i < jv.Len(); i++ {
+			var kind reflect.Kind
+
+			if jv.Index(i).Kind() == reflect.Interface { // slice of any => extract underlying element first
+				kind = jv.Index(i).Elem().Kind()
+			} else { // typed slice with only same elements
+				kind = jv.Index(i).Kind()
+			}
+
+			if kind != reflect.Struct {
+				return ErrInvalidJobType
+			}
+		}
+
+		return nil
+	}
+
+	return ErrInvalidJobType
 }
 
 // getJobTypeFromJobStruct returns a name for a job.
@@ -224,6 +287,31 @@ func getJobTypeFromJobStruct(job Job) (string, error) {
 	}
 
 	structTypeName := reflect.TypeOf(job).Name()
+	if structTypeName == "" {
+		return "", ErrInvalidJobType
+	}
+
+	return structTypeName, nil
+}
+
+// getJobTypeFromJobSliceElement does the same getJobTypeFromJobStruct does for a struct but on an element of a slice.
+func getJobTypeFromJobSliceElement(job reflect.Value) (string, error) {
+	if job.Kind() == reflect.Interface { // slice with different types: []any => extract underlying element first
+		job = job.Elem()
+	}
+
+	jobTypeInterfaceType := reflect.TypeOf((*JobType)(nil)).Elem()
+	if job.CanConvert(jobTypeInterfaceType) {
+		jv, ok := job.Convert(jobTypeInterfaceType).Interface().(JobType)
+
+		if ok {
+			return jv.JobType(), nil
+		}
+
+		return "", ErrInvalidJobType
+	}
+
+	structTypeName := job.Type().Name()
 	if structTypeName == "" {
 		return "", ErrInvalidJobType
 	}
