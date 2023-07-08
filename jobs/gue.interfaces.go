@@ -156,65 +156,9 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 		return err
 	}
 
-	gueJobs := []*gue.Job{}
-
-	if reflect.ValueOf(job).Kind() == reflect.Struct {
-		jobType, err := getJobTypeFromJobStruct(job)
-		if err != nil {
-			return ErrInvalidJobType
-		}
-
-		args, err := json.Marshal(job)
-		if err != nil {
-			return fmt.Errorf("could not marshal job: %w", err)
-		}
-
-		gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
-			Queue: h.queue,
-			Type:  jobType,
-			Args:  args,
-		}
-
-		// apply all options to the job.
-		for _, opt := range opts {
-			err = opt(gueJob)
-			if err != nil {
-				return fmt.Errorf("could not apply job option: %w", err)
-			}
-		}
-
-		gueJobs = append(gueJobs, gueJob)
-	} else { // slice
-		allJobs := reflect.ValueOf(job)
-		for i := 0; i < allJobs.Len(); i++ {
-			job := allJobs.Index(i)
-
-			jobType, err := getJobTypeFromJobSliceElement(job)
-			if err != nil {
-				return ErrInvalidJobType
-			}
-
-			args, err := json.Marshal(job.Interface())
-			if err != nil {
-				return fmt.Errorf("could not marshal job: %w", err)
-			}
-
-			gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
-				Queue: h.queue,
-				Type:  jobType,
-				Args:  args,
-			}
-
-			// apply all options to the job.
-			for _, opt := range opts {
-				err = opt(gueJob)
-				if err != nil {
-					return fmt.Errorf("could not apply job option: %w", err)
-				}
-			}
-
-			gueJobs = append(gueJobs, gueJob)
-		}
+	gueJobs, err := gueJobsFromJob(h.queue, job, opts...)
+	if err != nil {
+		return err
 	}
 
 	// if db transaction is present in ctx use it, otherwise enqueue without transactional safety.
@@ -234,6 +178,74 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 	}
 
 	return nil
+}
+
+func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
+	gueJobs := []*gue.Job{}
+
+	switch reflect.ValueOf(job).Kind() { //nolint:exhaustive // other types are prevented by ensureValidJobTypeForEnqueue
+	case reflect.Struct:
+		jobType, err := getJobTypeFromJobStruct(job)
+		if err != nil {
+			return nil, ErrInvalidJobType
+		}
+
+		args, err := json.Marshal(job)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal job: %w", err)
+		}
+
+		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Slice:
+		allJobs := reflect.ValueOf(job)
+		for i := 0; i < allJobs.Len(); i++ {
+			job := allJobs.Index(i)
+
+			jobType, err := getJobTypeFromJobSliceElement(job)
+			if err != nil {
+				return nil, ErrInvalidJobType
+			}
+
+			args, err := json.Marshal(job.Interface())
+			if err != nil {
+				return nil, fmt.Errorf("could not marshal job: %w", err)
+			}
+
+			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return gueJobs, nil
+}
+
+func buildAndAppendGueJob(
+	gueJobs []*gue.Job,
+	queue string,
+	jobType string,
+	args []byte,
+	opts ...JobOpt,
+) ([]*gue.Job, error) {
+	gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
+		Queue: queue,
+		Type:  jobType,
+		Args:  args,
+	}
+
+	// apply all options to the job.
+	for _, opt := range opts {
+		err := opt(gueJob)
+		if err != nil {
+			return nil, fmt.Errorf("could not apply job option: %w", err)
+		}
+	}
+
+	return append(gueJobs, gueJob), nil
 }
 
 // ensureValidJobTypeForEnqueue checks if a Job is of an valid type to be enqueued. Valid are:

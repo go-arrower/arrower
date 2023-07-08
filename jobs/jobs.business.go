@@ -43,11 +43,11 @@ type (
 	//    The type of Job has to be a named struct that optionally implements JobType.
 	// 2. is a placeholder for any concrete implementation of the JobOpt interface. Its purpose is that it can be
 	//    used as a type for the JobOpt functions.
+	// todo add types a job can have to be valid
 	Job any
 
 	// JobType returns the job's type. It is optional and does not have to be
 	// implemented by each Job. If it's not implemented the struct type is used as JobType instead.
-	// FIXME use method name, if JobFunc has any (or context.methodName.structName).
 	JobType interface {
 		JobType() string
 	}
