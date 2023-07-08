@@ -41,9 +41,10 @@ type (
 	// Job has two purposes:
 	// 1. carry the payload passed between job creator and worker.
 	//    The type of Job has to be a named struct that optionally implements JobType.
-	// 2. is a placeholder for any concrete implementation of the JobOpt interface. Its purpose is that it can be
-	//    used as a type for the JobOpt functions.
-	// todo add types a job can have to be valid
+	// 2. is a placeholder for any concrete implementation of the JobType interface. Its purpose is that it can be
+	//    used as a type for the JobType functions.
+	// Job can be a single struct, a slice of structs, or an arbitrary slice of structs, each element representing a
+	// job to be scheduled.
 	Job any
 
 	// JobType returns the job's type. It is optional and does not have to be

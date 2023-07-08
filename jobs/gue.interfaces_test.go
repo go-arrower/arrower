@@ -846,18 +846,17 @@ func TestGueHandler_Tx(t *testing.T) {
 		pg := tests.PrepareTestDatabase(pgHandler)
 
 		jq, err := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
-			jobs.WithPollInterval(time.Nanosecond),
+			jobs.WithPollInterval(time.Second), // prevent an immediate start of the worker, so the assertions below work
 		)
 		assert.NoError(t, err)
 
 		err = jq.RegisterWorker(func(ctx context.Context, j simpleJob) error { return nil })
 		assert.NoError(t, err)
 
-		// create new transaction and set it in the context, same as the http middleware does
-		newCtx := context.Background()
-		txHandle, err := pg.PGx.Begin(newCtx)
+		// create new transaction and set it in the context, same as the middleware does
+		txHandle, err := pg.PGx.Begin(ctx)
 		assert.NoError(t, err)
-		newCtx = context.WithValue(newCtx, postgres.CtxTX, txHandle)
+		newCtx := context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		err = jq.Enqueue(newCtx, simpleJob{})
 		assert.NoError(t, err)
@@ -865,7 +864,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		err = txHandle.Commit(newCtx)
 		assert.NoError(t, err)
 
-		ensureJobTableRows(t, pg, 1) // FIXME this assertion fails sometimes
+		ensureJobTableRows(t, pg, 1)
 
 		_ = jq.Shutdown(newCtx)
 	})
