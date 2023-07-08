@@ -469,8 +469,8 @@ func (h *GueHandler) startWorkers() error {
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
-		gue.WithPoolHooksJobLocked(logStartedJobs()),
-		gue.WithPoolHooksJobDone(logFinishedJobs()),
+		gue.WithPoolHooksJobLocked(logStartedJobs(h.logger)),
+		gue.WithPoolHooksJobDone(logFinishedJobs(h.logger)),
 
 		gue.WithPoolID(h.poolName), gue.WithPoolLogger(h.gueLogger),
 		gue.WithPoolMeter(h.meter),
@@ -523,37 +523,59 @@ func (h *GueHandler) startWorkers() error {
 	return nil
 }
 
-func logStartedJobs() func(context.Context, *gue.Job, error) { // is "log" still the right name => persist?
+func logStartedJobs(logger alog.Logger) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, err error) {
 		// if err is set, the job could not be pulled from the DB.
 		if err != nil {
 			return
 		}
 
-		// todo consider to log the error to the developer, if it should appear, should the tx be rolled back in this case?
-		_, _ = job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,  STATEMENT_TIMESTAMP(),  STATEMENT_TIMESTAMP(), FALSE, NULL);`, //nolint:lll,dupword
+		_, err2 := job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,  STATEMENT_TIMESTAMP(),  STATEMENT_TIMESTAMP(), FALSE, NULL);`, //nolint:lll,dupword
 			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
 		)
+		if err2 != nil {
+			logger.InfoCtx(ctx, "could not add started job to gue_jobs_history table", slog.Any("err", err2),
+				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
+				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
+				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
+				slog.String("run_error", job.LastError.String), slog.String("queue", job.Queue),
+			)
+		}
 	}
 }
 
 // logFinishedJobs takes each job that's finished and logs it into a new table,
 // so it's persisted for later analytics.
 // gue does delete finished jobs from the gue_jobs table and the information would be lost otherwise.
-// todo same 2 points from logStartedJobs.
-func logFinishedJobs() func(context.Context, *gue.Job, error) {
+func logFinishedJobs(logger alog.Logger) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, err error) {
 		if err != nil { // job returned with an error and worker JobFunc failed
-			_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_error = $1, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
+			_, err2 := job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_error = $1, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
 				err.Error(), job.ID.String(), job.ErrorCount,
 			)
+			if err2 != nil {
+				logger.InfoCtx(ctx, "could not add failed job to gue_jobs_history table", slog.Any("err", err2),
+					slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
+					slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
+					slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
+					slog.String("run_error", err.Error()), slog.String("queue", job.Queue),
+				)
+			}
 
 			return
 		}
 
-		_, _ = job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_count = $1, run_error = '', success = TRUE, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
+		_, err2 := job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_count = $1, run_error = '', success = TRUE, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
 			job.ErrorCount, job.ID.String(), job.ErrorCount,
 		)
+		if err2 != nil {
+			logger.InfoCtx(ctx, "could not add succeeded job to gue_jobs_history table", slog.Any("err", err2),
+				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
+				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
+				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
+				slog.String("run_error", ""), slog.String("queue", job.Queue),
+			)
+		}
 	}
 }
 
