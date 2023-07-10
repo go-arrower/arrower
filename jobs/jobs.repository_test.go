@@ -30,14 +30,14 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 		jq0, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
 			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
 		)
-		_ = jq0.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
+		_ = jq0.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		_ = jq0.Enqueue(ctx, simpleJob{})
 
 		// And Given a different job queue run in the future
 		jq1, _ := jobs.NewGueJobs(alog.NewTest(io.Discard), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
 			pg.PGx, jobs.WithPollInterval(time.Nanosecond), jobs.WithQueue("some_queue"),
 		)
-		_ = jq1.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
+		_ = jq1.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		_ = jq1.Enqueue(ctx, simpleJob{}, jobs.WithRunAt(time.Now().Add(1*time.Hour)))
 
 		time.Sleep(100 * time.Millisecond) // wait for job to finish
@@ -67,7 +67,7 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 		jq0, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
 			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
 		)
-		_ = jq0.RegisterWorker(func(ctx context.Context, job simpleJob) error { return nil })
+		_ = jq0.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		_ = jq0.Enqueue(ctx, simpleJob{})
 
 		pendingJobs, err = repo.PendingJobs(ctx, "")

@@ -331,9 +331,9 @@ func getJobTypeFromJobSliceElement(job reflect.Value) (string, error) {
 	return structTypeName, nil
 }
 
-// RegisterWorker registers new worker functions for a given jobName. They have to be registered before the gue
+// RegisterJobFunc registers new worker functions for a given jobName. They have to be registered before the gue
 // workers are run.
-func (h *GueHandler) RegisterWorker(jf JobFunc) error {
+func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -613,6 +613,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 	return nil
 }
 
+// WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
 func WithPriority(priority int16) JobOpt {
 	return func(j Job) error {
 		if j, ok := (j).(*gue.Job); ok {

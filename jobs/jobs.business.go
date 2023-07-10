@@ -18,23 +18,24 @@ type Queuer interface {
 	// Enqueue schedules new Jobs. Use the JobOpts to configure the jobs scheduled.
 	// You can schedule and individual or multiple jobs at the same time.
 	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new jobs.
-	Enqueue(ctx context.Context, jobs Job, opts ...JobOpt) error
+	Enqueue(context.Context, Job, ...JobOpt) error
 }
 
 type Queue interface {
 	Queuer
 
-	// RegisterWorker registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
+	// RegisterJobFunc registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
 	// as the job type, except Job implements the JobType interface, than that is used as a job type.
 	//
 	// The queue starts processing Jobs automatically after the given poll interval via WithPollInterval (default 5 sec),
-	// as a waiting time for more JobFuncs to be registered. Consecutive calls to RegisterWorker reset the interval.
-	// Subsequent calls to RegisterWorker, will restart the queue, as the underlying library gue
+	// as a waiting time for more JobFuncs to be registered. Consecutive calls to RegisterJobFunc reset the interval.
+	// Subsequent calls to RegisterJobFunc, will restart the queue, as the underlying library gue
 	// requires all workers to be known before start.
-	RegisterWorker(f JobFunc) error
+	RegisterJobFunc(JobFunc) error
 
-	// Shutdown blocks and wait for all started jobs are finished or for the context timed out, whichever happens first.
-	Shutdown(ctx context.Context) error
+	// Shutdown blocks and wait for all started jobs are finished.
+	// Timeout does not work currently. (or for the context timed out, whichever happens first.)
+	Shutdown(context.Context) error
 }
 
 type (
