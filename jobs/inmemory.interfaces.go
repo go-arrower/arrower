@@ -3,13 +3,16 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func NewInMemoryJobs() *InMemoryHandler {
-	return &InMemoryHandler{jobs: []Job{}}
+	return &InMemoryHandler{
+		jobs: []Job{},
+	}
 }
 
 type InMemoryHandler struct {
@@ -19,7 +22,22 @@ type InMemoryHandler struct {
 var _ Queue = (*InMemoryHandler)(nil)
 
 func (q *InMemoryHandler) Enqueue(ctx context.Context, job Job, opt ...JobOpt) error {
-	q.jobs = append(q.jobs, job)
+	err := ensureValidJobTypeForEnqueue(job)
+	if err != nil {
+		return err
+	}
+
+	switch reflect.ValueOf(job).Kind() { //nolint:exhaustive // other types are prevented by ensureValidJobTypeForEnqueue
+	case reflect.Struct:
+		q.jobs = append(q.jobs, job)
+	case reflect.Slice:
+		allJobs := reflect.ValueOf(job)
+		for i := 0; i < allJobs.Len(); i++ {
+			job := allJobs.Index(i)
+
+			q.jobs = append(q.jobs, job.Interface())
+		}
+	}
 
 	return nil
 }
@@ -71,6 +89,31 @@ func (a *InMemoryAssertions) NotEmpty(msgAndArgs ...any) bool {
 
 	if len(a.q.jobs) <= 0 {
 		return assert.Fail(a.t, "queue is empty, shoudl not be", msgAndArgs...)
+	}
+
+	return true
+}
+
+// Queued asserts that of a given JobType exactly as many jobs are queued as expected.
+func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
+	expType, err := getJobTypeFromJobStruct(job)
+	if err != nil {
+		return assert.Fail(a.t, fmt.Sprintf("invalid jobType of given job: %s", expType), msgAndArgs...)
+	}
+
+	jobsByType := map[string]int{}
+
+	for _, j := range a.q.jobs {
+		jobType, err := getJobTypeFromJobStruct(j)
+		if err != nil {
+			return assert.Fail(a.t, fmt.Sprintf("invalid jobType in queue: %s", jobType), msgAndArgs...)
+		}
+
+		jobsByType[jobType]++
+	}
+
+	if jobsByType[expType] != expCount {
+		return assert.Fail(a.t, fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]), msgAndArgs...)
 	}
 
 	return true
