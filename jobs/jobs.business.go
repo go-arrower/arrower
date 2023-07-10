@@ -13,8 +13,8 @@ var (
 	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
 
-// Queuer is an interface that allows new jobs to be enqueued.
-type Queuer interface {
+// Enqueuer is an interface that allows new jobs to be enqueued.
+type Enqueuer interface {
 	// Enqueue schedules new Jobs. Use the JobOpts to configure the jobs scheduled.
 	// You can schedule and individual or multiple jobs at the same time.
 	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new jobs.
@@ -22,7 +22,7 @@ type Queuer interface {
 }
 
 type Queue interface {
-	Queuer
+	Enqueuer
 
 	// RegisterJobFunc registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
 	// as the job type, except Job implements the JobType interface, than that is used as a job type.

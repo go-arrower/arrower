@@ -6,7 +6,6 @@ package jobs_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"go.opentelemetry.io/otel/metric/noop"
@@ -27,7 +26,7 @@ type otherJob struct{}
 func ExampleGueHandler_Enqueue() {
 	db, teardown := setup()
 
-	jq, _ := jobs.NewGueJobs(alog.NewTest(os.Stderr), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx,
+	jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx,
 		jobs.WithPollInterval(time.Second), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
