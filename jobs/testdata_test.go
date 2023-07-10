@@ -1,5 +1,3 @@
-//go:build integration
-
 // Valid and invalid testdata for all tests to use for convenience.
 package jobs_test
 
