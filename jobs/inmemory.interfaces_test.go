@@ -1,6 +1,7 @@
 package jobs_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,26 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 		_ = jq.Enqueue(ctx, []any{jobWithArgs{Name: argName}, jobWithJobType{Name: argName}})
 		jassert.Queued(jobWithArgs{}, 1)
 		jassert.Queued(jobWithJobType{}, 1)
+	})
+
+	t.Run("enqueue safely concurrently", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+		totalProducers := 1000
+
+		jq := jobs.NewInMemoryJobs()
+
+		wg.Add(totalProducers)
+		for i := 0; i < totalProducers; i++ {
+			go func() {
+				_ = jq.Enqueue(ctx, simpleJob{})
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+		jq.Assert(t).QueuedTotal(totalProducers)
 	})
 }
 
@@ -162,4 +183,20 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 		pass := jassert.Queued(simpleJob{}, 1337)
 		assert.False(t, pass)
 	})
+}
+
+func TestInMemoryAssertions_QueuedTotal(t *testing.T) {
+	t.Parallel()
+
+	jq := jobs.NewInMemoryJobs()
+	jassert := jq.Assert(new(testing.T))
+
+	pass := jassert.QueuedTotal(0, "empty queue")
+	assert.True(t, pass)
+
+	_ = jq.Enqueue(ctx, simpleJob{})
+	pass = jassert.QueuedTotal(0, "not empty queue - fails")
+	assert.False(t, pass)
+	pass = jassert.QueuedTotal(1, "not empty queue - succeeds")
+	assert.True(t, pass)
 }

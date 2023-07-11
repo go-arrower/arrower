@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,11 +12,13 @@ import (
 
 func NewInMemoryJobs() *InMemoryHandler {
 	return &InMemoryHandler{
+		mu:   sync.Mutex{},
 		jobs: []Job{},
 	}
 }
 
 type InMemoryHandler struct {
+	mu   sync.Mutex
 	jobs []Job
 }
 
@@ -26,6 +29,9 @@ func (q *InMemoryHandler) Enqueue(ctx context.Context, job Job, opt ...JobOpt) e
 	if err != nil {
 		return err
 	}
+
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
 	switch reflect.ValueOf(job).Kind() { //nolint:exhaustive // other types are prevented by ensureValidJobTypeForEnqueue
 	case reflect.Struct:
@@ -114,6 +120,15 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 
 	if jobsByType[expType] != expCount {
 		return assert.Fail(a.t, fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]), msgAndArgs...)
+	}
+
+	return true
+}
+
+// QueuedTotal asserts the total amount of Jobs in the queue, independent of their type.
+func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
+	if len(a.q.jobs) != expCount {
+		return assert.Fail(a.t, fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)), msgAndArgs...)
 	}
 
 	return true
