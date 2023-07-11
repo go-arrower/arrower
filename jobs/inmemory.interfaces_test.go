@@ -24,6 +24,8 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid job", func(t *testing.T) {
+		t.Parallel()
+
 		jq := jobs.NewInMemoryJobs()
 
 		err := jq.Enqueue(ctx, nil)

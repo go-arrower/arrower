@@ -18,8 +18,8 @@ func NewInMemoryJobs() *InMemoryHandler {
 }
 
 type InMemoryHandler struct {
-	mu   sync.Mutex
 	jobs []Job
+	mu   sync.Mutex
 }
 
 var _ Queue = (*InMemoryHandler)(nil)
@@ -49,12 +49,10 @@ func (q *InMemoryHandler) Enqueue(ctx context.Context, job Job, opt ...JobOpt) e
 }
 
 func (q *InMemoryHandler) RegisterJobFunc(jobFunc JobFunc) error {
-	//TODO implement me
 	panic("implement me")
 }
 
 func (q *InMemoryHandler) Shutdown(ctx context.Context) error {
-	//TODO implement me
 	panic("implement me")
 }
 
@@ -64,11 +62,12 @@ func (q *InMemoryHandler) Reset() {
 	defer q.mu.Unlock()
 
 	q.jobs = []Job{}
-
 }
 
 // Assert returns a new InMemoryAssertions for the specified testing.T for your convenience.
 func (q *InMemoryHandler) Assert(t *testing.T) *InMemoryAssertions {
+	t.Helper()
+
 	return &InMemoryAssertions{
 		q: q,
 		t: t,
@@ -100,8 +99,8 @@ func (a *InMemoryAssertions) Empty(msgAndArgs ...any) bool {
 func (a *InMemoryAssertions) NotEmpty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	if len(a.q.jobs) <= 0 {
-		return assert.Fail(a.t, "queue is empty, shoudl not be", msgAndArgs...)
+	if len(a.q.jobs) == 0 {
+		return assert.Fail(a.t, "queue is empty, should not be", msgAndArgs...)
 	}
 
 	return true
@@ -128,7 +127,11 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 	}
 
 	if jobsByType[expType] != expCount {
-		return assert.Fail(a.t, fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]), msgAndArgs...)
+		return assert.Fail(
+			a.t,
+			fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]),
+			msgAndArgs...,
+		)
 	}
 
 	return true
@@ -139,7 +142,11 @@ func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
 	a.t.Helper()
 
 	if len(a.q.jobs) != expCount {
-		return assert.Fail(a.t, fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)), msgAndArgs...)
+		return assert.Fail(
+			a.t,
+			fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)),
+			msgAndArgs...,
+		)
 	}
 
 	return true
