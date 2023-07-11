@@ -88,6 +88,34 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	})
 }
 
+func TestInMemoryHandler_Reset(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reset empty queue", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.NewInMemoryJobs()
+
+		jq.Reset()
+		jq.Assert(t).QueuedTotal(0)
+	})
+
+	t.Run("reset full queue", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.NewInMemoryJobs()
+		jassert := jq.Assert(t)
+
+		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(ctx, jobWithArgs{})
+		jassert.QueuedTotal(3)
+
+		jq.Reset()
+		jassert.QueuedTotal(0)
+	})
+}
+
 func TestInMemoryHandler_Assert(t *testing.T) {
 	t.Parallel()
 

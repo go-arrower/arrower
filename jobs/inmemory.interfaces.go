@@ -58,10 +58,17 @@ func (q *InMemoryHandler) Shutdown(ctx context.Context) error {
 	panic("implement me")
 }
 
+// Reset resets the queue to be empty.
+func (q *InMemoryHandler) Reset() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	q.jobs = []Job{}
+
+}
+
 // Assert returns a new InMemoryAssertions for the specified testing.T for your convenience.
 func (q *InMemoryHandler) Assert(t *testing.T) *InMemoryAssertions {
-	t.Helper()
-
 	return &InMemoryAssertions{
 		q: q,
 		t: t,
@@ -102,6 +109,8 @@ func (a *InMemoryAssertions) NotEmpty(msgAndArgs ...any) bool {
 
 // Queued asserts that of a given JobType exactly as many jobs are queued as expected.
 func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
+	a.t.Helper()
+
 	expType, err := getJobTypeFromJobStruct(job)
 	if err != nil {
 		return assert.Fail(a.t, fmt.Sprintf("invalid jobType of given job: %s", expType), msgAndArgs...)
@@ -127,6 +136,8 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 
 // QueuedTotal asserts the total amount of Jobs in the queue, independent of their type.
 func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
+	a.t.Helper()
+
 	if len(a.q.jobs) != expCount {
 		return assert.Fail(a.t, fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)), msgAndArgs...)
 	}
