@@ -33,7 +33,7 @@ var (
 func TestMain(m *testing.M) {
 	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
 	pgHandler = handler
-	logger = alog.NewTest(os.Stderr)
+	logger = alog.NewTest(nil)
 
 	//
 	// Run tests

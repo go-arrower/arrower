@@ -15,7 +15,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 )
 
-func TestNewLogger(t *testing.T) {
+func TestNew(t *testing.T) {
 	t.Parallel()
 
 	t.Run("level info as default level", func(t *testing.T) {
@@ -33,6 +33,16 @@ func TestNewLogger(t *testing.T) {
 
 		logger.Info("application info msg")
 		assert.Contains(t, buf.String(), `msg="application info msg"`)
+	})
+}
+
+func TestNewTest(t *testing.T) {
+	t.Parallel()
+
+	logger := alog.NewTest(nil)
+
+	assert.NotPanics(t, func() {
+		logger.Info(applicationMsg)
 	})
 }
 
@@ -71,7 +81,7 @@ func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // co
 	assert.Contains(t, buf.String(), `"level":"ARROWER:DEBUG"`)
 }
 
-func TestNewLogHandler(t *testing.T) {
+func TestNewArrowerHandler(t *testing.T) {
 	t.Parallel()
 
 	t.Run("default handler exists", func(t *testing.T) {

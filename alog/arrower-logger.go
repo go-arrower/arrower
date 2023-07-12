@@ -49,6 +49,10 @@ func NewDevelopment() *slog.Logger {
 
 // NewTest returns a logger suited for test cases. It writes to the given io.Writer.
 func NewTest(w io.Writer) *slog.Logger {
+	if w == nil {
+		w = io.Discard
+	}
+
 	return slog.New(NewArrowerHandler(
 		WithLevel(slog.LevelDebug),
 		WithHandler(slog.NewTextHandler(w, getDebugHandlerOptions())),

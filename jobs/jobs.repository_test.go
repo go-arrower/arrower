@@ -4,7 +4,6 @@ package jobs_test
 
 import (
 	"context"
-	"io"
 	"testing"
 	"time"
 
@@ -34,7 +33,7 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 		_ = jq0.Enqueue(ctx, simpleJob{})
 
 		// And Given a different job queue run in the future
-		jq1, _ := jobs.NewGueJobs(alog.NewTest(io.Discard), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+		jq1, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
 			pg.PGx, jobs.WithPollInterval(time.Nanosecond), jobs.WithQueue("some_queue"),
 		)
 		_ = jq1.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
