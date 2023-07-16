@@ -72,11 +72,11 @@ func NewGueJobs(
 		defaultPoolNameLength = 5
 	)
 
-	logger = logger.WithGroup("jobs")
+	logger = logger.WithGroup("go-arrower/arrower/jobs")
 	gueLogger := &gueLogAdapter{l: logger.WithGroup("gue")}
 
-	meter := meterProvider.Meter("jobs")
-	tracer := traceProvider.Tracer("jobs")
+	meter := meterProvider.Meter("go-arrower/arrower/jobs")
+	tracer := traceProvider.Tracer("go-arrower/arrower/jobs")
 
 	poolName := randomPoolName(defaultPoolNameLength)
 
@@ -151,6 +151,9 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 var _ Queue = (*GueHandler)(nil)
 
 func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
+	ctx, span := h.tracer.Start(ctx, "enqueue")
+	defer span.End()
+
 	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err
