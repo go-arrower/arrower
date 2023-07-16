@@ -56,22 +56,18 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
-
 		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
 
 		pendingJobs, err := repo.PendingJobs(ctx, "")
 		assert.NoError(t, err)
-		assert.Equal(t, 0, len(pendingJobs))
+		assert.Len(t, pendingJobs, 0, "queue needs to be empty, as no jobs got enqueued yet")
 
-		jq0, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
-			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
-		)
-		_ = jq0.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
-		_ = jq0.Enqueue(ctx, simpleJob{})
+		jq, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx)
+		_ = jq.Enqueue(ctx, simpleJob{})
 
 		pendingJobs, err = repo.PendingJobs(ctx, "")
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(pendingJobs))
+		assert.Len(t, pendingJobs, 1, "one Job is enqueued")
 	})
 }
 
