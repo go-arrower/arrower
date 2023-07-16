@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteJob = `-- name: DeleteJob :exec
+DELETE FROM public.gue_jobs WHERE job_id = $1
+`
+
+func (q *Queries) DeleteJob(ctx context.Context, jobID string) error {
+	_, err := q.db.Exec(ctx, deleteJob, jobID)
+	return err
+}
+
 const getPendingJobs = `-- name: GetPendingJobs :many
 SELECT job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at FROM public.gue_jobs WHERE queue = $1 ORDER BY priority, run_at ASC LIMIT 100
 `

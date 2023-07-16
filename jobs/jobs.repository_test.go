@@ -154,3 +154,57 @@ func TestPostgresJobsRepository_RegisterWorkerPool(t *testing.T) {
 		assert.Equal(t, 1, wp[0].Workers)
 	})
 }
+
+func TestPostgresJobsRepository_Delete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete job", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx)
+
+		_ = jq.Enqueue(ctx, simpleJob{})
+
+		pending, _ := repo.PendingJobs(ctx, "")
+		assert.Len(t, pending, 1)
+
+		err := repo.Delete(ctx, pending[0].ID)
+		assert.NoError(t, err)
+
+		pending, _ = repo.PendingJobs(ctx, "")
+		assert.Len(t, pending, 0)
+	})
+
+	t.Run("delete already running job", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+
+		_ = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
+			time.Sleep(1 * time.Minute) // simulate a long-running job
+			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
+			return nil
+		})
+		_ = jq.Enqueue(ctx, jobWithArgs{Name: argName})
+
+		pending, _ := repo.PendingJobs(ctx, "")
+		assert.Len(t, pending, 1)
+
+		time.Sleep(100 * time.Millisecond) // start the worker
+
+		err := repo.Delete(ctx, pending[0].ID)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, jobs.ErrDeleteFailed)
+
+		pending, _ = repo.PendingJobs(ctx, "")
+		assert.Len(t, pending, 1, "delete should fail, as the job is currently processed and thus locked by the db")
+	})
+}

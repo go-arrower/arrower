@@ -13,7 +13,10 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 )
 
-var ErrQueryFailed = errors.New("query failed")
+var (
+	ErrQueryFailed  = errors.New("query failed")
+	ErrDeleteFailed = fmt.Errorf("%w: could not delete job. it might be processing already", ErrQueryFailed)
+)
 
 type (
 	PendingJob struct {
@@ -52,6 +55,7 @@ type (
 		QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error)
 		WorkerPools(ctx context.Context) ([]WorkerPool, error)
 		RegisterWorkerPool(ctx context.Context, wp WorkerPool) error
+		Delete(ctx context.Context, jobID string) error
 	}
 )
 
@@ -200,6 +204,23 @@ func (repo *PostgresJobsRepository) RegisterWorkerPool(ctx context.Context, wp W
 	})
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrQueryFailed, err)
+	}
+
+	return nil
+}
+
+// Delete attempts to delete a Job with the given jobID.
+// If a Job is currently processed by a worker, the row in the db gets locked until the worker succeeds or fails.
+// In this case the delete command would block until the lock is freed (which potentially could take a long time).
+//
+// Delete will time out after one second, assuming that if the database needs longer to execute the query, it means the
+// row is locked.
+func (repo *PostgresJobsRepository) Delete(ctx context.Context, jobID string) error {
+	ctx, _ = context.WithTimeout(ctx, time.Second)
+
+	err := repo.db.ConnOrTX(ctx).DeleteJob(ctx, jobID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrDeleteFailed, err)
 	}
 
 	return nil
