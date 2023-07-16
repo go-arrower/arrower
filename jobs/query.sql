@@ -34,7 +34,7 @@ SELECT COALESCE(SUM(workers),0)::INTEGER FROM public.gue_jobs_worker_pool WHERE 
 
 
 -- name: GetWorkerPools :many
-SELECT * FROM public.gue_jobs_worker_pool WHERE updated_at > NOW() - INTERVAL '2 minutes';
+SELECT * FROM public.gue_jobs_worker_pool WHERE updated_at > NOW() - INTERVAL '2 minutes' ORDER BY queue, id;
 
 -- name: UpsertWorkerToPool :exec
 INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
