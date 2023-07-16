@@ -195,6 +195,20 @@ func (q *Queries) StatsQueueWorkerPoolSize(ctx context.Context, queue string) (i
 	return column_1, err
 }
 
+const updateRunAt = `-- name: UpdateRunAt :exec
+UPDATE public.gue_jobs SET run_at = $1 WHERE job_id = $2
+`
+
+type UpdateRunAtParams struct {
+	RunAt pgtype.Timestamptz
+	JobID string
+}
+
+func (q *Queries) UpdateRunAt(ctx context.Context, arg UpdateRunAtParams) error {
+	_, err := q.db.Exec(ctx, updateRunAt, arg.RunAt, arg.JobID)
+	return err
+}
+
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
 INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
     VALUES($1, $2, $3, STATEMENT_TIMESTAMP(), $4)

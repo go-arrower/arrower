@@ -10,6 +10,9 @@ SELECT * FROM public.gue_jobs WHERE queue = $1 ORDER BY priority, run_at ASC LIM
 -- name: DeleteJob :exec
 DELETE FROM public.gue_jobs WHERE job_id = $1;
 
+-- name: UpdateRunAt :exec
+UPDATE public.gue_jobs SET run_at = $1 WHERE job_id = $2;
+
 
 -- name: StatsPendingJobs :one
 SELECT COUNT(*) FROM public.gue_jobs WHERE queue = $1;

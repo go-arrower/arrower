@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	ErrQueryFailed  = errors.New("query failed")
-	ErrDeleteFailed = fmt.Errorf("%w: could not delete job. it might be processing already", ErrQueryFailed)
+	ErrQueryFailed      = errors.New("query failed")
+	ErrJobLockedAlready = fmt.Errorf("%w: job might be processing already", ErrQueryFailed)
 )
 
 type (
@@ -56,6 +56,7 @@ type (
 		WorkerPools(ctx context.Context) ([]WorkerPool, error)
 		RegisterWorkerPool(ctx context.Context, wp WorkerPool) error
 		Delete(ctx context.Context, jobID string) error
+		RunJobAt(ctx context.Context, jobID string, runAt time.Time) error
 	}
 )
 
@@ -221,7 +222,26 @@ func (repo *PostgresJobsRepository) Delete(ctx context.Context, jobID string) er
 
 	err := repo.db.ConnOrTX(ctx).DeleteJob(ctx, jobID)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrDeleteFailed, err)
+		return fmt.Errorf("%w: could not delete: %v", ErrJobLockedAlready, err)
+	}
+
+	return nil
+}
+
+// RunJobAt attempts to reschedule a Job with the given runAt time.
+//
+// RunJobAt will time out after one second, assuming that if the database needs longer to execute the query,
+// it means the row is locked by an active worker processing the job.
+func (repo *PostgresJobsRepository) RunJobAt(ctx context.Context, jobID string, runAt time.Time) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	err := repo.db.ConnOrTX(ctx).UpdateRunAt(ctx, models.UpdateRunAtParams{
+		JobID: jobID,
+		RunAt: pgtype.Timestamptz{Time: runAt, Valid: true, InfinityModifier: pgtype.Finite},
+	})
+	if err != nil {
+		return fmt.Errorf("%w: could not reschedule: %v", ErrJobLockedAlready, err)
 	}
 
 	return nil

@@ -184,13 +184,13 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 
-		_ = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
+		_ = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
 			time.Sleep(1 * time.Minute) // simulate a long-running job
 			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
 
 			return nil
 		})
-		_ = jq.Enqueue(ctx, jobWithArgs{Name: argName})
+		_ = jq.Enqueue(ctx, simpleJob{})
 
 		pending, _ := repo.PendingJobs(ctx, "")
 		assert.Len(t, pending, 1)
@@ -199,9 +199,65 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 
 		err := repo.Delete(ctx, pending[0].ID)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, jobs.ErrDeleteFailed)
+		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready)
 
 		pending, _ = repo.PendingJobs(ctx, "")
 		assert.Len(t, pending, 1, "delete should fail, as the job is currently processed and thus locked by the db")
+	})
+}
+
+func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reschedule job", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+
+		newJobTime := time.Now().Add(time.Minute)
+
+		_ = jq.Enqueue(ctx, simpleJob{})
+
+		pending, _ := repo.PendingJobs(ctx, "")
+		assert.Len(t, pending, 1)
+		assert.NotEqual(t, newJobTime.Format(time.RFC3339), pending[0].RunAt.Format(time.RFC3339))
+
+		err := repo.RunJobAt(ctx, pending[0].ID, newJobTime)
+		assert.NoError(t, err)
+
+		pending, _ = repo.PendingJobs(ctx, "")
+		assert.Equal(t, newJobTime.Format(time.RFC3339), pending[0].RunAt.Format(time.RFC3339))
+	})
+
+	t.Run("reschedule already started job", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.PrepareTestDatabase(pgHandler)
+		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+
+		_ = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+			time.Sleep(1 * time.Minute) // simulate a long-running job
+			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
+
+			return nil
+		})
+
+		_ = jq.Enqueue(ctx, simpleJob{})
+		pending, _ := repo.PendingJobs(ctx, "")
+
+		time.Sleep(100 * time.Millisecond) // start the worker
+
+		newJobTime := time.Now().Add(time.Minute)
+
+		err := repo.RunJobAt(ctx, pending[0].ID, newJobTime)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready)
 	})
 }
