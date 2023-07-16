@@ -216,7 +216,8 @@ func (repo *PostgresJobsRepository) RegisterWorkerPool(ctx context.Context, wp W
 // Delete will time out after one second, assuming that if the database needs longer to execute the query, it means the
 // row is locked.
 func (repo *PostgresJobsRepository) Delete(ctx context.Context, jobID string) error {
-	ctx, _ = context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
 
 	err := repo.db.ConnOrTX(ctx).DeleteJob(ctx, jobID)
 	if err != nil {

@@ -187,6 +187,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 		_ = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
 			time.Sleep(1 * time.Minute) // simulate a long-running job
 			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
+
 			return nil
 		})
 		_ = jq.Enqueue(ctx, jobWithArgs{Name: argName})
