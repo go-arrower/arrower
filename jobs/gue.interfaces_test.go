@@ -3,7 +3,6 @@
 package jobs_test
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -93,7 +92,7 @@ func TestNewGueJobs(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		buf := &bytes.Buffer{}
+		buf := &syncBuffer{}
 		logger := alog.NewTest(buf)
 		alog.Unwrap(logger).SetLevel(alog.LevelDebug)
 
@@ -486,7 +485,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 
 		// To understand if the job queue has started its underlying worker pool already, this test relies on the
 		// log output from RegisterJobFunc in case it is restarting.
-		buf := &bytes.Buffer{}
+		buf := &syncBuffer{}
 		logger := alog.NewTest(buf)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
