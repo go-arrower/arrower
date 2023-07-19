@@ -97,7 +97,7 @@ func NewGueJobs(
 		poolSize:           defaultPoolSize,
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
-		mu:                 sync.RWMutex{},
+		mu:                 sync.Mutex{},
 		hasStarted:         false,
 		isStartInProgress:  false,
 		startTimer:         nil,
@@ -142,7 +142,7 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
 
-	mu                sync.RWMutex
+	mu                sync.Mutex
 	startTimer        *time.Timer
 	isStartInProgress bool
 	hasStarted        bool

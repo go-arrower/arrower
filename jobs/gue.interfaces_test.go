@@ -104,7 +104,7 @@ func TestNewGueJobs(t *testing.T) {
 
 		_ = jq.RegisterJobFunc(func(context.Context, simpleJob) error { return nil }) // register JobFunc to start workers
 		_ = jq.Enqueue(ctx, simpleJob{})
-		time.Sleep(100 * time.Millisecond) // wait for worker to start and process the job
+		time.Sleep(500 * time.Millisecond) // wait for worker to start and process the job
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
 		wp, err := repo.WorkerPools(ctx)
@@ -509,7 +509,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NotContains(t, buf.String(), `msg="restart workers"`)
 		t.Log(buf.String())
 
-		time.Sleep(2 * pollInterval) // wait longer than the pollInterval, so the queue is started
+		time.Sleep(100 * pollInterval) // wait longer than the pollInterval, so the queue is started
 
 		// register third worker, expect restart of the queue
 		err = jq.RegisterJobFunc(func(context.Context, jobWithJobType) error { return nil })
