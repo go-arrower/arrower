@@ -50,4 +50,4 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: Integration tests with Docker
-        run: go test -race --tags="integration"
+        run: go test -race --tags="integration" ./...
