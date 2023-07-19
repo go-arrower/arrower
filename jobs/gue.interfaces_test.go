@@ -633,7 +633,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		// wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
 		// because Done() can only be called from the worker func and not the hooks.
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond * 100)
 
 		_ = jq.Shutdown(ctx)
 
