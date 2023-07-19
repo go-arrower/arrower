@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/tests"
@@ -45,7 +46,7 @@ func TestConnect(t *testing.T) {
 					User:     "username",
 					Password: "secret",
 					Database: "dbname_test",
-				})
+				}, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -78,7 +79,7 @@ func TestConnect(t *testing.T) {
 					User:     "username",
 					Password: "secret",
 					Database: "dbname_test",
-				})
+				}, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -118,7 +119,7 @@ func TestConnectAndMigrate(t *testing.T) {
 					User:     "username",
 					Password: "secret",
 					Database: "dbname_test",
-				})
+				}, trace.NewNoopTracerProvider())
 				if err != nil && !errors.Is(err, postgres.ErrMigrationFailed) {
 					return err //nolint:wrapcheck
 				}
@@ -148,7 +149,7 @@ func TestConnectAndMigrate(t *testing.T) {
 					Password:   "secret",
 					Database:   "dbname_test",
 					Migrations: postgres.ArrowerDefaultMigrations,
-				})
+				}, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -185,7 +186,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			}
 
 			return func() error {
-				_, err := postgres.ConnectAndMigrate(context.Background(), config)
+				_, err := postgres.ConnectAndMigrate(context.Background(), config, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -195,7 +196,7 @@ func TestConnectAndMigrate(t *testing.T) {
 		})
 
 		// container is up and running => connect a second time to run migrations again
-		_, err := postgres.ConnectAndMigrate(context.Background(), config)
+		_, err := postgres.ConnectAndMigrate(context.Background(), config, trace.NewNoopTracerProvider())
 		assert.NoError(t, err)
 
 		_ = cleanup()

@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/ory/dockertest/v3"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -52,7 +53,7 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 			}
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(ctx, conf)
+				handler, err := postgres.ConnectAndMigrate(ctx, conf, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -121,7 +122,7 @@ func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler
 		newConfig.Migrations = os.DirFS("testdata/")
 	}
 
-	newHandler, err := postgres.ConnectAndMigrate(context.Background(), newConfig)
+	newHandler, err := postgres.ConnectAndMigrate(context.Background(), newConfig, trace.NewNoopTracerProvider())
 	if err != nil {
 		panic(err)
 	}

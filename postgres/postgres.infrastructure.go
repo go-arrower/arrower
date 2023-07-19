@@ -15,6 +15,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/shared"
 )
@@ -51,10 +52,14 @@ func (c Config) toURL() string {
 }
 
 // Connect connects to a PostgreSQL database.
-func Connect(ctx context.Context, pgConf Config) (*Handler, error) {
+func Connect(ctx context.Context, pgConf Config, tracerProvider trace.TracerProvider) (*Handler, error) {
 	config, err := pgxpool.ParseConfig(pgConf.toURL())
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not parse config: %v", ErrConnectionFailed, err)
+	}
+
+	config.ConnConfig.Tracer = &pgxTraceAdapter{
+		tracer: tracerProvider.Tracer("arrower/pgx"),
 	}
 
 	dbpool, err := pgxpool.NewWithConfig(ctx, config)
@@ -74,17 +79,21 @@ func Connect(ctx context.Context, pgConf Config) (*Handler, error) {
 		return nil, fmt.Errorf("%w: could not connect via the std lib registration: %v", ErrConnectionFailed, err)
 	}
 
-	return &Handler{PGx: dbpool, DB: db, Config: pgConf}, nil
+	return &Handler{
+		PGx:    dbpool,
+		DB:     db,
+		Config: pgConf,
+	}, nil
 }
 
 // ConnectAndMigrate connects to a PostgreSQL database and
 // runs all migrations to ensure that the schema is on the latest version.
-func ConnectAndMigrate(ctx context.Context, conf Config) (*Handler, error) {
+func ConnectAndMigrate(ctx context.Context, conf Config, tracerProvider trace.TracerProvider) (*Handler, error) {
 	if conf.Migrations == nil {
 		return nil, fmt.Errorf("%w: no migration files given", ErrMigrationFailed)
 	}
 
-	handler, err := Connect(ctx, conf)
+	handler, err := Connect(ctx, conf, tracerProvider)
 	if err != nil {
 		return nil, err
 	}
