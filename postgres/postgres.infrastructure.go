@@ -17,11 +17,11 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/go-arrower/arrower/shared"
+	"github.com/go-arrower/arrower"
 )
 
 // CtxTX contains a database transaction, only if set by e.g. a middleware.
-const CtxTX shared.CTXKeyType = iota
+const CtxTX arrower.CTXKey = "arrower.tx"
 
 //go:embed migrations/*.sql
 var ArrowerDefaultMigrations embed.FS
