@@ -68,7 +68,7 @@ services:
     ports:
       - "8081:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: root@localhost.tdl
+      PGADMIN_DEFAULT_EMAIL: root@localhost.tld
       PGADMIN_DEFAULT_PASSWORD: secret
     volumes:
       - pgadmin-data:/var/lib/pgadmin
