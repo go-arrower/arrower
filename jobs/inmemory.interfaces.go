@@ -64,6 +64,66 @@ func (q *InMemoryHandler) Reset() {
 	q.jobs = []Job{}
 }
 
+// GetFirst returns the first Job in the queue or nil, if the queue is empty.
+// The job stays in the queue.
+func (q *InMemoryHandler) GetFirst() Job { //nolint:ireturn // fp
+	return q.Get(1)
+}
+
+// Get returns the pos'th Job in the queue or nil, if the queue is empty.
+// The job stays in the queue.
+func (q *InMemoryHandler) Get(pos int) Job { //nolint:ireturn // fp
+	if len(q.jobs) == 0 || pos > len(q.jobs) {
+		return nil
+	}
+
+	for i, j := range q.jobs {
+		if i+1 == pos {
+			return j
+		}
+	}
+
+	return nil
+}
+
+// GetFirstOf returns the first Job of the same type as the given job or nil, if the queue is empty.
+// The job stays in the queue.
+func (q *InMemoryHandler) GetFirstOf(job Job) Job { //nolint:ireturn // fp
+	return q.GetOf(job, 1)
+}
+
+// GetOf returns the pos'th Job of the same type as the given job or nil, if the queue is empty.
+// The job stays in the queue.
+func (q *InMemoryHandler) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
+	if len(q.jobs) == 0 {
+		return nil
+	}
+
+	searchType, err := getJobTypeFromJobStruct(job)
+	if err != nil {
+		return nil
+	}
+
+	matchPos := 1
+
+	for _, sJob := range q.jobs {
+		jobType, err := getJobTypeFromJobStruct(sJob)
+		if err != nil {
+			return nil
+		}
+
+		if jobType == searchType {
+			if matchPos == pos {
+				return sJob
+			}
+
+			matchPos++
+		}
+	}
+
+	return nil
+}
+
 // Assert returns a new InMemoryAssertions for the specified testing.T for your convenience.
 func (q *InMemoryHandler) Assert(t *testing.T) *InMemoryAssertions {
 	t.Helper()
