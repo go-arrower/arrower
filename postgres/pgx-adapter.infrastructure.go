@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type contextKey string
+type contextKey string // todo use arrower.CTXKey
 
 const spanKey contextKey = "otel_span"
 

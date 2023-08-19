@@ -78,14 +78,14 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 // PrepareTestDatabase creates a new database, connects to it, and applies all migrations.
 // Afterwards it loads al fixtures from files.
 // Use in integration tests to create a valid database state for your test.
-// If there is a file named `testdata/fixtures/_common.yml`, it's always loaded by default.
+// If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
 // In case of an issue it panics.
 // It can be used in parallel and works around the limitations of go-testfixtures/testfixtures.
 // If there is a folder `testdata/migrations` it is used to migrate the database up on.
 func PrepareTestDatabase(pg *postgres.Handler, files ...string) *postgres.Handler {
 	pgHandler := createAndConnectToNewRandomDatabase(pg)
 
-	const commonFixture = "testdata/fixtures/_common.yml"
+	const commonFixture = "testdata/fixtures/_common.yaml"
 
 	if _, err := os.Stat(commonFixture); errors.Is(err, nil) { // file exists
 		files = append([]string{commonFixture}, files...)

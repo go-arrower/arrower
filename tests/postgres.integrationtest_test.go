@@ -56,8 +56,8 @@ func TestPrepareTestDatabase(t *testing.T) {
 		var pg *postgres.Handler
 		assert.NotPanics(t, func() {
 			pg = tests.PrepareTestDatabase(pgHandler,
-				"testdata/fixtures/test_case0.yml",
-				"testdata/fixtures/test_case1.yml",
+				"testdata/fixtures/test_case0.yaml",
+				"testdata/fixtures/test_case1.yaml",
 			)
 		})
 
