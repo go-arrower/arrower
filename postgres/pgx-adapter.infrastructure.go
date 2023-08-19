@@ -8,11 +8,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/go-arrower/arrower"
 )
 
-type contextKey string // todo use arrower.CTXKey
-
-const spanKey contextKey = "otel_span"
+const spanKey arrower.CTXKey = "otel_span"
 
 var _ pgx.QueryTracer = (*pgxTraceAdapter)(nil)
 
