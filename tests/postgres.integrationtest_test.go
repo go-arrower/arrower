@@ -4,12 +4,12 @@ package tests_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"sync"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/postgres"
@@ -40,20 +40,20 @@ func TestPrepareTestDatabase(t *testing.T) {
 	t.Run("load common file automatically", func(t *testing.T) {
 		t.Parallel()
 
-		var pg *postgres.Handler
+		var pg *pgxpool.Pool
 		assert.NotPanics(t, func() {
 			pg = tests.PrepareTestDatabase(pgHandler)
 		})
 
-		assertTableNumberOfRows(t, pg.DB, "admin.setting", 1)
-		assertTableNumberOfRows(t, pg.DB, "1", 0)
-		assertTableNumberOfRows(t, pg.DB, "public.2", 0)
+		assertTableNumberOfRows(t, pg, "admin.setting", 1)
+		assertTableNumberOfRows(t, pg, "1", 0)
+		assertTableNumberOfRows(t, pg, "public.2", 0)
 	})
 
 	t.Run("load common file and multiple multi-table fixtures", func(t *testing.T) {
 		t.Parallel()
 
-		var pg *postgres.Handler
+		var pg *pgxpool.Pool
 		assert.NotPanics(t, func() {
 			pg = tests.PrepareTestDatabase(pgHandler,
 				"testdata/fixtures/test_case0.yaml",
@@ -61,9 +61,9 @@ func TestPrepareTestDatabase(t *testing.T) {
 			)
 		})
 
-		assertTableNumberOfRows(t, pg.DB, "admin.setting", 1)
-		assertTableNumberOfRows(t, pg.DB, "some_table", 2)
-		assertTableNumberOfRows(t, pg.DB, "public.other_table", 2)
+		assertTableNumberOfRows(t, pg, "admin.setting", 1)
+		assertTableNumberOfRows(t, pg, "some_table", 2)
+		assertTableNumberOfRows(t, pg, "public.other_table", 2)
 	})
 
 	t.Run("run multiple tests in parallel", func(t *testing.T) {
@@ -75,14 +75,14 @@ func TestPrepareTestDatabase(t *testing.T) {
 		wg.Add(testNumber)
 		for i := 0; i < testNumber; i++ {
 			go func() {
-				var pg *postgres.Handler
+				var pg *pgxpool.Pool
 				assert.NotPanics(t, func() {
 					pg = tests.PrepareTestDatabase(pgHandler)
 				})
 
-				assertTableNumberOfRows(t, pg.DB, "admin.setting", 1)
-				assertTableNumberOfRows(t, pg.DB, "1", 0)
-				assertTableNumberOfRows(t, pg.DB, "public.2", 0)
+				assertTableNumberOfRows(t, pg, "admin.setting", 1)
+				assertTableNumberOfRows(t, pg, "1", 0)
+				assertTableNumberOfRows(t, pg, "public.2", 0)
 
 				wg.Done()
 			}()
@@ -92,11 +92,11 @@ func TestPrepareTestDatabase(t *testing.T) {
 	})
 }
 
-func assertTableNumberOfRows(t *testing.T, db *sql.DB, table string, num int) {
+func assertTableNumberOfRows(t *testing.T, db *pgxpool.Pool, table string, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c)
+	_ = db.QueryRow(context.Background(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c)
 
 	assert.Equal(t, num, c)
 }

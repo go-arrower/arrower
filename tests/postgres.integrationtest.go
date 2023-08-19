@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-testfixtures/testfixtures/v3"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
 	"go.opentelemetry.io/otel/trace"
 
@@ -76,13 +77,13 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 }
 
 // PrepareTestDatabase creates a new database, connects to it, and applies all migrations.
-// Afterwards it loads al fixtures from files.
-// Use in integration tests to create a valid database state for your test.
+// Afterwards it loads all fixtures from files.
+// Use it in integration tests to create a valid database state for your test.
 // If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
 // In case of an issue it panics.
 // It can be used in parallel and works around the limitations of go-testfixtures/testfixtures.
 // If there is a folder `testdata/migrations` it is used to migrate the database up on.
-func PrepareTestDatabase(pg *postgres.Handler, files ...string) *postgres.Handler {
+func PrepareTestDatabase(pg *postgres.Handler, files ...string) *pgxpool.Pool {
 	pgHandler := createAndConnectToNewRandomDatabase(pg)
 
 	const commonFixture = "testdata/fixtures/_common.yaml"
@@ -104,7 +105,7 @@ func PrepareTestDatabase(pg *postgres.Handler, files ...string) *postgres.Handle
 		panic(err)
 	}
 
-	return pgHandler
+	return pgHandler.PGx
 }
 
 func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler {
@@ -130,8 +131,9 @@ func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler
 	return newHandler
 }
 
-var validPGDatabaseLetters = []rune("abcdefghijklmnopqrstuvwxyz") //nolint:gochecknoglobals
 func randomDatabaseName() string {
+	validPGDatabaseLetters := []rune("abcdefghijklmnopqrstuvwxyz")
+
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // used for name, not security
 
 	const n = 16

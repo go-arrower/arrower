@@ -27,21 +27,21 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 
 		// Given a job queue
 		jq0, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
-			pg.PGx, jobs.WithPollInterval(time.Nanosecond),
+			pg, jobs.WithPollInterval(time.Nanosecond),
 		)
 		_ = jq0.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		_ = jq0.Enqueue(ctx, simpleJob{})
 
 		// And Given a different job queue run in the future
 		jq1, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
-			pg.PGx, jobs.WithPollInterval(time.Nanosecond), jobs.WithQueue("some_queue"),
+			pg, jobs.WithPollInterval(time.Nanosecond), jobs.WithQueue("some_queue"),
 		)
 		_ = jq1.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		_ = jq1.Enqueue(ctx, simpleJob{}, jobs.WithRunAt(time.Now().Add(1*time.Hour)))
 
 		time.Sleep(100 * time.Millisecond) // wait for job to finish
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		q, err := repo.Queues(ctx)
 		assert.NoError(t, err)
@@ -56,13 +56,13 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		pendingJobs, err := repo.PendingJobs(ctx, "")
 		assert.NoError(t, err)
 		assert.Len(t, pendingJobs, 0, "queue needs to be empty, as no jobs got enqueued yet")
 
-		jq, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx)
+		jq, _ := jobs.NewGueJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
 		_ = jq.Enqueue(ctx, simpleJob{})
 
 		pendingJobs, err = repo.PendingJobs(ctx, "")
@@ -79,7 +79,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		stats, err := repo.QueueKPIs(context.Background(), "")
 		assert.NoError(t, err)
@@ -96,7 +96,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler, "testdata/fixtures/queue_kpis.yaml")
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		stats, err := repo.QueueKPIs(context.Background(), "")
 		assert.NoError(t, err)
@@ -120,7 +120,7 @@ func TestPostgresJobsRepository_RegisterWorkerPool(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		workerPool := jobs.WorkerPool{
 			ID:       "1337",
@@ -159,8 +159,8 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
-		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx)
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
 
 		_ = jq.Enqueue(ctx, simpleJob{})
 
@@ -179,8 +179,8 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 
 		pg := tests.PrepareTestDatabase(pgHandler)
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
-		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 
@@ -213,8 +213,8 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
-		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 
@@ -237,8 +237,8 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
-		repo := jobs.NewPostgresJobsRepository(models.New(pg.PGx))
-		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg.PGx,
+		repo := jobs.NewPostgresJobsRepository(models.New(pg))
+		jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 

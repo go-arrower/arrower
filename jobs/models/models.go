@@ -8,6 +8,43 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AuthSession struct {
+	Key          []byte
+	Data         []byte
+	ExpiresAtUtc pgtype.Timestamptz
+	UserID       pgtype.UUID
+	UserAgent    string
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type AuthUser struct {
+	ID              pgtype.UUID
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
+	Login           string
+	PasswordHash    string
+	NameFirstname   string
+	NameLastname    string
+	NameDisplayname string
+	Birthday        pgtype.Date
+	Locale          string
+	TimeZone        string
+	PictureUrl      string
+	Profile         pgtype.Hstore
+	VerifiedAtUtc   pgtype.Timestamptz
+	BlockedAtUtc    pgtype.Timestamptz
+	SuperuserAtUtc  pgtype.Timestamptz
+}
+
+type AuthUserVerification struct {
+	Token         pgtype.UUID
+	UserID        pgtype.UUID
+	ValidUntilUtc pgtype.Timestamptz
+	CreatedAt     pgtype.Timestamptz
+	UpdatedAt     pgtype.Timestamptz
+}
+
 type GueJob struct {
 	JobID      string
 	Priority   int16
