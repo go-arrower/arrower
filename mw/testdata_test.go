@@ -110,7 +110,7 @@ func (f fakeSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
 }
 
 var (
-	//nolint:lll // needs to match the exact format expected from the prometheus endpoint
+	// needs to match the exact format expected from the prometheus endpoint
 	// prepare the output, so it can be read multiple times by different tests, see:https://siongui.github.io/2018/10/28/go-read-twice-from-same-io-reader/
 	rawMetricsForSucceedingUseCase, _ = io.ReadAll(strings.NewReader(`
 # HELP usecases_duration_seconds a simple hist
@@ -140,7 +140,7 @@ usecases_total{command="mw_test.exampleCommand",otel_scope_name="arrower.applica
 	metricsForSucceedingUseCase  = bytes.NewReader(rawMetricsForSucceedingUseCase)
 	metricsForSucceedingUseCaseU = bytes.NewReader(rawMetricsForSucceedingUseCase)
 
-	//nolint:lll // needs to match the exact format expected from the prometheus endpoint
+	// needs to match the exact format expected from the prometheus endpoint.
 	rawMetricsForFailingUseCase, _ = io.ReadAll(strings.NewReader(`
 # HELP usecases_duration_seconds a simple hist
 # TYPE usecases_duration_seconds histogram

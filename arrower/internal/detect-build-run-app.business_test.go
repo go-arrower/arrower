@@ -138,7 +138,7 @@ func copyDir(t *testing.T, oldDir string, newDir string) {
 func TestOpenBrowser(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		testName string
 		url      string
 		err      error

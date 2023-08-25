@@ -14,7 +14,7 @@ const CtxValidated arrower.CTXKey = "arrower.validated"
 // If you don't pass a validator a default one is used. Possible drawback: validator.Validate uses caching
 // for information about your struct and validations.
 // In case the validation is passed, it is recorded in the context and can be checked with PassedValidation.
-func Validate[in, out any, F DecoratorFunc[in, out]](validate *validator.Validate, next F) F { //nolint:ireturn
+func Validate[in, out any, F DecoratorFunc[in, out]](validate *validator.Validate, next F) F { //nolint:ireturn,lll // valid use of generics
 	if validate == nil {
 		validate = validator.New()
 	}
@@ -30,7 +30,7 @@ func Validate[in, out any, F DecoratorFunc[in, out]](validate *validator.Validat
 }
 
 // ValidateU is like Validate but for functions only returning errors, e.g. jobs.
-func ValidateU[in any, F DecoratorFuncUnary[in]](validate *validator.Validate, next F) F { //nolint:ireturn
+func ValidateU[in any, F DecoratorFuncUnary[in]](validate *validator.Validate, next F) F { //nolint:ireturn,lll // valid use of generics
 	if validate == nil {
 		validate = validator.New()
 	}

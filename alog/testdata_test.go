@@ -21,7 +21,7 @@ var errSomething = errors.New("some error")
 // // //  ///  /// /// ///
 
 // fakeSpan is an implementation of Span that is minimal for asserting tests.
-type fakeSpan struct { //nolint:govet // fieldalignment does not matter in test cases
+type fakeSpan struct {
 	ID byte
 
 	eventName    string

@@ -46,7 +46,7 @@ func TestNewTest(t *testing.T) {
 	})
 }
 
-func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,lll,wsl // concurrent access to os.Stderr will lead to race condition.
+func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,wsl // concurrent access to os.Stderr will lead to race condition.
 	// The default loggers constructed with NewArrowerHandler, NewDevelopment, New
 	// log to os.Stderr. This is a good default, but for testing the HandlerOptions,
 	// I need to inspect the output.

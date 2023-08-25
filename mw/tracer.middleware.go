@@ -9,7 +9,7 @@ import (
 )
 
 // Traced wraps an application function / command with trace information.
-func Traced[in, out any, F DecoratorFunc[in, out]](traceProvider trace.TracerProvider, next F) F { //nolint:ireturn
+func Traced[in, out any, F DecoratorFunc[in, out]](traceProvider trace.TracerProvider, next F) F { //nolint:ireturn,lll // valid use of generics
 	tracer := traceProvider.Tracer("arrower.application") // trace.WithInstrumentationVersion("0.0.0"),
 
 	return func(ctx context.Context, in in) (out, error) {
@@ -30,7 +30,7 @@ func Traced[in, out any, F DecoratorFunc[in, out]](traceProvider trace.TracerPro
 }
 
 // TracedU see Traced.
-func TracedU[in any, F DecoratorFuncUnary[in]](traceProvider trace.TracerProvider, next F) F { //nolint:ireturn
+func TracedU[in any, F DecoratorFuncUnary[in]](traceProvider trace.TracerProvider, next F) F { //nolint:ireturn,lll // valid use of generics
 	tracer := traceProvider.Tracer("arrower.application") // trace.WithInstrumentationVersion("0.0.0"),
 
 	return func(ctx context.Context, in in) error {

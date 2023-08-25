@@ -1,6 +1,5 @@
 //go:build integration
 
-//nolint:govet,lll // the purpose is to showcase examples, not production code
 package jobs_test
 
 import (
@@ -53,7 +52,6 @@ func ExampleGueHandler_Enqueue() {
 }
 
 func setup() (*postgres.Handler, func()) {
-	ctx := context.Background()
 	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(ctx)
 
 	return handler, func() {

@@ -135,7 +135,7 @@ func TestInMemoryHandler_GetFirst(t *testing.T) {
 		jq := jobs.NewInMemoryJobs()
 		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
 
-		j := jq.GetFirst().(jobWithArgs) //nolint:forcetypeassert
+		j := jq.GetFirst().(jobWithArgs)
 		assert.Equal(t, argName, j.Name)
 	})
 }
@@ -158,7 +158,7 @@ func TestInMemoryHandler_Get(t *testing.T) {
 		jq := jobs.NewInMemoryJobs()
 		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
 
-		j := jq.Get(2).(jobWithArgs) //nolint:forcetypeassert
+		j := jq.Get(2).(jobWithArgs)
 		assert.Equal(t, "otherName", j.Name)
 	})
 }
@@ -181,7 +181,7 @@ func TestInMemoryHandler_GetFirstOf(t *testing.T) {
 		jq := jobs.NewInMemoryJobs()
 		_ = jq.Enqueue(ctx, []jobs.Job{simpleJob{}, jobWithArgs{Name: argName}})
 
-		j := jq.GetFirstOf(jobWithArgs{}).(jobWithArgs) //nolint:forcetypeassert
+		j := jq.GetFirstOf(jobWithArgs{}).(jobWithArgs)
 		assert.Equal(t, argName, j.Name)
 	})
 }
@@ -210,7 +210,7 @@ func TestInMemoryHandler_GetOf(t *testing.T) {
 			jobWithArgs{Name: "someOther"},
 		})
 
-		j := jq.GetOf(jobWithArgs{}, 2).(jobWithArgs) //nolint:forcetypeassert
+		j := jq.GetOf(jobWithArgs{}, 2).(jobWithArgs)
 		assert.Equal(t, argName, j.Name)
 	})
 }

@@ -18,7 +18,7 @@ type DecoratorFuncUnary[in any] interface {
 }
 
 // Logged wraps an application function / command with debug logs.
-func Logged[in, out any, F DecoratorFunc[in, out]](logger *slog.Logger, next F) F { //nolint:ireturn
+func Logged[in, out any, F DecoratorFunc[in, out]](logger *slog.Logger, next F) F { //nolint:ireturn,lll // valid use of generics
 	return func(ctx context.Context, in in) (out, error) {
 		cmdName := commandName(in)
 
@@ -43,7 +43,7 @@ func Logged[in, out any, F DecoratorFunc[in, out]](logger *slog.Logger, next F) 
 }
 
 // LoggedU is like Logged but for functions only returning errors, e.g. jobs.
-func LoggedU[in any, F DecoratorFuncUnary[in]](logger *slog.Logger, next F) F { //nolint:ireturn
+func LoggedU[in any, F DecoratorFuncUnary[in]](logger *slog.Logger, next F) F { //nolint:ireturn,lll // valid use of generics
 	return func(ctx context.Context, in in) error {
 		cmdName := commandName(in)
 

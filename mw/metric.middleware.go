@@ -14,7 +14,7 @@ import (
 // usecases_total as a counter of all usecases called and
 // usecases_duration_seconds as a histogram of execution time of the use cases.
 // Although usecases_duration_seconds_count could be used, but the naming of usecases_total is more expressive.
-func Metric[in, out any, F DecoratorFunc[in, out]](meterProvider metric.MeterProvider, next F) F { //nolint:ireturn
+func Metric[in, out any, F DecoratorFunc[in, out]](meterProvider metric.MeterProvider, next F) F { //nolint:ireturn,lll // valid use of generics
 	meter := meterProvider.Meter("arrower.application") // trace.WithInstrumentationVersion("0.0.0"),
 
 	counter, _ := meter.Int64Counter("usecases", metric.WithDescription("a simple counter"))
@@ -52,7 +52,7 @@ func Metric[in, out any, F DecoratorFunc[in, out]](meterProvider metric.MeterPro
 }
 
 // MetricU see Metric.
-func MetricU[in any, F DecoratorFuncUnary[in]](meterProvider metric.MeterProvider, next F) F { //nolint:ireturn
+func MetricU[in any, F DecoratorFuncUnary[in]](meterProvider metric.MeterProvider, next F) F { //nolint:ireturn,lll // valid use of generics
 	meter := meterProvider.Meter("arrower.application") // trace.WithInstrumentationVersion("0.0.0"),
 
 	counter, _ := meter.Int64Counter("usecases", metric.WithDescription("a simple counter"))
