@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -59,7 +60,24 @@ func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
 
 func (s *fakeSpan) SetName(string) {}
 
-func (s *fakeSpan) TracerProvider() trace.TracerProvider { return nil } //nolint:ireturn
+func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{} } //nolint:ireturn
+
+type fakeTraceProvider struct{}
+
+func (f *fakeTraceProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer { //nolint:ireturn
+	return &fakeTracer{}
+}
+
+type fakeTracer struct{}
+
+func (f *fakeTracer) Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
+	// Ensures Start() is called from within *ArrowerLogger.Handle.
+	// If not equal the nil will make the test panic, without t present
+	// Used in "record a span for the handle method itself"
+	assert.Equal(nil, "log", spanName)
+
+	return ctx, &fakeSpan{}
+}
 
 type failingHandler struct{}
 

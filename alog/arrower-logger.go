@@ -134,13 +134,17 @@ func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	span := trace.SpanFromContext(ctx)
+
+	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log")
+	defer innerSpan.End()
+
 	if !span.IsRecording() { //nolint:staticcheck // here as a tmp note => remove once this method is cleaned up
 		//	return s.h.Handle(r)
 	}
 
 	record = addTraceAndSpanIDsToLogs(span, record)
 
-	attr, ok := ctx.Value(CtxAttr).([]slog.Attr)
+	attr, ok := newCtx.Value(CtxAttr).([]slog.Attr)
 	if ok {
 		record.AddAttrs(attr...)
 	}
@@ -150,7 +154,7 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	var retErr error
 
 	for _, h := range l.handlers {
-		err := h.Handle(ctx, record)
+		err := h.Handle(newCtx, record)
 		retErr = errors.Join(retErr, err)
 	}
 

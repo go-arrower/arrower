@@ -307,6 +307,22 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			assert.Equal(t, codes.Error, span.statusErrorCode)
 			assert.Equal(t, applicationMsg, span.statusErrorMsg)
 		})
+
+		t.Run("record a span for the handle method itself", func(t *testing.T) {
+			t.Parallel()
+
+			logger := alog.NewTest(nil)
+
+			span := &fakeSpan{ID: 1}
+			ctx := trace.ContextWithSpan(context.Background(), span)
+
+			logger.InfoCtx(ctx, applicationMsg)
+
+			// the nesting of all the tracing stuff is making this case difficult to test:
+			// span => traceProvider => tracer => innerSpan
+			// the assertion is in fakeTracer.Start() as a hack
+			// the assertion is only run, if the tracer is called from within Handle, so it is somewhat of a circular case.
+		})
 	})
 
 	t.Run("log attributes in ctx", func(t *testing.T) {
