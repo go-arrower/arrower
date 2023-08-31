@@ -51,13 +51,13 @@ func WithPoolName(n string) QueueOpt {
 	}
 }
 
-// NewGueJobs returns an initialised GueHandler.
+// NewPostgresJobs returns an initialised GueHandler.
 // Each Worker in the pool default to a poll interval of 5 seconds, which can be
 // overridden by WithPollInterval option. The default queue is the
 // nameless queue "", which can be overridden by WithQueue option.
 //
-//nolint:funlen // as of writing the function length is alright, just initialising GueHandler takes a lot of lines.
-func NewGueJobs(
+//nolint:funlen // the function length is alright, just initialising the GueHandler struct takes a lot of lines.
+func NewPostgresJobs(
 	logger alog.Logger,
 	meterProvider metric.MeterProvider,
 	traceProvider trace.TracerProvider,
@@ -72,11 +72,11 @@ func NewGueJobs(
 		defaultPoolNameLength = 5
 	)
 
-	logger = logger.WithGroup("go-arrower/arrower/jobs")
+	logger = logger.WithGroup("arrower.jobs")
 	gueLogger := &gueLogAdapter{l: logger.WithGroup("gue")}
 
-	meter := meterProvider.Meter("go-arrower/arrower/jobs")
-	tracer := traceProvider.Tracer("go-arrower/arrower/jobs")
+	meter := meterProvider.Meter("arrower.jobs")
+	tracer := traceProvider.Tracer("arrower.jobs")
 
 	poolName := randomPoolName(defaultPoolNameLength)
 
@@ -169,7 +169,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 	if txOk {
 		err = h.gueClient.EnqueueBatchTx(ctx, gueJobs, pgxv5.NewTx(tx))
 		if err != nil {
-			return fmt.Errorf("could not enqueue gue job with transaction: %w", err)
+			return fmt.Errorf("%w: could not enqueue gue job with transaction: %v", ErrFailed, err)
 		}
 
 		return nil
@@ -177,7 +177,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 
 	err = h.gueClient.EnqueueBatch(ctx, gueJobs)
 	if err != nil {
-		return fmt.Errorf("could not enqueue gue job: %w", err)
+		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrFailed, err)
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 
 		args, err := json.Marshal(job)
 		if err != nil {
-			return nil, fmt.Errorf("could not marshal job: %w", err)
+			return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err)
 		}
 
 		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
@@ -214,7 +214,7 @@ func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 
 			args, err := json.Marshal(job.Interface())
 			if err != nil {
-				return nil, fmt.Errorf("could not marshal job: %w", err)
+				return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err)
 			}
 
 			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
@@ -480,7 +480,7 @@ func (h *GueHandler) startWorkers() error {
 		gue.WithPoolTracer(h.tracer),
 	)
 	if err != nil {
-		return fmt.Errorf("could not create gue worker pool: %w", err)
+		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrFailed, err)
 	}
 
 	ctx, shutdown := context.WithCancel(context.Background())
@@ -599,7 +599,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 	h.shutdownWorkerPool()
 
 	if err := h.groupWorkerPool.Wait(); err != nil {
-		return fmt.Errorf("could not shutdown job workers: %w", err)
+		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrFailed, err)
 	}
 
 	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
@@ -608,7 +608,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 		Workers:  0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		LastSeen: time.Now(),
 	}); err != nil {
-		return fmt.Errorf("could not unregister worker pool: %w", err)
+		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrFailed, err)
 	}
 
 	h.hasStarted = false

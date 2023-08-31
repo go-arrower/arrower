@@ -59,7 +59,7 @@ func Connect(ctx context.Context, pgConf Config, tracerProvider trace.TracerProv
 	}
 
 	config.ConnConfig.Tracer = &pgxTraceAdapter{
-		tracer: tracerProvider.Tracer("arrower/pgx"),
+		tracer: tracerProvider.Tracer("arrower.pgx"),
 	}
 
 	dbpool, err := pgxpool.NewWithConfig(ctx, config)

@@ -10,6 +10,7 @@ var (
 	ErrInvalidJobType = errors.New("invalid job type")
 	ErrInvalidJobOpt  = errors.New("invalid job option")
 	ErrNotAllowed     = errors.New("not allowed")
+	ErrFailed         = errors.New("failed")
 	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
 
@@ -17,7 +18,7 @@ var (
 type Enqueuer interface {
 	// Enqueue schedules new Jobs. Use the JobOpts to configure the jobs scheduled.
 	// You can schedule and individual or multiple jobs at the same time.
-	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new jobs.
+	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new job(s).
 	Enqueue(context.Context, Job, ...JobOpt) error
 }
 
@@ -33,8 +34,8 @@ type Queue interface {
 	// requires all workers to be known before start.
 	RegisterJobFunc(JobFunc) error
 
-	// Shutdown blocks and wait for all started jobs are finished.
-	// Timeout does not work currently. (or for the context timed out, whichever happens first.)
+	// Shutdown blocks and waits until all started jobs are finished.
+	// Timeout does not work currently.
 	Shutdown(context.Context) error
 }
 
@@ -48,7 +49,7 @@ type (
 	// job to be scheduled.
 	Job any
 
-	// JobType returns the job's type. It is optional and does not have to be
+	// JobType returns the Job's type. It is optional and does not have to be
 	// implemented by each Job. If it's not implemented the struct type is used as JobType instead.
 	JobType interface {
 		JobType() string
@@ -58,7 +59,7 @@ type (
 	// func(ctx context.Context, job Job) error {}.
 	//
 	// If using a signature for Register like: Register(f func(ctx context.Context, job any) error) error, the compiler throws:
-	// cannot use func(ctx context.Context, data []byte) error {…} (value of type func(ctx context.Context, data []byte) error) as func(ctx context.Context, job any) error value in argument to Register.
+	// `cannot use func(ctx context.Context, data []byte) error {…} (value of type func(ctx context.Context, data []byte) error) as func(ctx context.Context, job any) error value in argument to Register.`
 	//nolint:lll // allow full compiler message in one line
 	JobFunc any // func(ctx context.Context, job Job) error
 

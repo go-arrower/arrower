@@ -25,12 +25,17 @@ type otherJob struct{}
 func ExampleGueHandler_Enqueue() {
 	db, teardown := setup()
 
-	jq, _ := jobs.NewGueJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx,
+	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx,
 		jobs.WithPollInterval(time.Second), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
 	_ = jq.RegisterJobFunc(func(ctx context.Context, j myJob) error {
 		fmt.Println("myJob with payload:", j.Payload)
+
+		return nil
+	})
+	_ = jq.RegisterJobFunc(func(ctx context.Context, j otherJob) error {
+		fmt.Println("otherJob")
 
 		return nil
 	})
@@ -49,6 +54,7 @@ func ExampleGueHandler_Enqueue() {
 	// myJob with payload: 1
 	// myJob with payload: 2
 	// myJob with payload: 1
+	// otherJob
 }
 
 func setup() (*postgres.Handler, func()) {
