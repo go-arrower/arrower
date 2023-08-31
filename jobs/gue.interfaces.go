@@ -467,7 +467,7 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 // startWorkers expects the locking of h.mu to happen at the caller!
 func (h *GueHandler) startWorkers() error {
 	if h.hasStarted {
-		return fmt.Errorf("%w: queue already started", ErrNotAllowed)
+		return fmt.Errorf("%w: queue already started", ErrFailed)
 	}
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,

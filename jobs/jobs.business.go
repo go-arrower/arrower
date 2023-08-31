@@ -9,7 +9,6 @@ var (
 	ErrInvalidJobFunc = errors.New("invalid JobFunc func signature")
 	ErrInvalidJobType = errors.New("invalid job type")
 	ErrInvalidJobOpt  = errors.New("invalid job option")
-	ErrNotAllowed     = errors.New("not allowed")
 	ErrFailed         = errors.New("failed")
 	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
