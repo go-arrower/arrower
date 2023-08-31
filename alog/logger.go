@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"golang.org/x/exp/slog"
+
+	"github.com/go-arrower/arrower"
 )
 
 // Logger interface is a subset of slog.Logger, with the aim to:
@@ -51,4 +53,30 @@ func getLevelNames() map[slog.Leveler]string {
 		LevelInfo:  "ARROWER:INFO",
 		LevelDebug: "ARROWER:DEBUG",
 	}
+}
+
+// CtxAttr contains request scoped attributes.
+const CtxAttr arrower.CTXKey = "arrower.tx"
+
+// AddAttr adds a single attribute to ctx. All attrs in CtxAttr will be logged automatically by the ArrowerLogger.
+func AddAttr(ctx context.Context, attr slog.Attr) context.Context {
+	if attrs, ok := ctx.Value(CtxAttr).([]slog.Attr); ok {
+		return context.WithValue(ctx, CtxAttr, append(attrs, attr))
+	}
+
+	return context.WithValue(ctx, CtxAttr, []slog.Attr{attr})
+}
+
+// AddAttrs adds multiple attributes to ctx. All attrs in CtxAttr will be logged automatically by the ArrowerLogger.
+func AddAttrs(ctx context.Context, newAttrs ...slog.Attr) context.Context {
+	if attrs, ok := ctx.Value(CtxAttr).([]slog.Attr); ok {
+		return context.WithValue(ctx, CtxAttr, append(attrs, newAttrs...))
+	}
+
+	return context.WithValue(ctx, CtxAttr, newAttrs)
+}
+
+// ResetAttrs does remove all attributes from CtxAttr.
+func ResetAttrs(ctx context.Context) context.Context {
+	return context.WithValue(ctx, CtxAttr, nil)
 }

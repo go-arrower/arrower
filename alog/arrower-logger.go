@@ -140,6 +140,11 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	record = addTraceAndSpanIDsToLogs(span, record)
 	addLogsToActiveSpanAsEvent(span, record)
 
+	attr, ok := ctx.Value(CtxAttr).([]slog.Attr)
+	if ok {
+		record.AddAttrs(attr...)
+	}
+
 	var retErr error
 
 	for _, h := range l.handlers {
