@@ -3,6 +3,7 @@ package alog_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -317,9 +318,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			buf := &bytes.Buffer{}
 			h := slog.NewTextHandler(buf, nil)
 
-			logger := alog.New(
-				alog.WithHandler(h),
-			)
+			logger := alog.New(alog.WithHandler(h))
 
 			logger.InfoCtx(context.Background(), applicationMsg)
 			assert.Contains(t, buf.String(), applicationMsg)
@@ -331,19 +330,34 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			buf := &bytes.Buffer{}
 			h := slog.NewTextHandler(buf, nil)
-
-			logger := alog.New(
-				alog.WithHandler(h),
-			)
+			logger := alog.New(alog.WithHandler(h))
 
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoCtx(context.WithValue(context.Background(), alog.CtxAttr, []slog.Attr{
 				slog.String("some", "attr"),
 				slog.Int("other", 1337),
 			}), applicationMsg)
+
 			assert.Contains(t, buf.String(), "some=attr")
 			assert.Contains(t, buf.String(), "other=1337")
 			t.Log(buf.String())
+		})
+
+		t.Run("ensure ctx attributes are added as event to span", func(t *testing.T) {
+			t.Parallel()
+			buf := &bytes.Buffer{}
+			h := slog.NewTextHandler(buf, nil)
+			logger := alog.New(alog.WithHandler(h))
+
+			span := fakeSpan{ID: 1}
+			ctx := trace.ContextWithSpan(context.Background(), &span)
+
+			logger = logger.WithGroup("groupPrefix")
+			logger.InfoCtx(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)
+
+			assert.Contains(t, buf.String(), "some=attr")
+			assert.Contains(t, fmt.Sprint(span.eventOptions), "some")
+			assert.Contains(t, fmt.Sprint(span.eventOptions), "attr")
 		})
 	})
 }

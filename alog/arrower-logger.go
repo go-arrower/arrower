@@ -61,6 +61,7 @@ func NewTest(w io.Writer) *slog.Logger {
 
 // NewArrowerHandler implements the main arrower specific logging logic and features.
 // It does not output anything directly and relies on other slog.Handlers to do so.
+// If no Handlers are provided via WithHandler, a default JSON handler logs to os.Stderr.
 //
 // For the options, see New.
 func NewArrowerHandler(opts ...LoggerOpt) *ArrowerLogger {
@@ -138,12 +139,13 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	}
 
 	record = addTraceAndSpanIDsToLogs(span, record)
-	addLogsToActiveSpanAsEvent(span, record)
 
 	attr, ok := ctx.Value(CtxAttr).([]slog.Attr)
 	if ok {
 		record.AddAttrs(attr...)
 	}
+
+	addLogsToActiveSpanAsEvent(span, record)
 
 	var retErr error
 
