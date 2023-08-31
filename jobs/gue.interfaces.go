@@ -347,7 +347,7 @@ func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 
 	jobType := getJobTypeFromReflectValue(jobFunc)
 	if _, ok := h.gueWorkMap[jobType]; ok {
-		return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrNotAllowed, jobType)
+		return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrInvalidJobFunc, jobType)
 	}
 
 	if h.hasStarted {

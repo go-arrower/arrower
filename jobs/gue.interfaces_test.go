@@ -122,40 +122,33 @@ func TestNewGueJobs(t *testing.T) {
 func TestGueHandler_RegisterJobFunc(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ensure JobFunc is func and signature has two arguments with first ctx and returns error", func(t *testing.T) {
+	t.Run("ensure JobFunc is of type func and signature has two arguments with first ctx and returns error", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pgHandler.PGx)
 		assert.NoError(t, err)
 
 		err = jq.RegisterJobFunc(nil)
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc("")
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func() {})
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func(id int, data []byte) error { return nil })
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		// primitive types do not implement a JobType interface and have no struct name.
 		err = jq.RegisterJobFunc(func(ctx context.Context, data []byte) error { return nil })
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) {})
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) int { return 0 })
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobFunc, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
 		assert.NoError(t, err)
@@ -171,10 +164,10 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
-		assert.Error(t, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithSameNameAsSimpleJob) error { return nil })
-		assert.Error(t, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 	})
 
 	t.Run("ensure register takes a jobType from the interface implementation", func(t *testing.T) {
@@ -184,8 +177,8 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 
 		var wg sync.WaitGroup
 
-		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
-			pg, jobs.WithPollInterval(time.Nanosecond),
+		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
 
@@ -216,8 +209,8 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 			retryCount int
 		)
 
-		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
-			pg, jobs.WithPollInterval(time.Nanosecond),
+		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
 
@@ -259,24 +252,19 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = jq.Enqueue(ctx, "")
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobType, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobType)
 
 		err = jq.Enqueue(ctx, []byte(""))
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobType, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobType)
 
 		err = jq.Enqueue(ctx, 0)
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobType, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobType)
 
 		err = jq.Enqueue(ctx, nil)
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobType, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobType)
 
 		err = jq.Enqueue(ctx, func() {})
-		assert.Error(t, err)
-		assert.Equal(t, jobs.ErrInvalidJobType, err)
+		assert.ErrorIs(t, err, jobs.ErrInvalidJobType)
 	})
 
 	t.Run("single job", func(t *testing.T) {
@@ -508,9 +496,8 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, buf.String())
 		assert.NotContains(t, buf.String(), `msg="restart workers"`)
-		t.Log(buf.String())
 
-		time.Sleep(100 * pollInterval) // wait longer than the pollInterval, so the queue is started
+		time.Sleep(10 * pollInterval) // wait longer than the pollInterval, so the queue is started
 
 		// register third worker, expect restart of the queue
 		err = jq.RegisterJobFunc(func(context.Context, jobWithJobType) error { return nil })
@@ -554,7 +541,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 func TestGueHandler_History(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ensure successful jobs are logged into gue_jobs_history table", func(t *testing.T) {
+	t.Run("ensure successful jobs are recorded into gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
@@ -594,7 +581,7 @@ func TestGueHandler_History(t *testing.T) {
 		assert.NotEqual(t, hJob.CreatedAt, *hJob.FinishedAt)
 	})
 
-	t.Run("ensure failed jobs are tracked in gue_jobs_history table", func(t *testing.T) {
+	t.Run("ensure failed jobs are recorded in gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
 
 		pg := tests.PrepareTestDatabase(pgHandler)
@@ -657,7 +644,7 @@ func TestGueHandler_History(t *testing.T) {
 		assert.Empty(t, hJobs[1].RunError)
 	})
 
-	t.Run("ensure panicked workers are tracked in the gue_jobs_history table", func(t *testing.T) {
+	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
 
 		t.Skip() // gue does not run WithPoolHooksJobDone functions, if a panic occurs
@@ -833,9 +820,6 @@ func TestGueHandler_Tx(t *testing.T) {
 		assert.NoError(t, rb)
 
 		// ensure job table has no rows, as rollback happened
-		var c int
-		_ = txHandle.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs;`).Scan(&c)
-		assert.Equal(t, 0, c)
 		ensureJobTableRows(t, pg, 0)
 
 		_ = jq.Shutdown(newCtx)
