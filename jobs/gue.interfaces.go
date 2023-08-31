@@ -445,6 +445,7 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		}
 
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
+		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 
 		// call the JobFunc
 		fn := reflect.ValueOf(workerFn)
