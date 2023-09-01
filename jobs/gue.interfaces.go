@@ -444,8 +444,8 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unwrap gue job tx for use in the worker", ErrWorkerFailed)
 		}
 
-		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
+		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		// call the JobFunc
 		fn := reflect.ValueOf(workerFn)
