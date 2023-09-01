@@ -25,7 +25,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{}
+		buf := &syncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
@@ -46,7 +46,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			wg.Done()
 		}()
 
-		time.Sleep(500 * time.Millisecond) // time for the example-server to start
+		waitUntilRunning(buf)
 
 		cancel()
 		wg.Wait()
@@ -62,7 +62,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{}
+		buf := &syncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
@@ -76,7 +76,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			wg.Done()
 		}()
 
-		time.Sleep(500 * time.Millisecond) // time for the example-server to start
+		waitUntilRunning(buf) // time for the example-server to start
 
 		_ = os.WriteFile(fmt.Sprintf("%s/%s", dir, "/test0.go"), []byte(`package main`), 0o644) //nolint:gosec
 
@@ -94,7 +94,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 
-		buf := &SyncBuffer{}
+		buf := &syncBuffer{}
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
@@ -109,7 +109,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			wg.Done()
 		}()
 
-		time.Sleep(500 * time.Millisecond) // time for the example-server to start
+		waitUntilRunning(buf) // time for the example-server to start
 
 		_ = os.WriteFile(fmt.Sprintf("%s/%s", dir, "/some.css"), []byte(``), 0o644) //nolint:gosec
 
@@ -133,6 +133,20 @@ func copyDir(t *testing.T, oldDir string, newDir string) {
 	cmd := exec.Command("cp", "--recursive", oldDir, newDir)
 	err := cmd.Run()
 	assert.NoError(t, err)
+}
+
+// wait until time for the example-server starts.
+// CI is a looot slower than local machine, so wait longer accordingly.
+func waitUntilRunning(buf *syncBuffer) {
+	retriesUntilServerStarted := 15
+	for retriesUntilServerStarted > 0 {
+		time.Sleep(100 * time.Millisecond)
+		retriesUntilServerStarted--
+
+		if strings.Contains(buf.String(), "running...") {
+			break
+		}
+	}
 }
 
 func TestOpenBrowser(t *testing.T) {

@@ -20,20 +20,20 @@ const (
 	exampleServerDone            = "Done"
 )
 
-// SyncBuffer is a helper implementing io.Writer, used for concurrency save testing.
-type SyncBuffer struct {
+// syncBuffer is a helper implementing io.Writer, used for concurrency save testing.
+type syncBuffer struct {
 	b bytes.Buffer
 	m sync.Mutex
 }
 
-func (b *SyncBuffer) Write(p []byte) (int, error) {
+func (b *syncBuffer) Write(p []byte) (int, error) {
 	b.m.Lock()
 	defer b.m.Unlock()
 
 	return b.b.Write(p) //nolint:wrapcheck
 }
 
-func (b *SyncBuffer) String() string {
+func (b *syncBuffer) String() string {
 	b.m.Lock()
 	defer b.m.Unlock()
 
