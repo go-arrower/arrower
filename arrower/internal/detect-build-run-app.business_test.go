@@ -147,6 +147,8 @@ func waitUntilRunning(buf *syncBuffer) {
 			break
 		}
 	}
+
+	time.Sleep(200 * time.Millisecond) // extra time to execute the server
 }
 
 func TestOpenBrowser(t *testing.T) {
