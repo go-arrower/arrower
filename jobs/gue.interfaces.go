@@ -365,12 +365,13 @@ func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 	needsToStartWorkers := !h.hasStarted
 	if needsToStartWorkers {
 		if h.isStartInProgress {
-			_ = h.startTimer.Reset(h.pollInterval)
+			if ok := h.startTimer.Stop(); !ok {
+				// fmt.Println("TIMER EXYPIRED => workers started", ok)
 
-			return nil
+				return nil
+			}
 		}
 
-		h.isStartInProgress = true
 		h.startTimer = time.AfterFunc(h.pollInterval, func() {
 			err = h.startWorkers()
 			if err != nil {
@@ -378,6 +379,7 @@ func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 					slog.Any("err", err))
 			}
 		})
+		h.isStartInProgress = true
 	}
 
 	return nil
@@ -467,6 +469,9 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 
 // startWorkers expects the locking of h.mu to happen at the caller!
 func (h *GueHandler) startWorkers() error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	if h.hasStarted {
 		return fmt.Errorf("%w: queue already started", ErrFailed)
 	}

@@ -478,7 +478,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		logger := alog.NewTest(buf)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
-		pollInterval := time.Millisecond
+		pollInterval := 100 * time.Millisecond
 		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(pollInterval),
 		)
@@ -489,7 +489,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, buf.String())
 
-		time.Sleep(time.Microsecond) // wait a bit, but not longer than the pollInterval
+		time.Sleep(time.Millisecond) // wait a bit, but not longer than the pollInterval
 
 		// register second worker, expect no restart of the queue, as it is not started yet
 		err = jq.RegisterJobFunc(func(context.Context, jobWithArgs) error { return nil })
@@ -513,7 +513,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		jq, err := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
-			jobs.WithPoolName("pool_name"), jobs.WithPoolSize(1337), jobs.WithPollInterval(time.Nanosecond),
+			jobs.WithPoolName("pool_name"), jobs.WithPoolSize(7), jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
 
@@ -526,7 +526,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, wp, 1)
 		assert.Equal(t, "pool_name", wp[0].ID)
-		assert.Equal(t, 1337, wp[0].Workers)
+		assert.Equal(t, 7, wp[0].Workers)
 
 		err = jq.Shutdown(ctx)
 		assert.NoError(t, err)
