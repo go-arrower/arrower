@@ -112,7 +112,7 @@ func TestWatchFolder(t *testing.T) {
 			wg.Done()
 		}()
 
-		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
 		time.Sleep(10 * time.Millisecond) // wait to enforce order of filesChanged elements

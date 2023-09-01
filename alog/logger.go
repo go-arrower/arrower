@@ -56,7 +56,7 @@ func getLevelNames() map[slog.Leveler]string {
 }
 
 // CtxAttr contains request scoped attributes.
-const CtxAttr arrower.CTXKey = "arrower.tx"
+const CtxAttr arrower.CTXKey = "arrower.slog"
 
 // AddAttr adds a single attribute to ctx. All attrs in CtxAttr will be logged automatically by the ArrowerLogger.
 func AddAttr(ctx context.Context, attr slog.Attr) context.Context {
