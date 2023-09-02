@@ -138,8 +138,9 @@ func copyDir(t *testing.T, oldDir string, newDir string) {
 // wait until time for the example-server starts.
 // CI is a looot slower than local machine, so wait longer accordingly.
 func waitUntilRunning(buf *syncBuffer) {
-	retriesUntilServerStarted := 25
-	for retriesUntilServerStarted > 0 {
+	const maxTries = 50
+	retriesUntilServerStarted := 0
+	for retriesUntilServerStarted < maxTries {
 		time.Sleep(100 * time.Millisecond)
 		retriesUntilServerStarted--
 
@@ -148,7 +149,7 @@ func waitUntilRunning(buf *syncBuffer) {
 		}
 	}
 
-	time.Sleep(200 * time.Millisecond) // extra time to execute the server
+	time.Sleep(time.Duration(retriesUntilServerStarted) * 200 * time.Millisecond) // extra time to execute the server
 }
 
 func TestOpenBrowser(t *testing.T) {
