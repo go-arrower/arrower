@@ -139,6 +139,7 @@ func copyDir(t *testing.T, oldDir string, newDir string) {
 // CI is a looot slower than local machine, so wait longer accordingly.
 func waitUntilRunning(buf *syncBuffer) {
 	const maxTries = 50
+
 	retriesUntilServerStarted := 0
 	for retriesUntilServerStarted < maxTries {
 		time.Sleep(100 * time.Millisecond)
