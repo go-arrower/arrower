@@ -107,8 +107,8 @@ type ArrowerLogger struct {
 	handlers []slog.Handler
 }
 
-func (l *ArrowerLogger) Handlers() []slog.Handler {
-	return l.handlers
+func (l *ArrowerLogger) NumHandlers() int {
+	return len(l.handlers)
 }
 
 // Level returns the log level of the handler.

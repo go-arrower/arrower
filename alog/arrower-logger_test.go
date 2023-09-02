@@ -90,8 +90,7 @@ func TestNewArrowerHandler(t *testing.T) {
 
 		h := alog.NewArrowerHandler()
 
-		assert.Len(t, h.Handlers(), 1)
-		assert.IsType(t, &slog.JSONHandler{}, h.Handlers()[0])
+		assert.Equal(t, 1, h.NumHandlers())
 	})
 
 	t.Run("explicit handler replaces default handler", func(t *testing.T) {
@@ -100,8 +99,7 @@ func TestNewArrowerHandler(t *testing.T) {
 		h0 := slog.NewTextHandler(os.Stderr, nil)
 
 		h := alog.NewArrowerHandler(alog.WithHandler(h0))
-		assert.Len(t, h.Handlers(), 1)
-		assert.IsType(t, &slog.TextHandler{}, h.Handlers()[0])
+		assert.Equal(t, 1, h.NumHandlers())
 	})
 
 	t.Run("set multiple handlers", func(t *testing.T) {
@@ -115,9 +113,7 @@ func TestNewArrowerHandler(t *testing.T) {
 			alog.WithHandler(h1),
 		)
 
-		assert.Len(t, handler.Handlers(), 2)
-		assert.IsType(t, &slog.TextHandler{}, handler.Handlers()[0])
-		assert.IsType(t, &slog.JSONHandler{}, handler.Handlers()[1])
+		assert.Equal(t, 2, handler.NumHandlers())
 	})
 
 	t.Run("info is default level", func(t *testing.T) {
