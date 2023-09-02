@@ -70,14 +70,3 @@ func TestStartDockerContainer(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
-
-func TestGetDBConnectionForIntegrationTesting(t *testing.T) {
-	t.Parallel()
-
-	pgHandler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
-	assert.NotNil(t, pgHandler)
-	assert.NotNil(t, cleanup)
-
-	err := cleanup()
-	assert.NoError(t, err)
-}

@@ -14,21 +14,16 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var pgHandler *postgres.Handler
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
-	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
-	pgHandler = handler
+	pgHandler = tests.NewPostgresDockerForIntegrationTesting()
 
 	//
 	// Run tests
 	code := m.Run()
 
-	//
-	// Cleanup
-	_ = handler.Shutdown(context.Background())
-	_ = cleanup()
-
+	pgHandler.Cleanup()
 	os.Exit(code)
 }
 
@@ -40,7 +35,7 @@ func TestBaseRepository(t *testing.T) {
 	t.Run("use base repository connection", func(t *testing.T) {
 		t.Parallel()
 
-		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
+		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
 
 		res, err := repo.Conn().GetTrue(ctx)
 		assert.NoError(t, err)
@@ -50,7 +45,7 @@ func TestBaseRepository(t *testing.T) {
 	t.Run("use base repository connection, b/c tx is missing", func(t *testing.T) {
 		t.Parallel()
 
-		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
+		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
 
 		res, err := repo.ConnOrTX(ctx).GetTrue(ctx)
 		assert.NoError(t, err)
@@ -60,7 +55,7 @@ func TestBaseRepository(t *testing.T) {
 	t.Run("panics on base repository b/c of missing transaction", func(t *testing.T) {
 		t.Parallel()
 
-		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
+		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
 
 		assert.Nil(t, repo.TX(ctx))
 		assert.Panics(t, func() {
@@ -73,10 +68,10 @@ func TestBaseRepository(t *testing.T) {
 	t.Run("use base repository transaction", func(t *testing.T) {
 		t.Parallel()
 
-		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx))
+		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
 		ctx := context.Background()
 
-		tx, err := pgHandler.PGx.Begin(ctx)
+		tx, err := pgHandler.PGx().Begin(ctx)
 		assert.NoError(t, err)
 
 		ctx = context.WithValue(ctx, postgres.CtxTX, tx)

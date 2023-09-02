@@ -14,7 +14,6 @@ import (
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
-	"github.com/go-arrower/arrower/tests"
 )
 
 func TestPostgresGueRepository_Queues(t *testing.T) {
@@ -23,7 +22,7 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 	t.Run("get all gue queues", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 
 		// Given a job queue
 		jq0, _ := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
@@ -55,7 +54,7 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 	t.Run("", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
 		pendingJobs, err := repo.PendingJobs(ctx, "")
@@ -77,7 +76,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 	t.Run("empty gue tables", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
@@ -94,7 +93,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 	t.Run("queue KPIs from gue tables", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler, "testdata/fixtures/queue_kpis.yaml")
+		pg := pgHandler.NewTestDatabase("testdata/fixtures/queue_kpis.yaml")
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
@@ -118,7 +117,7 @@ func TestPostgresJobsRepository_RegisterWorkerPool(t *testing.T) {
 	t.Run("register worker pool", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 
@@ -157,7 +156,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 	t.Run("delete job", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
@@ -177,7 +176,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 	t.Run("delete already running job", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
@@ -212,7 +211,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 	t.Run("reschedule job", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
@@ -236,7 +235,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 	t.Run("reschedule already started job", func(t *testing.T) {
 		t.Parallel()
 
-		pg := tests.PrepareTestDatabase(pgHandler)
+		pg := pgHandler.NewTestDatabase()
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
 		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),

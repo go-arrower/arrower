@@ -12,7 +12,6 @@ import (
 
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
-	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/tests"
 )
 
@@ -23,10 +22,10 @@ type myJob struct {
 type otherJob struct{}
 
 func ExampleGueHandler_Enqueue() {
-	db, teardown := setup()
+	db := tests.NewPostgresDockerForIntegrationTesting()
 
-	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx,
-		jobs.WithPollInterval(time.Second), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
+	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx(),
+		jobs.WithPollInterval(time.Millisecond), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
 	_ = jq.RegisterJobFunc(func(ctx context.Context, j myJob) error {
@@ -49,23 +48,13 @@ func ExampleGueHandler_Enqueue() {
 	// enqueue multiple jobs
 	_ = jq.Enqueue(context.Background(), []any{myJob{Payload: 1}, otherJob{}})
 
-	teardown()
+	// Wait for the workers to start and run.
+	time.Sleep(time.Second)
+	db.Cleanup()
+
 	// Output: myJob with payload: 1
 	// myJob with payload: 1
 	// myJob with payload: 2
 	// myJob with payload: 1
 	// otherJob
-}
-
-func setup() (*postgres.Handler, func()) {
-	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(ctx)
-
-	return handler, func() {
-		// Wait for the workers to start and run.
-		// Hide this here, so the example above looks cleaner to read.
-		time.Sleep(2 * time.Second)
-
-		_ = handler.Shutdown(ctx)
-		_ = cleanup()
-	}
 }

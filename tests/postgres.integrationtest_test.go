@@ -12,25 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/tests"
 )
 
-var pgHandler *postgres.Handler
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
-	handler, cleanup := tests.GetDBConnectionForIntegrationTesting(context.Background())
-	pgHandler = handler
+	pgHandler = tests.NewPostgresDockerForIntegrationTesting()
 
 	//
 	// Run tests
 	code := m.Run()
 
-	//
-	// Cleanup
-	_ = handler.Shutdown(context.Background())
-	_ = cleanup()
-
+	pgHandler.Cleanup()
 	os.Exit(code)
 }
 
@@ -42,7 +36,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 
 		var pg *pgxpool.Pool
 		assert.NotPanics(t, func() {
-			pg = tests.PrepareTestDatabase(pgHandler)
+			pg = pgHandler.NewTestDatabase()
 		})
 
 		assertTableNumberOfRows(t, pg, "admin.setting", 1)
@@ -55,7 +49,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 
 		var pg *pgxpool.Pool
 		assert.NotPanics(t, func() {
-			pg = tests.PrepareTestDatabase(pgHandler,
+			pg = pgHandler.NewTestDatabase(
 				"testdata/fixtures/test_case0.yaml",
 				"testdata/fixtures/test_case1.yaml",
 			)
@@ -77,7 +71,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 			go func() {
 				var pg *pgxpool.Pool
 				assert.NotPanics(t, func() {
-					pg = tests.PrepareTestDatabase(pgHandler)
+					pg = pgHandler.NewTestDatabase()
 				})
 
 				assertTableNumberOfRows(t, pg, "admin.setting", 1)

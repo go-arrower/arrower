@@ -19,12 +19,12 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 )
 
-// GetDBConnectionForIntegrationTesting returns a fully connected Handler and a function to clean up
+// NewPostgresDockerForIntegrationTesting returns Handler that is fully connected and has a method to clean up
 // after the integration tests are done.
+// It spins up and connects to a db instance in a new docker container.
 // If called in a CI environment, the pipeline needs access to a docker socket.
-// If run locally, if spins up and connects to a db instance in a new docker container.
 // In case of an issue it panics.
-func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handler, func() error) {
+func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 	var (
 		pgHandler *postgres.Handler
 
@@ -54,7 +54,7 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 			}
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(ctx, conf, trace.NewNoopTracerProvider())
+				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, trace.NewNoopTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -71,20 +71,26 @@ func GetDBConnectionForIntegrationTesting(ctx context.Context) (*postgres.Handle
 		panic(err)
 	}
 
-	return pgHandler, func() error {
-		return cleanup()
+	return &PostgresDocker{
+		pg:            pgHandler,
+		cleanupDocker: cleanup,
 	}
 }
 
-// PrepareTestDatabase creates a new database, connects to it, and applies all migrations.
+type PostgresDocker struct {
+	pg            *postgres.Handler
+	cleanupDocker func() error
+}
+
+// NewTestDatabase creates a new database, connects to it, and applies all migrations.
 // Afterwards it loads all fixtures from files.
 // Use it in integration tests to create a valid database state for your test.
 // If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
 // In case of an issue it panics.
 // It can be used in parallel and works around the limitations of go-testfixtures/testfixtures.
 // If there is a folder `testdata/migrations` it is used to migrate the database up on.
-func PrepareTestDatabase(pg *postgres.Handler, files ...string) *pgxpool.Pool {
-	pgHandler := createAndConnectToNewRandomDatabase(pg)
+func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
+	pgHandler := createAndConnectToNewRandomDatabase(pd.pg)
 
 	const commonFixture = "testdata/fixtures/_common.yaml"
 
@@ -106,6 +112,25 @@ func PrepareTestDatabase(pg *postgres.Handler, files ...string) *pgxpool.Pool {
 	}
 
 	return pgHandler.PGx
+}
+
+// Cleanup does shutdown the database connection, stops, and removes the docker image.
+// In case of an issue it panics.
+func (pd *PostgresDocker) Cleanup() {
+	err := pd.pg.Shutdown(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	err = pd.cleanupDocker()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// PGx returns the pgx connection, if you need to access the database directly.
+func (pd *PostgresDocker) PGx() *pgxpool.Pool {
+	return pd.pg.PGx
 }
 
 func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler {
