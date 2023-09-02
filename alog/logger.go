@@ -60,7 +60,7 @@ const CtxAttr arrower.CTXKey = "arrower.slog"
 
 // AddAttr adds a single attribute to ctx. All attrs in CtxAttr will be logged automatically by the ArrowerLogger.
 func AddAttr(ctx context.Context, attr slog.Attr) context.Context {
-	if attrs, ok := ctx.Value(CtxAttr).([]slog.Attr); ok {
+	if attrs, ok := FromContext(ctx); ok {
 		return context.WithValue(ctx, CtxAttr, append(attrs, attr))
 	}
 
@@ -69,7 +69,7 @@ func AddAttr(ctx context.Context, attr slog.Attr) context.Context {
 
 // AddAttrs adds multiple attributes to ctx. All attrs in CtxAttr will be logged automatically by the ArrowerLogger.
 func AddAttrs(ctx context.Context, newAttrs ...slog.Attr) context.Context {
-	if attrs, ok := ctx.Value(CtxAttr).([]slog.Attr); ok {
+	if attrs, ok := FromContext(ctx); ok {
 		return context.WithValue(ctx, CtxAttr, append(attrs, newAttrs...))
 	}
 
@@ -79,4 +79,11 @@ func AddAttrs(ctx context.Context, newAttrs ...slog.Attr) context.Context {
 // ResetAttrs does remove all attributes from CtxAttr.
 func ResetAttrs(ctx context.Context) context.Context {
 	return context.WithValue(ctx, CtxAttr, nil)
+}
+
+// FromContext returns the attributes stored in ctx, if any.
+func FromContext(ctx context.Context) ([]slog.Attr, bool) {
+	attrs, ok := ctx.Value(CtxAttr).([]slog.Attr)
+
+	return attrs, ok
 }

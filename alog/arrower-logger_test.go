@@ -349,10 +349,12 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			logger := alog.New(alog.WithHandler(h))
 
 			logger = logger.WithGroup("groupPrefix")
-			logger.InfoCtx(context.WithValue(context.Background(), alog.CtxAttr, []slog.Attr{
-				slog.String("some", "attr"),
-				slog.Int("other", 1337),
-			}), applicationMsg)
+			logger.InfoCtx(alog.AddAttrs(
+				context.Background(), []slog.Attr{
+					slog.String("some", "attr"),
+					slog.Int("other", 1337),
+				}...,
+			), applicationMsg)
 
 			assert.Contains(t, buf.String(), "some=attr")
 			assert.Contains(t, buf.String(), "other=1337")

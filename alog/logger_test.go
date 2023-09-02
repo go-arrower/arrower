@@ -13,20 +13,12 @@ import (
 func TestAddAttr(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ensure empty ctx has no attr", func(t *testing.T) {
-		t.Parallel()
-
-		attr, ok := context.Background().Value(alog.CtxAttr).([]slog.Attr)
-		assert.False(t, ok)
-		assert.Empty(t, attr)
-	})
-
 	t.Run("add first attribute", func(t *testing.T) {
 		t.Parallel()
 
 		ctx := alog.AddAttr(context.Background(), slog.String("some", "attr"))
 
-		attr, ok := ctx.Value(alog.CtxAttr).([]slog.Attr)
+		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
 		assert.Len(t, attr, 1)
 	})
@@ -38,7 +30,7 @@ func TestAddAttr(t *testing.T) {
 
 		ctx = alog.AddAttr(ctx, slog.String("some", "attr"))
 
-		attr, ok := ctx.Value(alog.CtxAttr).([]slog.Attr)
+		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
 		assert.Len(t, attr, 2)
 	})
@@ -52,7 +44,7 @@ func TestAddAttrs(t *testing.T) {
 
 		ctx := alog.AddAttrs(context.Background(), slog.String("some", "attr"), slog.String("other", "attr"))
 
-		attr, ok := ctx.Value(alog.CtxAttr).([]slog.Attr)
+		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
 		assert.Len(t, attr, 2)
 	})
@@ -64,7 +56,7 @@ func TestAddAttrs(t *testing.T) {
 
 		ctx = alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr"))
 
-		attr, ok := ctx.Value(alog.CtxAttr).([]slog.Attr)
+		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
 		assert.Len(t, attr, 3)
 	})
@@ -77,7 +69,19 @@ func TestResetAttrs(t *testing.T) {
 
 	ctx = alog.ResetAttrs(ctx)
 
-	attr, ok := ctx.Value(alog.CtxAttr).([]slog.Attr)
+	attr, ok := alog.FromContext(ctx)
 	assert.False(t, ok)
 	assert.Empty(t, attr)
+}
+
+func TestFromContext(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ensure empty ctx has no attr", func(t *testing.T) {
+		t.Parallel()
+
+		attr, ok := alog.FromContext(context.Background())
+		assert.False(t, ok)
+		assert.Empty(t, attr)
+	})
 }

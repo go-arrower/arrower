@@ -144,7 +144,7 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 
 	record = addTraceAndSpanIDsToLogs(span, record)
 
-	attr, ok := newCtx.Value(CtxAttr).([]slog.Attr)
+	attr, ok := FromContext(ctx)
 	if ok {
 		record.AddAttrs(attr...)
 	}
