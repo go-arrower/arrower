@@ -365,9 +365,7 @@ func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 	needsToStartWorkers := !h.hasStarted
 	if needsToStartWorkers {
 		if h.isStartInProgress {
-			if ok := h.startTimer.Stop(); !ok {
-				// fmt.Println("TIMER EXYPIRED => workers started", ok)
-
+			if ok := h.startTimer.Stop(); !ok { // timer expired => worker already started
 				return nil
 			}
 		}
@@ -480,7 +478,6 @@ func (h *GueHandler) startWorkers() error {
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
 		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger)),
 		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger)),
-
 		gue.WithPoolID(h.poolName), gue.WithPoolLogger(h.gueLogger),
 		gue.WithPoolMeter(h.meter),
 		gue.WithPoolTracer(h.tracer),
