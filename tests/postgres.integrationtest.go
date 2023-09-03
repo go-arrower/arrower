@@ -115,6 +115,7 @@ func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
 }
 
 // Cleanup does shutdown the database connection, stops, and removes the docker image.
+// It can not be deferred in TestMain, if it exists with os.Exit(code), as that does not execute the defer stack.
 // In case of an issue it panics.
 func (pd *PostgresDocker) Cleanup() {
 	err := pd.pg.Shutdown(context.Background())
