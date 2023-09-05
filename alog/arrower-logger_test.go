@@ -40,10 +40,25 @@ func TestNew(t *testing.T) {
 func TestNewTest(t *testing.T) {
 	t.Parallel()
 
-	logger := alog.NewTest(nil)
+	t.Run("nil doe snot panic", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NotPanics(t, func() {
-		logger.Info(applicationMsg)
+		logger := alog.NewTest(nil)
+
+		assert.NotPanics(t, func() {
+			logger.Info(applicationMsg)
+		})
+	})
+
+	t.Run("default level is debug", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &bytes.Buffer{}
+		logger := alog.NewTest(buf)
+
+		logger.Debug("debug msg")
+
+		assert.Contains(t, buf.String(), "debug msg")
 	})
 }
 
