@@ -32,7 +32,7 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 		_ = jq0.Enqueue(ctx, simpleJob{})
 
 		// And Given a different job queue run in the future
-		jq1, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
+		jq1, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), noop.NewMeterProvider(), trace.NewNoopTracerProvider(),
 			pg, jobs.WithPollInterval(time.Nanosecond), jobs.WithQueue("some_queue"),
 		)
 		_ = jq1.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
@@ -159,7 +159,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
-		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
+		jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
 
 		_ = jq.Enqueue(ctx, simpleJob{})
 
@@ -179,7 +179,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
-		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
+		jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 
@@ -213,7 +213,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
-		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
+		jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 
@@ -237,7 +237,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := jobs.NewPostgresJobsRepository(models.New(pg))
-		jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
+		jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 

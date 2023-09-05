@@ -59,6 +59,11 @@ func NewTest(w io.Writer) *slog.Logger {
 	))
 }
 
+// NewNoopLogger returns an implementation of Logger that performs no operations.
+func NewNoopLogger() *slog.Logger {
+	return slog.New(noopHandler{})
+}
+
 // NewArrowerHandler implements the main arrower specific logging logic and features.
 // It does not output anything directly and relies on other slog.Handlers to do so.
 // If no Handlers are provided via WithHandler, a default JSON handler logs to os.Stderr.
