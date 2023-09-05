@@ -57,24 +57,43 @@ type Repository[E any, ID ~string] interface { //nolint:interfacebloat // showca
 	DeleteAll(context.Context) error
 }
 
+type MemoryRepositoryOption func(*repoConfig)
+
+type repoConfig struct {
+	idFieldName string
+}
+
+func WithIDField(c string) MemoryRepositoryOption {
+	return func(repo *repoConfig) {
+		repo.idFieldName = c
+	}
+}
+
+// NewMemoryRepository returns an implementation of MemoryRepository for the given entity E.
+// It is expected that E has a field called `ID`, that is used as the primary key and can
+// be overwritten by WithIDField.
+// If your repository needs additional methods, you can embed this repo into our own implementation to extend
+// your own repository easily to your use case.
+func NewMemoryRepository[E any, ID ~string](opts ...MemoryRepositoryOption) *MemoryRepository[E, ID] {
+	repo := &MemoryRepository[E, ID]{
+		Mutex:      &sync.Mutex{},
+		data:       make(map[ID]E),
+		repoConfig: repoConfig{idFieldName: "ID"},
+	}
+
+	for _, opt := range opts {
+		opt(&repo.repoConfig)
+	}
+
+	return repo
+}
+
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
 type MemoryRepository[E any, ID ~string] struct {
 	*sync.Mutex // The mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex.
 	data        map[ID]E
 
-	idFieldName string
-}
-
-// NewMemoryRepository returns an implementation of MemoryRepository for the given entity E.
-// It is expected that E has a field called `ID`, that is used as the primary key.
-// If your repository needs additional methods, you can embed this repo into our own implementation to extend
-// your own repository easily to your use case.
-func NewMemoryRepository[E any, ID ~string]() *MemoryRepository[E, ID] {
-	return &MemoryRepository[E, ID]{
-		Mutex:       &sync.Mutex{},
-		data:        make(map[ID]E),
-		idFieldName: "ID",
-	}
+	repoConfig
 }
 
 func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn // valid use of generics
