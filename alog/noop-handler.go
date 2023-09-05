@@ -16,11 +16,11 @@ func (n noopHandler) Handle(ctx context.Context, record slog.Record) error {
 	return nil
 }
 
-func (n noopHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (n noopHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn
 	return n
 }
 
-func (n noopHandler) WithGroup(name string) slog.Handler {
+func (n noopHandler) WithGroup(name string) slog.Handler { //nolint:ireturn
 	return n
 }
 
