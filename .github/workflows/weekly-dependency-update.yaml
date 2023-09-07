@@ -6,7 +6,7 @@ on:
 name: Weekly Dependency Update
 
 jobs:
-  lint:
+  update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -16,8 +16,7 @@ jobs:
       - run: |
           go version
           make dev-upgrade
-  # todo run automatic tests
-  call-workflow-2-in-local-repo:
-    uses: ./.github/workflows/automatic-tests.yaml
+      - run-automatic-tests:
+        uses: ./.github/workflows/automatic-tests.yaml
 
   # todo if passes => crete PR
