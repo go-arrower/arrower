@@ -1,0 +1,22 @@
+on:
+  schedule:
+    # * is a special character in YAML, so you have to quote this string
+    - cron:  '0 4 * * 0' # every monday morning
+name: Weekly Dependency Update
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - run: |
+          go version
+          make dev-upgrade
+  # todo run automatic tests
+  call-workflow-2-in-local-repo:
+    uses: ./.github/workflows/automatic-tests.yaml
+
+  # todo if passes => crete PR
