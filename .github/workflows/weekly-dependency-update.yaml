@@ -14,12 +14,13 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - run: |
+      - name: Update All Dependencies
+        run: |
           go version
           make dev-upgrade
 
       - name: Run All Automatic Tests
-        uses: ./.github/workflows/automatic-tests.yaml
+        uses: ./automatic-tests.yaml
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
