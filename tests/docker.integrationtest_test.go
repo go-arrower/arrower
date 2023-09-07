@@ -15,6 +15,21 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
+func TestGetDockerContainerInstance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing name in run options", func(t *testing.T) {
+		t.Parallel()
+
+		cleanup, err := tests.GetDockerContainerInstance(
+			&dockertest.RunOptions{Repository: "postgres"},
+			func(resource *dockertest.Resource) func() error { return nil },
+		)
+		assert.ErrorIs(t, err, tests.ErrMissingInstanceName)
+		assert.Nil(t, cleanup)
+	})
+}
+
 func TestStartDockerContainer(t *testing.T) {
 	t.Parallel()
 

@@ -22,7 +22,7 @@ type myJob struct {
 type otherJob struct{}
 
 func ExampleGueHandler_Enqueue() {
-	db := tests.NewPostgresDockerForIntegrationTesting()
+	db := tests.GetPostgresDockerForIntegrationTestingInstance()
 
 	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx(),
 		jobs.WithPollInterval(time.Millisecond), jobs.WithPoolSize(1), // options are to make example deterministic, no production values

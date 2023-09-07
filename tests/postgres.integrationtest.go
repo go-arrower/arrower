@@ -19,39 +19,17 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 )
 
-// NewPostgresDockerForIntegrationTesting returns Handler that is fully connected and has a method to clean up
-// after the integration tests are done.
-// It spins up and connects to a db instance in a new docker container.
-// If called in a CI environment, the pipeline needs access to a docker socket.
-// In case of an issue it panics.
-func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
+// GetPostgresDockerForIntegrationTestingInstance returns a fully connected handler.
+// Subsequent calls return the same handler to prevent multiple docker containers to spin up,
+// if you have a lot of integration tests running in parallel.
+func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 	var (
 		pgHandler *postgres.Handler
 
-		runOptions = &dockertest.RunOptions{ //nolint:exhaustruct // only set required configuration
-			Repository: "postgres",
-			Tag:        "15",
-			Env: []string{
-				"POSTGRES_PASSWORD=secret",
-				"POSTGRES_USER=username",
-				"POSTGRES_DB=dbname_test",
-				"listen_addresses = '*'",
-				"MaxConnections=1000",
-			},
-			Cmd: []string{"-c", "max_connections=1000"},
-		}
-
 		retryFunc = func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
-			conf := postgres.Config{
-				User:       "username",
-				Password:   "secret",
-				Database:   "dbname_test",
-				Host:       "localhost",
-				Port:       port,
-				MaxConns:   10, //nolint:gomnd
-				Migrations: postgres.ArrowerDefaultMigrations,
-			}
+			conf := defaultPGConf
+			conf.Port = port
 
 			return func() error {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, trace.NewNoopTracerProvider())
@@ -66,7 +44,10 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 		}
 	)
 
-	cleanup, err := StartDockerContainer(runOptions, retryFunc)
+	options := defaultPGRunOptions
+	options.Name = "arrower-testing-postgres"
+
+	cleanup, err := GetDockerContainerInstance(options, retryFunc)
 	if err != nil {
 		panic(err)
 	}
@@ -76,6 +57,69 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 		cleanupDocker: cleanup,
 	}
 }
+
+// NewPostgresDockerForIntegrationTesting returns Handler that is fully connected and has a method to clean up
+// after the integration tests are done. Consider using GetPostgresDockerForIntegrationTestingInstance.
+// It spins up and connects to a db instance in a new docker container.
+// If called in a CI environment, the pipeline needs access to a docker socket.
+// In case of an issue it panics.
+func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
+	var (
+		pgHandler *postgres.Handler
+
+		retryFunc = func(resource *dockertest.Resource) func() error {
+			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			conf := defaultPGConf
+			conf.Port = port
+
+			return func() error {
+				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, trace.NewNoopTracerProvider())
+				if err != nil {
+					return err //nolint:wrapcheck
+				}
+
+				pgHandler = handler
+
+				return nil
+			}
+		}
+	)
+
+	cleanup, err := StartDockerContainer(defaultPGRunOptions, retryFunc)
+	if err != nil {
+		panic(err)
+	}
+
+	return &PostgresDocker{
+		pg:            pgHandler,
+		cleanupDocker: cleanup,
+	}
+}
+
+var (
+	defaultPGConf = postgres.Config{ //nolint:gochecknoglobals
+		User:       "username",
+		Password:   "secret",
+		Database:   "dbname_test",
+		Host:       "localhost",
+		Port:       5432, //nolint:gomnd
+		MaxConns:   10,   //nolint:gomnd
+		Migrations: postgres.ArrowerDefaultMigrations,
+	}
+
+	defaultPGRunOptions = &dockertest.RunOptions{ //nolint:gochecknoglobals,exhaustruct // only set required configuration
+		Repository: "postgres",
+		Tag:        "15",
+		Env: []string{
+			fmt.Sprintf("POSTGRES_USER=%s", defaultPGConf.User),
+			fmt.Sprintf("POSTGRES_PASSWORD=%s", defaultPGConf.Password),
+			fmt.Sprintf("POSTGRES_DB=%s", defaultPGConf.Database),
+			"listen_addresses = '*'",
+			"MaxConnections=1000",
+		},
+		Cmd: []string{"-c", "max_connections=1000"},
+	}
+)
 
 type PostgresDocker struct {
 	pg            *postgres.Handler

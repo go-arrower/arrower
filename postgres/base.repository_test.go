@@ -17,7 +17,7 @@ import (
 var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
-	pgHandler = tests.NewPostgresDockerForIntegrationTesting()
+	pgHandler = tests.GetPostgresDockerForIntegrationTestingInstance()
 
 	//
 	// Run tests
