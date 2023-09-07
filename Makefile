@@ -53,3 +53,4 @@ dev-db:
 .PHONY: dev-upgrade
 dev-upgrade:
 	go get -t -u ./...
+	go mod tidy

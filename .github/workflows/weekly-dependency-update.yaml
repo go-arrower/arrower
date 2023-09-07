@@ -16,7 +16,6 @@ jobs:
       - run: |
           go version
           make dev-upgrade
-      - run-automatic-tests:
-        uses: ./.github/workflows/automatic-tests.yaml
+      - uses: ./.github/workflows/automatic-tests.yaml
 
   # todo if passes => crete PR
