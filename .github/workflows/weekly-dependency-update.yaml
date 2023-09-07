@@ -13,9 +13,14 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
+
       - run: |
           go version
           make dev-upgrade
-      - uses: ./.github/workflows/automatic-tests.yaml
 
-  # todo if passes => crete PR
+      - name: Run All Automatic Tests
+        uses: ./.github/workflows/automatic-tests.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        # Enable permissions Actions > General > Workflow permissions.
