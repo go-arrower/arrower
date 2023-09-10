@@ -19,6 +19,10 @@ jobs:
           go version
           make dev-upgrade
 
+      # Enable permissions in GitHub repository or organisation settings: Actions > General > Workflow permissions.
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
-        # Enable permissions Actions > General > Workflow permissions.
+        with:
+          title: Weekly Dependency Update
+          body: Automated upgrade of all dependencies via `make dev-upgrade`
+          commit-message: 'chore: automated update'
