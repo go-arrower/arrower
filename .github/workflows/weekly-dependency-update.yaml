@@ -26,3 +26,4 @@ jobs:
           title: Weekly Dependency Update
           body: Automated upgrade of all dependencies via `make dev-upgrade`
           commit-message: 'chore: automated update'
+          token: ${{ secrets.PAT }} # trigger automated-tests workflow, see: https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs
