@@ -116,7 +116,7 @@ func jobToDomain(job models.GueJob) PendingJob {
 	}
 }
 
-func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) {
+func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) { //nolint:funlen
 	var kpis QueueKPIs
 
 	group, newCtx := errgroup.WithContext(ctx)
@@ -190,7 +190,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 
 	err := group.Wait()
 
-	return kpis, err
+	return kpis, err //nolint:wrapcheck // false positive, as error is nil or the first failing goroutine
 }
 
 func pendingJobTypesToDomain(jobTypes []models.StatsPendingJobsPerTypeRow) map[string]int {
@@ -293,7 +293,7 @@ func (repo *TracedJobsRepository) Queues(ctx context.Context) ([]string, error) 
 		Start(ctx, "repo", trace.WithAttributes(attribute.String("method", "Queues")))
 	defer span.End()
 
-	return repo.repo.Queues(ctx)
+	return repo.repo.Queues(ctx) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) PendingJobs(ctx context.Context, queue string) ([]PendingJob, error) {
@@ -304,7 +304,7 @@ func (repo *TracedJobsRepository) PendingJobs(ctx context.Context, queue string)
 		))
 	defer span.End()
 
-	return repo.repo.PendingJobs(ctx, queue)
+	return repo.repo.PendingJobs(ctx, queue) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) {
@@ -315,7 +315,7 @@ func (repo *TracedJobsRepository) QueueKPIs(ctx context.Context, queue string) (
 		))
 	defer span.End()
 
-	return repo.repo.QueueKPIs(ctx, queue)
+	return repo.repo.QueueKPIs(ctx, queue) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) WorkerPools(ctx context.Context) ([]WorkerPool, error) {
@@ -323,7 +323,7 @@ func (repo *TracedJobsRepository) WorkerPools(ctx context.Context) ([]WorkerPool
 		Start(ctx, "repo", trace.WithAttributes(attribute.String("method", "WorkerPools")))
 	defer span.End()
 
-	return repo.repo.WorkerPools(ctx)
+	return repo.repo.WorkerPools(ctx) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) RegisterWorkerPool(ctx context.Context, wp WorkerPool) error {
@@ -335,7 +335,7 @@ func (repo *TracedJobsRepository) RegisterWorkerPool(ctx context.Context, wp Wor
 		))
 	defer span.End()
 
-	return repo.repo.RegisterWorkerPool(ctx, wp)
+	return repo.repo.RegisterWorkerPool(ctx, wp) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) Delete(ctx context.Context, jobID string) error {
@@ -346,7 +346,7 @@ func (repo *TracedJobsRepository) Delete(ctx context.Context, jobID string) erro
 		))
 	defer span.End()
 
-	return repo.repo.Delete(ctx, jobID)
+	return repo.repo.Delete(ctx, jobID) //nolint:wrapcheck // this is decorator
 }
 
 func (repo *TracedJobsRepository) RunJobAt(ctx context.Context, jobID string, runAt time.Time) error {
@@ -358,5 +358,5 @@ func (repo *TracedJobsRepository) RunJobAt(ctx context.Context, jobID string, ru
 		))
 	defer span.End()
 
-	return repo.repo.RunJobAt(ctx, jobID, runAt)
+	return repo.repo.RunJobAt(ctx, jobID, runAt) //nolint:wrapcheck // this is decorator
 }
