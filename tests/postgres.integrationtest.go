@@ -53,7 +53,7 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 	}
 
 	return &PostgresDocker{
-		pg:            pgHandler,
+		pg:            pgHandler, // FIXME: can be null, if no new instance is started the retryFunc is never run
 		cleanupDocker: cleanup,
 	}
 }

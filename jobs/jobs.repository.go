@@ -8,6 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -116,50 +119,78 @@ func jobToDomain(job models.GueJob) PendingJob {
 func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) {
 	var kpis QueueKPIs
 
-	jp, err := repo.db.ConnOrTX(ctx).StatsPendingJobs(ctx, queue)
-	if err != nil {
-		return QueueKPIs{}, fmt.Errorf("%w: could not query pending jobs: %v", ErrQueryFailed, err)
-	}
+	group, newCtx := errgroup.WithContext(ctx)
 
-	kpis.PendingJobs = int(jp)
+	group.Go(func() error {
+		jp, err := repo.db.ConnOrTX(newCtx).StatsPendingJobs(newCtx, queue)
+		if err != nil {
+			return fmt.Errorf("%w: could not query pending jobs: %v", ErrQueryFailed, err)
+		}
 
-	jf, err := repo.db.ConnOrTX(ctx).StatsFailedJobs(ctx, queue)
-	if err != nil {
-		return QueueKPIs{}, fmt.Errorf("%w: could not query failed jobs: %v", ErrQueryFailed, err)
-	}
+		kpis.PendingJobs = int(jp)
 
-	kpis.FailedJobs = int(jf)
+		return nil
+	})
 
-	jt, err := repo.db.ConnOrTX(ctx).StatsProcessedJobs(ctx, queue)
-	if err != nil {
-		return QueueKPIs{}, fmt.Errorf("%w: could not query processed jobs: %v", ErrQueryFailed, err)
-	}
+	group.Go(func() error {
+		jf, err := repo.db.ConnOrTX(newCtx).StatsFailedJobs(newCtx, queue)
+		if err != nil {
+			return fmt.Errorf("%w: could not query failed jobs: %v", ErrQueryFailed, err)
+		}
 
-	kpis.ProcessedJobs = int(jt)
+		kpis.FailedJobs = int(jf)
 
-	avg, err := repo.db.ConnOrTX(ctx).StatsAvgDurationOfJobs(ctx, queue)
-	if err != nil && !errors.As(err, &pgx.ScanArgError{}) { //nolint:exhaustruct // Scan() fails if history table is empty
-		return QueueKPIs{}, fmt.Errorf("%w: could not query average job durration: %v", ErrQueryFailed, err)
-	}
+		return nil
+	})
 
-	// StatsAvgDurationOfJobs returns microseconds but time.Duration() accepts ns.
-	kpis.AverageTimePerJob = time.Duration(avg) * time.Microsecond
+	group.Go(func() error {
+		jt, err := repo.db.ConnOrTX(newCtx).StatsProcessedJobs(newCtx, queue)
+		if err != nil {
+			return fmt.Errorf("%w: could not query processed jobs: %v", ErrQueryFailed, err)
+		}
 
-	nt, err := repo.db.ConnOrTX(ctx).StatsPendingJobsPerType(ctx, queue)
-	if err != nil {
-		return QueueKPIs{}, fmt.Errorf("%w: cound not query pending job_types: %v", ErrQueryFailed, err)
-	}
+		kpis.ProcessedJobs = int(jt)
 
-	kpis.PendingJobsPerType = pendingJobTypesToDomain(nt)
+		return nil
+	})
 
-	w, err := repo.db.ConnOrTX(ctx).StatsQueueWorkerPoolSize(ctx, queue)
-	if err != nil {
-		return QueueKPIs{}, fmt.Errorf("%w: could not query total queue worker size: %v", ErrQueryFailed, err)
-	}
+	group.Go(func() error {
+		avg, err := repo.db.ConnOrTX(newCtx).StatsAvgDurationOfJobs(newCtx, queue)
+		if err != nil && !errors.As(err, &pgx.ScanArgError{}) { //nolint:exhaustruct // Scan() fails if history table is empty
+			return fmt.Errorf("%w: could not query average job durration: %v", ErrQueryFailed, err)
+		}
 
-	kpis.AvailableWorkers = int(w)
+		// StatsAvgDurationOfJobs returns microseconds but time.Duration() accepts ns.
+		kpis.AverageTimePerJob = time.Duration(avg) * time.Microsecond
 
-	return kpis, nil
+		return nil
+	})
+
+	group.Go(func() error {
+		nt, err := repo.db.ConnOrTX(newCtx).StatsPendingJobsPerType(newCtx, queue)
+		if err != nil {
+			return fmt.Errorf("%w: cound not query pending job_types: %v", ErrQueryFailed, err)
+		}
+
+		kpis.PendingJobsPerType = pendingJobTypesToDomain(nt)
+
+		return nil
+	})
+
+	group.Go(func() error {
+		w, err := repo.db.ConnOrTX(newCtx).StatsQueueWorkerPoolSize(newCtx, queue)
+		if err != nil {
+			return fmt.Errorf("%w: could not query total queue worker size: %v", ErrQueryFailed, err)
+		}
+
+		kpis.AvailableWorkers = int(w)
+
+		return nil
+	})
+
+	err := group.Wait()
+
+	return kpis, err
 }
 
 func pendingJobTypesToDomain(jobTypes []models.StatsPendingJobsPerTypeRow) map[string]int {
@@ -245,4 +276,87 @@ func (repo *PostgresJobsRepository) RunJobAt(ctx context.Context, jobID string, 
 	}
 
 	return nil
+}
+
+func NewTracedJobsRepository(repo Repository) *TracedJobsRepository {
+	return &TracedJobsRepository{repo: repo}
+}
+
+type TracedJobsRepository struct {
+	repo Repository
+}
+
+var _ Repository = (*TracedJobsRepository)(nil)
+
+func (repo *TracedJobsRepository) Queues(ctx context.Context) ([]string, error) {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(attribute.String("method", "Queues")))
+	defer span.End()
+
+	return repo.repo.Queues(ctx)
+}
+
+func (repo *TracedJobsRepository) PendingJobs(ctx context.Context, queue string) ([]PendingJob, error) {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(
+			attribute.String("method", "PendingJobs"),
+			attribute.String("queue", queue),
+		))
+	defer span.End()
+
+	return repo.repo.PendingJobs(ctx, queue)
+}
+
+func (repo *TracedJobsRepository) QueueKPIs(ctx context.Context, queue string) (QueueKPIs, error) {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(
+			attribute.String("method", "QueueKPIs"),
+			attribute.String("queue", queue),
+		))
+	defer span.End()
+
+	return repo.repo.QueueKPIs(ctx, queue)
+}
+
+func (repo *TracedJobsRepository) WorkerPools(ctx context.Context) ([]WorkerPool, error) {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(attribute.String("method", "WorkerPools")))
+	defer span.End()
+
+	return repo.repo.WorkerPools(ctx)
+}
+
+func (repo *TracedJobsRepository) RegisterWorkerPool(ctx context.Context, wp WorkerPool) error {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(
+			attribute.String("method", "RegisterWorkerPool"),
+			attribute.String("wp_id", wp.ID),
+			attribute.String("wp_queue", wp.Queue),
+		))
+	defer span.End()
+
+	return repo.repo.RegisterWorkerPool(ctx, wp)
+}
+
+func (repo *TracedJobsRepository) Delete(ctx context.Context, jobID string) error {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(
+			attribute.String("method", "Delete"),
+			attribute.String("jobID", jobID),
+		))
+	defer span.End()
+
+	return repo.repo.Delete(ctx, jobID)
+}
+
+func (repo *TracedJobsRepository) RunJobAt(ctx context.Context, jobID string, runAt time.Time) error {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
+		Start(ctx, "repo", trace.WithAttributes(
+			attribute.String("method", "RunJobAt"),
+			attribute.String("jobID", jobID),
+			attribute.String("runAt", runAt.String()),
+		))
+	defer span.End()
+
+	return repo.repo.RunJobAt(ctx, jobID, runAt)
 }
