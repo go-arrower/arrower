@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-testfixtures/testfixtures/v3"
@@ -17,6 +18,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/postgres"
+)
+
+//nolint:gochecknoglobals // the variables are used on purpose for a singleton pattern.
+var (
+	muPostgres        = &sync.Mutex{}
+	singletonPostgres *PostgresDocker
 )
 
 // GetPostgresDockerForIntegrationTestingInstance returns a fully connected handler.
@@ -44,18 +51,27 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 		}
 	)
 
+	muPostgres.Lock()
+	defer muPostgres.Unlock()
+
+	if singletonPostgres != nil {
+		return singletonPostgres
+	}
+
 	options := defaultPGRunOptions
 	options.Name = "arrower-testing-postgres"
 
-	cleanup, err := GetDockerContainerInstance(options, retryFunc)
+	cleanup, err := StartDockerContainer(options, retryFunc)
 	if err != nil {
 		panic(err)
 	}
 
-	return &PostgresDocker{
-		pg:            pgHandler, // FIXME: can be null, if no new instance is started the retryFunc is never run
+	singletonPostgres = &PostgresDocker{
+		pg:            pgHandler,
 		cleanupDocker: cleanup,
 	}
+
+	return singletonPostgres
 }
 
 // NewPostgresDockerForIntegrationTesting returns Handler that is fully connected and has a method to clean up

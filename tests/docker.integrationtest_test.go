@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -14,21 +15,6 @@ import (
 
 	"github.com/go-arrower/arrower/tests"
 )
-
-func TestGetDockerContainerInstance(t *testing.T) {
-	t.Parallel()
-
-	t.Run("missing name in run options", func(t *testing.T) {
-		t.Parallel()
-
-		cleanup, err := tests.GetDockerContainerInstance(
-			&dockertest.RunOptions{Repository: "postgres"},
-			func(resource *dockertest.Resource) func() error { return nil },
-		)
-		assert.ErrorIs(t, err, tests.ErrMissingInstanceName)
-		assert.Nil(t, cleanup)
-	})
-}
 
 func TestStartDockerContainer(t *testing.T) {
 	t.Parallel()
@@ -52,36 +38,88 @@ func TestStartDockerContainer(t *testing.T) {
 	t.Run("start docker container", func(t *testing.T) {
 		t.Parallel()
 
-		runOptions := &dockertest.RunOptions{
-			Repository: "postgres",
-			Tag:        "15",
-			Env: []string{
-				"POSTGRES_PASSWORD=secret",
-				"POSTGRES_USER=username",
-				"POSTGRES_DB=dbname_test",
-				"listen_addresses = '*'",
-			},
-		}
-
-		retryFunc := func(resource *dockertest.Resource) func() error {
-			return func() error {
-				port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
-				url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname_test", port)
-
-				conn, err := pgx.Connect(context.Background(), url)
-				if err != nil {
-					return err //nolint:wrapcheck
-				}
-
-				return conn.Ping(context.Background()) //nolint:wrapcheck
-			}
-		}
-
-		cleanup, err := tests.StartDockerContainer(runOptions, retryFunc)
+		cleanup, err := tests.StartDockerContainer(&runOptions, retryFunc)
 		assert.NoError(t, err)
 		assert.NotNil(t, cleanup)
 
 		err = cleanup()
 		assert.NoError(t, err)
 	})
+
+	t.Run("start same container again", func(t *testing.T) {
+		t.Parallel()
+
+		options := runOptions
+		options.Name = "ensure-single-container"
+
+		cleanup1, err1 := tests.StartDockerContainer(&options, retryFunc)
+		assert.NoError(t, err1)
+		assert.NotNil(t, cleanup1)
+
+		cleanup2, err2 := tests.StartDockerContainer(&options, retryFunc)
+		assert.NoError(t, err2)
+		assert.NotNil(t, cleanup2)
+
+		err := cleanup1()
+		assert.NoError(t, err)
+		err = cleanup2()
+		assert.NoError(t, err)
+	})
+
+	t.Run("start in parallel", func(t *testing.T) {
+		t.Parallel()
+
+		/*
+			Note on the quality of this test:
+			In a real project multiple packages call `tests.StartDockerContainer`, but the go test tool does
+			build each package into its own executable test. This test does not cover that scenario.
+		*/
+
+		wg := sync.WaitGroup{}
+
+		wg.Add(10)
+		for i := 0; i < 10; i++ {
+			go func() {
+				options := runOptions
+				options.Name = "ensure-single-container"
+
+				t.Log(options.Name, options)
+
+				cleanup2, err2 := tests.StartDockerContainer(&options, retryFunc)
+				assert.NoError(t, err2)
+				assert.NotNil(t, cleanup2)
+
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+	})
 }
+
+var (
+	runOptions = dockertest.RunOptions{
+		Repository: "postgres",
+		Tag:        "15",
+		Env: []string{
+			"POSTGRES_PASSWORD=secret",
+			"POSTGRES_USER=username",
+			"POSTGRES_DB=dbname_test",
+			"listen_addresses = '*'",
+		},
+	}
+
+	retryFunc = func(resource *dockertest.Resource) func() error {
+		return func() error {
+			port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
+			url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname_test", port)
+
+			conn, err := pgx.Connect(context.Background(), url)
+			if err != nil {
+				return err //nolint:wrapcheck
+			}
+
+			return conn.Ping(context.Background()) //nolint:wrapcheck
+		}
+	}
+)

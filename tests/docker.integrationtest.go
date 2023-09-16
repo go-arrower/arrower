@@ -8,54 +8,19 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 )
 
-var (
-	ErrDockerFailure       = errors.New("docker failure")
-	ErrMissingInstanceName = errors.New("missing docker instance name")
-)
+var ErrDockerFailure = errors.New("docker failure")
+
+const dockerTimeout = 120
 
 // RetryFunc is the function you use to connect to the docker container.
 // Return a func that will be used by the dockertest.Pool for the actual connection,
 // it will be called multiple times in attempts to connect to the container, while that's still starting up.
 type RetryFunc func(resource *dockertest.Resource) func() error
-
-// GetDockerContainerInstance returns a fully running container.
-// Subsequent calls return a cleanup function for the same container to prevent multiple docker containers to spin up,
-// if you have a lot of integration tests running in parallel.
-// runOptions.Name does need to match to return the same container, other options will be ignored in this case.
-func GetDockerContainerInstance(runOptions *dockertest.RunOptions, retryFunc RetryFunc) (func() error, error) {
-	if runOptions.Name == "" {
-		return nil, ErrMissingInstanceName
-	}
-
-	name := "/" + runOptions.Name
-	if singleContainerInstance[name] == nil {
-		_, err := StartDockerContainer(runOptions, retryFunc)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	mu.Lock()
-	defer mu.Unlock()
-	singleContainerInstance[name].running++
-
-	return singleContainerInstance[name].cleanup, nil
-}
-
-type containerInstance struct {
-	cleanup func() error
-	running int // how often an instance got requested via GetDockerContainerInstance
-}
-
-//nolint:gochecknoglobals // GetDockerContainerInstance is a singleton so multiple tests share a docker container.
-var (
-	singleContainerInstance = map[string]*containerInstance{}
-	mu                      = sync.Mutex{}
-)
 
 // StartDockerContainer connects to the local docker service and starts a container for integration testing.
 // Configure the container to start by setting the dockertest.RunOptions, the most important ones:
@@ -64,6 +29,9 @@ var (
 // - Env:			are the env variables to set for the container
 // For more options check out the RunOptions struct.
 func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc) (func() error, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if runOptions == nil {
 		return nil, fmt.Errorf("%w: invalid run options", ErrDockerFailure)
 	}
@@ -89,11 +57,16 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 			config.AutoRemove = true // set AutoRemove to true so that stopped container goes away by itself
 			config.RestartPolicy = docker.RestartPolicy{Name: "no", MaximumRetryCount: 0}
 		})
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not start resource: %v", ErrDockerFailure, err)
+	if errors.Is(err, docker.ErrContainerAlreadyExists) { // use existing container instead
+		resource, err = getRunningContainer(pool, runOptions.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err != nil && !errors.Is(err, docker.ErrContainerAlreadyExists) { //nolint:wsl
+		return nil, fmt.Errorf("%w: could not start resource: %v, options: %v", ErrDockerFailure, err, runOptions)
 	}
 
-	const dockerTimeout = 120
 	_ = resource.Expire(dockerTimeout) // tell docker to hard kill the container in 120 seconds
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
@@ -104,15 +77,42 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 
 	cleanup := getCleanupFunc(pool, resource)
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	singleContainerInstance[resource.Container.Name] = &containerInstance{
-		cleanup: cleanup,
-		running: 1,
-	}
+	singleContainerInstance[resource.Container.Name]++
 
 	return cleanup, nil
+}
+
+//nolint:gochecknoglobals // the variables are used on purpose for a singleton pattern.
+var (
+	mu                      = sync.Mutex{}
+	singleContainerInstance = map[string]int{}
+)
+
+func getRunningContainer(pool *dockertest.Pool, name string) (*dockertest.Resource, error) {
+	var resource *dockertest.Resource
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxInterval = time.Second * 5 //nolint:gomnd
+	bo.MaxElapsedTime = dockerTimeout
+
+	if err := backoff.Retry(func() error {
+		res, ok := pool.ContainerByName(name)
+		if ok {
+			resource = res
+
+			return nil
+		}
+
+		return fmt.Errorf("%w: could not get running container", ErrDockerFailure)
+	}, bo); err != nil {
+		if bo.NextBackOff() == backoff.Stop {
+			return nil, err //nolint:wrapcheck
+		}
+
+		return nil, err //nolint:wrapcheck
+	}
+
+	return resource, nil
 }
 
 func getCleanupFunc(pool *dockertest.Pool, resource *dockertest.Resource) func() error {
@@ -120,13 +120,17 @@ func getCleanupFunc(pool *dockertest.Pool, resource *dockertest.Resource) func()
 		mu.Lock()
 		defer mu.Unlock()
 
-		singleContainerInstance[resource.Container.Name].running--
-		if singleContainerInstance[resource.Container.Name].running != 0 {
-			return nil // don't stop container, as some tests are still using it
-		}
+		singleContainerInstance[resource.Container.Name]--
 
-		if err := pool.Purge(resource); err != nil {
-			return fmt.Errorf("%w: could not purge resource: %v", ErrDockerFailure, err)
+		if singleContainerInstance[resource.Container.Name] == 0 {
+			if err := pool.Purge(resource); err != nil {
+				var noSuchContainer *docker.NoSuchContainer
+				if errors.As(err, &noSuchContainer) { // container already stopped => don't report as error
+					return nil
+				}
+
+				return fmt.Errorf("%w: could not purge resource: %v", ErrDockerFailure, err)
+			}
 		}
 
 		return nil
