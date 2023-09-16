@@ -15,7 +15,7 @@ import (
 
 var ErrDockerFailure = errors.New("docker failure")
 
-const dockerTimeout = 120
+const dockerTimeout = 120 * time.Second
 
 // RetryFunc is the function you use to connect to the docker container.
 // Return a func that will be used by the dockertest.Pool for the actual connection,
@@ -67,10 +67,10 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 		return nil, fmt.Errorf("%w: could not start resource: %v, options: %v", ErrDockerFailure, err, runOptions)
 	}
 
-	_ = resource.Expire(dockerTimeout) // tell docker to hard kill the container in 120 seconds
+	_ = resource.Expire(uint(dockerTimeout / time.Second)) // tell docker to hard kill the container in 120 seconds
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-	pool.MaxWait = dockerTimeout * time.Second
+	pool.MaxWait = dockerTimeout
 	if err := pool.Retry(retryFunc(resource)); err != nil {
 		return nil, fmt.Errorf("%w: could not connect to docker: %v", ErrDockerFailure, err)
 	}
