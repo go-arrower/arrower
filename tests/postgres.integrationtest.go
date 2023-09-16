@@ -59,7 +59,7 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 	}
 
 	options := defaultPGRunOptions
-	options.Name = "arrower-testing-postgres"
+	options.Name = fmt.Sprintf("arrower-testing-postgres-%d", rand.Intn(1000)) //nolint:gosec,gomnd,lll // no need for secure number, just prevent collisions
 
 	cleanup, err := StartDockerContainer(options, retryFunc)
 	if err != nil {
