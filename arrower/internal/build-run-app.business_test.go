@@ -130,7 +130,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-compile-error", binaryPath)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, internal.ErrBuildFailed))
-		assert.Contains(t, err.Error(), "is not in GOROOT")
+		assert.Contains(t, err.Error(), "is not in std")
 		assert.Nil(t, cleanup)
 	})
 
