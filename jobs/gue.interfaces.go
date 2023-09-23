@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -16,7 +17,6 @@ import (
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
@@ -373,7 +373,7 @@ func (h *GueHandler) RegisterJobFunc(jf JobFunc) error {
 		h.startTimer = time.AfterFunc(h.pollInterval, func() {
 			err = h.startWorkers()
 			if err != nil {
-				h.logger.InfoCtx(context.Background(), "could not start workers after registration of new JobFunc",
+				h.logger.InfoContext(context.Background(), "could not start workers after registration of new JobFunc",
 					slog.Any("err", err))
 			}
 		})
@@ -540,7 +540,7 @@ func recordStartedJobsToHistory(logger alog.Logger) func(context.Context, *gue.J
 			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
 		)
 		if err != nil {
-			logger.InfoCtx(ctx, "could not add started job to gue_jobs_history table", slog.Any("err", err),
+			logger.InfoContext(ctx, "could not add started job to gue_jobs_history table", slog.Any("err", err),
 				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
 				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
 				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
@@ -560,7 +560,7 @@ func recordFinishedJobsToHistory(logger alog.Logger) func(context.Context, *gue.
 				jobErr.Error(), job.ID.String(), job.ErrorCount,
 			)
 			if err2 != nil {
-				logger.InfoCtx(ctx, "could not add failed job to gue_jobs_history table", slog.Any("err", err2),
+				logger.InfoContext(ctx, "could not add failed job to gue_jobs_history table", slog.Any("err", err2),
 					slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
 					slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
 					slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
@@ -575,7 +575,7 @@ func recordFinishedJobsToHistory(logger alog.Logger) func(context.Context, *gue.
 			job.ErrorCount, job.ID.String(), job.ErrorCount,
 		)
 		if err != nil {
-			logger.InfoCtx(ctx, "could not add succeeded job to gue_jobs_history table", slog.Any("err", err),
+			logger.InfoContext(ctx, "could not add succeeded job to gue_jobs_history table", slog.Any("err", err),
 				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
 				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
 				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),

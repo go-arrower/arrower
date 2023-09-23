@@ -2,8 +2,7 @@ package alog
 
 import (
 	"context"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	"github.com/go-arrower/arrower"
 )
@@ -16,8 +15,8 @@ import (
 type Logger interface {
 	Log(ctx context.Context, level slog.Level, msg string, args ...any)
 	LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr)
-	DebugCtx(ctx context.Context, msg string, args ...any)
-	InfoCtx(ctx context.Context, msg string, args ...any)
+	DebugContext(ctx context.Context, msg string, args ...any)
+	InfoContext(ctx context.Context, msg string, args ...any)
 
 	With(args ...any) *slog.Logger
 	WithGroup(name string) *slog.Logger

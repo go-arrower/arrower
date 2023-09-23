@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slog"
 )
 
 // LoggerOpt allows to initialise a logger with custom options.

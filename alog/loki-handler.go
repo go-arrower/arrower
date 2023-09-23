@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/afiskon/promtail-client/promtail"
-	"golang.org/x/exp/slog"
 )
 
 type (

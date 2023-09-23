@@ -2,8 +2,7 @@ package alog
 
 import (
 	"context"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 type noopHandler struct{}

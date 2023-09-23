@@ -3,10 +3,9 @@ package mw
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 type DecoratorFunc[in, out any] interface {
@@ -22,17 +21,17 @@ func Logged[in, out any, F DecoratorFunc[in, out]](logger *slog.Logger, next F) 
 	return func(ctx context.Context, in in) (out, error) {
 		cmdName := commandName(in)
 
-		logger.DebugCtx(ctx, "executing command",
+		logger.DebugContext(ctx, "executing command",
 			slog.String("command", cmdName),
 		)
 
 		result, err := next(ctx, in)
 
 		if err == nil {
-			logger.DebugCtx(ctx, "command executed successfully",
+			logger.DebugContext(ctx, "command executed successfully",
 				slog.String("command", cmdName))
 		} else {
-			logger.DebugCtx(ctx, "failed to execute command",
+			logger.DebugContext(ctx, "failed to execute command",
 				slog.String("command", cmdName),
 				slog.String("error", err.Error()),
 			)
@@ -47,17 +46,17 @@ func LoggedU[in any, F DecoratorFuncUnary[in]](logger *slog.Logger, next F) F { 
 	return func(ctx context.Context, in in) error {
 		cmdName := commandName(in)
 
-		logger.DebugCtx(ctx, "executing command",
+		logger.DebugContext(ctx, "executing command",
 			slog.String("command", cmdName),
 		)
 
 		err := next(ctx, in)
 
 		if err == nil {
-			logger.DebugCtx(ctx, "command executed successfully",
+			logger.DebugContext(ctx, "command executed successfully",
 				slog.String("command", cmdName))
 		} else {
-			logger.DebugCtx(ctx, "failed to execute command",
+			logger.DebugContext(ctx, "failed to execute command",
 				slog.String("command", cmdName),
 				slog.String("error", err.Error()),
 			)

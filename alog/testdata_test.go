@@ -3,12 +3,12 @@ package alog_test
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slog"
 )
 
 const (

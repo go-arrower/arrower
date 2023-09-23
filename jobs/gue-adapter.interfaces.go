@@ -2,9 +2,9 @@ package jobs
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/vgarvardt/gue/v5/adapter"
-	"golang.org/x/exp/slog"
 
 	"github.com/go-arrower/arrower/alog"
 )

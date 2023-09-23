@@ -2,10 +2,10 @@ package alog_test
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slog"
 
 	"github.com/go-arrower/arrower/alog"
 )

@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/exp/slog"
 
 	"github.com/go-arrower/arrower/alog"
 )
@@ -298,7 +298,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			buf.Reset()
 			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{ID: 1})
-			logger.InfoCtx(ctx, applicationMsg)
+			logger.InfoContext(ctx, applicationMsg)
 			assert.Contains(t, buf.String(), "traceID=")
 			assert.Contains(t, buf.String(), "spanID=")
 		})
@@ -311,7 +311,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			span := fakeSpan{ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), &span)
-			logger.ErrorCtx(ctx, applicationMsg)
+			logger.ErrorContext(ctx, applicationMsg)
 
 			assert.Equal(t, "log", span.eventName)
 			assert.NotEmpty(t, span.eventOptions)
@@ -327,7 +327,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			span := &fakeSpan{ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), span)
 
-			logger.InfoCtx(ctx, applicationMsg)
+			logger.InfoContext(ctx, applicationMsg)
 
 			// the nesting of all the tracing stuff is making this case difficult to test:
 			// span => traceProvider => tracer => innerSpan
@@ -347,7 +347,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			logger := alog.New(alog.WithHandler(h))
 
-			logger.InfoCtx(context.Background(), applicationMsg)
+			logger.InfoContext(context.Background(), applicationMsg)
 			assert.Contains(t, buf.String(), applicationMsg)
 			t.Log(buf.String())
 		})
@@ -360,7 +360,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			logger := alog.New(alog.WithHandler(h))
 
 			logger = logger.WithGroup("groupPrefix")
-			logger.InfoCtx(alog.AddAttrs(
+			logger.InfoContext(alog.AddAttrs(
 				context.Background(), []slog.Attr{
 					slog.String("some", "attr"),
 					slog.Int("other", 1337),
@@ -382,7 +382,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			ctx := trace.ContextWithSpan(context.Background(), &span)
 
 			logger = logger.WithGroup("groupPrefix")
-			logger.InfoCtx(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)
+			logger.InfoContext(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)
 
 			assert.Contains(t, buf.String(), "some=attr")
 			assert.Contains(t, fmt.Sprint(span.eventOptions), "some")
