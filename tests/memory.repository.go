@@ -77,7 +77,7 @@ func WithIDField(c string) MemoryRepositoryOption {
 func NewMemoryRepository[E any, ID ~string](opts ...MemoryRepositoryOption) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:      &sync.Mutex{},
-		data:       make(map[ID]E),
+		Data:       make(map[ID]E),
 		repoConfig: repoConfig{idFieldName: "ID"},
 	}
 
@@ -91,7 +91,11 @@ func NewMemoryRepository[E any, ID ~string](opts ...MemoryRepositoryOption) *Mem
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
 type MemoryRepository[E any, ID ~string] struct {
 	*sync.Mutex // The mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex.
-	data        map[ID]E
+
+	// Data is the repository's collection. It is exposed in case you're extending the repository, see:
+	// https://www.arrower.org/docs/basics/testing#extending-the-repository
+	// PREVENT using it directly and access the data through methods. If you write to it USE the Mutex to lock first.
+	Data map[ID]E
 
 	repoConfig
 }
@@ -120,11 +124,11 @@ func (repo *MemoryRepository[E, ID]) Create(ctx context.Context, entity E) error
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
-	if _, found := repo.data[id]; found {
+	if _, found := repo.Data[id]; found {
 		return ErrAlreadyExists
 	}
 
-	repo.data[id] = entity
+	repo.Data[id] = entity
 
 	return nil
 }
@@ -142,11 +146,11 @@ func (repo *MemoryRepository[E, ID]) Update(ctx context.Context, entity E) error
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
-	if _, found := repo.data[id]; !found {
+	if _, found := repo.Data[id]; !found {
 		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
 	}
 
-	repo.data[id] = entity
+	repo.Data[id] = entity
 
 	return nil
 }
@@ -155,7 +159,7 @@ func (repo *MemoryRepository[E, ID]) Delete(ctx context.Context, entity E) error
 	repo.Lock()
 	defer repo.Unlock()
 
-	delete(repo.data, repo.getID(entity))
+	delete(repo.Data, repo.getID(entity))
 
 	return nil
 }
@@ -171,7 +175,7 @@ func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]
 func (repo *MemoryRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
 	result := []E{}
 
-	for _, v := range repo.data {
+	for _, v := range repo.Data {
 		result = append(result, v)
 	}
 
@@ -179,7 +183,7 @@ func (repo *MemoryRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
 }
 
 func (repo *MemoryRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
-	if t, ok := repo.data[id]; ok {
+	if t, ok := repo.Data[id]; ok {
 		return t, nil
 	}
 
@@ -189,7 +193,7 @@ func (repo *MemoryRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, er
 func (repo *MemoryRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([]E, error) {
 	result := []E{}
 
-	for _, v := range repo.data {
+	for _, v := range repo.Data {
 		for _, id := range ids {
 			if repo.getID(v) == id {
 				result = append(result, v)
@@ -201,7 +205,7 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([
 }
 
 func (repo *MemoryRepository[E, ID]) Exists(ctx context.Context, id ID) (bool, error) {
-	if _, ok := repo.data[id]; ok {
+	if _, ok := repo.Data[id]; ok {
 		return true, nil
 	}
 
@@ -218,7 +222,7 @@ func (repo *MemoryRepository[E, ID]) ExistAll(ctx context.Context, ids []ID) (bo
 	}
 
 	for _, id := range ids {
-		if _, ok := repo.data[id]; !ok {
+		if _, ok := repo.Data[id]; !ok {
 			return false, ErrNotFound
 		}
 	}
@@ -247,7 +251,7 @@ func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) 
 }
 
 func (repo *MemoryRepository[E, ID]) Count(ctx context.Context) (int, error) {
-	return len(repo.data), nil
+	return len(repo.Data), nil
 }
 
 func (repo *MemoryRepository[E, ID]) Length(ctx context.Context) (int, error) {
@@ -273,7 +277,7 @@ func (repo *MemoryRepository[E, ID]) Save(ctx context.Context, entity E) error {
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
-	repo.data[id] = entity
+	repo.Data[id] = entity
 
 	return nil
 }
@@ -289,7 +293,7 @@ func (repo *MemoryRepository[E, ID]) SaveAll(ctx context.Context, entities []E) 
 	}
 
 	for _, e := range entities {
-		repo.data[repo.getID(e)] = e
+		repo.Data[repo.getID(e)] = e
 	}
 
 	return nil
@@ -327,7 +331,7 @@ func (repo *MemoryRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) 
 	defer repo.Unlock()
 
 	for _, id := range ids {
-		delete(repo.data, id)
+		delete(repo.Data, id)
 	}
 
 	return nil
@@ -337,7 +341,7 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(ctx context.Context) error {
 	repo.Lock()
 	defer repo.Unlock()
 
-	repo.data = make(map[ID]E)
+	repo.Data = make(map[ID]E)
 
 	return nil
 }
