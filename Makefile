@@ -32,25 +32,28 @@ test-integration:
 
 
 
-.PHONY: dev-tools
-dev-tools: ## Initialise this machine with development dependencies
+.PHONY: upgrade
+upgrade:
+	go get -t -u ./...
+	go mod tidy
+
+.PHONY: install-tools
+install-tools: ## Initialise this machine with development dependencies
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.51.1
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
 
-.PHONY: dev-run
-dev-run:
+
+
+
+.PHONY: run
+run: ## Run all dependencies inside docker containers
 	docker-compose pull
 	docker-compose up -d
 	xdg-open http://localhost:8081 # open pgadmin in the browser
 	#xdg-open http://localhost:9090 # open prometheus in the browser
 	xdg-open http://localhost:3000 # open grafana in the browser
 
-.PHONY: dev-db
-dev-db:
+.PHONY: db
+db: ## Connect to the database inside the running docker container
 	PGPASSWORD=secret psql -U arrower -d arrower -h localhost
-
-.PHONY: dev-upgrade
-dev-upgrade:
-	go get -t -u ./...
-	go mod tidy
