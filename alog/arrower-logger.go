@@ -154,7 +154,10 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 		record.AddAttrs(attr...)
 	}
 
-	addLogsToActiveSpanAsEvent(span, record)
+	attrs := getAttrsFromRecord(record)
+
+	innerSpan.SetAttributes(attrs...)
+	addLogsToActiveSpanAsEvent(span, attrs, record)
 
 	var retErr error
 
@@ -189,7 +192,15 @@ func addTraceAndSpanIDsToLogs(span trace.Span, record slog.Record) slog.Record {
 	return record
 }
 
-func addLogsToActiveSpanAsEvent(span trace.Span, record slog.Record) {
+func addLogsToActiveSpanAsEvent(span trace.Span, attrs []attribute.KeyValue, record slog.Record) {
+	span.AddEvent("log", trace.WithAttributes(attrs...))
+
+	if record.Level >= slog.LevelError {
+		span.SetStatus(codes.Error, record.Message)
+	}
+}
+
+func getAttrsFromRecord(record slog.Record) []attribute.KeyValue {
 	attrs := make([]attribute.KeyValue, 0)
 
 	logSeverityKey := attribute.Key("log.severity")
@@ -208,12 +219,7 @@ func addLogsToActiveSpanAsEvent(span trace.Span, record slog.Record) {
 
 		return true // process next attr
 	})
-
-	span.AddEvent("log", trace.WithAttributes(attrs...))
-
-	if record.Level >= slog.LevelError {
-		span.SetStatus(codes.Error, record.Message)
-	}
+	return attrs
 }
 
 func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required for slog.Handler
