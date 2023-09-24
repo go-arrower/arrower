@@ -110,8 +110,9 @@ func TestMemoryRepository_Delete(t *testing.T) {
 	err := repo.Delete(ctx, defaultEntity)
 	assert.NoError(t, err)
 
-	_, err = repo.FindByID(ctx, defaultEntity.ID)
-	assert.ErrorIs(t, err, tests.ErrNotFound)
+	e, err := repo.FindByID(ctx, defaultEntity.ID)
+	assert.NoError(t, err)
+	assert.Empty(t, e)
 }
 
 func TestMemoryRepository_All(t *testing.T) {
@@ -162,7 +163,7 @@ func TestMemoryRepository_ExistsByID(t *testing.T) {
 	repo := tests.NewMemoryRepository[Entity, EntityID]()
 
 	ex, err := repo.ExistsByID(ctx, EntityID(uuid.New().String()))
-	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.NoError(t, err)
 	assert.False(t, ex, "id does not exist")
 
 	repo.Create(ctx, defaultEntity)
@@ -196,7 +197,7 @@ func TestMemoryRepository_ExistByIDs(t *testing.T) {
 	assert.True(t, ex)
 
 	ex, err = repo.ExistByIDs(ctx, []EntityID{newEntity().ID})
-	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.NoError(t, err)
 	assert.False(t, ex)
 }
 

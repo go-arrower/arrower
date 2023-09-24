@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	ErrNotFound      = errors.New("not found")
 	ErrSaveFailed    = errors.New("save failed")
 	ErrAlreadyExists = errors.New("exists already")
 )
@@ -187,7 +186,7 @@ func (repo *MemoryRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, er
 		return t, nil
 	}
 
-	return *new(E), ErrNotFound //nolint:gocritic,lll // looks like a false positive or the linter does not deal with generics yet // validation error is returned on purpose
+	return *new(E), nil //nolint:gocritic // looks like a false positive or the linter does not deal with generics yet
 }
 
 func (repo *MemoryRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([]E, error) {
@@ -209,7 +208,7 @@ func (repo *MemoryRepository[E, ID]) Exists(ctx context.Context, id ID) (bool, e
 		return true, nil
 	}
 
-	return false, ErrNotFound
+	return false, nil
 }
 
 func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (bool, error) {
@@ -223,7 +222,7 @@ func (repo *MemoryRepository[E, ID]) ExistAll(ctx context.Context, ids []ID) (bo
 
 	for _, id := range ids {
 		if _, ok := repo.Data[id]; !ok {
-			return false, ErrNotFound
+			return false, nil
 		}
 	}
 
@@ -310,7 +309,7 @@ func (repo *MemoryRepository[E, ID]) Add(ctx context.Context, entity E) error {
 func (repo *MemoryRepository[E, ID]) AddAll(ctx context.Context, entities []E) error {
 	for _, e := range entities {
 		ex, err := repo.Exists(ctx, repo.getID(e))
-		if err != nil && !errors.Is(err, ErrNotFound) {
+		if err != nil {
 			return err
 		}
 
