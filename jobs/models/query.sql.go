@@ -212,7 +212,7 @@ func (q *Queries) UpdateRunAt(ctx context.Context, arg UpdateRunAtParams) error 
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
 INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
     VALUES($1, $2, $3, STATEMENT_TIMESTAMP(), $4)
-ON CONFLICT (id) DO
+ON CONFLICT (id, queue) DO
     UPDATE SET updated_at = STATEMENT_TIMESTAMP(), workers = $3
 `
 
