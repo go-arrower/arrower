@@ -158,7 +158,7 @@ linters:
     - forcetypeassert
     - funlen
     - gci
-    - ginkgolinter # golangci-lint --version 1.50.1 does fail, contrary to the docs, with "unknown linter" error
+    - ginkgolinter
     - gochecknoglobals
     - gochecknoinits
     - gochecksumtype
