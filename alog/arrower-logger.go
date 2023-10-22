@@ -127,7 +127,7 @@ func (l *ArrowerLogger) SetLevel(level slog.Level) {
 	*l.level = level
 }
 
-func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
+func (l *ArrowerLogger) Enabled(_ context.Context, level slog.Level) bool {
 	minLevel := slog.LevelInfo
 
 	if l.level != nil {
@@ -143,7 +143,7 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log")
 	defer innerSpan.End()
 
-	if !span.IsRecording() { //nolint:staticcheck // here as a tmp note => remove once this method is cleaned up
+	if !span.IsRecording() { //nolint:staticcheck,revive // here as a tmp note => remove once this method is cleaned up
 		//	return s.h.Handle(r)
 	}
 
@@ -219,10 +219,11 @@ func getAttrsFromRecord(record slog.Record) []attribute.KeyValue {
 
 		return true // process next attr
 	})
+
 	return attrs
 }
 
-func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required for slog.Handler
+func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
 	handlers := make([]slog.Handler, len(l.handlers))
 
 	for i, h := range l.handlers {
@@ -235,7 +236,7 @@ func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ire
 	}
 }
 
-func (l *ArrowerLogger) WithGroup(name string) slog.Handler { //nolint:ireturn // required for slog.Handler
+func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
 	handlers := make([]slog.Handler, len(l.handlers))
 
 	for i, h := range l.handlers {

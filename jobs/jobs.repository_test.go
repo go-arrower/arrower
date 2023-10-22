@@ -59,7 +59,7 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 
 		pendingJobs, err := repo.PendingJobs(ctx, "")
 		assert.NoError(t, err)
-		assert.Len(t, pendingJobs, 0, "queue needs to be empty, as no jobs got enqueued yet")
+		assert.Empty(t, pendingJobs, "queue needs to be empty, as no jobs got enqueued yet")
 
 		jq, _ := jobs.NewPostgresJobs(logger, noop.NewMeterProvider(), trace.NewNoopTracerProvider(), pg)
 		_ = jq.Enqueue(ctx, simpleJob{})
@@ -82,11 +82,11 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		stats, err := repo.QueueKPIs(context.Background(), "")
 		assert.NoError(t, err)
-		assert.Equal(t, stats.PendingJobs, 0)
-		assert.Equal(t, stats.FailedJobs, 0)
-		assert.Equal(t, stats.ProcessedJobs, 0)
+		assert.Equal(t, 0, stats.PendingJobs)
+		assert.Equal(t, 0, stats.FailedJobs)
+		assert.Equal(t, 0, stats.ProcessedJobs)
 		assert.Equal(t, stats.AverageTimePerJob, time.Duration(0))
-		assert.Equal(t, stats.AvailableWorkers, 0)
+		assert.Equal(t, 0, stats.AvailableWorkers)
 		assert.Empty(t, stats.PendingJobsPerType)
 	})
 
@@ -99,15 +99,15 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		stats, err := repo.QueueKPIs(context.Background(), "")
 		assert.NoError(t, err)
-		assert.Equal(t, stats.PendingJobs, 3)
-		assert.Equal(t, stats.FailedJobs, 1)
-		assert.Equal(t, stats.ProcessedJobs, 2)
-		assert.Equal(t, stats.AverageTimePerJob, time.Duration(1500)*time.Millisecond)
-		assert.Equal(t, stats.AvailableWorkers, 1337)
-		assert.Equal(t, stats.PendingJobsPerType, map[string]int{
+		assert.Equal(t, 3, stats.PendingJobs)
+		assert.Equal(t, 1, stats.FailedJobs)
+		assert.Equal(t, 2, stats.ProcessedJobs)
+		assert.Equal(t, time.Duration(1500)*time.Millisecond, stats.AverageTimePerJob)
+		assert.Equal(t, 1337, stats.AvailableWorkers)
+		assert.Equal(t, map[string]int{
 			"type_0": 2,
 			"type_1": 1,
-		})
+		}, stats.PendingJobsPerType)
 	})
 }
 
@@ -170,7 +170,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 		assert.NoError(t, err)
 
 		pending, _ = repo.PendingJobs(ctx, "")
-		assert.Len(t, pending, 0)
+		assert.Empty(t, pending)
 	})
 
 	t.Run("delete already running job", func(t *testing.T) {

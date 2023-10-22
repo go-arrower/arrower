@@ -4,7 +4,6 @@ package tests_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -23,7 +22,7 @@ func TestStartDockerContainer(t *testing.T) {
 		t.Parallel()
 
 		cleanup, err := tests.StartDockerContainer(nil, nil)
-		assert.True(t, errors.Is(err, tests.ErrDockerFailure))
+		assert.ErrorIs(t, err, tests.ErrDockerFailure)
 		assert.Nil(t, cleanup)
 	})
 
@@ -31,7 +30,7 @@ func TestStartDockerContainer(t *testing.T) {
 		t.Parallel()
 
 		cleanup, err := tests.StartDockerContainer(&dockertest.RunOptions{Repository: "postgres"}, nil)
-		assert.True(t, errors.Is(err, tests.ErrDockerFailure))
+		assert.ErrorIs(t, err, tests.ErrDockerFailure)
 		assert.Nil(t, cleanup)
 	})
 

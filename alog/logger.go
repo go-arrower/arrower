@@ -31,7 +31,7 @@ const (
 )
 
 // MapLogLevelsToName replaces the default name of a custom log level with an speaking name for the arrower levels.
-func MapLogLevelsToName(groups []string, attr slog.Attr) slog.Attr {
+func MapLogLevelsToName(_ []string, attr slog.Attr) slog.Attr {
 	if attr.Key == slog.LevelKey {
 		level, _ := attr.Value.Any().(slog.Level)
 

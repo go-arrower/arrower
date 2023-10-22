@@ -7,19 +7,19 @@ import (
 
 type noopHandler struct{}
 
-func (n noopHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (n noopHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return false
 }
 
-func (n noopHandler) Handle(ctx context.Context, record slog.Record) error {
+func (n noopHandler) Handle(_ context.Context, _ slog.Record) error {
 	return nil
 }
 
-func (n noopHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn
+func (n noopHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	return n
 }
 
-func (n noopHandler) WithGroup(name string) slog.Handler { //nolint:ireturn
+func (n noopHandler) WithGroup(_ string) slog.Handler {
 	return n
 }
 

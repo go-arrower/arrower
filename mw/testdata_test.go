@@ -38,7 +38,7 @@ type (
 
 var _ trace.TracerProvider = (*fakeTracerProvider)(nil)
 
-func (f fakeTracerProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer { //nolint:ireturn
+func (f fakeTracerProvider) Tracer(name string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
 	f.t.Helper()
 
 	assert.Equal(f.t, "arrower.application", name)
@@ -66,14 +66,14 @@ func (f fakeTracer) Start( //nolint:ireturn
 
 var _ trace.Span = (*fakeSpan)(nil)
 
-func (f fakeSpan) End(options ...trace.SpanEndOption) {
+func (f fakeSpan) End(_ ...trace.SpanEndOption) {
 	f.t.Helper()
 
 	// This method has to be called for each use case. No action to take for this fake.
 	assert.True(f.t, true)
 }
 
-func (f fakeSpan) AddEvent(name string, options ...trace.EventOption) {
+func (f fakeSpan) AddEvent(_ string, _ ...trace.EventOption) {
 	panic("implement me")
 }
 
@@ -81,7 +81,7 @@ func (f fakeSpan) IsRecording() bool {
 	panic("implement me")
 }
 
-func (f fakeSpan) RecordError(err error, options ...trace.EventOption) {
+func (f fakeSpan) RecordError(_ error, _ ...trace.EventOption) {
 	panic("implement me")
 }
 
@@ -89,7 +89,7 @@ func (f fakeSpan) SpanContext() trace.SpanContext {
 	panic("implement me")
 }
 
-func (f fakeSpan) SetStatus(code codes.Code, description string) {
+func (f fakeSpan) SetStatus(code codes.Code, _ string) {
 	f.t.Helper()
 
 	// Status is only set in case of error returned by the use case.
@@ -97,11 +97,11 @@ func (f fakeSpan) SetStatus(code codes.Code, description string) {
 	assert.Equal(f.t, codes.Error, code)
 }
 
-func (f fakeSpan) SetName(name string) {
+func (f fakeSpan) SetName(_ string) {
 	panic("implement me")
 }
 
-func (f fakeSpan) SetAttributes(kv ...attribute.KeyValue) {
+func (f fakeSpan) SetAttributes(_ ...attribute.KeyValue) {
 	panic("implement me")
 }
 

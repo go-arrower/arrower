@@ -40,4 +40,4 @@ func (b *syncBuffer) String() string {
 	return b.b.String()
 }
 
-func noBrowser(url string) error { return nil }
+func noBrowser(_ string) error { return nil }

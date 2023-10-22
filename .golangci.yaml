@@ -78,6 +78,23 @@ linters-settings:
     suggest-new: true
   misspell:
     locale: UK
+  testifylint:
+    # Enable specific checkers.
+    # https://github.com/Antonboom/testifylint#checkers
+    # Default: ["bool-compare", "compares", "empty", "error-is-as", "error-nil", "expected-actual", "float-compare", "len", "require-error", "suite-dont-use-pkg", "suite-extra-assert-call"]
+    enable:
+      - bool-compare
+      - compares
+      - empty
+      - error-is-as
+      - error-nil
+      - expected-actual
+      - float-compare
+      - len
+      # - require-error # don't understand the difference between assert and require (recommended by the linter) package of testify, so I stick with the pattern I know
+      - suite-dont-use-pkg
+      - suite-extra-assert-call
+      - suite-thelper
   varnamelen:
     # The longest distance, in source lines, that is being considered a "small scope".
     # Variables used in at most this many lines will be ignored.
@@ -114,6 +131,7 @@ linters:
     - staticcheck
     - typecheck
     - unused
+
     - asasalint
     - asciicheck
     - bidichk
@@ -123,7 +141,7 @@ linters:
     - cyclop
     #- deadcode # deprecated
     - decorder
-    - depguard
+    #- depguard # linter provides no value to current state of the project
     - dogsled
     - dupl
     - dupword
@@ -140,9 +158,10 @@ linters:
     - forcetypeassert
     - funlen
     - gci
-    #- ginkgolinter # golangci-lint --version 1.50.1 does fail, contrary to the docs, with "unknown linter" error
+    - ginkgolinter # golangci-lint --version 1.50.1 does fail, contrary to the docs, with "unknown linter" error
     - gochecknoglobals
     - gochecknoinits
+    - gochecksumtype
     - gocognit
     - goconst
     - gocritic
@@ -160,6 +179,7 @@ linters:
     - gomodguard
     - goprintffuncname
     - gosec
+    - gosmopolitan
     - grouper
     #- ifshort # deprecated
     - importas
@@ -171,7 +191,9 @@ linters:
     - maintidx
     - makezero
     #- maligned # deprecated
+    - mirror
     - misspell
+    - musttag
     - nakedret
     - nestif
     - nilerr
@@ -183,19 +205,24 @@ linters:
     #- nosnakecase # deprecated
     - nosprintfhostport
     - paralleltest
+    - perfsprint
     - prealloc
     - predeclared
     - promlinter
+    - protogetter
     - reassign
     - revive
     - rowserrcheck
     #- scopelint # deprecated
+    - sloglint
     - sqlclosecheck
     #- structcheck # deprecated
     - stylecheck
+    - tagalign
     - tagliatelle
     - tenv
     - testableexamples
+    - testifylint
     - testpackage
     - thelper
     - tparallel
@@ -208,6 +235,7 @@ linters:
     - whitespace
     - wrapcheck
     - wsl
+    - zerologlint
 
 issues:
   exclude-rules:

@@ -409,10 +409,10 @@ func TestGueHandler_Enqueue(t *testing.T) {
 			defer mu.Unlock()
 
 			if job.Name == "0" { // expect job with Name 0 to be run first (^= 0) in order
-				assert.True(t, order == 0)
+				assert.Equal(t, 0, order)
 			}
 			if job.Name == "1" { // expect job with Name 1 to be run afterwards ^= higher order
-				assert.True(t, order == 1)
+				assert.Equal(t, 1, order)
 			}
 
 			order++
@@ -571,7 +571,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		assert.True(t, hJob.Success)
 		assert.NotEmpty(t, hJob.FinishedAt)
-		assert.Equal(t, hJob.RunCount, 0)
+		assert.Equal(t, 0, hJob.RunCount)
 		assert.Empty(t, hJob.RunError)
 		assert.NotEqual(t, hJob.CreatedAt, *hJob.FinishedAt)
 	})
@@ -629,13 +629,13 @@ func TestGueHandler_History(t *testing.T) {
 
 		assert.False(t, hJobs[0].Success)
 		assert.NotEmpty(t, hJobs[0].FinishedAt)
-		assert.Equal(t, hJobs[0].RunCount, 0)
+		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
 
 		assert.True(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
-		assert.Equal(t, hJobs[1].RunCount, 1)
+		assert.Equal(t, 1, hJobs[1].RunCount)
 		assert.Empty(t, hJobs[1].RunError)
 	})
 
@@ -694,13 +694,13 @@ func TestGueHandler_History(t *testing.T) {
 
 		assert.False(t, hJobs[0].Success)
 		assert.NotEmpty(t, hJobs[0].FinishedAt)
-		assert.Equal(t, hJobs[0].RunCount, 0)
+		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
 
 		assert.True(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
-		assert.Equal(t, hJobs[1].RunCount, 1)
+		assert.Equal(t, 1, hJobs[1].RunCount)
 		assert.Empty(t, hJobs[1].RunError)
 	})
 }

@@ -76,7 +76,7 @@ func NewPostgresJobsRepository(queries *models.Queries) *PostgresJobsRepository 
 func (repo *PostgresJobsRepository) Queues(ctx context.Context) ([]string, error) {
 	q, err := repo.db.ConnOrTX(ctx).GetQueues(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrQueryFailed, err)
+		return nil, fmt.Errorf("%w: %v", ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return q, nil
@@ -85,7 +85,7 @@ func (repo *PostgresJobsRepository) Queues(ctx context.Context) ([]string, error
 func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue string) ([]PendingJob, error) {
 	jobs, err := repo.db.ConnOrTX(ctx).GetPendingJobs(ctx, queue)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not get pending jobs: %v", ErrQueryFailed, err)
+		return nil, fmt.Errorf("%w: could not get pending jobs: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return jobsToDomain(jobs), nil
@@ -124,7 +124,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		jp, err := repo.db.ConnOrTX(newCtx).StatsPendingJobs(newCtx, queue)
 		if err != nil {
-			return fmt.Errorf("%w: could not query pending jobs: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: could not query pending jobs: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		kpis.PendingJobs = int(jp)
@@ -135,7 +135,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		jf, err := repo.db.ConnOrTX(newCtx).StatsFailedJobs(newCtx, queue)
 		if err != nil {
-			return fmt.Errorf("%w: could not query failed jobs: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: could not query failed jobs: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		kpis.FailedJobs = int(jf)
@@ -146,7 +146,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		jt, err := repo.db.ConnOrTX(newCtx).StatsProcessedJobs(newCtx, queue)
 		if err != nil {
-			return fmt.Errorf("%w: could not query processed jobs: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: could not query processed jobs: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		kpis.ProcessedJobs = int(jt)
@@ -157,7 +157,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		avg, err := repo.db.ConnOrTX(newCtx).StatsAvgDurationOfJobs(newCtx, queue)
 		if err != nil && !errors.As(err, &pgx.ScanArgError{}) { //nolint:exhaustruct // Scan() fails if history table is empty
-			return fmt.Errorf("%w: could not query average job durration: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: could not query average job durration: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		// StatsAvgDurationOfJobs returns microseconds but time.Duration() accepts ns.
@@ -169,7 +169,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		nt, err := repo.db.ConnOrTX(newCtx).StatsPendingJobsPerType(newCtx, queue)
 		if err != nil {
-			return fmt.Errorf("%w: cound not query pending job_types: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: cound not query pending job_types: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		kpis.PendingJobsPerType = pendingJobTypesToDomain(nt)
@@ -180,7 +180,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue string)
 	group.Go(func() error {
 		w, err := repo.db.ConnOrTX(newCtx).StatsQueueWorkerPoolSize(newCtx, queue)
 		if err != nil {
-			return fmt.Errorf("%w: could not query total queue worker size: %v", ErrQueryFailed, err)
+			return fmt.Errorf("%w: could not query total queue worker size: %v", ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		kpis.AvailableWorkers = int(w)
@@ -206,7 +206,7 @@ func pendingJobTypesToDomain(jobTypes []models.StatsPendingJobsPerTypeRow) map[s
 func (repo *PostgresJobsRepository) WorkerPools(ctx context.Context) ([]WorkerPool, error) {
 	w, err := repo.db.ConnOrTX(ctx).GetWorkerPools(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrQueryFailed, err)
+		return nil, fmt.Errorf("%w: %v", ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return workersToDomain(w), nil
@@ -235,7 +235,7 @@ func (repo *PostgresJobsRepository) RegisterWorkerPool(ctx context.Context, wp W
 		UpdatedAt: pgtype.Timestamptz{Time: wp.LastSeen, Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrQueryFailed, err)
+		return fmt.Errorf("%w: %v", ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -253,7 +253,7 @@ func (repo *PostgresJobsRepository) Delete(ctx context.Context, jobID string) er
 
 	err := repo.db.ConnOrTX(ctx).DeleteJob(ctx, jobID)
 	if err != nil {
-		return fmt.Errorf("%w: could not delete: %v", ErrJobLockedAlready, err)
+		return fmt.Errorf("%w: could not delete: %v", ErrJobLockedAlready, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -272,7 +272,7 @@ func (repo *PostgresJobsRepository) RunJobAt(ctx context.Context, jobID string, 
 		RunAt: pgtype.Timestamptz{Time: runAt, Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		return fmt.Errorf("%w: could not reschedule: %v", ErrJobLockedAlready, err)
+		return fmt.Errorf("%w: could not reschedule: %v", ErrJobLockedAlready, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return nil

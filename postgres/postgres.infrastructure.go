@@ -55,7 +55,7 @@ func (c Config) toURL() string {
 func Connect(ctx context.Context, pgConf Config, tracerProvider trace.TracerProvider) (*Handler, error) {
 	config, err := pgxpool.ParseConfig(pgConf.toURL())
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not parse config: %v", ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: could not parse config: %v", ErrConnectionFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	config.ConnConfig.Tracer = &pgxTraceAdapter{
@@ -64,19 +64,19 @@ func Connect(ctx context.Context, pgConf Config, tracerProvider trace.TracerProv
 
 	dbpool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not connect: %v", ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: could not connect: %v", ErrConnectionFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	err = dbpool.Ping(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not ping db: %v", ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: could not ping db: %v", ErrConnectionFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	connStr := stdlib.RegisterConnConfig(config.ConnConfig) // offer std SQL if a library would need it.
 
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not connect via the std lib registration: %v", ErrConnectionFailed, err)
+		return nil, fmt.Errorf("%w: could not connect via the std lib registration: %v", ErrConnectionFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return &Handler{
@@ -109,22 +109,22 @@ func ConnectAndMigrate(ctx context.Context, conf Config, tracerProvider trace.Tr
 func migrateUp(db *sql.DB, dbName string, migrationsFS fs.FS) error {
 	fsDriver, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
-		return fmt.Errorf("%w: could not create migration file driver: %v", ErrMigrationFailed, err)
+		return fmt.Errorf("%w: could not create migration file driver: %v", ErrMigrationFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{}) //nolint:exhaustruct // use default config
 	if err != nil {
-		return fmt.Errorf("%w: could not get database driver: %v", ErrMigrationFailed, err)
+		return fmt.Errorf("%w: could not get database driver: %v", ErrMigrationFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	m, err := migrate.NewWithInstance("", fsDriver, dbName, driver)
 	if err != nil {
-		return fmt.Errorf("%w: could not create new migration instance: %v", ErrMigrationFailed, err)
+		return fmt.Errorf("%w: could not create new migration instance: %v", ErrMigrationFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("%w: could not migrate up: %v", ErrMigrationFailed, err)
+		return fmt.Errorf("%w: could not migrate up: %v", ErrMigrationFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return nil
@@ -137,7 +137,7 @@ type Handler struct {
 }
 
 // Shutdown waits & closes all connections to PostgreSQL.
-func (h Handler) Shutdown(ctx context.Context) error {
+func (h Handler) Shutdown(_ context.Context) error {
 	h.PGx.Close()
 
 	return nil

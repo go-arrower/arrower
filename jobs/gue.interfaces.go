@@ -169,7 +169,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 	if txOk {
 		err = h.gueClient.EnqueueBatchTx(ctx, gueJobs, pgxv5.NewTx(tx))
 		if err != nil {
-			return fmt.Errorf("%w: could not enqueue gue job with transaction: %v", ErrFailed, err)
+			return fmt.Errorf("%w: could not enqueue gue job with transaction: %v", ErrFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		return nil
@@ -177,7 +177,7 @@ func (h *GueHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error
 
 	err = h.gueClient.EnqueueBatch(ctx, gueJobs)
 	if err != nil {
-		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrFailed, err)
+		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 
 		args, err := json.Marshal(job)
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err)
+			return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 		}
 
 		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
@@ -214,7 +214,7 @@ func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 
 			args, err := json.Marshal(job.Interface())
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err)
+				return nil, fmt.Errorf("%w: could not marshal job: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 			}
 
 			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
@@ -457,7 +457,7 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		// if JobFunc returned an error, put the job back on the queue.
 		if len(vals) > 0 {
 			if jobErr, ok := vals[0].Interface().(error); ok && jobErr != nil {
-				return fmt.Errorf("%w: %s", ErrWorkerFailed, jobErr)
+				return fmt.Errorf("%w: %s", ErrWorkerFailed, jobErr) //nolint:errorlint // prevent err in api
 			}
 		}
 
@@ -483,7 +483,7 @@ func (h *GueHandler) startWorkers() error {
 		gue.WithPoolTracer(h.tracer),
 	)
 	if err != nil {
-		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrFailed, err)
+		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	ctx, shutdown := context.WithCancel(context.Background())
@@ -602,7 +602,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 	h.shutdownWorkerPool()
 
 	if err := h.groupWorkerPool.Wait(); err != nil {
-		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrFailed, err)
+		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
@@ -611,7 +611,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 		Workers:  0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		LastSeen: time.Now(),
 	}); err != nil {
-		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrFailed, err)
+		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	h.hasStarted = false

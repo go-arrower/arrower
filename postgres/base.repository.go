@@ -21,7 +21,7 @@ func NewPostgresBaseRepository[T interface{ WithTx(tx pgx.Tx) T }](queries T) Ba
 
 // ConnOrTX wraps the models.Queries into the transaction in ctx.
 // If no transaction is in the context, it falls back to the raw Queries struct.
-func (repo BaseRepository[T]) ConnOrTX(ctx context.Context) T { //nolint:ireturn // valid use of generics
+func (repo BaseRepository[T]) ConnOrTX(ctx context.Context) T { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	if tx, ok := ctx.Value(CtxTX).(pgx.Tx); ok {
 		return repo.queries.WithTx(tx)
 	}
@@ -32,7 +32,7 @@ func (repo BaseRepository[T]) ConnOrTX(ctx context.Context) T { //nolint:ireturn
 
 // TX wraps the models.Queries into the transaction in ctx.
 // If no transaction is present in the given context, it returns nil.
-func (repo BaseRepository[T]) TX(ctx context.Context) T { //nolint:ireturn // valid use of generics
+func (repo BaseRepository[T]) TX(ctx context.Context) T { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	if tx, ok := ctx.Value(CtxTX).(pgx.Tx); ok {
 		return repo.queries.WithTx(tx)
 	}
@@ -43,6 +43,6 @@ func (repo BaseRepository[T]) TX(ctx context.Context) T { //nolint:ireturn // va
 }
 
 // Conn returns the models.Queries using the underlying db connection.
-func (repo BaseRepository[T]) Conn() T { //nolint:ireturn // valid use of generics
+func (repo BaseRepository[T]) Conn() T { //nolint:ireturn // fp, as it is not recognised even with "generic" setting
 	return repo.queries
 }

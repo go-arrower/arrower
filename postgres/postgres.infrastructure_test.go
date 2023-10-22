@@ -126,7 +126,7 @@ func TestConnectAndMigrate(t *testing.T) {
 
 				t.Log(err)
 				assert.Error(t, err)
-				assert.True(t, errors.Is(err, postgres.ErrMigrationFailed), err)
+				assert.ErrorIs(t, err, postgres.ErrMigrationFailed, err)
 				assert.Nil(t, handler)
 
 				return nil

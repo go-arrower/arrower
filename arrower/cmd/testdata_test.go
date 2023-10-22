@@ -10,4 +10,4 @@ func NewTestArrowerCLI() *cobra.Command {
 	return cmd.NewArrowerCLI(cmd.NewInterruptSignalChannel(), noBrowser)
 }
 
-func noBrowser(url string) error { return nil }
+func noBrowser(_ string) error { return nil }

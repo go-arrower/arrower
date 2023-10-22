@@ -19,6 +19,8 @@ import (
 func TestWatchFolder(t *testing.T) {
 	t.Parallel()
 
+	const debounceInterval = 20
+
 	t.Run("start and stop watching a folder for changes", func(t *testing.T) {
 		t.Parallel()
 
@@ -107,7 +109,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, dir, filesChanged, 20)
+			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -115,12 +117,12 @@ func TestWatchFolder(t *testing.T) {
 		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
-		time.Sleep(10 * time.Millisecond) // wait to enforce order of filesChanged elements
+		time.Sleep(debounceInterval / 2 * time.Millisecond) // wait to enforce order of filesChanged elements
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
 		const expected = 1
 		wait(filesChanged, expected)
-		assert.Equal(t, expected, len(filesChanged))
+		assert.Len(t, filesChanged, expected)
 
 		cancel()
 		wg.Wait()
@@ -138,7 +140,7 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchFolder(ctx, dir, filesChanged, 20)
+			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -146,12 +148,12 @@ func TestWatchFolder(t *testing.T) {
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
-		time.Sleep(40 * time.Millisecond) // wait to enforce order of filesChanged elements
+		time.Sleep(debounceInterval * 2 * time.Millisecond) // wait to enforce order of filesChanged elements
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
 		const expected = 2
 		wait(filesChanged, expected)
-		assert.Equal(t, expected, len(filesChanged))
+		assert.Len(t, filesChanged, expected)
 
 		cancel()
 		wg.Wait()

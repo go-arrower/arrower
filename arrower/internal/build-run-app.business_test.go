@@ -1,7 +1,6 @@
 package internal_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -19,7 +18,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 
-		_, err := internal.BuildAndRunApp(nil, dir+"/example-cli", "")
+		_, err := internal.BuildAndRunApp(nil, dir+"/example-cli", "") //nolint:goconst // fp
 		assert.Error(t, err)
 	})
 
@@ -74,7 +73,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		_, err := internal.BuildAndRunApp(buf, "/non/existing/path", binaryPath)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, internal.ErrBuildFailed))
+		assert.ErrorIs(t, err, internal.ErrBuildFailed)
 		assert.NoFileExists(t, binaryPath)
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.NotContains(t, buf.String(), arrowerCLIRun)
@@ -129,7 +128,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-compile-error", binaryPath)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, internal.ErrBuildFailed))
+		assert.ErrorIs(t, err, internal.ErrBuildFailed)
 		assert.Contains(t, err.Error(), "is not in std")
 		assert.Nil(t, cleanup)
 	})

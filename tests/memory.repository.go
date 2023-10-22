@@ -99,7 +99,7 @@ type MemoryRepository[E any, ID ~string] struct {
 	repoConfig
 }
 
-func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn // valid use of generics
+func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(t)
 
 	idField := val.FieldByName(repo.idFieldName)
@@ -110,11 +110,11 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn // valid
 	return ID(idField.String())
 }
 
-func (repo *MemoryRepository[E, ID]) NextID(ctx context.Context) ID { //nolint:ireturn // valid use of generics
+func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) ID { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	return ID(uuid.New().String())
 }
 
-func (repo *MemoryRepository[E, ID]) Create(ctx context.Context, entity E) error {
+func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -136,7 +136,7 @@ func (repo *MemoryRepository[E, ID]) Read(ctx context.Context, id ID) (E, error)
 	return repo.FindByID(ctx, id)
 }
 
-func (repo *MemoryRepository[E, ID]) Update(ctx context.Context, entity E) error {
+func (repo *MemoryRepository[E, ID]) Update(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -154,7 +154,7 @@ func (repo *MemoryRepository[E, ID]) Update(ctx context.Context, entity E) error
 	return nil
 }
 
-func (repo *MemoryRepository[E, ID]) Delete(ctx context.Context, entity E) error {
+func (repo *MemoryRepository[E, ID]) Delete(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -171,7 +171,7 @@ func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]
 	return repo.FindByIDs(ctx, ids)
 }
 
-func (repo *MemoryRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
+func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 	result := []E{}
 
 	for _, v := range repo.Data {
@@ -181,15 +181,15 @@ func (repo *MemoryRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
+func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	if t, ok := repo.Data[id]; ok {
 		return t, nil
 	}
 
-	return *new(E), nil //nolint:gocritic // looks like a false positive or the linter does not deal with generics yet
+	return *new(E), nil
 }
 
-func (repo *MemoryRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([]E, error) {
+func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E, error) {
 	result := []E{}
 
 	for _, v := range repo.Data {
@@ -203,7 +203,7 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) Exists(ctx context.Context, id ID) (bool, error) {
+func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, error) {
 	if _, ok := repo.Data[id]; ok {
 		return true, nil
 	}
@@ -215,7 +215,7 @@ func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (boo
 	return repo.Exists(ctx, id)
 }
 
-func (repo *MemoryRepository[E, ID]) ExistAll(ctx context.Context, ids []ID) (bool, error) {
+func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool, error) {
 	if len(ids) == 0 {
 		return false, nil
 	}
@@ -249,7 +249,7 @@ func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) 
 	return repo.ExistByIDs(ctx, ids)
 }
 
-func (repo *MemoryRepository[E, ID]) Count(ctx context.Context) (int, error) {
+func (repo *MemoryRepository[E, ID]) Count(_ context.Context) (int, error) {
 	return len(repo.Data), nil
 }
 
@@ -267,7 +267,7 @@ func (repo *MemoryRepository[E, ID]) IsEmpty(ctx context.Context) (bool, error) 
 	return c == 0, err
 }
 
-func (repo *MemoryRepository[E, ID]) Save(ctx context.Context, entity E) error {
+func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -281,7 +281,7 @@ func (repo *MemoryRepository[E, ID]) Save(ctx context.Context, entity E) error {
 	return nil
 }
 
-func (repo *MemoryRepository[E, ID]) SaveAll(ctx context.Context, entities []E) error {
+func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -325,7 +325,7 @@ func (repo *MemoryRepository[E, ID]) DeleteByID(ctx context.Context, id ID) erro
 	return repo.DeleteByIDs(ctx, []ID{id})
 }
 
-func (repo *MemoryRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) error {
+func (repo *MemoryRepository[E, ID]) DeleteByIDs(_ context.Context, ids []ID) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -336,7 +336,7 @@ func (repo *MemoryRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) 
 	return nil
 }
 
-func (repo *MemoryRepository[E, ID]) DeleteAll(ctx context.Context) error {
+func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 	repo.Lock()
 	defer repo.Unlock()
 

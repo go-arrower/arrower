@@ -60,11 +60,11 @@ func (l LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 	return nil
 }
 
-func (l LokiHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (l LokiHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return true
 }
 
-func (l LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn // required for slog.Handler
+func (l LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &LokiHandler{
 		client:   l.client,
 		renderer: l.renderer.WithAttrs(attrs),
@@ -72,7 +72,7 @@ func (l LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:iretur
 	}
 }
 
-func (l LokiHandler) WithGroup(name string) slog.Handler { //nolint:ireturn // required for slog.Handler
+func (l LokiHandler) WithGroup(name string) slog.Handler {
 	return &LokiHandler{
 		client:   l.client,
 		renderer: l.renderer.WithGroup(name),

@@ -64,13 +64,13 @@ func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProv
 
 type fakeTraceProvider struct{}
 
-func (f *fakeTraceProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer { //nolint:ireturn
+func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
 	return &fakeTracer{}
 }
 
 type fakeTracer struct{}
 
-func (f *fakeTracer) Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
+func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
 	// Ensures Start() is called from within *ArrowerLogger.Handle.
 	// If not equal the nil will make the test panic, without t present
 	// Used in "record a span for the handle method itself"
@@ -83,18 +83,18 @@ type failingHandler struct{}
 
 var _ slog.Handler = (*failingHandler)(nil)
 
-func (f failingHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (f failingHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return true
 }
 
-func (f failingHandler) Handle(ctx context.Context, record slog.Record) error {
+func (f failingHandler) Handle(_ context.Context, _ slog.Record) error {
 	return errSomething
 }
 
-func (f failingHandler) WithAttrs(attrs []slog.Attr) slog.Handler { //nolint:ireturn
+func (f failingHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	panic("implement me")
 }
 
-func (f failingHandler) WithGroup(name string) slog.Handler { //nolint:ireturn
+func (f failingHandler) WithGroup(_ string) slog.Handler {
 	panic("implement me")
 }

@@ -53,10 +53,10 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 	if err != nil {
 		err2 := os.Remove(binaryPath)
 		if err2 != nil {
-			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
+			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2) //nolint:errorlint // prevent err in api
 		}
 
-		return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
+		return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String()) //nolint:errorlint // prevent err in api
 	}
 
 	//
@@ -75,7 +75,7 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 
 	err = cmd.Start()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrRunFailed, err)
+		return nil, fmt.Errorf("%w: %v", ErrRunFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return stopAndCleanup(cmd, binaryPath), nil
@@ -94,7 +94,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		//
 		// wait for shutdown of the app.
 		appStopped := make(chan error)
-		go func() { //nolint:wsl
+		go func() {
 			err := waitForCmdToFinish(cmd)
 			if err != nil {
 				log.Println(err)
@@ -107,7 +107,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		// send shutdown signal for graceful shutdown to app.
 		err := cmd.Process.Signal(syscall.SIGTERM)
 		if err != nil && !errors.Is(err, os.ErrProcessDone) {
-			return fmt.Errorf("%w: send sigterm failed: %v", ErrStopFailed, err)
+			return fmt.Errorf("%w: send sigterm failed: %v", ErrStopFailed, err) //nolint:errorlint // prevent err in api
 		}
 
 		// wait for our process to die before we return or hard kill
@@ -115,7 +115,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		select {
 		case <-time.After(waitBeforeKill * time.Second):
 			if err = cmd.Process.Kill(); err != nil {
-				return fmt.Errorf("%w: failed to kill: %v", ErrStopFailed, err)
+				return fmt.Errorf("%w: failed to kill: %v", ErrStopFailed, err) //nolint:errorlint // prevent err in api
 			}
 		case <-appStopped:
 		}
@@ -128,7 +128,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 func deleteAppBinary(binaryPath string) error {
 	err := os.Remove(binaryPath)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrBuildCleanFailed, err)
+		return fmt.Errorf("%w: %v", ErrBuildCleanFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -140,7 +140,7 @@ func waitForCmdToFinish(cmd *exec.Cmd) error {
 		err.Error() != "signal: terminated" && // in case: this cleanup function is called before the app started
 		err.Error() != "signal: killed" && // UNCLEAR: check required when test is run from CLI, not if it is run from IDE
 		err.Error() != "exit status 2" { // in case of a panic: don't return so cleanup can continue
-		return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err)
+		return fmt.Errorf("%w: could not wait for app to complete: %v", ErrStopFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func waitForCmdToFinish(cmd *exec.Cmd) error {
 func RandomBinaryPath() (string, error) {
 	f, err := os.CreateTemp(os.TempDir(), "arrower-app-")
 	if err != nil {
-		return "", fmt.Errorf("%w: could not create random build path: %v", ErrBuildFailed, err)
+		return "", fmt.Errorf("%w: could not create random build path: %v", ErrBuildFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return f.Name(), nil

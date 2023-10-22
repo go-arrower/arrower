@@ -37,7 +37,7 @@ func (p pgxTraceAdapter) TraceQueryStart(
 	return context.WithValue(ctx, spanKey, span)
 }
 
-func (p pgxTraceAdapter) TraceQueryEnd(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryEndData) {
+func (p pgxTraceAdapter) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
 		span.SetAttributes(attribute.Int64("sql_rows_affected", data.CommandTag.RowsAffected()))
 

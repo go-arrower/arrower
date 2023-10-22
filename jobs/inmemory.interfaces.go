@@ -24,7 +24,7 @@ type InMemoryHandler struct {
 
 var _ Queue = (*InMemoryHandler)(nil)
 
-func (q *InMemoryHandler) Enqueue(ctx context.Context, job Job, opt ...JobOpt) error {
+func (q *InMemoryHandler) Enqueue(_ context.Context, job Job, _ ...JobOpt) error {
 	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err
@@ -48,11 +48,11 @@ func (q *InMemoryHandler) Enqueue(ctx context.Context, job Job, opt ...JobOpt) e
 	return nil
 }
 
-func (q *InMemoryHandler) RegisterJobFunc(jobFunc JobFunc) error {
+func (q *InMemoryHandler) RegisterJobFunc(_ JobFunc) error {
 	panic("implement me")
 }
 
-func (q *InMemoryHandler) Shutdown(ctx context.Context) error {
+func (q *InMemoryHandler) Shutdown(_ context.Context) error {
 	panic("implement me")
 }
 

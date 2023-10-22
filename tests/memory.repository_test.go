@@ -123,7 +123,7 @@ func TestMemoryRepository_All(t *testing.T) {
 	all, err := repo.All(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, all)
-	assert.Len(t, all, 0, "new repository should be empty")
+	assert.Empty(t, all, "new repository should be empty")
 
 	repo.Create(ctx, newEntity())
 	repo.Create(ctx, newEntity())

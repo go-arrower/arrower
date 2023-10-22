@@ -22,7 +22,7 @@ func Validate[in, out any, F DecoratorFunc[in, out]](validate *validator.Validat
 	return func(ctx context.Context, in in) (out, error) {
 		err := validate.Struct(in)
 		if err != nil {
-			return *new(out), err //nolint:gocritic,wrapcheck,lll // looks like a false positive or the linter does not deal with generics yet // validation error is returned on purpose
+			return *new(out), err //nolint:wrapcheck // validation error is returned on purpose
 		}
 
 		return next(context.WithValue(ctx, CtxValidated, true), in)
