@@ -39,5 +39,3 @@ jobs:
           context: "{{defaultContext}}:docker/postgres"
           push: true
           tags: ghcr.io/arrower/postgres:latest
-          secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.PAT }}
