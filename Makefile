@@ -57,3 +57,8 @@ run: ## Run all dependencies inside docker containers
 .PHONY: db
 db: ## Connect to the database inside the running docker container
 	PGPASSWORD=secret psql -U arrower -d arrower -h localhost
+
+
+.PHONY: docker-local
+docker-local:
+	docker build -t go-arrower/postgres ./docker/postgres
