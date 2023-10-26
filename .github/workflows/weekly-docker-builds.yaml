@@ -38,4 +38,4 @@ jobs:
         with:
           context: "{{defaultContext}}:docker/postgres"
           push: true
-          tags: ghcr.io/arrower/postgres
+          tags: ghcr.io/arrower/postgres:latest
