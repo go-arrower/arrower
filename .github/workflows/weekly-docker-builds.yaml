@@ -24,7 +24,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Setting up Docker Buildx with docker-container driver is required
       # at the moment to be able to use a subdirectory with Git context
@@ -38,4 +38,4 @@ jobs:
         with:
           context: "{{defaultContext}}:docker/postgres"
           push: true
-          tags: ghcr.io/arrower/postgres:latest
+          tags: arrower/postgres:latest
