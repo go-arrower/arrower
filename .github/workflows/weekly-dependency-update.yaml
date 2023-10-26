@@ -1,8 +1,9 @@
 on:
   schedule:
     # * is a special character in YAML, so you have to quote this string
-    - cron:  '0 4 * * 0' # every monday morning
+    - cron:  '0 4 * * 1' # every monday morning
   workflow_dispatch:
+
 name: Weekly Dependency Update
 
 jobs:

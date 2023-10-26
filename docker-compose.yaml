@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # direct dependencies
   postgres:
-    image: postgres
+    image: ghcr.io/arrower/postgres
     ports:
       - "5432:5432"
     volumes:
