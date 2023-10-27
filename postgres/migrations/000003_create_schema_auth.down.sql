@@ -1,0 +1,14 @@
+BEGIN;
+
+
+DROP TABLE IF EXISTS auth.session;
+DROP TABLE IF EXISTS auth.user_verification;
+DROP TABLE IF EXISTS auth.user;
+
+DROP SCHEMA IF EXISTS auth;
+
+DROP EXTENSION IF EXISTS "hstore";
+DROP EXTENSION IF EXISTS "uuid-ossp";
+
+
+COMMIT;
