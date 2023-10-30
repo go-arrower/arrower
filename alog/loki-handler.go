@@ -11,6 +11,58 @@ import (
 	"github.com/afiskon/promtail-client/promtail"
 )
 
+// NewLokiHandler use this handler only for local development!
+//
+// Its purpose is to mimic your production setting in case you're using loki & grafana.
+// It ships your logs to a local loki instance, so you can use the same setup for development.
+// It does not care about performance, as in production you would log to `stdout` and the
+// container-runtime's drivers (docker, kubernetes) or something will ship your logs to loki.
+func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
+	defaultOpt := &LokiHandlerOptions{
+		PushURL: "http://localhost:3100/api/prom/push",
+		Label:   fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton"),
+	}
+
+	if opt == nil {
+		opt = defaultOpt
+	}
+
+	if opt.PushURL != "" {
+		opt.PushURL = defaultOpt.PushURL
+	}
+
+	if opt.Label != "" {
+		opt.Label = defaultOpt.Label
+	}
+
+	conf := promtail.ClientConfig{
+		PushURL:            opt.PushURL,
+		BatchWait:          1 * time.Second,
+		BatchEntriesNumber: 1,
+		SendLevel:          promtail.DEBUG,
+		PrintLevel:         promtail.DISABLE,
+		Labels:             opt.Label,
+	}
+
+	// Do not handle error here, because promtail method always returns `nil`.
+	client, _ := promtail.NewClientJson(conf)
+
+	// generate json log by writing to local buffer with slog default json
+	buf := &bytes.Buffer{}
+	jsonLog := slog.HandlerOptions{
+		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
+		AddSource:   false,
+		ReplaceAttr: MapLogLevelsToName,
+	}
+	renderer := slog.NewJSONHandler(buf, &jsonLog)
+
+	return &LokiHandler{
+		client:   client,
+		renderer: renderer,
+		output:   buf,
+	}
+}
+
 type (
 	LokiHandlerOptions struct {
 		PushURL string
@@ -77,57 +129,5 @@ func (l LokiHandler) WithGroup(name string) slog.Handler {
 		client:   l.client,
 		renderer: l.renderer.WithGroup(name),
 		output:   l.output,
-	}
-}
-
-// NewLokiHandler use this handler only for local development!
-//
-// Its purpose is to mimic your production setting in case you're using loki & grafana.
-// It ships your logs to a local loki instance, so you can use the same setup for development.
-// It does not care about performance, as in production you would log to `stdout` and the
-// container-runtime's drivers (docker, kubernetes) or something will ship your logs to loki.
-func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
-	defaultOpt := &LokiHandlerOptions{
-		PushURL: "http://localhost:3100/api/prom/push",
-		Label:   fmt.Sprintf("{%s=\"%s\"}", "arrower", "skeleton"),
-	}
-
-	if opt == nil {
-		opt = defaultOpt
-	}
-
-	if opt.PushURL != "" {
-		opt.PushURL = defaultOpt.PushURL
-	}
-
-	if opt.Label != "" {
-		opt.Label = defaultOpt.Label
-	}
-
-	conf := promtail.ClientConfig{
-		PushURL:            opt.PushURL,
-		BatchWait:          1 * time.Second,
-		BatchEntriesNumber: 1,
-		SendLevel:          promtail.DEBUG,
-		PrintLevel:         promtail.DISABLE,
-		Labels:             opt.Label,
-	}
-
-	// Do not handle error here, because promtail method always returns `nil`.
-	client, _ := promtail.NewClientJson(conf)
-
-	// generate json log by writing to local buffer with slog default json
-	buf := &bytes.Buffer{}
-	jsonLog := slog.HandlerOptions{
-		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
-		AddSource:   false,
-		ReplaceAttr: MapLogLevelsToName,
-	}
-	renderer := slog.NewJSONHandler(buf, &jsonLog)
-
-	return &LokiHandler{
-		client:   client,
-		renderer: renderer,
-		output:   buf,
 	}
 }
