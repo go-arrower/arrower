@@ -5,6 +5,7 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -12,14 +13,14 @@ type AuthSession struct {
 	Key          []byte
 	Data         []byte
 	ExpiresAtUtc pgtype.Timestamptz
-	UserID       pgtype.UUID
+	UserID       uuid.NullUUID
 	UserAgent    string
 	CreatedAt    pgtype.Timestamptz
 	UpdatedAt    pgtype.Timestamptz
 }
 
 type AuthUser struct {
-	ID              pgtype.UUID
+	ID              uuid.UUID
 	CreatedAt       pgtype.Timestamptz
 	UpdatedAt       pgtype.Timestamptz
 	Login           string
@@ -38,8 +39,8 @@ type AuthUser struct {
 }
 
 type AuthUserVerification struct {
-	Token         pgtype.UUID
-	UserID        pgtype.UUID
+	Token         uuid.UUID
+	UserID        uuid.UUID
 	ValidUntilUtc pgtype.Timestamptz
 	CreatedAt     pgtype.Timestamptz
 	UpdatedAt     pgtype.Timestamptz
@@ -79,4 +80,10 @@ type GueJobsWorkerPool struct {
 	Workers   int16
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz
+}
+
+type Log struct {
+	Time   pgtype.Timestamptz
+	UserID uuid.NullUUID
+	Log    []byte
 }
