@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -44,11 +45,47 @@ func TestPostgresHandler_Handle(t *testing.T) {
 		)
 		ensureLogTableRows(t, pg, 0)
 
-		logger.Info("logged msg")
-		logger.Info("logged msg")
-		logger.Info("logged msg")
+		logger.InfoContext(ctx, "logged msg")
+		logger.InfoContext(ctx, "logged msg")
+		logger.InfoContext(ctx, "logged msg")
 
 		ensureLogTableRows(t, pg, 3)
+	})
+
+	t.Run("async batch", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("log batch of one to postgres", func(t *testing.T) {
+			pg := pgHandler.NewTestDatabase()
+			logger := alog.New(
+				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{
+					MaxBatchSize: 1,
+				})),
+			)
+
+			logger.InfoContext(ctx, "logged msg")
+
+			time.Sleep(10 * time.Millisecond)
+			ensureLogTableRows(t, pg, 1)
+		})
+
+		t.Run("log batch after timeout", func(t *testing.T) {
+			pg := pgHandler.NewTestDatabase()
+			logger := alog.New(
+				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{
+					MaxBatchSize: 10,
+					MaxTimeout:   100 * time.Millisecond,
+				})),
+			)
+
+			logger.InfoContext(ctx, "logged msg")
+			logger.InfoContext(ctx, "logged msg")
+			logger.InfoContext(ctx, "logged msg")
+			ensureLogTableRows(t, pg, 0)
+
+			time.Sleep(150 * time.Millisecond)
+			ensureLogTableRows(t, pg, 3)
+		})
 	})
 }
 
@@ -64,7 +101,7 @@ func TestPostgresHandler_WithAttrs(t *testing.T) {
 		)
 
 		logger = logger.With(slog.String("some", "attr"))
-		logger.Info("logged msg")
+		logger.InfoContext(ctx, "logged msg")
 
 		ensureLogTableRows(t, pg, 1)
 		log := getMostRecentLog(pg)
@@ -87,7 +124,7 @@ func TestPostgresHandler_WithGroup(t *testing.T) {
 		)
 
 		logger = logger.WithGroup("someGroup")
-		logger.With("some", "attr").Info("logged msg")
+		logger.With("some", "attr").InfoContext(ctx, "logged msg")
 
 		ensureLogTableRows(t, pg, 1)
 		log := getMostRecentLog(pg)

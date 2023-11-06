@@ -1,4 +1,4 @@
--- name: LogRecord :exec
+-- name: LogRecords :copyfrom
 INSERT INTO public.log (time, user_id, log)
 VALUES ($1, $2, $3);
 

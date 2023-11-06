@@ -64,18 +64,8 @@ func (q *Queries) GetRecentLogs(ctx context.Context, arg GetRecentLogsParams) ([
 	return items, nil
 }
 
-const logRecord = `-- name: LogRecord :exec
-INSERT INTO public.log (time, user_id, log)
-VALUES ($1, $2, $3)
-`
-
-type LogRecordParams struct {
+type LogRecordsParams struct {
 	Time   pgtype.Timestamptz
 	UserID uuid.NullUUID
 	Log    []byte
-}
-
-func (q *Queries) LogRecord(ctx context.Context, arg LogRecordParams) error {
-	_, err := q.db.Exec(ctx, logRecord, arg.Time, arg.UserID, arg.Log)
-	return err
 }
