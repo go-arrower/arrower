@@ -57,11 +57,8 @@ CREATE UNLOGGED TABLE public.gue_jobs_worker_pool
 SELECT enable_automatic_updated_at('public.gue_jobs_worker_pool');
 
 
--- TODO add SELECT current_database() to run the CRON on there
---CREATE EXTENSION IF NOT EXISTS pg_cron;
---SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM public.gue_jobs', 'SELECT current_database()');
---SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM public.gue_jobs');
---SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *', $$DELETE FROM public.gue_jobs_worker_pool WHERE updated_at < now() - interval '1 week'$$);
+SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM public.gue_jobs');
+SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *', $$DELETE FROM public.gue_jobs_worker_pool WHERE updated_at < now() - interval '1 week'$$);
 
 
 COMMIT;

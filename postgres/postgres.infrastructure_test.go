@@ -19,11 +19,11 @@ import (
 )
 
 var runOptions = &dockertest.RunOptions{
-	Repository: "postgres",
-	Tag:        "15",
+	Repository: "ghcr.io/go-arrower/postgres",
+	Tag:        "latest",
 	Env: []string{
 		"POSTGRES_PASSWORD=secret",
-		"POSTGRES_USER=username",
+		"POSTGRES_USER=arrower",
 		"POSTGRES_DB=dbname_test",
 		"listen_addresses = '*'",
 	},
@@ -43,7 +43,7 @@ func TestConnect(t *testing.T) {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
-					User:     "username",
+					User:     "arrower",
 					Password: "secret",
 					Database: "dbname_test",
 				}, trace.NewNoopTracerProvider())
@@ -76,7 +76,7 @@ func TestConnect(t *testing.T) {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
-					User:     "username",
+					User:     "arrower",
 					Password: "secret",
 					Database: "dbname_test",
 				}, trace.NewNoopTracerProvider())
@@ -116,7 +116,7 @@ func TestConnectAndMigrate(t *testing.T) {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
-					User:     "username",
+					User:     "arrower",
 					Password: "secret",
 					Database: "dbname_test",
 				}, trace.NewNoopTracerProvider())
@@ -145,7 +145,7 @@ func TestConnectAndMigrate(t *testing.T) {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
 					Host:       "localhost",
 					Port:       port,
-					User:       "username",
+					User:       "arrower",
 					Password:   "secret",
 					Database:   "dbname_test",
 					Migrations: postgres.ArrowerDefaultMigrations,
@@ -178,7 +178,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			config = postgres.Config{
 				Host:       "localhost",
 				Port:       port,
-				User:       "username",
+				User:       "arrower",
 				Password:   "secret",
 				Database:   "dbname_test",
 				Migrations: postgres.ArrowerDefaultMigrations,

@@ -29,7 +29,7 @@ func TestStartDockerContainer(t *testing.T) {
 	t.Run("invalid docker retry func", func(t *testing.T) {
 		t.Parallel()
 
-		cleanup, err := tests.StartDockerContainer(&dockertest.RunOptions{Repository: "postgres"}, nil)
+		cleanup, err := tests.StartDockerContainer(&dockertest.RunOptions{Repository: "ghcr.io/go-arrower/postgres"}, nil)
 		assert.ErrorIs(t, err, tests.ErrDockerFailure)
 		assert.Nil(t, cleanup)
 	})
@@ -82,8 +82,6 @@ func TestStartDockerContainer(t *testing.T) {
 				options := runOptions
 				options.Name = "ensure-single-container"
 
-				t.Log(options.Name, options)
-
 				cleanup2, err2 := tests.StartDockerContainer(&options, retryFunc)
 				assert.NoError(t, err2)
 				assert.NotNil(t, cleanup2)
@@ -98,11 +96,11 @@ func TestStartDockerContainer(t *testing.T) {
 
 var (
 	runOptions = dockertest.RunOptions{
-		Repository: "postgres",
-		Tag:        "15",
+		Repository: "ghcr.io/go-arrower/postgres",
+		Tag:        "latest",
 		Env: []string{
 			"POSTGRES_PASSWORD=secret",
-			"POSTGRES_USER=username",
+			"POSTGRES_USER=arrower",
 			"POSTGRES_DB=dbname_test",
 			"listen_addresses = '*'",
 		},
@@ -111,7 +109,7 @@ var (
 	retryFunc = func(resource *dockertest.Resource) func() error {
 		return func() error {
 			port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
-			url := fmt.Sprintf("postgres://username:secret@localhost:%s/dbname_test", port)
+			url := fmt.Sprintf("postgres://arrower:secret@localhost:%s/dbname_test", port)
 
 			conn, err := pgx.Connect(context.Background(), url)
 			if err != nil {

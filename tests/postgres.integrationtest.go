@@ -114,9 +114,9 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 
 var (
 	defaultPGConf = postgres.Config{ //nolint:gochecknoglobals
-		User:       "username",
+		User:       "arrower",
 		Password:   "secret",
-		Database:   "dbname_test",
+		Database:   "arrower",
 		Host:       "localhost",
 		Port:       5432, //nolint:gomnd
 		MaxConns:   10,   //nolint:gomnd
@@ -124,8 +124,8 @@ var (
 	}
 
 	defaultPGRunOptions = &dockertest.RunOptions{ //nolint:gochecknoglobals,exhaustruct // only set required configuration
-		Repository: "postgres",
-		Tag:        "15",
+		Repository: "ghcr.io/go-arrower/postgres",
+		Tag:        "latest",
 		Env: []string{
 			fmt.Sprintf("POSTGRES_USER=%s", defaultPGConf.User),
 			fmt.Sprintf("POSTGRES_PASSWORD=%s", defaultPGConf.Password),

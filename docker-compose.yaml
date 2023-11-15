@@ -3,8 +3,7 @@ version: '3.8'
 services:
   # direct dependencies
   postgres:
-    image: go-arrower/postgres
-    #image: ghcr.io/go-arrower/postgres
+    image: ghcr.io/go-arrower/postgres
     ports:
       - "5432:5432"
     volumes:
@@ -16,6 +15,9 @@ services:
       LANG: en_US.UTF-8
       LANGUAGE: en_US:en
       LC_ALL: en_US.UTF-8
+      # Set the timezone, see: https://stackoverflow.com/a/51697579
+      TZ: 'UTC+1'
+      PGTZ: 'UTC+1'
 
   # observability
   loki:

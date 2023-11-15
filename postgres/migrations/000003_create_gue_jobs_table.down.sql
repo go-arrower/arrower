@@ -1,8 +1,8 @@
 BEGIN;
 
 
---SELECT cron.unschedule('arrower:jobs:nightly-worker-clean' );
---SELECT cron.unschedule('arrower:jobs:nightly-vacuum' );
+SELECT cron.unschedule('arrower:jobs:nightly-worker-clean' );
+SELECT cron.unschedule('arrower:jobs:nightly-vacuum' );
 
 
 DROP TABLE IF EXISTS public.gue_jobs;
