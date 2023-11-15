@@ -17,7 +17,7 @@ require (
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/rjeczalik/notify v0.9.3
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vgarvardt/gue/v5 v5.5.0
 	go.opentelemetry.io/otel v1.20.0
