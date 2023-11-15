@@ -3,20 +3,20 @@ package alog
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-
-	"github.com/go-arrower/arrower"
-
 	"github.com/google/uuid"
-
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog/models"
 )
+
+var ErrLogFailed = errors.New("could not save log")
 
 // NewPostgresHandler use this handler in low traffic situations to inspect logs via the arrower admin Context.
 func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *PostgresHandler {
@@ -32,39 +32,30 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 	queries := models.New(pgx)
 
 	var isAsync bool
-	records := make(chan logRecord, 10)
-	if opt != nil {
+
+	const (
+		defaultLogChanBuffer = 10
+		defaultTimeout       = 2 * time.Second
+		defaultBatchSize     = 100
+	)
+
+	records := make(chan logRecord, defaultLogChanBuffer)
+
+	if opt != nil { //nolint:nestif
 		isAsync = opt.MaxTimeout != 0 || opt.MaxBatchSize != 0
 
 		if isAsync {
-			maxTimeout := 2 * time.Second
+			maxTimeout := defaultTimeout
 			if opt.MaxTimeout != 0 {
 				maxTimeout = opt.MaxTimeout
 			}
 
-			maxBatchSize := 100
+			maxBatchSize := defaultBatchSize
 			if opt.MaxBatchSize != 0 {
 				maxBatchSize = opt.MaxBatchSize
 			}
 
-			go func(records chan logRecord, maxBatchSite int, maxTimeout time.Duration) {
-				batch := []logRecord{}
-				expire := time.After(maxTimeout)
-
-				for {
-					select {
-					case value := <-records:
-						batch = append(batch, value)
-						if len(batch) == maxBatchSite {
-							_ = saveLogs(context.Background(), queries, batch)
-							batch = batch[:0]
-						}
-					case <-expire:
-						_ = saveLogs(context.Background(), queries, batch)
-						batch = batch[:0]
-					}
-				}
-			}(records, maxBatchSize, maxTimeout)
+			go processBatches(queries, records, maxBatchSize, maxTimeout)
 		}
 	}
 
@@ -74,6 +65,25 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 		output:   buf,
 		isAsync:  isAsync,
 		records:  records,
+	}
+}
+
+func processBatches(queries *models.Queries, records chan logRecord, maxBatchSite int, maxTimeout time.Duration) {
+	batch := []logRecord{}
+	expire := time.After(maxTimeout)
+
+	for {
+		select {
+		case value := <-records:
+			batch = append(batch, value)
+			if len(batch) == maxBatchSite {
+				_ = saveLogs(context.Background(), queries, batch)
+				batch = batch[:0]
+			}
+		case <-expire:
+			_ = saveLogs(context.Background(), queries, batch)
+			batch = batch[:0]
+		}
 	}
 }
 
@@ -87,7 +97,7 @@ type (
 		// it didn't reach the maximum size yet.
 		MaxTimeout time.Duration
 	}
-	PostgresHandler struct {
+	PostgresHandler struct { //nolint:govet // accept fieldalignment
 		queries  *models.Queries
 		renderer slog.Handler
 		output   *bytes.Buffer
@@ -96,7 +106,7 @@ type (
 		records chan logRecord
 	}
 
-	logRecord struct {
+	logRecord struct { //nolint:govet // accept fieldalignment
 		time   time.Time
 		userID uuid.NullUUID
 		Log    []byte
@@ -105,13 +115,13 @@ type (
 
 var _ slog.Handler = (*PostgresHandler)(nil)
 
-func (l *PostgresHandler) Enabled(ctx context.Context, level slog.Level) bool {
+func (l *PostgresHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return true
 }
 
 func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error {
 	var userID uuid.NullUUID
-	if v, ok := ctx.Value(arrower.CtxAuthUserID).(string); ok { // auth.CurrentUserID() // TODO use this instead // ctx key auth.CtxAuthUserID
+	if v, ok := ctx.Value(arrower.CtxAuthUserID).(string); ok { // auth.CurrentUserID() // TODO use auth.CtxAuthUserID
 		userID = uuid.NullUUID{
 			UUID:  uuid.MustParse(v),
 			Valid: true,
@@ -124,6 +134,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 		userID: userID,
 		Log:    l.output.Bytes(),
 	}
+
 	l.output.Reset()
 
 	if l.isAsync {
@@ -134,7 +145,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 
 	err := saveLogs(ctx, l.queries, []logRecord{lRecord})
 	if err != nil {
-		return fmt.Errorf("could not save log: %v", err)
+		return fmt.Errorf("%w: %v", ErrLogFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -145,7 +156,7 @@ func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) er
 
 	for _, log := range logs {
 		params = append(params, models.LogRecordsParams{
-			Time:   pgtype.Timestamptz{Time: log.time, Valid: true},
+			Time:   pgtype.Timestamptz{Time: log.time, Valid: true, InfinityModifier: pgtype.Finite},
 			UserID: log.userID,
 			Log:    log.Log,
 		})
@@ -153,7 +164,7 @@ func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) er
 
 	_, err := queries.LogRecords(ctx, params)
 	if err != nil {
-		return fmt.Errorf("could not save log: %v", err)
+		return fmt.Errorf("%w: %v", ErrLogFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -164,6 +175,8 @@ func (l *PostgresHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		queries:  l.queries,
 		renderer: l.renderer.WithAttrs(attrs),
 		output:   l.output,
+		isAsync:  l.isAsync,
+		records:  l.records,
 	}
 }
 
@@ -172,5 +185,7 @@ func (l *PostgresHandler) WithGroup(name string) slog.Handler {
 		queries:  l.queries,
 		renderer: l.renderer.WithGroup(name),
 		output:   l.output,
+		isAsync:  l.isAsync,
+		records:  l.records,
 	}
 }
