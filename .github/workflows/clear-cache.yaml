@@ -6,7 +6,7 @@ jobs:
   clear-cache:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete Repository Cache
-        uses: TheRealRyGuy/clear-cache-action@master
+      - name: Clear caches
+        uses: easimon/wipe-cache@main
         env:
           token: ${{ secrets.GITHUB_TOKEN }}
