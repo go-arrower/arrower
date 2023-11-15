@@ -4,6 +4,7 @@ name: Clear Cache
 
 jobs:
   clear-cache:
+    runs-on: ubuntu-latest
     steps:
       - name: Delete Repository Cache
         uses: TheRealRyGuy/clear-cache-action@master
