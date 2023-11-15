@@ -6,7 +6,7 @@ require (
 	github.com/afiskon/promtail-client v0.0.0-20190305142237-506f3f921e9c
 	github.com/brianvoe/gofakeit/v6 v6.24.0
 	github.com/cenkalti/backoff/v4 v4.2.1
-	github.com/fatih/color v1.15.0
+	github.com/fatih/color v1.16.0
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/go-testfixtures/testfixtures/v3 v3.9.0
@@ -67,7 +67,7 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
