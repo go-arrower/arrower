@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/embedded"
 )
 
 var errUseCaseFails = errors.New("some-error")
@@ -26,12 +27,15 @@ func newFakeTracer(t *testing.T) trace.TracerProvider { //nolint:ireturn
 
 type (
 	fakeTracerProvider struct {
+		embedded.TracerProvider
 		t *testing.T
 	}
 	fakeTracer struct {
+		embedded.Tracer
 		t *testing.T
 	}
 	fakeSpan struct {
+		embedded.Span
 		t *testing.T
 	}
 )

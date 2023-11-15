@@ -15,7 +15,7 @@ import (
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/dockertest/v3"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -39,7 +39,7 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 			conf.Port = port
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, trace.NewNoopTracerProvider())
+				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, noop.NewTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -89,7 +89,7 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 			conf.Port = port
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, trace.NewNoopTracerProvider())
+				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, noop.NewTracerProvider())
 				if err != nil {
 					return err //nolint:wrapcheck
 				}
@@ -209,7 +209,7 @@ func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler
 		newConfig.Migrations = os.DirFS("testdata/")
 	}
 
-	newHandler, err := postgres.ConnectAndMigrate(context.Background(), newConfig, trace.NewNoopTracerProvider())
+	newHandler, err := postgres.ConnectAndMigrate(context.Background(), newConfig, noop.NewTracerProvider())
 	if err != nil {
 		panic(err)
 	}

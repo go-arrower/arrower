@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/embedded"
 )
 
 const (
@@ -23,6 +24,8 @@ var errSomething = errors.New("some error")
 
 // fakeSpan is an implementation of Span that is minimal for asserting tests.
 type fakeSpan struct {
+	embedded.Span
+
 	ID byte
 
 	eventName    string
@@ -62,13 +65,13 @@ func (s *fakeSpan) SetName(string) {}
 
 func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{} } //nolint:ireturn
 
-type fakeTraceProvider struct{}
+type fakeTraceProvider struct{ embedded.TracerProvider }
 
 func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
 	return &fakeTracer{}
 }
 
-type fakeTracer struct{}
+type fakeTracer struct{ embedded.Tracer }
 
 func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
 	// Ensures Start() is called from within *ArrowerLogger.Handle.

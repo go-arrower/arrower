@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"go.opentelemetry.io/otel/metric/noop"
-	"go.opentelemetry.io/otel/trace"
+	mnoop "go.opentelemetry.io/otel/metric/noop"
+	tnoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
@@ -24,7 +24,7 @@ type otherJob struct{}
 func ExampleGueHandler_Enqueue() {
 	db := tests.GetPostgresDockerForIntegrationTestingInstance()
 
-	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), noop.NewMeterProvider(), trace.NewNoopTracerProvider(), db.PGx(),
+	jq, _ := jobs.NewPostgresJobs(alog.NewTest(nil), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), db.PGx(),
 		jobs.WithPollInterval(time.Millisecond), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
