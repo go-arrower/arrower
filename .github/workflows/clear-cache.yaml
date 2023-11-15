@@ -1,0 +1,9 @@
+on:
+  workflow_dispatch:
+name: Clear Cache
+
+jobs:
+  - name: Delete Repository Cache
+    uses: TheRealRyGuy/clear-cache-action@master
+    env:
+      token: ${{ secrets.GITHUB_TOKEN }}
