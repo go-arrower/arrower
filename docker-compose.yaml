@@ -73,8 +73,11 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: root@localhost.tld
       PGADMIN_DEFAULT_PASSWORD: secret
+      PGADMIN_DISABLE_POSTFIX: false
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+      - ./conf/pgadmin/servers.json:/pgadmin4/servers.json # configure postgres already
+      # - ./conf/pgadmin/pgpass:/var/lib/pgadmin/storage/root_localhost.tld/.pgpass # see https://github.com/pgadmin-org/pgadmin4/issues/6741#issuecomment-1722212595
     links:
       - postgres:postgres
     depends_on:

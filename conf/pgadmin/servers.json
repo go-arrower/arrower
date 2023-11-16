@@ -1,0 +1,14 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "Arrower",
+            "Group": "Servers",
+            "Host": "postgres",
+            "Port": 5432,
+            "SSLMode": "prefer",
+            "Username": "arrower",
+            "PassFile": "/.pgpass",
+            "MaintenanceDB": "postgres"
+        }
+    }
+}
