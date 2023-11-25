@@ -12,9 +12,9 @@ import (
 
 type Settings interface {
 	Save(ctx context.Context, key Key, setting Value) error
-	Setting(ctx context.Context, setting Key) (Value, error)
+	Setting(ctx context.Context, key Key) (Value, error)
 
-	OnConfigChange(key Key, callback func(setting Value))
+	OnSettingChange(key Key, callback func(setting Value))
 }
 
 func NewKey(context string, group string, name string) Key {
@@ -213,4 +213,9 @@ func (v Value) Time() time.Time {
 	t, _ := time.Parse(time.RFC3339Nano, v.v)
 
 	return t
+}
+
+type repository interface {
+	Save(context.Context, Key, Value) error
+	FindByID(context.Context, Key) (Value, error)
 }
