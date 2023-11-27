@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/afiskon/promtail-client v0.0.0-20190305142237-506f3f921e9c
-	github.com/brianvoe/gofakeit/v6 v6.24.0
+	github.com/brianvoe/gofakeit/v6 v6.25.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/fatih/color v1.16.0
 	github.com/georgysavva/scany/v2 v2.0.0
