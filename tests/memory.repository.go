@@ -15,10 +15,17 @@ var (
 	ErrAlreadyExists = errors.New("exists already")
 )
 
+// idType is the primary key used in the generic Repository.
+type idType interface {
+	~string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
 // ID is the primary key and needs to have an underlying string type, integers are not supported.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
-type Repository[E any, ID ~string] interface { //nolint:interfacebloat // showcase of all methods that are possible
+type Repository[E any, ID idType] interface { //nolint:interfacebloat // showcase of all methods that are possible
 	NextID(context.Context) ID
 
 	Create(context.Context, E) error
@@ -73,11 +80,12 @@ func WithIDField(c string) MemoryRepositoryOption {
 // be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case.
-func NewMemoryRepository[E any, ID ~string](opts ...MemoryRepositoryOption) *MemoryRepository[E, ID] {
+func NewMemoryRepository[E any, ID idType](opts ...MemoryRepositoryOption) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
-		Mutex:      &sync.Mutex{},
-		Data:       make(map[ID]E),
-		repoConfig: repoConfig{idFieldName: "ID"},
+		Mutex:        &sync.Mutex{},
+		Data:         make(map[ID]E),
+		currentIntID: *new(ID),
+		repoConfig:   repoConfig{idFieldName: "ID"},
 	}
 
 	for _, opt := range opts {
@@ -88,13 +96,14 @@ func NewMemoryRepository[E any, ID ~string](opts ...MemoryRepositoryOption) *Mem
 }
 
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
-type MemoryRepository[E any, ID ~string] struct {
+type MemoryRepository[E any, ID idType] struct {
 	*sync.Mutex // The mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex.
 
 	// Data is the repository's collection. It is exposed in case you're extending the repository, see:
 	// https://www.arrower.org/docs/basics/testing#extending-the-repository
 	// PREVENT using it directly and access the data through methods. If you write to it USE the Mutex to lock first.
-	Data map[ID]E
+	Data         map[ID]E
+	currentIntID ID
 
 	repoConfig
 }
@@ -107,11 +116,53 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // f
 		panic("entity does not have the field " + repo.idFieldName)
 	}
 
-	return ID(idField.String())
+	var id ID
+
+	switch idField.Kind() { //nolint:exhaustive
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		reflect.ValueOf(&id).Elem().SetInt(idField.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		reflect.ValueOf(&id).Elem().SetUint(idField.Uint())
+	default:
+		reflect.ValueOf(&id).Elem().SetString(idField.String())
+	}
+
+	return id
 }
 
 func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) ID { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
-	return ID(uuid.New().String())
+	var id ID
+
+	switch reflect.TypeOf(id).Kind() { //nolint:exhaustive
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		repo.Mutex.Lock()
+		defer repo.Mutex.Unlock()
+
+		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Int()
+
+		// increment the ID: the value is stored in the repo, but it cannot be accessed because
+		// the generic does not know which type it is, so that is why reflection is used.
+		newID := currentIDValue + 1
+		reflect.ValueOf(&repo.currentIntID).Elem().SetInt(newID)
+
+		reflect.ValueOf(&id).Elem().SetInt(newID)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		repo.Mutex.Lock()
+		defer repo.Mutex.Unlock()
+
+		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Uint()
+
+		// increment the ID: the value is stored in the repo, but it cannot be accessed because
+		// the generic does not know which type it is, so that is why reflection is used.
+		newID := currentIDValue + 1
+		reflect.ValueOf(&repo.currentIntID).Elem().SetUint(newID)
+
+		reflect.ValueOf(&id).Elem().SetUint(newID)
+	default:
+		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
+	}
+
+	return id
 }
 
 func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
@@ -119,7 +170,7 @@ func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
 	defer repo.Unlock()
 
 	id := repo.getID(entity)
-	if id == "" {
+	if id == *new(ID) {
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
@@ -141,7 +192,7 @@ func (repo *MemoryRepository[E, ID]) Update(_ context.Context, entity E) error {
 	defer repo.Unlock()
 
 	id := repo.getID(entity)
-	if id == "" {
+	if id == *new(ID) {
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
@@ -272,7 +323,7 @@ func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 	defer repo.Unlock()
 
 	id := repo.getID(entity)
-	if id == "" {
+	if id == *new(ID) {
 		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 	}
 
@@ -286,7 +337,7 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 	defer repo.Unlock()
 
 	for _, e := range entities {
-		if repo.getID(e) == "" {
+		if repo.getID(e) == *new(ID) {
 			return fmt.Errorf("missing ID: %w", ErrSaveFailed)
 		}
 	}

@@ -24,6 +24,8 @@ func TestMemoryRepository_NextID(t *testing.T) {
 	repo := tests.NewMemoryRepository[Entity, EntityID]()
 	id := repo.NextID(ctx)
 	assert.NotEmpty(t, id)
+
+	t.Log(id)
 }
 
 func TestMemoryRepository_Create(t *testing.T) {
@@ -370,6 +372,44 @@ func TestEntityWithoutID(t *testing.T) {
 
 	assert.Panics(t, func() {
 		repo.Save(ctx, EntityWithoutID{})
+	})
+}
+
+func TestNewMemoryRepository_UInt(t *testing.T) {
+	t.Parallel()
+
+	type (
+		entityID uint
+		entity   struct {
+			ID   entityID
+			Name string
+		}
+	)
+
+	repo := tests.NewMemoryRepository[entity, entityID]()
+
+	t.Run("generate IDs of different type", func(t *testing.T) {
+		t.Parallel()
+
+		id := repo.NextID(ctx)
+		t.Log(id)
+
+		id = repo.NextID(ctx)
+		t.Log(id)
+
+		id = repo.NextID(ctx)
+		t.Log(id)
+		assert.Equal(t, entityID(3), id)
+	})
+
+	t.Run("access the structs ID field properly", func(t *testing.T) {
+		t.Parallel()
+
+		err := repo.Save(ctx, entity{ID: 1337, Name: gofakeit.Name()})
+		assert.NoError(t, err)
+
+		c, _ := repo.Count(ctx)
+		assert.Equal(t, 1, c)
 	})
 }
 
