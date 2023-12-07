@@ -365,6 +365,19 @@ func TestMemoryRepository_DeleteAll(t *testing.T) {
 	assert.Equal(t, 0, c)
 }
 
+func TestMemoryRepository_Clear(t *testing.T) {
+	t.Parallel()
+
+	repo := tests.NewMemoryRepository[Entity, EntityID]()
+	repo.Create(ctx, defaultEntity)
+
+	err := repo.Clear(ctx)
+	assert.NoError(t, err)
+
+	c, _ := repo.Count(ctx)
+	assert.Equal(t, 0, c)
+}
+
 func TestEntityWithoutID(t *testing.T) {
 	t.Parallel()
 

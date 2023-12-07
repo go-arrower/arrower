@@ -61,6 +61,7 @@ type Repository[E any, ID idType] interface { //nolint:interfacebloat // showcas
 	DeleteByID(context.Context, ID) error
 	DeleteByIDs(context.Context, []ID) error
 	DeleteAll(context.Context) error
+	Clear(context.Context) error
 }
 
 type MemoryRepositoryOption func(*repoConfig)
@@ -394,4 +395,8 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 	repo.Data = make(map[ID]E)
 
 	return nil
+}
+
+func (repo *MemoryRepository[E, ID]) Clear(ctx context.Context) error {
+	return repo.DeleteAll(ctx)
 }
