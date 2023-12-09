@@ -232,6 +232,9 @@ func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]
 }
 
 func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
 	result := []E{}
 
 	for _, v := range repo.Data {
@@ -242,6 +245,9 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 }
 
 func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
+	repo.Lock()
+	defer repo.Unlock()
+
 	if t, ok := repo.Data[id]; ok {
 		return t, nil
 	}
@@ -250,6 +256,9 @@ func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, erro
 }
 
 func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
 	result := []E{}
 
 	for _, v := range repo.Data {
@@ -268,6 +277,9 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E
 }
 
 func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
 	if _, ok := repo.Data[id]; ok {
 		return true, nil
 	}
@@ -280,6 +292,9 @@ func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (boo
 }
 
 func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
 	if len(ids) == 0 {
 		return false, nil
 	}
@@ -314,6 +329,9 @@ func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) 
 }
 
 func (repo *MemoryRepository[E, ID]) Count(_ context.Context) (int, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
 	return len(repo.Data), nil
 }
 

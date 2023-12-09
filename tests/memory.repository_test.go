@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -33,7 +34,6 @@ func TestNewMemoryRepository_UInt(t *testing.T) {
 
 	t.Run("generate IDs of different type", func(t *testing.T) {
 		t.Parallel()
-
 		id, _ := repo.NextID(ctx)
 		t.Log(id)
 
@@ -442,6 +442,33 @@ func TestMemoryRepository_Clear(t *testing.T) {
 
 	c, _ := repo.Count(ctx)
 	assert.Equal(t, 0, c)
+}
+
+func TestMemoryRepository_Concurrently(t *testing.T) {
+	t.Parallel()
+
+	const workers = 1000
+
+	wg := sync.WaitGroup{}
+	repo := tests.NewMemoryRepository[Entity, EntityID]()
+
+	wg.Add(workers) //nolint:wsl
+	for i := 0; i < workers; i++ {
+		go func() {
+			repo.Add(ctx, newEntity())
+			wg.Done()
+		}()
+	}
+
+	wg.Add(workers) //nolint:wsl
+	for i := 0; i < workers; i++ {
+		go func() {
+			repo.Read(ctx, newEntity().ID)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }
 
 // --- --- --- TEST DATA --- --- ---
