@@ -325,7 +325,7 @@ func (repo *MemoryRepository[E, ID]) ContainsIDs(ctx context.Context, ids []ID) 
 }
 
 func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) (bool, error) {
-	return repo.ExistByIDs(ctx, ids)
+	return repo.ContainsIDs(ctx, ids)
 }
 
 func (repo *MemoryRepository[E, ID]) Count(_ context.Context) (int, error) {
