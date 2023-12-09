@@ -18,11 +18,60 @@ func TestNewMemoryRepository(t *testing.T) {
 	assert.NotNil(t, repo)
 }
 
+func TestNewMemoryRepository_UInt(t *testing.T) {
+	t.Parallel()
+
+	type (
+		entityID uint
+		entity   struct {
+			ID   entityID
+			Name string
+		}
+	)
+
+	repo := tests.NewMemoryRepository[entity, entityID]()
+
+	t.Run("generate IDs of different type", func(t *testing.T) {
+		t.Parallel()
+
+		id, _ := repo.NextID(ctx)
+		t.Log(id)
+
+		id, _ = repo.NextID(ctx)
+		t.Log(id)
+
+		id, _ = repo.NextID(ctx)
+		t.Log(id)
+		assert.Equal(t, entityID(3), id)
+	})
+
+	t.Run("access the structs ID field properly", func(t *testing.T) {
+		t.Parallel()
+
+		err := repo.Save(ctx, entity{ID: 1337, Name: gofakeit.Name()})
+		assert.NoError(t, err)
+
+		c, _ := repo.Count(ctx)
+		assert.Equal(t, 1, c)
+	})
+}
+
+func TestEntityWithoutID(t *testing.T) {
+	t.Parallel()
+
+	repo := tests.NewMemoryRepository[EntityWithoutID, EntityID]()
+
+	assert.Panics(t, func() {
+		repo.Save(ctx, EntityWithoutID{})
+	})
+}
+
 func TestMemoryRepository_NextID(t *testing.T) {
 	t.Parallel()
 
 	repo := tests.NewMemoryRepository[Entity, EntityID]()
-	id := repo.NextID(ctx)
+	id, err := repo.NextID(ctx)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, id)
 
 	t.Log(id)
@@ -113,7 +162,7 @@ func TestMemoryRepository_Delete(t *testing.T) {
 	assert.NoError(t, err)
 
 	e, err := repo.FindByID(ctx, defaultEntity.ID)
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, tests.ErrNotFound)
 	assert.Empty(t, e)
 }
 
@@ -151,31 +200,48 @@ func TestMemoryRepository_AllByIDs(t *testing.T) {
 	assert.Empty(t, all)
 
 	all, err = repo.AllByIDs(ctx, []EntityID{})
-	assert.NoError(t, err)
+	assert.NoError(t, err, "empty list should not return an error")
 	assert.Empty(t, all)
 
 	all, err = repo.AllByIDs(ctx, []EntityID{e0.ID, e1.ID})
 	assert.NoError(t, err)
-	assert.Len(t, all, 2)
+	assert.Len(t, all, 2, "should find all ids")
+
+	all, err = repo.AllByIDs(ctx, []EntityID{
+		e0.ID,
+		EntityID(uuid.New().String()),
+	})
+	assert.ErrorIs(t, err, tests.ErrNotFound, "should not find all ids")
+	assert.Empty(t, all)
 }
 
-func TestMemoryRepository_ExistsByID(t *testing.T) {
+func TestMemoryRepository_FindByID(t *testing.T) {
 	t.Parallel()
 
 	repo := tests.NewMemoryRepository[Entity, EntityID]()
 
-	ex, err := repo.ExistsByID(ctx, EntityID(uuid.New().String()))
-	assert.NoError(t, err)
-	assert.False(t, ex, "id does not exist")
+	e, err := repo.FindByID(ctx, newEntity().ID)
+	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.Empty(t, e)
+}
+
+func TestMemoryRepository_ContainsID(t *testing.T) {
+	t.Parallel()
+
+	repo := tests.NewMemoryRepository[Entity, EntityID]()
+
+	ex, err := repo.ContainsID(ctx, EntityID(uuid.New().String()))
+	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.False(t, ex, "id should not exist")
 
 	repo.Create(ctx, defaultEntity)
 
-	ex, err = repo.ExistsByID(ctx, defaultEntity.ID)
+	ex, err = repo.ContainsID(ctx, defaultEntity.ID)
 	assert.NoError(t, err)
-	assert.True(t, ex, "id does exist")
+	assert.True(t, ex, "id should exist")
 }
 
-func TestMemoryRepository_ExistByIDs(t *testing.T) {
+func TestMemoryRepository_ContainsIDs(t *testing.T) {
 	t.Parallel()
 
 	e0 := newEntity()
@@ -186,38 +252,21 @@ func TestMemoryRepository_ExistByIDs(t *testing.T) {
 	repo.Create(ctx, e1)
 	repo.Create(ctx, newEntity())
 
-	ex, err := repo.ExistByIDs(ctx, nil)
+	ex, err := repo.ContainsIDs(ctx, nil)
 	assert.NoError(t, err)
 	assert.False(t, ex)
 
-	ex, err = repo.ExistByIDs(ctx, []EntityID{})
+	ex, err = repo.ContainsIDs(ctx, []EntityID{})
 	assert.NoError(t, err)
 	assert.False(t, ex)
 
-	ex, err = repo.ExistByIDs(ctx, []EntityID{e0.ID, e1.ID})
+	ex, err = repo.ContainsIDs(ctx, []EntityID{e0.ID, e1.ID})
 	assert.NoError(t, err)
 	assert.True(t, ex)
 
-	ex, err = repo.ExistByIDs(ctx, []EntityID{newEntity().ID})
-	assert.NoError(t, err)
+	ex, err = repo.ContainsIDs(ctx, []EntityID{newEntity().ID})
+	assert.ErrorIs(t, err, tests.ErrNotFound)
 	assert.False(t, ex)
-}
-
-func TestMemoryRepository_Length(t *testing.T) {
-	t.Parallel()
-
-	repo := tests.NewMemoryRepository[Entity, EntityID]()
-
-	count, err := repo.Length(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, count, "new repository should be empty")
-
-	repo.Create(ctx, newEntity())
-	repo.Create(ctx, newEntity())
-
-	count, err = repo.Length(ctx)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, count, "should have two entities")
 }
 
 func TestMemoryRepository_Save(t *testing.T) {
@@ -323,6 +372,23 @@ func TestMemoryRepository_AddAll(t *testing.T) {
 	})
 }
 
+func TestMemoryRepository_Length(t *testing.T) {
+	t.Parallel()
+
+	repo := tests.NewMemoryRepository[Entity, EntityID]()
+
+	count, err := repo.Length(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count, "new repository should be empty")
+
+	repo.Create(ctx, newEntity())
+	repo.Create(ctx, newEntity())
+
+	count, err = repo.Length(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count, "should have two entities")
+}
+
 func TestMemoryRepository_DeleteByID(t *testing.T) {
 	t.Parallel()
 
@@ -376,54 +442,6 @@ func TestMemoryRepository_Clear(t *testing.T) {
 
 	c, _ := repo.Count(ctx)
 	assert.Equal(t, 0, c)
-}
-
-func TestEntityWithoutID(t *testing.T) {
-	t.Parallel()
-
-	repo := tests.NewMemoryRepository[EntityWithoutID, EntityID]()
-
-	assert.Panics(t, func() {
-		repo.Save(ctx, EntityWithoutID{})
-	})
-}
-
-func TestNewMemoryRepository_UInt(t *testing.T) {
-	t.Parallel()
-
-	type (
-		entityID uint
-		entity   struct {
-			ID   entityID
-			Name string
-		}
-	)
-
-	repo := tests.NewMemoryRepository[entity, entityID]()
-
-	t.Run("generate IDs of different type", func(t *testing.T) {
-		t.Parallel()
-
-		id := repo.NextID(ctx)
-		t.Log(id)
-
-		id = repo.NextID(ctx)
-		t.Log(id)
-
-		id = repo.NextID(ctx)
-		t.Log(id)
-		assert.Equal(t, entityID(3), id)
-	})
-
-	t.Run("access the structs ID field properly", func(t *testing.T) {
-		t.Parallel()
-
-		err := repo.Save(ctx, entity{ID: 1337, Name: gofakeit.Name()})
-		assert.NoError(t, err)
-
-		c, _ := repo.Count(ctx)
-		assert.Equal(t, 1, c)
-	})
 }
 
 // --- --- --- TEST DATA --- --- ---

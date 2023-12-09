@@ -11,22 +11,16 @@ import (
 )
 
 var (
+	ErrNotFound      = errors.New("not found")
 	ErrSaveFailed    = errors.New("save failed")
 	ErrAlreadyExists = errors.New("exists already")
 )
 
-// idType is the primary key used in the generic Repository.
-type idType interface {
-	~string |
-		~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
-}
-
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
 // ID is the primary key and needs to have an underlying string type, integers are not supported.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
-type Repository[E any, ID idType] interface { //nolint:interfacebloat // showcase of all methods that are possible
-	NextID(context.Context) ID
+type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of all methods that are possible
+	NextID(context.Context) (ID, error)
 
 	Create(context.Context, E) error
 	Read(context.Context, ID) (E, error)
@@ -47,16 +41,16 @@ type Repository[E any, ID idType] interface { //nolint:interfacebloat // showcas
 	ContainsIDs(context.Context, []ID) (bool, error)
 	ContainsAll(context.Context, []ID) (bool, error)
 
-	Count(context.Context) (int, error)
-	Length(context.Context) (int, error)
-	Empty(context.Context) (bool, error)
-	IsEmpty(context.Context) (bool, error)
-
 	Save(context.Context, E) error
 	SaveAll(context.Context, []E) error
 	UpdateAll(context.Context, []E) error
 	Add(context.Context, E) error
 	AddAll(context.Context, []E) error
+
+	Count(context.Context) (int, error)
+	Length(context.Context) (int, error)
+	Empty(context.Context) (bool, error)
+	IsEmpty(context.Context) (bool, error)
 
 	DeleteByID(context.Context, ID) error
 	DeleteByIDs(context.Context, []ID) error
@@ -64,16 +58,25 @@ type Repository[E any, ID idType] interface { //nolint:interfacebloat // showcas
 	Clear(context.Context) error
 }
 
-type MemoryRepositoryOption func(*repoConfig)
+// WithIDField set's the name of the field that is used a id/primary key.
+// If not set, it is assumed that the entity struct has a field with the name "ID".
+func WithIDField(idFieldName string) memoryRepositoryOption { //nolint:revive
+	return func(repo *repoConfig) {
+		repo.idFieldName = idFieldName
+	}
+}
+
+// id is the primary key used in the generic Repository.
+type id interface {
+	~string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
+type memoryRepositoryOption func(*repoConfig)
 
 type repoConfig struct {
 	idFieldName string
-}
-
-func WithIDField(c string) MemoryRepositoryOption {
-	return func(repo *repoConfig) {
-		repo.idFieldName = c
-	}
 }
 
 // NewMemoryRepository returns an implementation of MemoryRepository for the given entity E.
@@ -81,7 +84,7 @@ func WithIDField(c string) MemoryRepositoryOption {
 // be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case.
-func NewMemoryRepository[E any, ID idType](opts ...MemoryRepositoryOption) *MemoryRepository[E, ID] {
+func NewMemoryRepository[E any, ID id](opts ...memoryRepositoryOption) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:        &sync.Mutex{},
 		Data:         make(map[ID]E),
@@ -97,7 +100,7 @@ func NewMemoryRepository[E any, ID idType](opts ...MemoryRepositoryOption) *Memo
 }
 
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
-type MemoryRepository[E any, ID idType] struct {
+type MemoryRepository[E any, ID id] struct {
 	*sync.Mutex // The mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex.
 
 	// Data is the repository's collection. It is exposed in case you're extending the repository, see:
@@ -114,27 +117,32 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // f
 
 	idField := val.FieldByName(repo.idFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		panic("entity does not have the field " + repo.idFieldName)
+		panic("entity does not have the field with name: " + repo.idFieldName)
 	}
 
 	var id ID
 
 	switch idField.Kind() { //nolint:exhaustive
+	case reflect.String:
+		reflect.ValueOf(&id).Elem().SetString(idField.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		reflect.ValueOf(&id).Elem().SetInt(idField.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		reflect.ValueOf(&id).Elem().SetUint(idField.Uint())
 	default:
-		reflect.ValueOf(&id).Elem().SetString(idField.String())
+		panic("type of ID is not supported: " + idField.Kind().String())
 	}
 
 	return id
 }
 
-func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) ID { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
+// NextID returns a new ID. It can be of the underlying type of string or integer.
+func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	var id ID
 
 	switch reflect.TypeOf(id).Kind() { //nolint:exhaustive
+	case reflect.String:
+		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		repo.Mutex.Lock()
 		defer repo.Mutex.Unlock()
@@ -160,10 +168,10 @@ func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) ID { //nolint:ire
 
 		reflect.ValueOf(&id).Elem().SetUint(newID)
 	default:
-		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
+		panic("type of ID is not supported: " + reflect.TypeOf(id).Kind().String())
 	}
 
-	return id
+	return id, nil
 }
 
 func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
@@ -238,7 +246,7 @@ func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, erro
 		return t, nil
 	}
 
-	return *new(E), nil
+	return *new(E), ErrNotFound
 }
 
 func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E, error) {
@@ -252,6 +260,10 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E
 		}
 	}
 
+	if len(result) != len(ids) {
+		return []E(nil), ErrNotFound
+	}
+
 	return result, nil
 }
 
@@ -260,7 +272,7 @@ func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, err
 		return true, nil
 	}
 
-	return false, nil
+	return false, ErrNotFound
 }
 
 func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (bool, error) {
@@ -274,7 +286,7 @@ func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool
 
 	for _, id := range ids {
 		if _, ok := repo.Data[id]; !ok {
-			return false, nil
+			return false, ErrNotFound
 		}
 	}
 
@@ -360,11 +372,7 @@ func (repo *MemoryRepository[E, ID]) Add(ctx context.Context, entity E) error {
 
 func (repo *MemoryRepository[E, ID]) AddAll(ctx context.Context, entities []E) error {
 	for _, e := range entities {
-		ex, err := repo.Exists(ctx, repo.getID(e))
-		if err != nil {
-			return err
-		}
-
+		ex, _ := repo.Exists(ctx, repo.getID(e))
 		if ex {
 			return ErrAlreadyExists
 		}
