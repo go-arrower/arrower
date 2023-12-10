@@ -17,8 +17,9 @@ var (
 )
 
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
-// ID is the primary key and needs to have an underlying string type, integers are not supported.
+// ID is the primary key and needs to be of one of the underlying types.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
+// See the examples in the test files.
 type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of all methods that are possible
 	NextID(context.Context) (ID, error)
 
@@ -58,7 +59,7 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Clear(context.Context) error
 }
 
-// WithIDField set's the name of the field that is used a id/primary key.
+// WithIDField set's the name of the field that is used as an id or primary key.
 // If not set, it is assumed that the entity struct has a field with the name "ID".
 func WithIDField(idFieldName string) memoryRepositoryOption { //nolint:revive
 	return func(repo *repoConfig) {
@@ -66,7 +67,7 @@ func WithIDField(idFieldName string) memoryRepositoryOption { //nolint:revive
 	}
 }
 
-// id is the primary key used in the generic Repository.
+// id are the types allowed as a primary key used in the generic Repository.
 type id interface {
 	~string |
 		~int | ~int8 | ~int16 | ~int32 | ~int64 |
@@ -83,7 +84,7 @@ type repoConfig struct {
 // It is expected that E has a field called `ID`, that is used as the primary key and can
 // be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
-// your own repository easily to your use case.
+// your own repository easily to your use case. See the examples in the test files.
 func NewMemoryRepository[E any, ID id](opts ...memoryRepositoryOption) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:        &sync.Mutex{},
@@ -101,11 +102,12 @@ func NewMemoryRepository[E any, ID id](opts ...memoryRepositoryOption) *MemoryRe
 
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
 type MemoryRepository[E any, ID id] struct {
-	*sync.Mutex // The mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex.
+	// Mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex as other methods.
+	*sync.Mutex
 
-	// Data is the repository's collection. It is exposed in case you're extending the repository, see:
-	// https://www.arrower.org/docs/basics/testing#extending-the-repository
-	// PREVENT using it directly and access the data through methods. If you write to it USE the Mutex to lock first.
+	// Data is the repository's collection. It is exposed in case you're extending the repository.
+	// PREVENT using and accessing Data it directly, go through the repository methods.
+	// If you write to Data, USE the Mutex to lock first.
 	Data         map[ID]E
 	currentIntID ID
 
