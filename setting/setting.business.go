@@ -148,7 +148,7 @@ func (v Value) Int8() int8 {
 func (v Value) Int16() int16 {
 	i, _ := strconv.Atoi(v.v)
 
-	return int16(i)
+	return int16(i) //nolint:gosec,lll // accept potential integer overflow, as it is expected, that the develoepr knows what he is doing.
 }
 
 func (v Value) Int32() int32 {

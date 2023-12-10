@@ -21,8 +21,8 @@ var _ Settings = (*SettingsHandler)(nil)
 type SettingsHandler struct {
 	repo repository
 
-	mu       sync.Mutex
 	onChange map[Key][]func(Value)
+	mu       sync.Mutex
 }
 
 func (s *SettingsHandler) Save(ctx context.Context, key Key, setting Value) error {
@@ -36,11 +36,11 @@ func (s *SettingsHandler) Save(ctx context.Context, key Key, setting Value) erro
 		go s.notifyOnConfigChange(key, setting)
 	}
 
-	return s.repo.Save(ctx, key, setting)
+	return s.repo.Save(ctx, key, setting) //nolint:wrapcheck
 }
 
 func (s *SettingsHandler) Setting(ctx context.Context, key Key) (Value, error) {
-	return s.repo.FindByID(ctx, key)
+	return s.repo.FindByID(ctx, key) //nolint:wrapcheck
 }
 
 func (s *SettingsHandler) OnSettingChange(key Key, callback func(setting Value)) {
@@ -73,5 +73,5 @@ func (repo *inMemoryRepository) Save(_ context.Context, key Key, value Value) er
 }
 
 func (repo *inMemoryRepository) FindByID(ctx context.Context, key Key) (Value, error) {
-	return repo.MemoryRepository.FindByID(ctx, key.Key())
+	return repo.MemoryRepository.FindByID(ctx, key.Key()) //nolint:wrapcheck
 }
