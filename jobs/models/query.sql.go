@@ -12,7 +12,10 @@ import (
 )
 
 const getWorkerPools = `-- name: GetWorkerPools :many
-SELECT id, queue, workers, created_at, updated_at FROM public.gue_jobs_worker_pool WHERE updated_at > NOW() - INTERVAL '2 minutes' ORDER BY queue, id
+SELECT id, queue, workers, created_at, updated_at
+FROM public.gue_jobs_worker_pool
+WHERE updated_at > NOW() - INTERVAL '2 minutes'
+ORDER BY queue, id
 `
 
 func (q *Queries) GetWorkerPools(ctx context.Context) ([]GueJobsWorkerPool, error) {
@@ -41,11 +44,72 @@ func (q *Queries) GetWorkerPools(ctx context.Context) ([]GueJobsWorkerPool, erro
 	return items, nil
 }
 
+const insertHistory = `-- name: InsertHistory :exec
+INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
+                                     updated_at, success, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $8::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE, NULL)
+`
+
+type InsertHistoryParams struct {
+	JobID    string
+	Priority int16
+	RunAt    pgtype.Timestamptz
+	JobType  string
+	Args     []byte
+	RunCount int32
+	Queue    string
+	RunError string
+}
+
+func (q *Queries) InsertHistory(ctx context.Context, arg InsertHistoryParams) error {
+	_, err := q.db.Exec(ctx, insertHistory,
+		arg.JobID,
+		arg.Priority,
+		arg.RunAt,
+		arg.JobType,
+		arg.Args,
+		arg.RunCount,
+		arg.Queue,
+		arg.RunError,
+	)
+	return err
+}
+
+const updateHistory = `-- name: UpdateHistory :exec
+UPDATE public.gue_jobs_history
+SET run_error   = $5::text,
+    finished_at = STATEMENT_TIMESTAMP(),
+    run_count   = $1,
+    success     = $2
+WHERE job_id = $3
+  AND run_count = $4
+  AND finished_at IS NULL
+`
+
+type UpdateHistoryParams struct {
+	RunCount   int32
+	Success    bool
+	JobID      string
+	RunCount_2 int32
+	RunError   string
+}
+
+func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) error {
+	_, err := q.db.Exec(ctx, updateHistory,
+		arg.RunCount,
+		arg.Success,
+		arg.JobID,
+		arg.RunCount_2,
+		arg.RunError,
+	)
+	return err
+}
+
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
 INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
-    VALUES($1, $2, $3, STATEMENT_TIMESTAMP(), $4)
-ON CONFLICT (id, queue) DO
-    UPDATE SET updated_at = STATEMENT_TIMESTAMP(), workers = $3
+VALUES ($1, $2, $3, STATEMENT_TIMESTAMP(), $4)
+ON CONFLICT (id, queue) DO UPDATE SET updated_at = STATEMENT_TIMESTAMP(),
+                                      workers    = $3
 `
 
 type UpsertWorkerToPoolParams struct {

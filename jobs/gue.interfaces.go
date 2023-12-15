@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vgarvardt/gue/v5"
 	"github.com/vgarvardt/gue/v5/adapter"
@@ -81,14 +82,13 @@ func NewPostgresJobs(
 	poolName := randomPoolName(defaultPoolNameLength)
 
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
-	repo := NewPostgresJobsRepository(models.New(pgxPool))
 
 	handler := &GueHandler{
 		logger:             logger,
 		gueLogger:          gueLogger,
 		meter:              meter,
 		tracer:             tracer,
-		repo:               repo,
+		queries:            models.New(pgxPool),
 		gueClient:          nil, // has to be set after all opts have been applied
 		gueWorkMap:         gue.WorkMap{},
 		pollInterval:       defaultPollInterval,
@@ -130,7 +130,7 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 	meter     metric.Meter
 	tracer    trace.Tracer
 
-	repo repository
+	queries *models.Queries
 
 	gueClient    *gue.Client
 	gueWorkMap   gue.WorkMap
@@ -476,8 +476,8 @@ func (h *GueHandler) startWorkers() error {
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
-		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger)),
-		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger)),
+		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries)),
+		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger, h.queries)),
 		gue.WithPoolID(h.poolName), gue.WithPoolLogger(h.gueLogger),
 		gue.WithPoolMeter(h.meter),
 		gue.WithPoolTracer(h.tracer),
@@ -491,18 +491,26 @@ func (h *GueHandler) startWorkers() error {
 	go func(ctx context.Context) { // register worker pool regularly, so it stays "active" for monitoring
 		const refreshDuration = 30 * time.Second
 
-		workerPool := workerPool{
-			ID:       h.poolName,
-			Queue:    h.queue,
-			Workers:  h.poolSize,
-			LastSeen: time.Now(),
-		}
-		_ = h.repo.RegisterWorkerPool(ctx, workerPool)
+		_ = connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
+			ID:        h.poolName,
+			Queue:     h.queue,
+			Workers:   int16(h.poolSize),
+			UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
+		})
+		// if err != nil { // todo log error
+		//	return fmt.Errorf("%w: %v", ErrQueryFailed, err) //nolint:errorlint // prevent err in api
+		// }
 
 		for {
 			select {
 			case <-time.NewTicker(refreshDuration).C:
-				_ = h.repo.RegisterWorkerPool(ctx, workerPool)
+				// todo make reusable function
+				_ = connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
+					ID:        h.poolName,
+					Queue:     h.queue,
+					Workers:   int16(h.poolSize),
+					UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
+				})
 			case <-ctx.Done():
 				return
 			}
@@ -529,22 +537,43 @@ func (h *GueHandler) startWorkers() error {
 	return nil
 }
 
-func recordStartedJobsToHistory(logger alog.Logger) func(context.Context, *gue.Job, error) {
+func recordStartedJobsToHistory(logger alog.Logger, queries *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
 		// if jobErr is set, the job could not be pulled from the DB.
 		if jobErr != nil {
 			return
 		}
 
-		_, err := job.Tx().Exec(ctx, `INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at, updated_at, success, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,  STATEMENT_TIMESTAMP(),  STATEMENT_TIMESTAMP(), FALSE, NULL);`, //nolint:lll,dupword
-			job.ID.String(), job.Priority, job.RunAt, job.Type, job.Args, job.ErrorCount, job.LastError, job.Queue,
-		)
+		tx, ok := pgxv5.UnwrapTx(job.Tx())
+		if !ok {
+			logger.InfoContext(ctx, "could not access transaction to record job in history")
+
+			return
+		}
+
+		queries = queries.WithTx(tx)
+
+		err := queries.InsertHistory(ctx, models.InsertHistoryParams{
+			JobID:    job.ID.String(),
+			Priority: int16(job.Priority),
+			RunAt:    pgtype.Timestamptz{Time: job.RunAt, Valid: true, InfinityModifier: pgtype.Finite},
+			JobType:  job.Type,
+			Args:     job.Args,
+			RunCount: job.ErrorCount,
+			RunError: job.LastError.String,
+			Queue:    job.Queue,
+		})
 		if err != nil {
-			logger.InfoContext(ctx, "could not add started job to gue_jobs_history table", slog.Any("err", err),
-				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
-				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
-				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
-				slog.String("run_error", job.LastError.String), slog.String("queue", job.Queue),
+			logger.InfoContext(ctx, "could not add started job to gue_jobs_history table",
+				slog.Any("err", err),
+				slog.String("job_id", job.ID.String()),
+				slog.String("queue", job.Queue),
+				slog.String("job_type", job.Type),
+				slog.String("args", string(job.Args)),
+				slog.Int("run_count", int(job.ErrorCount)),
+				slog.Int("priority", int(job.Priority)),
+				slog.Time("run_at", job.RunAt),
+				slog.String("run_error", job.LastError.String),
 			)
 		}
 	}
@@ -552,34 +581,57 @@ func recordStartedJobsToHistory(logger alog.Logger) func(context.Context, *gue.J
 
 // recordFinishedJobsToHistory takes each job that's finished and logs it into a new table,
 // so it's persisted for later analytics.
-// gue does delete finished jobs from the gue_jobs table and the information would be lost otherwise.
-func recordFinishedJobsToHistory(logger alog.Logger) func(context.Context, *gue.Job, error) {
+// gue does delete finished jobs from the gue_jobs table, and the information would be lost otherwise.
+func recordFinishedJobsToHistory(logger alog.Logger, queries *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
+		logger = logger.With(
+			slog.String("job_id", job.ID.String()),
+			slog.String("queue", job.Queue),
+			slog.String("job_type", job.Type),
+			slog.String("args", string(job.Args)),
+			slog.Int("run_count", int(job.ErrorCount)),
+			slog.Int("priority", int(job.Priority)),
+			slog.Time("run_at", job.RunAt),
+		)
+
+		tx, ok := pgxv5.UnwrapTx(job.Tx())
+		if !ok {
+			logger.InfoContext(ctx, "could not access transaction to record job in history")
+
+			return
+		}
+
+		queries = queries.WithTx(tx)
+
 		if jobErr != nil { // job returned with an error and worker JobFunc failed
-			_, err2 := job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_error = $1, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
-				jobErr.Error(), job.ID.String(), job.ErrorCount,
-			)
-			if err2 != nil {
-				logger.InfoContext(ctx, "could not add failed job to gue_jobs_history table", slog.Any("err", err2),
-					slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
-					slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
-					slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
-					slog.String("run_error", jobErr.Error()), slog.String("queue", job.Queue),
+			err := queries.UpdateHistory(ctx, models.UpdateHistoryParams{
+				RunError:   jobErr.Error(),
+				RunCount:   0,
+				Success:    false,
+				JobID:      job.ID.String(),
+				RunCount_2: job.ErrorCount, // todo rename
+			})
+			if err != nil {
+				logger.InfoContext(ctx, "could not add failed job to gue_jobs_history table",
+					slog.Any("err", err),
+					slog.String("run_error", jobErr.Error()),
 				)
 			}
 
 			return
 		}
 
-		_, err := job.Tx().Exec(ctx, `UPDATE public.gue_jobs_history SET run_count = $1, run_error = '', success = TRUE, finished_at =  STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;`, //nolint:lll
-			job.ErrorCount, job.ID.String(), job.ErrorCount,
-		)
+		err := queries.UpdateHistory(ctx, models.UpdateHistoryParams{
+			RunError:   "",
+			RunCount:   job.ErrorCount,
+			Success:    true,
+			JobID:      job.ID.String(),
+			RunCount_2: job.ErrorCount, // todo rename
+		})
 		if err != nil {
-			logger.InfoContext(ctx, "could not add succeeded job to gue_jobs_history table", slog.Any("err", err),
-				slog.String("job_id", job.ID.String()), slog.Int("priority", int(job.Priority)),
-				slog.Time("run_at", job.RunAt), slog.String("job_type", job.Type),
-				slog.String("args", string(job.Args)), slog.Int("run_count", int(job.ErrorCount)),
-				slog.String("run_error", ""), slog.String("queue", job.Queue),
+			logger.InfoContext(ctx, "could not add succeeded job to gue_jobs_history table",
+				slog.Any("err", err),
+				slog.String("run_error", ""),
 			)
 		}
 	}
@@ -605,11 +657,11 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
 
-	if err := h.repo.RegisterWorkerPool(ctx, workerPool{
-		ID:       h.poolName,
-		Queue:    h.queue,
-		Workers:  0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
-		LastSeen: time.Now(),
+	if err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{ // todo use function
+		ID:        h.poolName,
+		Queue:     h.queue,
+		Workers:   0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
+		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	}); err != nil {
 		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
@@ -646,4 +698,13 @@ func randomPoolName(n int) string {
 	}
 
 	return string(b)
+}
+
+func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
+	if tx, ok := ctx.Value(postgres.CtxTX).(pgx.Tx); ok {
+		return queries.WithTx(tx)
+	}
+
+	// in case no transaction is present return the default DB access.
+	return queries
 }

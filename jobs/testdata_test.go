@@ -36,7 +36,7 @@ func (j jobWithSameNameAsSimpleJob) JobType() string {
 	return "simpleJob"
 }
 
-type GueJobHistory struct {
+type gueJobHistory struct {
 	JobID      string
 	JobType    string
 	Queue      string

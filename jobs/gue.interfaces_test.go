@@ -102,8 +102,8 @@ func TestNewGueJobs(t *testing.T) {
 		_ = jq.Enqueue(ctx, simpleJob{})
 		time.Sleep(500 * time.Millisecond) // wait for worker to start and process the job
 
-		repo := jobs.NewPostgresJobsRepository(models.New(pg))
-		wp, err := repo.WorkerPools(ctx)
+		queries := models.New(pg)
+		wp, err := queries.GetWorkerPools(ctx)
 		assert.NoError(t, err)
 
 		// expect one worker with right name to be registered in the db
@@ -505,7 +505,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo := jobs.NewPostgresJobsRepository(models.New(pg))
+		queries := models.New(pg)
 
 		jq, err := jobs.NewPostgresJobs(logger, mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPoolName("pool_name"), jobs.WithPoolSize(7), jobs.WithPollInterval(time.Nanosecond),
@@ -517,19 +517,19 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		// wait for the startWorkers to register itself as online
 		time.Sleep(100 * time.Millisecond)
 
-		wp, err := repo.WorkerPools(ctx)
+		wp, err := queries.GetWorkerPools(ctx)
 		assert.NoError(t, err)
 		assert.Len(t, wp, 1)
 		assert.Equal(t, "pool_name", wp[0].ID)
-		assert.Equal(t, 7, wp[0].Workers)
+		assert.Equal(t, int16(7), wp[0].Workers)
 
 		err = jq.Shutdown(ctx)
 		assert.NoError(t, err)
 
-		wp, err = repo.WorkerPools(ctx)
+		wp, err = queries.GetWorkerPools(ctx)
 		assert.NoError(t, err)
 		assert.Len(t, wp, 1)
-		assert.Equal(t, 0, wp[0].Workers)
+		assert.Equal(t, int16(0), wp[0].Workers)
 	})
 }
 
@@ -541,7 +541,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 
-		jq, err := jobs.NewPostgresJobs(logger, mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -565,7 +565,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 1)
 
 		// ensure the job is finished successful
-		var hJob GueJobHistory
+		var hJob gueJobHistory
 		err = pgxscan.Get(ctx, pg, &hJob, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
 
@@ -622,7 +622,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 2)
 
 		// ensure the job is finished with fail conditions
-		var hJobs []GueJobHistory
+		var hJobs []gueJobHistory
 		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
 		assert.Len(t, hJobs, 2)
@@ -687,7 +687,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 2)
 
 		// ensure the job is finished with fail conditions
-		var hJobs []GueJobHistory
+		var hJobs []gueJobHistory
 		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
 		assert.Len(t, hJobs, 2)
