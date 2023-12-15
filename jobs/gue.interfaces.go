@@ -110,7 +110,7 @@ func NewPostgresJobs(
 
 	gc, err := gue.NewClient(
 		poolAdapter,
-		gue.WithClientID(handler.poolName), // after potential overwrite from opts
+		gue.WithClientID(handler.poolName), // after potential overwriting from opts
 		gue.WithClientLogger(gueLogger),
 		gue.WithClientMeter(meter),
 	)
@@ -130,7 +130,7 @@ type GueHandler struct { //nolint:govet // accept fieldalignment so the struct f
 	meter     metric.Meter
 	tracer    trace.Tracer
 
-	repo Repository
+	repo repository
 
 	gueClient    *gue.Client
 	gueWorkMap   gue.WorkMap
@@ -491,7 +491,7 @@ func (h *GueHandler) startWorkers() error {
 	go func(ctx context.Context) { // register worker pool regularly, so it stays "active" for monitoring
 		const refreshDuration = 30 * time.Second
 
-		workerPool := WorkerPool{
+		workerPool := workerPool{
 			ID:       h.poolName,
 			Queue:    h.queue,
 			Workers:  h.poolSize,
@@ -605,7 +605,7 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrFailed, err) //nolint:errorlint // prevent err in api
 	}
 
-	if err := h.repo.RegisterWorkerPool(ctx, WorkerPool{
+	if err := h.repo.RegisterWorkerPool(ctx, workerPool{
 		ID:       h.poolName,
 		Queue:    h.queue,
 		Workers:  0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
