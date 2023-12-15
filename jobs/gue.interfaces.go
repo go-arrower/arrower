@@ -619,31 +619,6 @@ func (h *GueHandler) shutdown(ctx context.Context) error {
 	return nil
 }
 
-// WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
-func WithPriority(priority int16) JobOpt {
-	return func(j Job) error {
-		if j, ok := (j).(*gue.Job); ok {
-			j.Priority = gue.JobPriority(priority)
-
-			return nil
-		}
-
-		return ErrInvalidJobOpt
-	}
-}
-
-func WithRunAt(runAt time.Time) JobOpt {
-	return func(j Job) error {
-		if j, ok := (j).(*gue.Job); ok {
-			j.RunAt = runAt
-
-			return nil
-		}
-
-		return ErrInvalidJobOpt
-	}
-}
-
 // getJobTypeFromReflectValue returns the jobType as the struct name or takes it from JobType,
 // if that interface is implemented.
 func getJobTypeFromReflectValue(jobFunc reflect.Type) string {

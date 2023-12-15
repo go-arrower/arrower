@@ -3,19 +3,22 @@ package jobs
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/vgarvardt/gue/v5"
 )
 
 var (
 	ErrInvalidJobFunc = errors.New("invalid JobFunc func signature")
 	ErrInvalidJobType = errors.New("invalid job type")
 	ErrInvalidJobOpt  = errors.New("invalid job option")
-	ErrFailed         = errors.New("failed")
+	ErrFailed         = errors.New("failed") // TODO is this enqueue failed?
 	ErrWorkerFailed   = errors.New("arrower: job failed")
 )
 
-// Enqueuer is an interface that allows new jobs to be enqueued.
+// Enqueuer is an interface that allows new Jobs to be enqueued.
 type Enqueuer interface {
-	// Enqueue schedules new Jobs. Use the JobOpts to configure the jobs scheduled.
+	// Enqueue schedules new Jobs. Use the JobOpts to configure the Jobs scheduled.
 	// You can schedule and individual or multiple jobs at the same time.
 	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new job(s).
 	Enqueue(context.Context, Job, ...JobOpt) error
@@ -25,11 +28,11 @@ type Queue interface {
 	Enqueuer
 
 	// RegisterJobFunc registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
-	// as the job type, except Job implements the JobType interface, than that is used as a job type.
+	// as the job type, except Job implements the JobType interface. Then that is used as a job type.
 	//
 	// The queue starts processing Jobs automatically after the given poll interval via WithPollInterval (default 5 sec),
 	// as a waiting time for more JobFuncs to be registered. Consecutive calls to RegisterJobFunc reset the interval.
-	// Subsequent calls to RegisterJobFunc, will restart the queue, as the underlying library gue
+	// Subsequent calls to RegisterJobFunc will restart the queue, as the underlying library gue
 	// requires all workers to be known before start.
 	RegisterJobFunc(JobFunc) error
 
@@ -40,9 +43,9 @@ type Queue interface {
 
 type (
 	// Job has two purposes:
-	// 1. carry the payload passed between job creator and worker.
+	// 1. Carry the payload passed between job creator and worker.
 	//    The type of Job has to be a named struct that optionally implements JobType.
-	// 2. is a placeholder for any concrete implementation of the JobType interface. Its purpose is that it can be
+	// 2. Is a placeholder for any concrete implementation of the JobType interface. Its purpose is that it can be
 	//    used as a type for the JobType functions.
 	// Job can be a single struct, a slice of structs, or an arbitrary slice of structs, each element representing a
 	// job to be scheduled.
@@ -66,3 +69,31 @@ type (
 	// set a priority or a time at which the job should run at.
 	JobOpt func(p Job) error
 )
+
+// WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
+func WithPriority(priority int16) JobOpt {
+	return func(j Job) error {
+		if j, ok := (j).(*gue.Job); ok {
+			j.Priority = gue.JobPriority(priority)
+
+			return nil
+		}
+
+		return ErrInvalidJobOpt
+	}
+}
+
+// WithRunAt defines the time when a Job should be run at. Use it to schedule the Job into the future.
+// This is not a guarantee, that the Job will be executed at the exact runAt time, just that it will not
+// be processed earlier. If your queue is full, or you have to few workers, it might be picked up later.
+func WithRunAt(runAt time.Time) JobOpt {
+	return func(j Job) error {
+		if j, ok := (j).(*gue.Job); ok {
+			j.RunAt = runAt
+
+			return nil
+		}
+
+		return ErrInvalidJobOpt
+	}
+}
