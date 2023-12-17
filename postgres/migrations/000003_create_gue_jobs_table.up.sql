@@ -21,6 +21,8 @@ CREATE INDEX IF NOT EXISTS idx_gue_jobs_selector ON gue_jobs (queue, run_at, pri
 
 SELECT enable_automatic_updated_at('public.gue_jobs');
 
+SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM public.gue_jobs');
+
 
 -- collect historic gue_jobs for analytics, as the workers remove them from gue_jobs table after success.
 CREATE TABLE IF NOT EXISTS public.gue_jobs_history
@@ -53,11 +55,8 @@ CREATE UNLOGGED TABLE public.gue_jobs_worker_pool
     UNIQUE (id, queue)
 );
 
-
 SELECT enable_automatic_updated_at('public.gue_jobs_worker_pool');
 
-
-SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM public.gue_jobs');
 SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *', $$DELETE FROM public.gue_jobs_worker_pool WHERE updated_at < now() - interval '1 week'$$);
 
 
