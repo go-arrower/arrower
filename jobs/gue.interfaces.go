@@ -606,7 +606,7 @@ func recordFinishedJobsToHistory(logger alog.Logger, queries *models.Queries) fu
 		if jobErr != nil { // job returned with an error and worker JobFunc failed
 			err := queries.UpdateHistory(ctx, models.UpdateHistoryParams{
 				RunError:   jobErr.Error(),
-				RunCount:   0,
+				RunCount:   job.ErrorCount,
 				Success:    false,
 				JobID:      job.ID.String(),
 				RunCount_2: job.ErrorCount, // todo rename

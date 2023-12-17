@@ -592,7 +592,7 @@ func TestGueHandler_History(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-			if count == 0 {
+			if count < 2 { // fail twice
 				count++
 
 				return errors.New("job returns with error") //nolint:goerr113
@@ -608,7 +608,7 @@ func TestGueHandler_History(t *testing.T) {
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		wg.Add(1)
-		err = jq.Enqueue(ctx, jobWithArgs{})
+		err = jq.Enqueue(ctx, jobWithArgs{Name: "argName"})
 		assert.NoError(t, err)
 
 		wg.Wait() // wait for the worker
@@ -619,24 +619,33 @@ func TestGueHandler_History(t *testing.T) {
 
 		_ = jq.Shutdown(ctx)
 
-		ensureJobHistoryTableRows(t, pg, 2)
+		ensureJobHistoryTableRows(t, pg, 3)
 
 		// ensure the job is finished with fail conditions
 		var hJobs []gueJobHistory
 		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
-		assert.Len(t, hJobs, 2)
+		assert.Len(t, hJobs, 3)
 
 		assert.False(t, hJobs[0].Success)
 		assert.NotEmpty(t, hJobs[0].FinishedAt)
 		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
+		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
 
-		assert.True(t, hJobs[1].Success)
+		assert.False(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
 		assert.Equal(t, 1, hJobs[1].RunCount)
-		assert.Empty(t, hJobs[1].RunError)
+		assert.NotEmpty(t, hJobs[1].RunError)
+		assert.Contains(t, hJobs[1].RunError, "arrower: job failed: ")
+		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+
+		assert.True(t, hJobs[2].Success)
+		assert.NotEmpty(t, hJobs[2].FinishedAt)
+		assert.Equal(t, 2, hJobs[2].RunCount)
+		assert.Empty(t, hJobs[2].RunError)
+		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
 	})
 
 	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {

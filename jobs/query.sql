@@ -6,8 +6,8 @@ ORDER BY queue, id;
 
 -- name: UpsertWorkerToPool :exec
 INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
-VALUES ($1, $2, $3, STATEMENT_TIMESTAMP(), $4)
-ON CONFLICT (id, queue) DO UPDATE SET updated_at = STATEMENT_TIMESTAMP(),
+VALUES ($1, $2, $3, NOW(), $4)
+ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
                                       workers    = $3;
 
 -- name: InsertHistory :exec
@@ -18,7 +18,7 @@ VALUES ($1, $2, $3, $4, $5, $6, sqlc.arg(run_error)::text, $7, STATEMENT_TIMESTA
 -- name: UpdateHistory :exec
 UPDATE public.gue_jobs_history
 SET run_error   = sqlc.arg(run_error)::text,
-    finished_at = STATEMENT_TIMESTAMP(),
+    finished_at = STATEMENT_TIMESTAMP(), -- now() or CURRENT_TIMESTAMP record the start of the transaction, this is more precise in case of a long running job.
     run_count   = $1,
     success     = $2
 WHERE job_id = $3
