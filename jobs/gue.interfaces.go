@@ -80,7 +80,6 @@ func NewPostgresJobs(
 	tracer := traceProvider.Tracer("arrower.jobs")
 
 	poolName := randomPoolName(defaultPoolNameLength)
-
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
 
 	handler := &GueHandler{
