@@ -101,7 +101,7 @@ func TestNewGueJobs(t *testing.T) {
 		wp, err := queries.GetWorkerPools(ctx)
 		assert.NoError(t, err)
 
-		// expect one worker with right name to be registered in the db
+		// expect one worker with the right name to be registered in the db
 		assert.Len(t, wp, 1)
 		assert.Equal(t, argName, wp[0].ID)
 		// expect the gue-logs to contain the right name as client-id
@@ -321,8 +321,8 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		wg.Wait()                          // all workers are done, and now:
 		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
-		ensureJobTableRows(t, pg, 0)        // all jobs are processed
-		ensureJobHistoryTableRows(t, pg, 4) // history has all jobs
+		ensureJobTableRows(t, pg, 0)        // all Jobs are processed
+		ensureJobHistoryTableRows(t, pg, 4) // history has all Jobs
 
 		_ = jq.Shutdown(ctx)
 	})
@@ -360,8 +360,8 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		wg.Wait()                          // all workers are done, and now:
 		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
-		ensureJobTableRows(t, pg, 0)        // all jobs are processed
-		ensureJobHistoryTableRows(t, pg, 2) // history has all jobs
+		ensureJobTableRows(t, pg, 0)        // all Jobs are processed
+		ensureJobHistoryTableRows(t, pg, 2) // history has all Jobs
 
 		_ = jq.Shutdown(ctx)
 	})
@@ -381,7 +381,7 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		// enforce the same runAt time, so the priority is considered by the queue as the second argument to order with.
+		// enforce the same runAt time, so the queue considers the priority as the second argument to order with.
 		runAt := jobs.WithRunAt(time.Now().UTC())
 
 		// First queued job has default priority
@@ -397,10 +397,10 @@ func TestGueHandler_Enqueue(t *testing.T) {
 			mu.Lock()
 			defer mu.Unlock()
 
-			if job.Name == "0" { // expect job with Name 0 to be run first (^= 0) in order
+			if job.Name == "0" { // expect Job with Name 0 to be run first (^= 0) in order
 				assert.Equal(t, 0, order)
 			}
-			if job.Name == "1" { // expect job with Name 1 to be run afterwards ^= higher order
+			if job.Name == "1" { // expect Job with Name 1 to be run afterwards ^= higher order
 				assert.Equal(t, 1, order)
 			}
 
@@ -534,22 +534,22 @@ func TestGueHandler_History(t *testing.T) {
 		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error { return nil })
 		assert.NoError(t, err)
 
-		// job history table is empty before first job is enqueued
+		// job history table is empty before the first Job is enqueued
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		err = jq.Enqueue(ctx, jobWithArgs{})
 		assert.NoError(t, err)
 
-		// wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup in the JobFunc does not work,
+		// Wait until the worker & all it's hooks are processed. The use of a sync.WaitGroup in the JobFunc does not work,
 		// because wg.Done() can only be called from the worker func and not the hooks (where it would need to be placed).
 		time.Sleep(time.Millisecond * 400)
 
 		_ = jq.Shutdown(ctx)
 
-		// job history table contains finished job
+		// job history table contains the finished Job
 		ensureJobHistoryTableRows(t, pg, 1)
 
-		// ensure the job is finished successful
+		// ensure the Job is finished successful
 		var hJob gueJobHistory
 		err = pgxscan.Get(ctx, pg, &hJob, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
@@ -588,7 +588,7 @@ func TestGueHandler_History(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		// job history table is empty before the first job is enqueued
+		// job history table is empty before the first Job is enqueued
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		wg.Add(1)
@@ -605,7 +605,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		ensureJobHistoryTableRows(t, pg, 3)
 
-		// ensure the job is finished with fail conditions
+		// ensure the Job is finished with fail conditions
 		var hJobs []gueJobHistory
 		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
@@ -661,7 +661,7 @@ func TestGueHandler_History(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		// job history table is empty before first job is enqueued
+		// job history table is empty before the first Job is enqueued
 		ensureJobHistoryTableRows(t, pg, 0)
 
 		wg.Add(1)
@@ -670,7 +670,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		wg.Wait() // waits for the worker
 
-		// wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
+		// Wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
 		// because Done() can only be called from the worker func and not the hooks.
 		time.Sleep(time.Millisecond * 50)
 
@@ -678,7 +678,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		ensureJobHistoryTableRows(t, pg, 2)
 
-		// ensure the job is finished with fail conditions
+		// ensure the Job is finished with fail conditions
 		var hJobs []gueJobHistory
 		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
 		assert.NoError(t, err)
@@ -714,7 +714,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 
 	t.Run("ensure long running jobs persist after shutdown of workers", func(t *testing.T) {
 		t.Parallel()
-		t.Skip() // currently, the Group that gue uses does not allow to return before all jobs are finished
+		t.Skip() // currently, the Group that gue uses does not allow returning before all Jobs are finished
 
 		pg := pgHandler.NewTestDatabase()
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
@@ -739,7 +739,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		err = jq.Enqueue(context.Background(), simpleJob{})
 		assert.NoError(t, err)
 
-		time.Sleep(100 * time.Millisecond) // wait a bit for the job to start processing
+		time.Sleep(100 * time.Millisecond) // wait a bit for the Job to start processing
 
 		err = jq.Shutdown(context.Background())
 		assert.NoError(t, err)
@@ -749,7 +749,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 
 	t.Run("ensure long running jobs persist after restart of workers", func(t *testing.T) {
 		t.Parallel()
-		t.Skip() // currently the Group that gue uses does not allow to return before all jobs are finished
+		t.Skip() // currently, the Group that gue uses does not allow returning before all Jobs are finished
 
 		pg := pgHandler.NewTestDatabase()
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
@@ -759,7 +759,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 
 		err = jq.RegisterJobFunc(func(context.Context, simpleJob) error {
 			t.Log("Started long running job")
-			time.Sleep(time.Minute * 60 * 24) // simulate long-running job
+			time.Sleep(time.Minute * 60 * 24) // simulate a long-running Job
 
 			return nil
 		})
@@ -768,7 +768,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		err = jq.Enqueue(context.Background(), simpleJob{})
 		assert.NoError(t, err)
 
-		time.Sleep(time.Millisecond) // wait a bit for the job to start processing
+		time.Sleep(time.Millisecond) // wait a bit for the Job to start processing
 		err = jq.RegisterJobFunc(func(context.Context, jobWithArgs) error { return nil })
 		assert.NoError(t, err)
 		ensureJobTableRows(t, pg, 1)
@@ -791,7 +791,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		err = jq.RegisterJobFunc(func(ctx context.Context, j simpleJob) error { return nil })
 		assert.NoError(t, err)
 
-		// create new transaction and set it in the context
+		// create a new transaction and set it in the context
 		newCtx := context.Background()
 		txHandle, err := pg.Begin(newCtx)
 		assert.NoError(t, err)
@@ -803,7 +803,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		rb := txHandle.Rollback(newCtx)
 		assert.NoError(t, rb)
 
-		// ensure job table has no rows, as rollback happened
+		// ensure Job table has no rows, as rollback happened
 		ensureJobTableRows(t, pg, 0)
 
 		_ = jq.Shutdown(newCtx)
