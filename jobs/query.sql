@@ -19,10 +19,10 @@ VALUES ($1, $2, $3, $4, $5, $6, sqlc.arg(run_error)::text, $7, STATEMENT_TIMESTA
 UPDATE public.gue_jobs_history
 SET run_error   = sqlc.arg(run_error)::text,
     finished_at = STATEMENT_TIMESTAMP(), -- now() or CURRENT_TIMESTAMP record the start of the transaction, this is more precise in case of a long running job.
-    run_count   = $1,
-    success     = $2
-WHERE job_id = $3
-  AND run_count = $4
+    run_count   = sqlc.arg(run_count),
+    success     = $1
+WHERE job_id = $2
+  AND run_count = sqlc.arg(run_count)
   AND finished_at IS NULL;
 
 --UPDATE public.gue_jobs_history SET run_error = $1, finished_at = STATEMENT_TIMESTAMP() WHERE job_id = $2 AND run_count = $3 AND finished_at IS NULL;

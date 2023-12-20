@@ -21,7 +21,7 @@ type myJob struct {
 
 type otherJob struct{}
 
-func ExampleGueHandler_Enqueue() {
+func ExamplePostgresJobsHandler_Enqueue() {
 	db := tests.GetPostgresDockerForIntegrationTestingInstance()
 
 	jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), db.PGx(),

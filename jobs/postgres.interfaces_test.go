@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 func TestNewGueJobs(t *testing.T) {
 	t.Parallel()
 
-	t.Run("initialise a new GueHandler", func(t *testing.T) {
+	t.Run("initialise a new PostgresJobsHandler", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
@@ -49,7 +49,7 @@ func TestNewGueJobs(t *testing.T) {
 		assert.NotEmpty(t, jq)
 	})
 
-	t.Run("initialise a new GueHandler with queue", func(t *testing.T) {
+	t.Run("initialise a new PostgresJobsHandler with queue", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
@@ -59,7 +59,7 @@ func TestNewGueJobs(t *testing.T) {
 		assert.NotEmpty(t, jq)
 	})
 
-	t.Run("initialise a new GueHandler with poll interval", func(t *testing.T) {
+	t.Run("initialise a new PostgresJobsHandler with poll interval", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
@@ -69,7 +69,7 @@ func TestNewGueJobs(t *testing.T) {
 		assert.NotEmpty(t, jq)
 	})
 
-	t.Run("initialise a new GueHandler with pool size", func(t *testing.T) {
+	t.Run("initialise a new PostgresJobsHandler with pool size", func(t *testing.T) {
 		t.Parallel()
 
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
@@ -79,7 +79,7 @@ func TestNewGueJobs(t *testing.T) {
 		assert.NotEmpty(t, jq)
 	})
 
-	t.Run("initialise a new GueHandler with pool name", func(t *testing.T) {
+	t.Run("initialise a new PostgresJobsHandler with pool name", func(t *testing.T) {
 		t.Parallel()
 
 		buf := &syncBuffer{}

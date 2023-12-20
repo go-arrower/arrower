@@ -3,17 +3,19 @@ package jobs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/vgarvardt/gue/v5"
 )
 
 var (
-	ErrInvalidJobFunc = errors.New("invalid JobFunc func signature")
-	ErrInvalidJobType = errors.New("invalid job type")
-	ErrInvalidJobOpt  = errors.New("invalid job option")
-	ErrFailed         = errors.New("failed") // TODO is this enqueue failed?
-	ErrWorkerFailed   = errors.New("arrower: job failed")
+	ErrRegisterJobFuncFailed = errors.New("register JobFunc failed")
+	ErrInvalidJobFunc        = fmt.Errorf("%w: invalid JobFunc func signature", ErrRegisterJobFuncFailed)
+	ErrEnqueueFailed         = errors.New("enqueue failed")
+	ErrInvalidJobType        = fmt.Errorf("%w: invalid job type", ErrEnqueueFailed)
+	ErrInvalidJobOpt         = fmt.Errorf("%w: invalid job option", ErrEnqueueFailed)
+	ErrJobFuncFailed         = errors.New("arrower: job failed")
 )
 
 // Enqueuer is an interface that allows new Jobs to be enqueued.

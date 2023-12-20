@@ -77,30 +77,28 @@ func (q *Queries) InsertHistory(ctx context.Context, arg InsertHistoryParams) er
 
 const updateHistory = `-- name: UpdateHistory :exec
 UPDATE public.gue_jobs_history
-SET run_error   = $5::text,
+SET run_error   = $3::text,
     finished_at = STATEMENT_TIMESTAMP(), -- now() or CURRENT_TIMESTAMP record the start of the transaction, this is more precise in case of a long running job.
-    run_count   = $1,
-    success     = $2
-WHERE job_id = $3
+    run_count   = $4,
+    success     = $1
+WHERE job_id = $2
   AND run_count = $4
   AND finished_at IS NULL
 `
 
 type UpdateHistoryParams struct {
-	RunCount   int32
-	Success    bool
-	JobID      string
-	RunCount_2 int32
-	RunError   string
+	Success  bool
+	JobID    string
+	RunError string
+	RunCount int32
 }
 
 func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) error {
 	_, err := q.db.Exec(ctx, updateHistory,
-		arg.RunCount,
 		arg.Success,
 		arg.JobID,
-		arg.RunCount_2,
 		arg.RunError,
+		arg.RunCount,
 	)
 	return err
 }
