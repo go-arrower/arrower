@@ -59,6 +59,13 @@ func WithPoolName(n string) QueueOpt {
 	}
 }
 
+// WithPollStrategy overrides default poll strategy with given value.
+func WithPollStrategy(s PollStrategy) QueueOpt {
+	return func(h *PostgresJobsHandler) {
+		h.pollStrategy = s
+	}
+}
+
 // NewPostgresJobs returns an initialised PostgresJobsHandler.
 // Each Worker in the pool defaults to a poll interval of 5 seconds, which can be
 // overridden by WithPollInterval option. The default queue is the
@@ -102,6 +109,7 @@ func NewPostgresJobs(
 		queue:              defaultQueue,
 		poolName:           poolName,
 		poolSize:           defaultPoolSize,
+		pollStrategy:       PriorityPollStrategy,
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
 		mu:                 sync.Mutex{},
@@ -146,6 +154,7 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 	queue        string
 	poolName     string
 	poolSize     int
+	pollStrategy PollStrategy
 
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
@@ -518,12 +527,16 @@ func (h *PostgresJobsHandler) startWorkers() error {
 		return fmt.Errorf("%w: queue already started", ErrRegisterJobFuncFailed)
 	}
 
+	const defaultPanicStackBufSize = 2 * 1024 // 2 * gue's default
+
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
 		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries)),
 		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger, h.queries)),
 		gue.WithPoolID(h.poolName),
 		gue.WithPoolLogger(h.gueLogger), gue.WithPoolMeter(h.meter), gue.WithPoolTracer(h.tracer),
+		gue.WithPoolPollStrategy(pollStrategyToGue(h.pollStrategy)),
+		gue.WithPoolPanicStackBufSize(defaultPanicStackBufSize),
 	)
 	if err != nil {
 		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrRegisterJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
@@ -551,6 +564,15 @@ func (h *PostgresJobsHandler) startWorkers() error {
 	h.isStartInProgress = false
 
 	return nil
+}
+
+func pollStrategyToGue(s PollStrategy) gue.PollStrategy {
+	switch s {
+	case RunAtPollStrategy:
+		return gue.RunAtPollStrategy
+	default:
+		return gue.PriorityPollStrategy
+	}
 }
 
 // continuouslyRegisterWorkerPool registers the worker pool regularly, so it stays "active" for monitoring.

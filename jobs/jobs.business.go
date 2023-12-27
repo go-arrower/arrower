@@ -72,6 +72,17 @@ type (
 	JobOpt func(p Job) error
 )
 
+type PollStrategy int
+
+const (
+	// PriorityPollStrategy cares about the priority first to lock top priority Jobs first even if there are available
+	// ones that should be executed earlier but with lower priority.
+	PriorityPollStrategy PollStrategy = iota
+	// RunAtPollStrategy cares about the scheduled time first to lock earliest to execute jobs first even if there
+	// are ones with a higher priority scheduled to a later time but already eligible for execution.
+	RunAtPollStrategy
+)
+
 // WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
 func WithPriority(priority int16) JobOpt {
 	return func(j Job) error {

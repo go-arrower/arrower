@@ -3,6 +3,11 @@ run:
     - integration
 
 linters-settings:
+  exhaustive:
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: true
   gci:
     # Section configuration to compare against.
     # Section names are case-insensitive and may contain parameters in ().

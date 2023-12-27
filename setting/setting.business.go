@@ -57,7 +57,7 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen
 
 	r := reflect.TypeOf(val)
 
-	switch r.Kind() { //nolint:exhaustive
+	switch r.Kind() {
 	case reflect.String:
 		return Value{v: val.(string)} //nolint:forcetypeassert
 	case reflect.Bool:

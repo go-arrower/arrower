@@ -110,6 +110,63 @@ func TestNewGueJobs(t *testing.T) {
 		// expect the gue-logs to contain the right name as client-id
 		assert.Contains(t, buf.String(), "jobs.gue.client-id="+argName)
 	})
+
+	t.Run("queue options", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("with poll strategy", func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				wg    sync.WaitGroup
+				mu    sync.Mutex
+				order int
+			)
+
+			pg := pgHandler.NewTestDatabase()
+			jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+				jobs.WithPollInterval(time.Nanosecond), jobs.WithPoolSize(1),
+				jobs.WithPollStrategy(jobs.RunAtPollStrategy),
+			)
+			assert.NoError(t, err)
+
+			// control the runAt time, so the queue considers the order as intended.
+			now := time.Now().UTC()
+
+			// The First Job has default priority and should be processed first
+			err = jq.Enqueue(ctx, jobWithArgs{Name: "0"}, jobs.WithRunAt(now))
+			assert.NoError(t, err)
+
+			// The Second Job has higher priority but starts later
+			err = jq.Enqueue(ctx, jobWithArgs{Name: "1"},
+				jobs.WithRunAt(now.Add(time.Millisecond)), // db looses nanoseconds granularity => ms
+				jobs.WithPriority(-1),
+			)
+			assert.NoError(t, err)
+
+			wg.Add(2)
+			err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
+				mu.Lock()
+				defer mu.Unlock()
+
+				if job.Name == "0" { // expect Job with Name 0 to be run first (^= 0) in order
+					assert.Equal(t, 0, order)
+				}
+				if job.Name == "1" { // expect Job with Name 1 to be run afterwards ^= higher order
+					assert.Equal(t, 1, order)
+				}
+
+				order++
+				wg.Done()
+
+				return nil
+			})
+			assert.NoError(t, err)
+
+			wg.Wait()
+			_ = jq.Shutdown(ctx)
+		})
+	})
 }
 
 func TestGueHandler_RegisterJobFunc(t *testing.T) {
@@ -388,11 +445,11 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		// enforce the same runAt time, so the queue considers the priority as the second argument to order with.
 		runAt := jobs.WithRunAt(time.Now().UTC())
 
-		// First queued job has default priority
+		// The First Job has default priority
 		err = jq.Enqueue(ctx, jobWithArgs{Name: "1"}, runAt)
 		assert.NoError(t, err)
 
-		// Second queued job has higher priority and should be processed first
+		// The Second Job has higher priority and should be processed first
 		err = jq.Enqueue(ctx, jobWithArgs{Name: "0"}, runAt, jobs.WithPriority(-1))
 		assert.NoError(t, err)
 

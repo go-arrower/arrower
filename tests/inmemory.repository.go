@@ -124,7 +124,7 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // f
 
 	var id ID
 
-	switch idField.Kind() { //nolint:exhaustive
+	switch idField.Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(idField.String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -142,7 +142,7 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // f
 func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	var id ID
 
-	switch reflect.TypeOf(id).Kind() { //nolint:exhaustive
+	switch reflect.TypeOf(id).Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
