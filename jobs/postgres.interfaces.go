@@ -10,19 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/codes"
-
-	"go.opentelemetry.io/otel/attribute"
-
-	"go.opentelemetry.io/otel/propagation"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vgarvardt/gue/v5"
 	"github.com/vgarvardt/gue/v5/adapter"
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
@@ -162,8 +159,8 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 var _ Queue = (*PostgresJobsHandler)(nil)
 
 type jobPayload struct {
-	Carrier propagation.MapCarrier
-	JobData []byte
+	Carrier propagation.MapCarrier `json:"carrier"`
+	JobData []byte                 `json:"jobData"`
 }
 
 func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
@@ -199,7 +196,12 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 	return nil
 }
 
-func (h *PostgresJobsHandler) gueJobsFromJob(ctx context.Context, queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
+func (h *PostgresJobsHandler) gueJobsFromJob(
+	ctx context.Context,
+	queue string,
+	job Job,
+	opts ...JobOpt,
+) ([]*gue.Job, error) {
 	gueJobs := []*gue.Job{}
 
 	carrier := propagation.MapCarrier{}
@@ -212,13 +214,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(ctx context.Context, queue string, 
 			return nil, err
 		}
 
-		jobByte, _ := json.Marshal(job)
-		args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
-		if err != nil {
-			return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
-		}
-
-		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
+		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, job, carrier, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -232,13 +228,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(ctx context.Context, queue string, 
 				return nil, err
 			}
 
-			jobByte, _ := json.Marshal(job.Interface())
-			args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
-			if err != nil {
-				return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
-			}
-
-			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, args, opts...)
+			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, job.Interface(), carrier, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -252,9 +242,20 @@ func buildAndAppendGueJob(
 	gueJobs []*gue.Job,
 	queue string,
 	jobType string,
-	args []byte,
+	job any,
+	carrier propagation.MapCarrier,
 	opts ...JobOpt,
 ) ([]*gue.Job, error) {
+	jobByte, err := json.Marshal(job)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
 	gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
 		Queue: queue,
 		Type:  jobType,
@@ -452,7 +453,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		args := reflect.New(paramType)
 		argsP := args.Interface()
 
-		payload := jobPayload{}
+		payload := jobPayload{} //nolint:exhaustruct
 
 		if err := json.Unmarshal(job.Args, &payload); err != nil {
 			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
@@ -468,11 +469,12 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unwrap gue job tx for use in the worker", ErrJobFuncFailed)
 		}
 
-		parentCtx := h.propagator.Extract(context.Background(), payload.Carrier)
+		parentCtx := h.propagator.Extract(ctx, payload.Carrier)
+
 		ctx, childSpan := h.tracer.Start(parentCtx, fmt.Sprintf("job: %s run: %d", paramType.String(), job.ErrorCount))
-		childSpan.SetAttributes(attribute.KeyValue{Key: "jobID", Value: attribute.StringValue(job.ID.String())})
 		defer childSpan.End()
 
+		childSpan.SetAttributes(attribute.KeyValue{Key: "jobID", Value: attribute.StringValue(job.ID.String())})
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 

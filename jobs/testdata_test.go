@@ -20,7 +20,7 @@ type (
 	jobWithSameNameAsSimpleJob struct{}
 
 	jobWithArgs struct {
-		Name string
+		Name string `json:"name"`
 	}
 
 	jobWithJobType struct {

@@ -12,15 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"go.opentelemetry.io/otel/propagation"
-
-	"go.opentelemetry.io/otel/sdk/trace"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	mnoop "go.opentelemetry.io/otel/metric/noop"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/trace"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/go-arrower/arrower/alog"
@@ -892,8 +890,8 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 
 func jobWithArgsFromDBSerialisation(rawPayload []byte) string {
 	type jobPayload struct {
-		Carrier propagation.MapCarrier
-		JobData []byte
+		Carrier propagation.MapCarrier `json:"carrier"`
+		JobData []byte                 `json:"jobData"`
 	}
 
 	payload := jobPayload{}
