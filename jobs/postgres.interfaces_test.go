@@ -891,14 +891,14 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 func jobWithArgsFromDBSerialisation(rawPayload []byte) string {
 	type jobPayload struct {
 		Carrier propagation.MapCarrier `json:"carrier"`
-		JobData []byte                 `json:"jobData"`
+		JobData string                 `json:"jobData"`
 	}
 
 	payload := jobPayload{}
 	argsP := jobWithArgs{}
 
 	_ = json.Unmarshal(rawPayload, &payload)
-	_ = json.Unmarshal(payload.JobData, &argsP)
+	_ = json.Unmarshal([]byte(payload.JobData), &argsP)
 
 	return fmt.Sprintf("%v", argsP)
 }

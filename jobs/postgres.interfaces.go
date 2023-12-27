@@ -159,8 +159,11 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 var _ Queue = (*PostgresJobsHandler)(nil)
 
 type jobPayload struct {
+	// Carrier contains the otel tracing information.
 	Carrier propagation.MapCarrier `json:"carrier"`
-	JobData []byte                 `json:"jobData"`
+	// JobData is the actual data as string instead of []byte,
+	// so that it is readable more easily when assessing it via psql directly.
+	JobData string `json:"jobData"`
 }
 
 func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
@@ -251,7 +254,7 @@ func buildAndAppendGueJob(
 		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
-	args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
+	args, err := json.Marshal(jobPayload{JobData: string(jobByte), Carrier: carrier})
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
@@ -459,7 +462,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
 		}
 
-		if err := json.Unmarshal(payload.JobData, argsP); err != nil {
+		if err := json.Unmarshal([]byte(payload.JobData), argsP); err != nil {
 			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
 		}
 
