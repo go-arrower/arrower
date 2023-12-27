@@ -474,7 +474,15 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		ctx, childSpan := h.tracer.Start(parentCtx, fmt.Sprintf("job: %s run: %d", paramType.String(), job.ErrorCount))
 		defer childSpan.End()
 
-		childSpan.SetAttributes(attribute.KeyValue{Key: "jobID", Value: attribute.StringValue(job.ID.String())})
+		childSpan.SetAttributes(
+			attribute.String("jobID", job.ID.String()),
+			attribute.String("queue", job.Queue),
+			attribute.String("type", job.Type),
+			attribute.Int("priority", int(job.Priority)),
+			attribute.Int("run_count", int(job.ErrorCount)),
+			attribute.String("run_at", job.RunAt.Format(time.RFC3339)),
+		)
+
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
