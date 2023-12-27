@@ -1,6 +1,10 @@
 BEGIN;
 
 
+DROP EXTENSION IF EXISTS pgcrypto;
+DROP FUNCTION IF EXISTS generate_ulid;
+
+
 SELECT cron.unschedule('arrower:jobs:nightly-worker-clean' );
 SELECT cron.unschedule('arrower:jobs:nightly-vacuum' );
 
