@@ -5,6 +5,7 @@ package jobs_test
 import (
 	"context"
 	"fmt"
+	"testing"
 	"time"
 
 	mnoop "go.opentelemetry.io/otel/metric/noop"
@@ -21,7 +22,7 @@ type myJob struct {
 
 type otherJob struct{}
 
-func ExamplePostgresJobsHandler_Enqueue() {
+func Example_postgresJobsHandler() {
 	db := tests.GetPostgresDockerForIntegrationTestingInstance()
 
 	jq, _ := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), db.PGx(),
@@ -57,4 +58,19 @@ func ExamplePostgresJobsHandler_Enqueue() {
 	// myJob with payload: 2
 	// myJob with payload: 1
 	// otherJob
+}
+
+func Example_inMemoryAssertionsForTesting() {
+	jq := jobs.NewTestingJobs()
+
+	// use jassert in your test cases to make assertions on the job queue.
+	jassert := jq.Assert(new(testing.T))
+
+	_ = jq.Enqueue(ctx, myJob{})
+
+	jassert.NotEmpty()
+	jassert.QueuedTotal(1, "queue should have one Job enqueued")
+	jassert.Queued(myJob{}, 1)
+
+	// Output:
 }
