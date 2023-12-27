@@ -4,12 +4,17 @@ package jobs_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel/propagation"
+
+	"go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -261,7 +266,8 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), trace.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -616,20 +622,20 @@ func TestGueHandler_History(t *testing.T) {
 		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
-		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
 
 		assert.False(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
 		assert.Equal(t, 1, hJobs[1].RunCount)
 		assert.NotEmpty(t, hJobs[1].RunError)
 		assert.Contains(t, hJobs[1].RunError, "arrower: job failed: ")
-		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
 
 		assert.True(t, hJobs[2].Success)
 		assert.NotEmpty(t, hJobs[2].FinishedAt)
 		assert.Equal(t, 2, hJobs[2].RunCount)
 		assert.Empty(t, hJobs[2].RunError)
-		assert.Contains(t, string(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
 	})
 
 	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {
@@ -882,4 +888,19 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs_history;`).Scan(&c)
 
 	assert.Equal(t, num, c)
+}
+
+func jobWithArgsFromDBSerialisation(rawPayload []byte) string {
+	type jobPayload struct {
+		Carrier propagation.MapCarrier
+		JobData []byte
+	}
+
+	payload := jobPayload{}
+	argsP := jobWithArgs{}
+
+	_ = json.Unmarshal(rawPayload, &payload)
+	_ = json.Unmarshal(payload.JobData, &argsP)
+
+	return fmt.Sprintf("%v", argsP)
 }

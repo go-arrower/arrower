@@ -10,6 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/codes"
+
+	"go.opentelemetry.io/otel/attribute"
+
+	"go.opentelemetry.io/otel/propagation"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -91,6 +97,7 @@ func NewPostgresJobs(
 		gueLogger:          gueLogger,
 		meter:              meter,
 		tracer:             tracer,
+		propagator:         propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
 		queries:            models.New(pgxPool),
 		gueClient:          nil, // has to be set after all opts have been applied
 		gueWorkMap:         gue.WorkMap{},
@@ -128,10 +135,11 @@ func NewPostgresJobs(
 
 // PostgresJobsHandler is the main jobs' abstraction.
 type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the struct fields are grouped by meaning
-	logger    alog.Logger
-	gueLogger adapter.Logger
-	meter     metric.Meter
-	tracer    trace.Tracer
+	logger     alog.Logger
+	gueLogger  adapter.Logger
+	meter      metric.Meter
+	tracer     trace.Tracer
+	propagator propagation.TextMapPropagator
 
 	queries *models.Queries
 
@@ -153,6 +161,11 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 
 var _ Queue = (*PostgresJobsHandler)(nil)
 
+type jobPayload struct {
+	Carrier propagation.MapCarrier
+	JobData []byte
+}
+
 func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
 	ctx, span := h.tracer.Start(ctx, "enqueue")
 	defer span.End()
@@ -162,7 +175,7 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 		return err
 	}
 
-	gueJobs, err := gueJobsFromJob(h.queue, job, opts...)
+	gueJobs, err := h.gueJobsFromJob(ctx, h.queue, job, opts...)
 	if err != nil {
 		return err
 	}
@@ -186,17 +199,21 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 	return nil
 }
 
-func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
+func (h *PostgresJobsHandler) gueJobsFromJob(ctx context.Context, queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 	gueJobs := []*gue.Job{}
+
+	carrier := propagation.MapCarrier{}
+	h.propagator.Inject(ctx, carrier)
 
 	switch reflect.ValueOf(job).Kind() { //nolint:exhaustive // other types are prevented by ensureValidJobTypeForEnqueue
 	case reflect.Struct:
 		jobType, err := getJobTypeFromJobStruct(job)
 		if err != nil {
-			return nil, ErrInvalidJobType
+			return nil, err
 		}
 
-		args, err := json.Marshal(job)
+		jobByte, _ := json.Marshal(job)
+		args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
 		if err != nil {
 			return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
@@ -212,10 +229,11 @@ func gueJobsFromJob(queue string, job Job, opts ...JobOpt) ([]*gue.Job, error) {
 
 			jobType, err := getJobTypeFromJobSliceElement(job)
 			if err != nil {
-				return nil, ErrInvalidJobType
+				return nil, err
 			}
 
-			args, err := json.Marshal(job.Interface())
+			jobByte, _ := json.Marshal(job.Interface())
+			args, err := json.Marshal(jobPayload{JobData: jobByte, Carrier: carrier})
 			if err != nil {
 				return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 			}
@@ -360,7 +378,7 @@ func (h *PostgresJobsHandler) RegisterJobFunc(jf JobFunc) error {
 		}
 	}
 
-	h.gueWorkMap[jobType] = gueWorkerAdapter(jf)
+	h.gueWorkMap[jobType] = h.gueWorkerAdapter(jf)
 
 	needsToStartWorkers := !h.hasStarted
 	if needsToStartWorkers {
@@ -427,14 +445,20 @@ func isValidJobFunc(f JobFunc) bool {
 	return true
 }
 
-func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
+func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 	return func(ctx context.Context, job *gue.Job) error {
 		handlerFuncType := reflect.TypeOf(workerFn)
 		paramType := handlerFuncType.In(1)
 		args := reflect.New(paramType)
 		argsP := args.Interface()
 
-		if err := json.Unmarshal(job.Args, argsP); err != nil {
+		payload := jobPayload{}
+
+		if err := json.Unmarshal(job.Args, &payload); err != nil {
+			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
+		}
+
+		if err := json.Unmarshal(payload.JobData, argsP); err != nil {
 			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
 		}
 
@@ -443,6 +467,11 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		if !ok {
 			return fmt.Errorf("%w: could not unwrap gue job tx for use in the worker", ErrJobFuncFailed)
 		}
+
+		parentCtx := h.propagator.Extract(context.Background(), payload.Carrier)
+		ctx, childSpan := h.tracer.Start(parentCtx, fmt.Sprintf("job: %s run: %d", paramType.String(), job.ErrorCount))
+		childSpan.SetAttributes(attribute.KeyValue{Key: "jobID", Value: attribute.StringValue(job.ID.String())})
+		defer childSpan.End()
 
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
@@ -457,6 +486,8 @@ func gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		// if JobFunc returned an error, put the job back on the queue.
 		if len(vals) > 0 {
 			if jobErr, ok := vals[0].Interface().(error); ok && jobErr != nil {
+				childSpan.SetStatus(codes.Error, jobErr.Error())
+
 				return fmt.Errorf("%w: %s", ErrJobFuncFailed, jobErr) //nolint:errorlint // prevent err in api
 			}
 		}
