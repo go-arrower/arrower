@@ -527,7 +527,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 		return fmt.Errorf("%w: queue already started", ErrRegisterJobFuncFailed)
 	}
 
-	const defaultPanicStackBufSize = 2 * 1024 // 2 * gue's default
+	const defaultPanicStackBufSize = 4 * 1024 // 2 * gue's default
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
