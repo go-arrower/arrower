@@ -1,5 +1,4 @@
 [![Automatic Tests]([github-action-automatic-tests-shild])]([github-action-automatic-tests-url)
-[![Test Build][github-action-shield]][github-action-url]
 [![Go Report Card][reportcard-shield]][reportcard-url]
 [![Issues][issues-shield]][issues-url]
 [![Issues][stars-shield]][stars-url]
@@ -41,10 +40,8 @@ migrate -database ${POSTGRESQL_URL} -path postgres/migrations down
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[github-action-automatic-tests-shild]: https://github.com/go-arrower/arrower/actions/workflows/automatic-tests.yml/badge.svg
-[github-action-automatic-tests-url]: https://github.com/go-arrower/arrower/actions/workflows/automatic-tests.yml
-[github-action-shield]: https://github.com/go-arrower/arrower/actions/workflows/test.yml/badge.svg
-[github-action-url]: https://github.com/go-arrower/arrower/actions
+[github-action-automatic-tests-shild]: https://github.com/go-arrower/arrower/actions/workflows/automatic-tests.yaml/badge.svg
+[github-action-automatic-tests-url]: https://github.com/go-arrower/arrower/actions/workflows/automatic-tests.yaml
 [reportcard-shield]: https://goreportcard.com/badge/github.com/go-arrower/arrower
 [reportcard-url]: https://goreportcard.com/report/github.com/go-arrower/arrower
 [issues-shield]: https://img.shields.io/github/issues/go-arrower/arrower?style=flat-square&logo=appveyor
