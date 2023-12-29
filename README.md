@@ -1,4 +1,4 @@
-[![Automatic Tests]([github-action-automatic-tests-shild])]([github-action-automatic-tests-url)
+[![Automatic Tests][github-action-automatic-tests-shild]][github-action-automatic-tests-url]
 [![Go Report Card][reportcard-shield]][reportcard-url]
 [![Issues][issues-shield]][issues-url]
 [![Issues][stars-shield]][stars-url]
