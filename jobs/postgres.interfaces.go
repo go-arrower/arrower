@@ -621,7 +621,7 @@ func recordStartedJobsToHistory(logger alog.Logger, queries *models.Queries) fun
 			return
 		}
 
-		queries = queries.WithTx(tx)
+		queries := queries.WithTx(tx)
 
 		err := queries.InsertHistory(ctx, models.InsertHistoryParams{
 			JobID:    job.ID.String(),
@@ -671,7 +671,7 @@ func recordFinishedJobsToHistory(logger alog.Logger, queries *models.Queries) fu
 			return
 		}
 
-		queries = queries.WithTx(tx)
+		queries := queries.WithTx(tx)
 
 		if jobErr != nil { // job returned with an error and worker JobFunc failed
 			err := queries.UpdateHistory(ctx, models.UpdateHistoryParams{
