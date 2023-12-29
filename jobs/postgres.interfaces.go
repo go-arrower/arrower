@@ -607,7 +607,7 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 	}
 }
 
-func recordStartedJobsToHistory(logger alog.Logger, queries *models.Queries) func(context.Context, *gue.Job, error) {
+func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
 		// if jobErr is set, the job could not be pulled from the DB.
 		if jobErr != nil {
@@ -621,7 +621,7 @@ func recordStartedJobsToHistory(logger alog.Logger, queries *models.Queries) fun
 			return
 		}
 
-		queries := queries.WithTx(tx)
+		queries := db.WithTx(tx)
 
 		err := queries.InsertHistory(ctx, models.InsertHistoryParams{
 			JobID:    job.ID.String(),
@@ -652,7 +652,7 @@ func recordStartedJobsToHistory(logger alog.Logger, queries *models.Queries) fun
 // recordFinishedJobsToHistory takes each job that's finished and logs it into a new table,
 // so it's persisted for later analytics.
 // gue does delete finished jobs from the gue_jobs table, and the information would be lost otherwise.
-func recordFinishedJobsToHistory(logger alog.Logger, queries *models.Queries) func(context.Context, *gue.Job, error) {
+func recordFinishedJobsToHistory(logger alog.Logger, db *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
 		logger = logger.With(
 			slog.String("job_id", job.ID.String()),
@@ -671,7 +671,7 @@ func recordFinishedJobsToHistory(logger alog.Logger, queries *models.Queries) fu
 			return
 		}
 
-		queries := queries.WithTx(tx)
+		queries := db.WithTx(tx)
 
 		if jobErr != nil { // job returned with an error and worker JobFunc failed
 			err := queries.UpdateHistory(ctx, models.UpdateHistoryParams{
