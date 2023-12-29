@@ -8,10 +8,10 @@
   <h2 align="center">Arrower</h2>
 
   <p align="center">
-    Arrower provides you with the arrows to build your projects well.
+    Arrows to hit your development needs.
     <br />
     <br />
-    <a href="https://github.com/go-arrower/arrower#examples">View Examples</a>
+    <a href="https://github.com/go-arrower/arrower#about-the-project">Why?</a>
     ·
     <a href="https://github.com/go-arrower/arrower/issues">Report Bug</a>
     ·
@@ -23,8 +23,10 @@
 
 
 ## About the Project
+A complete framework to develop Go web applications.
 
-## Examples
+Learn more about the [motivation](https://www.arrower.org/docs/why) behind arrower.
+
 
 ## Create new Database Migration
 ```shell
