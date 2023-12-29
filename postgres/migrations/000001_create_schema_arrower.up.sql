@@ -1,0 +1,7 @@
+BEGIN;
+
+
+CREATE SCHEMA IF NOT EXISTS arrower;
+
+
+COMMIT;

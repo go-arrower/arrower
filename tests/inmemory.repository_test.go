@@ -275,7 +275,7 @@ func TestMemoryRepository_Contains(t *testing.T) {
 	repo := tests.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 
 	ex, err := repo.ContainsID(ctx, testdata.EntityID(uuid.New().String()))
-	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.NoError(t, err)
 	assert.False(t, ex, "id should not exist")
 
 	repo.Create(ctx, testdata.DefaultEntity)
@@ -309,7 +309,7 @@ func TestMemoryRepository_ContainsAll(t *testing.T) {
 	assert.True(t, ex)
 
 	ex, err = repo.ContainsAll(ctx, []testdata.EntityID{testdata.NewEntity().ID})
-	assert.ErrorIs(t, err, tests.ErrNotFound)
+	assert.NoError(t, err)
 	assert.False(t, ex)
 }
 

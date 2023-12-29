@@ -286,7 +286,7 @@ func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, err
 		return true, nil
 	}
 
-	return false, ErrNotFound
+	return false, nil
 }
 
 func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (bool, error) {
@@ -303,7 +303,7 @@ func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool
 
 	for _, id := range ids {
 		if _, ok := repo.Data[id]; !ok {
-			return false, ErrNotFound
+			return false, nil
 		}
 	}
 

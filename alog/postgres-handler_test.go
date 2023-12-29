@@ -138,7 +138,7 @@ func ensureLogTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM public.log;`).Scan(&c)
+	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.log;`).Scan(&c)
 
 	assert.Equal(t, num, c)
 }
@@ -146,7 +146,7 @@ func ensureLogTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 func getMostRecentLog(db *pgxpool.Pool) map[string]any {
 	var rawLog json.RawMessage
 
-	row := db.QueryRow(ctx, `SELECT log FROM public.log ORDER BY time DESC LIMIT 1;`)
+	row := db.QueryRow(ctx, `SELECT log FROM arrower.log ORDER BY time DESC LIMIT 1;`)
 	_ = row.Scan(&rawLog)
 
 	log, _ := rawLog.MarshalJSON()

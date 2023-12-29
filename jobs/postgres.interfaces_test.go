@@ -612,7 +612,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		// ensure the Job is finished successful
 		var hJob gueJobHistory
-		err = pgxscan.Get(ctx, pg, &hJob, `SELECT * FROM public.gue_jobs_history`)
+		err = pgxscan.Get(ctx, pg, &hJob, `SELECT * FROM arrower.gue_jobs_history`)
 		assert.NoError(t, err)
 
 		assert.True(t, hJob.Success)
@@ -668,7 +668,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		// ensure the Job is finished with fail conditions
 		var hJobs []gueJobHistory
-		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
+		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM arrower.gue_jobs_history`)
 		assert.NoError(t, err)
 		assert.Len(t, hJobs, 3)
 
@@ -741,7 +741,7 @@ func TestGueHandler_History(t *testing.T) {
 
 		// ensure the Job is finished with fail conditions
 		var hJobs []gueJobHistory
-		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM public.gue_jobs_history`)
+		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM arrower.gue_jobs_history`)
 		assert.NoError(t, err)
 		assert.Len(t, hJobs, 2)
 
@@ -931,7 +931,7 @@ func ensureJobTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs;`).Scan(&c)
+	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.gue_jobs;`).Scan(&c)
 
 	assert.Equal(t, num, c)
 }
@@ -940,7 +940,7 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM public.gue_jobs_history;`).Scan(&c)
+	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.gue_jobs_history;`).Scan(&c)
 
 	assert.Equal(t, num, c)
 }

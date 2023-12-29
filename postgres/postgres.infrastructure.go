@@ -58,6 +58,14 @@ func Connect(ctx context.Context, pgConf Config, tracerProvider trace.TracerProv
 		return nil, fmt.Errorf("%w: could not parse config: %v", ErrConnectionFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
+	// to list all runtime settings: SHOW ALL;
+	config.ConnConfig.RuntimeParams = map[string]string{
+		"application_name": "arrower/app",
+
+		// The first schema is where new tables will be created if CREATE TABLE command does not specify a schema name,
+		// see https://www.postgresql.org/docs/16/ddl-schemas.html
+		"search_path": "public,arrower",
+	}
 	config.ConnConfig.Tracer = &pgxTraceAdapter{
 		tracer: tracerProvider.Tracer("arrower.pgx"),
 	}

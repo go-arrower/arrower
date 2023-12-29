@@ -14,7 +14,7 @@ import (
 
 const getRecentLogs = `-- name: GetRecentLogs :many
 SELECT time, user_id, log
-FROM public.log
+FROM arrower.log
 WHERE time > $1
   AND log ->> 'msg' ILIKE $3::TEXT -- cast to make Go code easier to use
   AND (CASE WHEN cardinality($4::TEXT[]) <> 0 THEN log->>'level' = ANY($4::TEXT[]) ELSE TRUE END)
@@ -36,7 +36,7 @@ type GetRecentLogsParams struct {
 	F2    string
 }
 
-func (q *Queries) GetRecentLogs(ctx context.Context, arg GetRecentLogsParams) ([]Log, error) {
+func (q *Queries) GetRecentLogs(ctx context.Context, arg GetRecentLogsParams) ([]ArrowerLog, error) {
 	rows, err := q.db.Query(ctx, getRecentLogs,
 		arg.Time,
 		arg.Limit,
@@ -50,9 +50,9 @@ func (q *Queries) GetRecentLogs(ctx context.Context, arg GetRecentLogsParams) ([
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Log
+	var items []ArrowerLog
 	for rows.Next() {
-		var i Log
+		var i ArrowerLog
 		if err := rows.Scan(&i.Time, &i.UserID, &i.Log); err != nil {
 			return nil, err
 		}

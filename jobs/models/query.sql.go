@@ -13,20 +13,20 @@ import (
 
 const getWorkerPools = `-- name: GetWorkerPools :many
 SELECT id, queue, workers, created_at, updated_at
-FROM public.gue_jobs_worker_pool
+FROM arrower.gue_jobs_worker_pool
 WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, id
 `
 
-func (q *Queries) GetWorkerPools(ctx context.Context) ([]GueJobsWorkerPool, error) {
+func (q *Queries) GetWorkerPools(ctx context.Context) ([]ArrowerGueJobsWorkerPool, error) {
 	rows, err := q.db.Query(ctx, getWorkerPools)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GueJobsWorkerPool
+	var items []ArrowerGueJobsWorkerPool
 	for rows.Next() {
-		var i GueJobsWorkerPool
+		var i ArrowerGueJobsWorkerPool
 		if err := rows.Scan(
 			&i.ID,
 			&i.Queue,
@@ -45,7 +45,7 @@ func (q *Queries) GetWorkerPools(ctx context.Context) ([]GueJobsWorkerPool, erro
 }
 
 const insertHistory = `-- name: InsertHistory :exec
-INSERT INTO public.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
+INSERT INTO arrower.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
                                      updated_at, success, finished_at)
 VALUES ($1, $2, $3, $4, $5, $6, $8::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE, NULL)
 `
@@ -76,7 +76,7 @@ func (q *Queries) InsertHistory(ctx context.Context, arg InsertHistoryParams) er
 }
 
 const updateHistory = `-- name: UpdateHistory :exec
-UPDATE public.gue_jobs_history
+UPDATE arrower.gue_jobs_history
 SET run_error   = $3::text,
     finished_at = STATEMENT_TIMESTAMP(), -- now() or CURRENT_TIMESTAMP record the start of the transaction, this is more precise in case of a long running job.
     run_count   = $4,
@@ -104,7 +104,7 @@ func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) er
 }
 
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
-INSERT INTO public.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
+INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
 VALUES ($1, $2, $3, NOW(), $4)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
                                       workers    = $3

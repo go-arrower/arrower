@@ -2,6 +2,7 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -27,7 +28,7 @@ type SettingsHandler struct {
 
 func (s *SettingsHandler) Save(ctx context.Context, key Key, setting Value) error {
 	current, err := s.Setting(ctx, key)
-	if err != nil {
+	if err != nil && !errors.Is(err, tests.ErrNotFound) {
 		return fmt.Errorf("could not save setting: %w", err)
 	}
 

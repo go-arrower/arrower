@@ -1,7 +1,0 @@
-BEGIN;
-
-
-DROP TABLE IF EXISTS public.log;
-
-
-COMMIT;

@@ -30,7 +30,7 @@ func TestNewInMemorySettings(t *testing.T) {
 	settings.Save(ctx, key, setting.New(false))
 	// runtime.Gosched()
 	settings.Save(ctx, key, setting.New(true))
-	settings.Save(ctx, key, setting.New(true)) // no change triggered
+	settings.Save(ctx, key, setting.New(true)) // no OnSettingChange callback triggered by this change
 
 	isTest, _ := settings.Setting(ctx, key)
 	assert.True(t, isTest.Bool())

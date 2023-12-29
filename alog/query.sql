@@ -1,10 +1,10 @@
 -- name: LogRecords :copyfrom
-INSERT INTO public.log (time, user_id, log)
+INSERT INTO arrower.log (time, user_id, log)
 VALUES ($1, $2, $3);
 
 -- name: GetRecentLogs :many
 SELECT *
-FROM public.log
+FROM arrower.log
 WHERE time > $1
   AND log ->> 'msg' ILIKE @msg::TEXT -- cast to make Go code easier to use
   AND (CASE WHEN cardinality(@level::TEXT[]) <> 0 THEN log->>'level' = ANY(@level::TEXT[]) ELSE TRUE END)

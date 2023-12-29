@@ -40,5 +40,5 @@ func (r iteratorForLogRecords) Err() error {
 }
 
 func (q *Queries) LogRecords(ctx context.Context, arg []LogRecordsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"public", "log"}, []string{"time", "user_id", "log"}, &iteratorForLogRecords{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"arrower", "log"}, []string{"time", "user_id", "log"}, &iteratorForLogRecords{rows: arg})
 }
