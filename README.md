@@ -24,7 +24,7 @@
 ## About the Project
 A complete framework to develop Go web applications.
 
-Learn more about the [motivation](https://www.arrower.org/docs/why) behind arrower.
+Learn more about the [motivation behind arrower](https://www.arrower.org/docs/why).
 
 
 ## Create new Database Migration
