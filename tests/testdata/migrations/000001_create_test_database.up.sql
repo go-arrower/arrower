@@ -1,19 +1,20 @@
 BEGIN;
 
 
-CREATE SCHEMA admin;
-CREATE TABLE admin.setting
+CREATE SCHEMA IF NOT EXISTS arrower;
+CREATE UNLOGGED TABLE IF NOT EXISTS arrower.log
 (
-    setting TEXT PRIMARY KEY,
-    value   TEXT NOT NULL DEFAULT ''
+    time    TIMESTAMP WITH TIME ZONE NOT NULL,
+    user_id UUID DEFAULT NULL,
+    log     JSONB                    NOT NULL
 );
 
-CREATE TABLE "some_table"
+CREATE TABLE IF NOT EXISTS "some_table"
 (
     name TEXT PRIMARY KEY
 );
 
-CREATE TABLE "other_table"
+CREATE TABLE IF NOT EXISTS "other_table"
 (
     name TEXT PRIMARY KEY
 );

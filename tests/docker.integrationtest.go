@@ -24,10 +24,15 @@ type RetryFunc func(resource *dockertest.Resource) func() error
 
 // StartDockerContainer connects to the local docker service and starts a container for integration testing.
 // Configure the container to start by setting the dockertest.RunOptions, the most important ones:
-// - Repository:	is the dockerhub repo to pull, e.g. "postgres"
-// - Tag:			is the tag to pull, e.g. 15
-// - Env:			are the env variables to set for the container
-// For more options check out the RunOptions struct.
+//   - Repository:	Is the dockerhub repo to pull, e.g. "postgres"
+//   - Tag:			Is the tag to pull, e.g. 15
+//   - Env:			Are the env variables to set for the container
+//   - Name: 		If Name is set StartDockerContainer behaves as a singleton
+//     and does connect to a running container of this name.
+//     It only starts a new container if that name is not running yet.
+//     If the Name is empty, a random container is started every time.
+//
+// For more options, check out the RunOptions struct.
 func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc) (func() error, error) {
 	mu.Lock()
 	defer mu.Unlock()

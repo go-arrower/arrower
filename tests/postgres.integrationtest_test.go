@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestPrepareTestDatabase(t *testing.T) {
+func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 	t.Parallel()
 
 	t.Run("load common file automatically", func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 			pg = pgHandler.NewTestDatabase()
 		})
 
-		assertTableNumberOfRows(t, pg, "admin.setting", 1)
+		assertTableNumberOfRows(t, pg, "arrower.log", 1)
 		assertTableNumberOfRows(t, pg, "1", 0)
 		assertTableNumberOfRows(t, pg, "public.2", 0)
 	})
@@ -55,7 +55,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 			)
 		})
 
-		assertTableNumberOfRows(t, pg, "admin.setting", 1)
+		assertTableNumberOfRows(t, pg, "arrower.log", 1)
 		assertTableNumberOfRows(t, pg, "some_table", 2)
 		assertTableNumberOfRows(t, pg, "public.other_table", 2)
 	})
@@ -74,7 +74,7 @@ func TestPrepareTestDatabase(t *testing.T) {
 					pg = pgHandler.NewTestDatabase()
 				})
 
-				assertTableNumberOfRows(t, pg, "admin.setting", 1)
+				assertTableNumberOfRows(t, pg, "arrower.log", 1)
 				assertTableNumberOfRows(t, pg, "1", 0)
 				assertTableNumberOfRows(t, pg, "public.2", 0)
 
@@ -83,6 +83,24 @@ func TestPrepareTestDatabase(t *testing.T) {
 		}
 
 		wg.Wait()
+	})
+}
+
+func TestPostgresDocker_PrepareDatabase(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reset existing database", func(t *testing.T) {
+		t.Parallel()
+
+		pg := tests.NewPostgresDockerForIntegrationTesting()
+
+		pg.PrepareDatabase("testdata/fixtures/test_arrower.yaml")
+		assertTableNumberOfRows(t, pg.PGx(), "arrower.log", 2)
+		assertTableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 1)
+
+		pg.PrepareDatabase()
+		assertTableNumberOfRows(t, pg.PGx(), "arrower.log", 1)
+		assertTableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 0)
 	})
 }
 

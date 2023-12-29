@@ -1,3 +1,4 @@
-admin.setting:
-  - setting: some_test_setting
-    value: some_value
+arrower.log:
+  - time: RAW=NOW()
+    log:
+      - some_test_setting

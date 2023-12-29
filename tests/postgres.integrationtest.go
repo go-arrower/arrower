@@ -7,13 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/khaiql/dbcleaner"
+	"github.com/khaiql/dbcleaner/engine"
 	"github.com/ory/dockertest/v3"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -74,11 +78,11 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 	return singletonPostgres
 }
 
-// NewPostgresDockerForIntegrationTesting returns Handler that is fully connected and has a method to clean up
+// NewPostgresDockerForIntegrationTesting returns a Handler that is fully connected and has a method to clean up
 // after the integration tests are done. Consider using GetPostgresDockerForIntegrationTestingInstance.
 // It spins up and connects to a db instance in a new docker container.
 // If called in a CI environment, the pipeline needs access to a docker socket.
-// In case of an issue it panics.
+// In case of an issue, it panics.
 func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 	var (
 		pgHandler *postgres.Handler
@@ -116,7 +120,7 @@ var (
 	defaultPGConf = postgres.Config{ //nolint:gochecknoglobals
 		User:       "arrower",
 		Password:   "secret",
-		Database:   "arrower",
+		Database:   "arrower_test",
 		Host:       "localhost",
 		Port:       5432, //nolint:gomnd
 		MaxConns:   10,   //nolint:gomnd
@@ -142,11 +146,13 @@ type PostgresDocker struct {
 	cleanupDocker func() error
 }
 
+const commonFixture = "testdata/fixtures/_common.yaml"
+
 // NewTestDatabase creates a new database, connects to it, and applies all migrations.
-// Afterwards it loads all fixtures from files.
+// Afterwards, it loads all fixtures from files.
 // Use it in integration tests to create a valid database state for your test.
 // If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
-// In case of an issue it panics.
+// In case of an issue, it panics.
 // It can be used in parallel and works around the limitations of go-testfixtures/testfixtures.
 // If there is a folder `testdata/migrations` it is used to migrate the database up on.
 func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
@@ -174,9 +180,53 @@ func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
 	return pgHandler.PGx
 }
 
+// PrepareDatabase prepares the existing database for testing:
+// - All tables will be truncated
+// - All fixture files are allied
+// - If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
+func (pd *PostgresDocker) PrepareDatabase(files ...string) {
+	{ // truncate all tables
+		c := pd.pg.Config
+		dsn := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+			c.User, c.Password, net.JoinHostPort(c.Host, strconv.Itoa(c.Port)), c.Database)
+
+		cleaner := dbcleaner.New()
+		cleaner.SetEngine(engine.NewPostgresEngine(dsn))
+
+		var tables []string // get all tables, that will be truncated.
+		_ = pgxscan.Select(context.Background(), pd.PGx(), &tables,
+			`SELECT table_schema || '.' || table_name 
+					FROM information_schema.tables 
+					WHERE table_schema NOT IN ('pg_catalog', 'information_schema') 
+					  AND table_type = 'BASE TABLE' 
+					  AND table_name <> 'schema_migrations'`,
+		)
+
+		cleaner.Clean(tables...)
+		_ = cleaner.Close()
+	}
+
+	if _, err := os.Stat(commonFixture); errors.Is(err, nil) { // file exists
+		files = append([]string{commonFixture}, files...)
+	}
+
+	fixtures, err := testfixtures.New(
+		testfixtures.Database(pd.pg.DB),
+		testfixtures.Dialect("postgres"),
+		testfixtures.FilesMultiTables(files...),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := fixtures.Load(); err != nil {
+		panic(err)
+	}
+}
+
 // Cleanup does shutdown the database connection, stops, and removes the docker image.
-// It can not be deferred in TestMain, if it exists with os.Exit(code), as that does not execute the defer stack.
-// In case of an issue it panics.
+// It cannot be deferred in TestMain, if it exists with os.Exit(code), as that does not execute the defer stack.
+// In case of an issue, it panics.
 func (pd *PostgresDocker) Cleanup() {
 	err := pd.pg.Shutdown(context.Background())
 	if err != nil {
@@ -189,7 +239,7 @@ func (pd *PostgresDocker) Cleanup() {
 	}
 }
 
-// PGx returns the pgx connection, if you need to access the database directly.
+// PGx returns the pgx connection if you need to access the database directly.
 func (pd *PostgresDocker) PGx() *pgxpool.Pool {
 	return pd.pg.PGx
 }

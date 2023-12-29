@@ -82,9 +82,9 @@ func TestStartDockerContainer(t *testing.T) {
 				options := runOptions
 				options.Name = "ensure-single-container"
 
-				cleanup2, err2 := tests.StartDockerContainer(&options, retryFunc)
+				cleanup, err2 := tests.StartDockerContainer(&options, retryFunc)
 				assert.NoError(t, err2)
-				assert.NotNil(t, cleanup2)
+				assert.NotNil(t, cleanup)
 
 				wg.Done()
 			}()
