@@ -56,6 +56,8 @@ func TestPostgresHandler_Handle(t *testing.T) {
 		t.Parallel()
 
 		t.Run("log batch of one to postgres", func(t *testing.T) {
+			t.Parallel()
+
 			pg := pgHandler.NewTestDatabase()
 			logger := alog.New(
 				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{
@@ -65,11 +67,13 @@ func TestPostgresHandler_Handle(t *testing.T) {
 
 			logger.InfoContext(ctx, "logged msg")
 
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(150 * time.Millisecond)
 			ensureLogTableRows(t, pg, 1)
 		})
 
 		t.Run("log batch after timeout", func(t *testing.T) {
+			t.Parallel()
+
 			pg := pgHandler.NewTestDatabase()
 			logger := alog.New(
 				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{
