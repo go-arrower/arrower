@@ -696,8 +696,6 @@ func TestGueHandler_History(t *testing.T) {
 	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {
 		t.Parallel()
 
-		t.Skip() // gue does not run WithPoolHooksJobDone functions, if a panic occurs
-
 		var (
 			count int
 			wg    sync.WaitGroup
@@ -749,7 +747,7 @@ func TestGueHandler_History(t *testing.T) {
 		assert.NotEmpty(t, hJobs[0].FinishedAt)
 		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
-		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
+		assert.Contains(t, hJobs[0].RunError, "job panicked:")
 
 		assert.True(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
