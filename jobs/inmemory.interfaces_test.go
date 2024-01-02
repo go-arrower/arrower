@@ -1,6 +1,7 @@
 package jobs_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -18,6 +19,32 @@ func TestNewTestingJobs(t *testing.T) {
 		jq := jobs.NewTestingJobs()
 		assert.NotEmpty(t, jq)
 	})
+}
+
+func TestNewInMemoryJobs(t *testing.T) {
+	t.Parallel()
+
+	var wg sync.WaitGroup
+
+	jq := jobs.NewInMemoryJobs()
+	err := jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
+		assert.Equal(t, argName, j.Name)
+		wg.Done()
+
+		return nil
+	})
+	assert.NoError(t, err)
+
+	wg.Add(2)
+
+	err = jq.Enqueue(ctx, []jobWithArgs{{Name: argName}, {Name: argName}})
+	assert.NoError(t, err)
+
+	wg.Wait()
+
+	jq.Assert(t).Empty()
+
+	_ = jq.Shutdown(ctx)
 }
 
 func TestInMemoryHandler_Enqueue(t *testing.T) {
