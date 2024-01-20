@@ -54,7 +54,7 @@ func NewTest(w io.Writer) *slog.Logger {
 	}
 
 	return slog.New(NewArrowerHandler(
-		WithLevel(slog.LevelDebug),
+		WithLevel(LevelDebug),
 		WithHandler(slog.NewTextHandler(w, getDebugHandlerOptions())),
 	))
 }
