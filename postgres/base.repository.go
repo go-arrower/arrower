@@ -2,8 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
+)
+
+var (
+	ErrQueryFailed = errors.New("query failed")
 )
 
 // BaseRepository can be used in repository implementations.
