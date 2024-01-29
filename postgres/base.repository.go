@@ -7,9 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var (
-	ErrQueryFailed = errors.New("query failed")
-)
+var ErrQueryFailed = errors.New("query failed")
 
 // BaseRepository can be used in repository implementations.
 // Because sqlc generates an own Queries struct for each  corresponding models/db.go file,
