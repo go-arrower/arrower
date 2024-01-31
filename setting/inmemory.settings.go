@@ -2,67 +2,52 @@ package setting
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"sync"
 
 	"github.com/go-arrower/arrower/tests"
 )
 
-func NewInMemorySettings() *SettingsHandler {
-	return &SettingsHandler{
-		repo:     &inMemoryRepository{MemoryRepository: tests.NewMemoryRepository[Value, string]()},
-		mu:       sync.Mutex{},
-		onChange: make(map[Key][]func(Value)),
+func NewInMemorySettings() *InMemorySettings {
+	return &InMemorySettings{
+		repo: &inMemoryRepository{MemoryRepository: tests.NewMemoryRepository[Value, string]()},
 	}
 }
 
-var _ Settings = (*SettingsHandler)(nil)
+var _ Settings = (*InMemorySettings)(nil)
 
-type SettingsHandler struct {
-	repo repository
-
-	onChange map[Key][]func(Value)
-	mu       sync.Mutex
+type InMemorySettings struct {
+	repo *inMemoryRepository
 }
 
-func (s *SettingsHandler) Save(ctx context.Context, key Key, setting Value) error {
-	current, err := s.Setting(ctx, key)
-	if err != nil && !errors.Is(err, tests.ErrNotFound) {
-		return fmt.Errorf("could not save setting: %w", err)
+func (s *InMemorySettings) Save(ctx context.Context, key Key, setting Value) error {
+	return s.repo.Save(ctx, key, setting)
+}
+
+func (s *InMemorySettings) Setting(ctx context.Context, key Key) (Value, error) {
+	v, err := s.repo.FindByID(ctx, key.Key())
+	if err != nil {
+		return Value{}, ErrNotFound
 	}
 
-	settingChanged := current.MustString() != setting.MustString()
-	if settingChanged {
-		go s.notifyOnConfigChange(key, setting)
+	return v, nil
+}
+
+func (s *InMemorySettings) Settings(ctx context.Context, keys []Key) (map[Key]Value, error) {
+	settings := make(map[Key]Value, len(keys))
+
+	for _, k := range keys {
+		s, err := s.repo.FindByID(ctx, k.Key())
+		if err != nil {
+			return nil, err
+		}
+
+		settings[k] = s
 	}
 
-	return s.repo.Save(ctx, key, setting) //nolint:wrapcheck
+	return settings, nil
 }
 
-func (s *SettingsHandler) Setting(ctx context.Context, key Key) (Value, error) {
-	return s.repo.FindByID(ctx, key) //nolint:wrapcheck
-}
-
-func (s *SettingsHandler) OnSettingChange(key Key, callback func(setting Value)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.onChange[key] = append(s.onChange[key], callback)
-}
-
-func (s *SettingsHandler) notifyOnConfigChange(key Key, setting Value) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, c := range s.onChange[key] {
-		c(setting)
-	}
-}
-
-type repository interface {
-	Save(context.Context, Key, Value) error
-	FindByID(context.Context, Key) (Value, error)
+func (s *InMemorySettings) Delete(ctx context.Context, key Key) error {
+	return s.repo.DeleteByID(ctx, key.Key()) //nolint:wrapcheck
 }
 
 type inMemoryRepository struct {
@@ -76,8 +61,4 @@ func (repo *inMemoryRepository) Save(_ context.Context, key Key, value Value) er
 	repo.Data[key.Key()] = value
 
 	return nil
-}
-
-func (repo *inMemoryRepository) FindByID(ctx context.Context, key Key) (Value, error) {
-	return repo.MemoryRepository.FindByID(ctx, key.Key()) //nolint:wrapcheck
 }

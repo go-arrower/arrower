@@ -2,7 +2,6 @@ package setting_test
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,30 +9,63 @@ import (
 	"github.com/go-arrower/arrower/setting"
 )
 
-func TestNewInMemorySettings(t *testing.T) {
+var ctx = context.Background()
+
+func TestSettingsHandler_Setting(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-	wg := sync.WaitGroup{}
-	key := setting.NewKey("arrower", "test", "test")
+	settings := setting.NewInMemorySettings()
+	key := setting.NewKey("c", "g", "s")
+
+	err := settings.Save(ctx, key, setting.NewValue("setting"))
+	assert.NoError(t, err)
+
+	val, err := settings.Setting(ctx, key)
+	assert.NoError(t, err)
+	assert.Equal(t, "setting", val.MustString())
+
+	err = settings.Save(ctx, key, setting.NewValue("setting-update"))
+	assert.NoError(t, err)
+
+	val, err = settings.Setting(ctx, key)
+	assert.NoError(t, err)
+	assert.Equal(t, "setting-update", val.MustString())
+
+	_, err = settings.Setting(ctx, setting.NewKey("", "", ""))
+	assert.ErrorIs(t, err, setting.ErrNotFound)
+}
+
+func TestSettingsHandler_Settings(t *testing.T) {
+	t.Parallel()
+
+	k0 := setting.NewKey("", "", "s0")
+	k1 := setting.NewKey("", "", "s1")
+	k2 := setting.NewKey("", "", "s2")
+	keys := []setting.Key{k0, k1, k2}
 
 	settings := setting.NewInMemorySettings()
+	_ = settings.Save(ctx, k0, setting.NewValue(nil))
+	_ = settings.Save(ctx, k1, setting.NewValue(nil))
+	_ = settings.Save(ctx, k2, setting.NewValue(nil))
 
-	wg.Add(3)
-	settings.OnSettingChange(key, func(s setting.Value) {
-		t.Log("setting changed", key, s)
+	s, err := settings.Settings(ctx, keys)
+	assert.NoError(t, err)
+	assert.Len(t, s, 3)
+}
 
-		wg.Done()
-	})
+func TestInMemorySettings_Delete(t *testing.T) {
+	t.Parallel()
 
-	settings.Save(ctx, key, setting.NewValue(true))
-	settings.Save(ctx, key, setting.NewValue(false))
-	// runtime.Gosched()
-	settings.Save(ctx, key, setting.NewValue(true))
-	settings.Save(ctx, key, setting.NewValue(true)) // no OnSettingChange callback triggered by this change
+	settings := setting.NewInMemorySettings()
+	key := setting.NewKey("c", "g", "s")
 
-	isTest, _ := settings.Setting(ctx, key)
-	assert.True(t, isTest.MustBool())
+	err := settings.Delete(ctx, key)
+	assert.NoError(t, err)
 
-	wg.Wait()
+	_ = settings.Save(ctx, key, setting.NewValue("setting"))
+	err = settings.Delete(ctx, key)
+	assert.NoError(t, err)
+
+	_, err = settings.Setting(ctx, key)
+	assert.ErrorIs(t, err, setting.ErrNotFound)
 }

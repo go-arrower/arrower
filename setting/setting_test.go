@@ -85,6 +85,7 @@ func TestNewKey(t *testing.T) {
 	}
 }
 
+//nolint:dupl
 func TestNewValue(t *testing.T) {
 	t.Parallel()
 
@@ -110,8 +111,8 @@ func TestNewValue(t *testing.T) {
 		assert.Equal(t, uint32(0), value.MustUint32())
 		assert.Equal(t, uint64(0), value.MustUint64())
 
-		assert.Equal(t, float32(0), value.MustFloat32())
-		assert.Equal(t, float64(0), value.MustFloat64())
+		assert.Equal(t, float32(0), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+		assert.Equal(t, float64(0), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 		assert.Panics(t, func() { value.MustTime() })
 
@@ -152,8 +153,8 @@ func TestNewValue(t *testing.T) {
 			assert.Equal(t, uint32(0), value.MustUint32())
 			assert.Equal(t, uint64(0), value.MustUint64())
 
-			assert.Equal(t, float32(0), value.MustFloat32())
-			assert.Equal(t, float64(0), value.MustFloat64())
+			assert.Equal(t, float32(0), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(0), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -318,8 +319,8 @@ func TestNewValue(t *testing.T) {
 			assert.Panics(t, func() { value.MustUint32() })
 			assert.Panics(t, func() { value.MustUint64() })
 
-			assert.Equal(t, float32(-1337), value.MustFloat32())
-			assert.Equal(t, float64(-1337), value.MustFloat64())
+			assert.Equal(t, float32(-1337), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(-1337), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -360,8 +361,8 @@ func TestNewValue(t *testing.T) {
 			assert.Equal(t, uint32(1), value.MustUint32())
 			assert.Equal(t, uint64(1), value.MustUint64())
 
-			assert.Equal(t, float32(1), value.MustFloat32())
-			assert.Equal(t, float64(1), value.MustFloat64())
+			assert.Equal(t, float32(1), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(1), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -399,8 +400,8 @@ func TestNewValue(t *testing.T) {
 			assert.Equal(t, uint32(0), value.MustUint32())
 			assert.Equal(t, uint64(0), value.MustUint64())
 
-			assert.Equal(t, float32(0), value.MustFloat32())
-			assert.Equal(t, float64(0), value.MustFloat64())
+			assert.Equal(t, float32(0), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(0), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -442,8 +443,8 @@ func TestNewValue(t *testing.T) {
 			assert.Equal(t, uint32(127), value.MustUint32())
 			assert.Equal(t, uint64(127), value.MustUint64())
 
-			assert.Equal(t, float32(127), value.MustFloat32())
-			assert.Equal(t, float64(127), value.MustFloat64())
+			assert.Equal(t, float32(127), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(127), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -480,8 +481,8 @@ func TestNewValue(t *testing.T) {
 			assert.Panics(t, func() { value.MustUint32() })
 			assert.Panics(t, func() { value.MustUint64() })
 
-			assert.Equal(t, float32(-127), value.MustFloat32())
-			assert.Equal(t, float64(-127), value.MustFloat64())
+			assert.Equal(t, float32(-127), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(-127), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -518,8 +519,8 @@ func TestNewValue(t *testing.T) {
 			assert.Panics(t, func() { value.MustUint32() })
 			assert.Panics(t, func() { value.MustUint64() })
 
-			assert.Equal(t, float32(-0.5), value.MustFloat32())
-			assert.Equal(t, float64(-0.5), value.MustFloat64())
+			assert.Equal(t, float32(-0.5), value.MustFloat32()) //nolint:testifylint // fp: does not work for expected == 0
+			assert.Equal(t, float64(-0.5), value.MustFloat64()) //nolint:testifylint // fp: does not work for expected == 0
 
 			assert.Panics(t, func() { value.MustTime() })
 
@@ -719,6 +720,5 @@ func TestNewValue(t *testing.T) {
 		var vNow time.Time
 		value.MustUnmarshal(&vNow)
 		assert.Equal(t, now.Truncate(time.Nanosecond), vNow)
-
 	})
 }

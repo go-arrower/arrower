@@ -3,6 +3,7 @@ package setting
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -11,22 +12,15 @@ import (
 	"time"
 )
 
+var ErrNotFound = errors.New("not found")
+
 type Settings interface {
 	Save(ctx context.Context, key Key, value Value) error
-	//SaveSettings(ctx context.Context, settings map[Key]Value) error
-	//SaveAll(ctx context.Context, settings map[Key]Value) error
 
 	Setting(ctx context.Context, key Key) (Value, error)
-	//Settings(ctx context.Context, key []Key) (map[Key]Value, error)
-	//SettingsByContext(ctx context.Context, context string) (map[Key]Value, error)
+	Settings(ctx context.Context, keys []Key) (map[Key]Value, error)
 
-	//OnSettingChange(key Key, callback func(value Value))
-	//OnSettingsChange(keys []Key, callback func(key Key, setting Value))
-
-	//Add(ctx context.Context, setting Setting) error // UI Configuration of a Setting
-	//Add(ctx context.Context, key Key, conf UIConfig) error // UI Configuration of a Setting
-
-	//Delete
+	Delete(ctx context.Context, key Key) error
 }
 
 func NewKey(context string, group string, name string) Key {
@@ -148,6 +142,7 @@ func (v Value) Bool() (bool, error) {
 
 	return strconv.ParseBool(v.v)
 }
+
 func (v Value) MustBool() bool {
 	b, err := v.Bool()
 	if err != nil {
@@ -392,12 +387,14 @@ func (v Value) MustUnmarshal(o any) {
 	if v.kind == reflect.String {
 		if v.v == "" && oKind != reflect.Bool {
 			oVal.Set(reflect.ValueOf(""))
+
 			return
 		}
 
 		if v.v != "" {
 			if oKind == reflect.String {
 				oVal.Set(reflect.ValueOf(v.v))
+
 				return
 			}
 
@@ -405,6 +402,7 @@ func (v Value) MustUnmarshal(o any) {
 			if err != nil {
 				panic(err)
 			}
+
 			return
 		}
 	}
@@ -414,18 +412,22 @@ func (v Value) MustUnmarshal(o any) {
 		case reflect.String:
 			if b {
 				oVal.Set(reflect.ValueOf("true"))
+
 				return
 			}
 
 			oVal.Set(reflect.ValueOf("false"))
+
 			return
 		case reflect.Bool:
 			if b {
 				oVal.Set(reflect.ValueOf(true))
+
 				return
 			}
 
 			oVal.Set(reflect.ValueOf(false))
+
 			return
 		default:
 			panic("unhandled default case")
@@ -436,22 +438,26 @@ func (v Value) MustUnmarshal(o any) {
 		tNow, err := v.Time()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(tNow.Format(time.RFC3339Nano)))
+
 			return
 		}
 
 		iVal, err := v.Int()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(strconv.Itoa(iVal)))
+
 			return
 		}
 
 		fVal, err := v.Float64()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(fmt.Sprintf("%.2f", fVal)))
+
 			return
 		}
 
 		oVal.Set(reflect.ValueOf(v.v))
+
 		return
 	}
 
@@ -459,6 +465,7 @@ func (v Value) MustUnmarshal(o any) {
 		tNow, err := v.Time()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(tNow))
+
 			return
 		}
 	}
