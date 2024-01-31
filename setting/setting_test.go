@@ -1,0 +1,724 @@
+package setting_test
+
+import (
+	"bytes"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/go-arrower/arrower/setting"
+)
+
+func TestNewKey(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		context string
+		group   string
+		setting string
+		expKey  string
+	}{
+		"empty": {
+			"",
+			"",
+			"",
+			"MISSING.MISSING.MISSING",
+		},
+		"context only": {
+			"context",
+			"",
+			"",
+			"context.MISSING.MISSING",
+		},
+		"group only": {
+			"",
+			"group",
+			"",
+			"MISSING.group.MISSING",
+		},
+		"setting only": {
+			"",
+			"",
+			"setting",
+			"MISSING.MISSING.setting",
+		},
+		"context and group": {
+			"context",
+			"group",
+			"",
+			"context.group.MISSING",
+		},
+		"context and setting": {
+			"context",
+			"",
+			"setting",
+			"context.MISSING.setting",
+		},
+		"group and setting": {
+			"",
+			"group",
+			"setting",
+			"MISSING.group.setting",
+		},
+		"complete key": {
+			"context",
+			"group",
+			"setting",
+			"context.group.setting",
+		},
+		"custom sub key": {
+			"context",
+			"group",
+			"setting.custom_user_extension",
+			"context.group.setting.custom_user_extension",
+		},
+	}
+
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expKey, setting.NewKey(tc.context, tc.group, tc.setting).Key())
+		})
+	}
+}
+
+func TestNewValue(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(nil)
+
+		assert.Equal(t, "", value.MustString())
+		assert.Equal(t, []byte(""), value.MustByte())
+
+		assert.False(t, value.MustBool())
+
+		assert.Equal(t, 0, value.MustInt())
+		assert.Equal(t, int8(0), value.MustInt8())
+		assert.Equal(t, int16(0), value.MustInt16())
+		assert.Equal(t, int32(0), value.MustInt32())
+		assert.Equal(t, int64(0), value.MustInt64())
+
+		assert.Equal(t, uint(0), value.MustUint())
+		assert.Equal(t, uint8(0), value.MustUint8())
+		assert.Equal(t, uint16(0), value.MustUint16())
+		assert.Equal(t, uint32(0), value.MustUint32())
+		assert.Equal(t, uint64(0), value.MustUint64())
+
+		assert.Equal(t, float32(0), value.MustFloat32())
+		assert.Equal(t, float64(0), value.MustFloat64())
+
+		assert.Panics(t, func() { value.MustTime() })
+
+		var b bool
+		value.MustUnmarshal(&b)
+		assert.False(t, b)
+
+		var s string
+		value.MustUnmarshal(&s)
+		assert.Empty(t, s)
+
+		var buf bytes.Buffer
+		assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+	})
+
+	t.Run("string", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("empty", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue("")
+
+			assert.Equal(t, "", value.MustString())
+			assert.Equal(t, []byte(""), value.MustByte())
+
+			assert.False(t, value.MustBool())
+
+			assert.Equal(t, 0, value.MustInt())
+			assert.Equal(t, int8(0), value.MustInt8())
+			assert.Equal(t, int16(0), value.MustInt16())
+			assert.Equal(t, int32(0), value.MustInt32())
+			assert.Equal(t, int64(0), value.MustInt64())
+
+			assert.Equal(t, uint(0), value.MustUint())
+			assert.Equal(t, uint8(0), value.MustUint8())
+			assert.Equal(t, uint16(0), value.MustUint16())
+			assert.Equal(t, uint32(0), value.MustUint32())
+			assert.Equal(t, uint64(0), value.MustUint64())
+
+			assert.Equal(t, float32(0), value.MustFloat32())
+			assert.Equal(t, float64(0), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			value.MustUnmarshal(&b)
+			assert.False(t, b)
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Empty(t, s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("valid", func(t *testing.T) {
+			t.Parallel()
+
+			strVal := "some string value"
+			value := setting.NewValue(strVal)
+
+			assert.Equal(t, strVal, value.MustString())
+			assert.Equal(t, []byte(strVal), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, strVal, s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("time", func(t *testing.T) {
+			t.Parallel()
+
+			now := time.Now()
+			strVal := now.Format(time.RFC3339Nano)
+			value := setting.NewValue(strVal)
+
+			assert.Equal(t, strVal, value.MustString())
+			assert.Equal(t, []byte(strVal), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Equal(t, now.Truncate(time.Nanosecond), value.MustTime())
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, strVal, s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("json", func(t *testing.T) {
+			t.Parallel()
+
+			strVal := `{"Key":"Val"}`
+			value := setting.NewValue(strVal)
+
+			assert.Equal(t, strVal, value.MustString())
+			assert.Equal(t, []byte(strVal), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, strVal, s)
+
+			var buf bytes.Buffer
+			value.MustUnmarshal(&buf)
+			assert.Empty(t, buf)
+
+			type obj struct {
+				Key string
+			}
+			var o obj
+			value.MustUnmarshal(&o)
+			assert.Equal(t, obj{Key: "Val"}, o)
+		})
+
+		t.Run("number", func(t *testing.T) {
+			t.Parallel()
+
+			strVal := "-1337"
+			value := setting.NewValue(strVal)
+
+			assert.Equal(t, strVal, value.MustString())
+			assert.Equal(t, []byte(strVal), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Equal(t, -1337, value.MustInt())
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Equal(t, int16(-1337), value.MustInt16())
+			assert.Equal(t, int32(-1337), value.MustInt32())
+			assert.Equal(t, int64(-1337), value.MustInt64())
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Equal(t, float32(-1337), value.MustFloat32())
+			assert.Equal(t, float64(-1337), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, strVal, s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+	})
+
+	t.Run("bool", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("true", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(true)
+
+			assert.Equal(t, "true", value.MustString())
+			assert.Equal(t, []byte("true"), value.MustByte())
+
+			assert.True(t, value.MustBool())
+
+			assert.Equal(t, 1, value.MustInt())
+			assert.Equal(t, int8(1), value.MustInt8())
+			assert.Equal(t, int16(1), value.MustInt16())
+			assert.Equal(t, int32(1), value.MustInt32())
+			assert.Equal(t, int64(1), value.MustInt64())
+
+			assert.Equal(t, uint(1), value.MustUint())
+			assert.Equal(t, uint8(1), value.MustUint8())
+			assert.Equal(t, uint16(1), value.MustUint16())
+			assert.Equal(t, uint32(1), value.MustUint32())
+			assert.Equal(t, uint64(1), value.MustUint64())
+
+			assert.Equal(t, float32(1), value.MustFloat32())
+			assert.Equal(t, float64(1), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			value.MustUnmarshal(&b)
+			assert.True(t, b)
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "true", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("false", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(false)
+
+			assert.Equal(t, "false", value.MustString())
+			assert.Equal(t, []byte("false"), value.MustByte())
+
+			assert.False(t, value.MustBool())
+
+			assert.Equal(t, 0, value.MustInt())
+			assert.Equal(t, int8(0), value.MustInt8())
+			assert.Equal(t, int16(0), value.MustInt16())
+			assert.Equal(t, int32(0), value.MustInt32())
+			assert.Equal(t, int64(0), value.MustInt64())
+
+			assert.Equal(t, uint(0), value.MustUint())
+			assert.Equal(t, uint8(0), value.MustUint8())
+			assert.Equal(t, uint16(0), value.MustUint16())
+			assert.Equal(t, uint32(0), value.MustUint32())
+			assert.Equal(t, uint64(0), value.MustUint64())
+
+			assert.Equal(t, float32(0), value.MustFloat32())
+			assert.Equal(t, float64(0), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			value.MustUnmarshal(&b)
+			assert.False(t, b)
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "false", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+	})
+
+	t.Run("numbers", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("pos int", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(127)
+
+			assert.Equal(t, "127", value.MustString())
+			assert.Equal(t, []byte("127"), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Equal(t, 127, value.MustInt())
+			assert.Equal(t, int8(127), value.MustInt8())
+			assert.Equal(t, int16(127), value.MustInt16())
+			assert.Equal(t, int32(127), value.MustInt32())
+			assert.Equal(t, int64(127), value.MustInt64())
+
+			assert.Equal(t, uint(127), value.MustUint())
+			assert.Equal(t, uint8(127), value.MustUint8())
+			assert.Equal(t, uint16(127), value.MustUint16())
+			assert.Equal(t, uint32(127), value.MustUint32())
+			assert.Equal(t, uint64(127), value.MustUint64())
+
+			assert.Equal(t, float32(127), value.MustFloat32())
+			assert.Equal(t, float64(127), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "127", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("neg int", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(-127)
+
+			assert.Equal(t, "-127", value.MustString())
+			assert.Equal(t, []byte("-127"), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Equal(t, -127, value.MustInt())
+			assert.Equal(t, int8(-127), value.MustInt8())
+			assert.Equal(t, int16(-127), value.MustInt16())
+			assert.Equal(t, int32(-127), value.MustInt32())
+			assert.Equal(t, int64(-127), value.MustInt64())
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Equal(t, float32(-127), value.MustFloat32())
+			assert.Equal(t, float64(-127), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "-127", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("float", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(-0.5)
+
+			assert.Equal(t, "-0.50", value.MustString())
+			assert.Equal(t, []byte("-0.50"), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Equal(t, float32(-0.5), value.MustFloat32())
+			assert.Equal(t, float64(-0.5), value.MustFloat64())
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "-0.50", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+	})
+
+	t.Run("complex types", func(t *testing.T) {
+		t.Parallel()
+
+		type someStruct struct {
+			Field string
+		}
+
+		t.Run("json", func(t *testing.T) {
+			t.Parallel()
+
+			obj := someStruct{Field: "field"}
+			value := setting.NewValue(obj)
+
+			assert.Equal(t, `{"Field":"field"}`, value.MustString())
+			assert.Equal(t, []byte(`{"Field":"field"}`), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, `{"Field":"field"}`, s)
+
+			var buf bytes.Buffer
+			value.MustUnmarshal(&buf)
+			assert.Equal(t, `{"Field":"field"}`, s)
+
+			var o someStruct
+			value.MustUnmarshal(&o)
+			assert.Equal(t, obj, o)
+		})
+
+		t.Run("slice", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue([]int{1, 2, 3})
+
+			assert.Equal(t, "[1,2,3]", value.MustString())
+			assert.Equal(t, []byte("[1,2,3]"), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, "[1,2,3]", s)
+
+			var buf bytes.Buffer
+			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+
+			var o []int
+			value.MustUnmarshal(&o)
+			assert.Equal(t, []int{1, 2, 3}, o)
+		})
+
+		t.Run("map", func(t *testing.T) {
+			t.Parallel()
+
+			mp := map[string]map[int]someStruct{
+				"key": {0: {"field"}},
+			}
+
+			value := setting.NewValue(mp)
+			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
+
+			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
+			assert.Equal(t, []byte(`{"key":{"0":{"Field":"field"}}}`), value.MustByte())
+
+			assert.Panics(t, func() { value.MustBool() })
+
+			assert.Panics(t, func() { value.MustInt() })
+			assert.Panics(t, func() { value.MustInt8() })
+			assert.Panics(t, func() { value.MustInt16() })
+			assert.Panics(t, func() { value.MustInt32() })
+			assert.Panics(t, func() { value.MustInt64() })
+
+			assert.Panics(t, func() { value.MustUint() })
+			assert.Panics(t, func() { value.MustUint8() })
+			assert.Panics(t, func() { value.MustUint16() })
+			assert.Panics(t, func() { value.MustUint32() })
+			assert.Panics(t, func() { value.MustUint64() })
+
+			assert.Panics(t, func() { value.MustFloat32() })
+			assert.Panics(t, func() { value.MustFloat64() })
+
+			assert.Panics(t, func() { value.MustTime() })
+
+			var b bool
+			assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+			var s string
+			value.MustUnmarshal(&s)
+			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, s)
+
+			var buf bytes.Buffer
+			value.MustUnmarshal(&buf)
+			assert.Empty(t, buf)
+
+			var o map[string]map[int]someStruct
+			value.MustUnmarshal(&o)
+			assert.Equal(t, mp, o)
+		})
+	})
+
+	t.Run("time", func(t *testing.T) {
+		t.Parallel()
+
+		now := time.Now()
+
+		value := setting.NewValue(now)
+
+		assert.Equal(t, now.Format(time.RFC3339Nano), value.MustString())
+		assert.Equal(t, []byte(now.Format(time.RFC3339Nano)), value.MustByte())
+
+		assert.Panics(t, func() { value.MustBool() })
+
+		assert.Panics(t, func() { value.MustInt() })
+		assert.Panics(t, func() { value.MustInt8() })
+		assert.Panics(t, func() { value.MustInt16() })
+		assert.Panics(t, func() { value.MustInt32() })
+		assert.Panics(t, func() { value.MustInt64() })
+
+		assert.Panics(t, func() { value.MustUint() })
+		assert.Panics(t, func() { value.MustUint8() })
+		assert.Panics(t, func() { value.MustUint16() })
+		assert.Panics(t, func() { value.MustUint32() })
+		assert.Panics(t, func() { value.MustUint64() })
+
+		assert.Panics(t, func() { value.MustFloat32() })
+		assert.Panics(t, func() { value.MustFloat64() })
+
+		assert.Equal(t, now.Truncate(time.Nanosecond), value.MustTime())
+
+		var b bool
+		assert.Panics(t, func() { value.MustUnmarshal(&b) })
+
+		var s string
+		value.MustUnmarshal(&s)
+		assert.Equal(t, now.Format(time.RFC3339Nano), s)
+
+		var buf bytes.Buffer
+		assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+
+		var vNow time.Time
+		value.MustUnmarshal(&vNow)
+		assert.Equal(t, now.Truncate(time.Nanosecond), vNow)
+
+	})
+}

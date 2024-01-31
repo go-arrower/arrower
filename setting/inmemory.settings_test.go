@@ -26,14 +26,14 @@ func TestNewInMemorySettings(t *testing.T) {
 		wg.Done()
 	})
 
-	settings.Save(ctx, key, setting.New(true))
-	settings.Save(ctx, key, setting.New(false))
+	settings.Save(ctx, key, setting.NewValue(true))
+	settings.Save(ctx, key, setting.NewValue(false))
 	// runtime.Gosched()
-	settings.Save(ctx, key, setting.New(true))
-	settings.Save(ctx, key, setting.New(true)) // no OnSettingChange callback triggered by this change
+	settings.Save(ctx, key, setting.NewValue(true))
+	settings.Save(ctx, key, setting.NewValue(true)) // no OnSettingChange callback triggered by this change
 
 	isTest, _ := settings.Setting(ctx, key)
-	assert.True(t, isTest.Bool())
+	assert.True(t, isTest.MustBool())
 
 	wg.Wait()
 }

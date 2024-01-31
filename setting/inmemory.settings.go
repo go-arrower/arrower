@@ -32,7 +32,7 @@ func (s *SettingsHandler) Save(ctx context.Context, key Key, setting Value) erro
 		return fmt.Errorf("could not save setting: %w", err)
 	}
 
-	settingChanged := current.String() != setting.String()
+	settingChanged := current.MustString() != setting.MustString()
 	if settingChanged {
 		go s.notifyOnConfigChange(key, setting)
 	}
@@ -58,6 +58,11 @@ func (s *SettingsHandler) notifyOnConfigChange(key Key, setting Value) {
 	for _, c := range s.onChange[key] {
 		c(setting)
 	}
+}
+
+type repository interface {
+	Save(context.Context, Key, Value) error
+	FindByID(context.Context, Key) (Value, error)
 }
 
 type inMemoryRepository struct {
