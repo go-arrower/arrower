@@ -91,6 +91,9 @@ func TestNewKey(t *testing.T) {
 func TestNewValue(t *testing.T) {
 	t.Parallel()
 
+	// enable logger, if debugging
+	// slog.SetDefault(alog.NewTest(os.Stderr))
+
 	t.Run("nil", func(t *testing.T) {
 		t.Parallel()
 

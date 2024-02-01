@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-arrower/arrower/alog"
 )
 
 var (
@@ -495,103 +498,61 @@ func (v Value) MustFloat64() float64 {
 	return f
 }
 
+//nolint:gocyclo,nestif,cyclop,varnamelen // the method has to consider all the cases for auto-casting.
 func (v Value) Unmarshal(o any) error {
-	oKind := reflect.TypeOf(o).Elem().Kind()
-	oVal := reflect.Indirect(reflect.ValueOf(o))
-
 	var applyValue reflect.Value
 
-	if v.kind == reflect.String {
-		if v.v == "" && oKind != reflect.Bool {
+	oKind := reflect.TypeOf(o).Elem().Kind()
+
+	slog.Log(context.Background(), alog.LevelDebug, "Unmarshal setting.Value into object",
+		slog.String("value", v.v),
+		slog.Any("object_kind", oKind),
+	)
+
+	switch oKind {
+	case reflect.Bool:
+		if isTrue, err := v.Bool(); err == nil {
+			slog.Log(context.Background(), alog.LevelDebug, "is bool", slog.Bool("value", isTrue))
+			applyValue = reflect.ValueOf(isTrue)
+		} else {
+			return fmt.Errorf("%w", ErrInvalidValue)
+		}
+	case reflect.String:
+		if v.v == "" {
 			applyValue = reflect.ValueOf("")
-		}
-
-		if v.v != "" {
-			if oKind == reflect.String {
-				applyValue = reflect.ValueOf(v.v)
+		} else if isTrue, err := v.Bool(); err == nil {
+			if isTrue {
+				applyValue = reflect.ValueOf("true")
 			} else {
-				err := json.Unmarshal([]byte(v.v), o)
-				if err != nil {
-					return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
-				}
+				applyValue = reflect.ValueOf("false")
+			}
+		} else if iVal, err := v.Int(); err == nil {
+			slog.Log(context.Background(), alog.LevelDebug, "is int")
+			applyValue = reflect.ValueOf(strconv.Itoa(iVal))
+		} else if fVal, err := v.Float64(); err == nil {
+			slog.Log(context.Background(), alog.LevelDebug, "is float")
+			applyValue = reflect.ValueOf(fmt.Sprintf("%.2f", fVal))
+		} else {
+			slog.Log(context.Background(), alog.LevelDebug, "raw string")
+			applyValue = reflect.ValueOf(v.v)
+		}
+	case reflect.Struct, reflect.Slice, reflect.Map:
+		if tNow, err := v.Time(); err == nil {
+			slog.Log(context.Background(), alog.LevelDebug, "is time")
 
-				return nil
+			applyValue = reflect.ValueOf(tNow)
+		} else {
+			err := json.Unmarshal([]byte(v.v), o)
+			if err != nil {
+				return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 			}
 		}
+	default:
+		return fmt.Errorf("%w: %s", ErrInvalidValue, "unsupported type")
 	}
 
-	if applyValue != (reflect.Value{}) {
-		oVal.Set(applyValue)
-
-		return nil
-	}
-
-	if isBool, err := v.Bool(); err == nil && (v.kind == reflect.Bool || v.kind == reflect.String) {
-		switch oKind {
-		case reflect.String:
-			if isBool {
-				oVal.Set(reflect.ValueOf("true"))
-
-				return nil
-			}
-
-			oVal.Set(reflect.ValueOf("false"))
-
-			return nil
-		case reflect.Bool:
-			if isBool {
-				oVal.Set(reflect.ValueOf(true))
-
-				return nil
-			}
-
-			oVal.Set(reflect.ValueOf(false))
-
-			return nil
-		default:
-			return fmt.Errorf("%w: %s", ErrInvalidValue, "unhandled default case")
-		}
-	}
-
-	if oKind == reflect.String {
-		tNow, err := v.Time()
-		if err == nil {
-			oVal.Set(reflect.ValueOf(tNow.Format(time.RFC3339Nano)))
-
-			return nil
-		}
-
-		iVal, err := v.Int()
-		if err == nil {
-			oVal.Set(reflect.ValueOf(strconv.Itoa(iVal)))
-
-			return nil
-		}
-
-		fVal, err := v.Float64()
-		if err == nil {
-			oVal.Set(reflect.ValueOf(fmt.Sprintf("%.2f", fVal)))
-
-			return nil
-		}
-
-		oVal.Set(reflect.ValueOf(v.v))
-
-		return nil
-	}
-
-	if oKind == reflect.Struct {
-		tNow, err := v.Time()
-		if err == nil {
-			oVal.Set(reflect.ValueOf(tNow))
-
-			return nil
-		}
-	}
-
-	err := json.Unmarshal([]byte(v.v), o)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+	if applyValue != (reflect.Value{}) { //nolint:govet,lll // I don't know how to do it without == or reflect.DeepEqual: reflectvaluecompare: avoid using != with reflect.Value
+		reflect.Indirect(reflect.ValueOf(o)).Set(applyValue)
 	}
 
 	return nil
