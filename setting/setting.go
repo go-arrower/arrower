@@ -112,27 +112,45 @@ type Value struct {
 	kind reflect.Kind
 }
 
-func (v Value) MustString() string {
+func (v Value) String() (string, error) {
 	i, err := strconv.ParseUint(v.v, base, 64)
 	if err == nil { // match as uint or int
-		return strconv.FormatUint(i, base)
+		return strconv.FormatUint(i, base), nil
 	}
 
 	i64, err := strconv.ParseInt(v.v, base, 64)
 	if err == nil { // match as int
-		return strconv.FormatInt(i64, base)
+		return strconv.FormatInt(i64, base), nil
 	}
 
 	f, err := strconv.ParseFloat(v.v, 64)
 	if err == nil { // match floats
-		return fmt.Sprintf("%.2f", f)
+		return fmt.Sprintf("%.2f", f), nil
 	}
 
-	return v.v
+	return v.v, nil
+}
+
+func (v Value) MustString() string {
+	s, err := v.String()
+	if err != nil {
+		panic(err)
+	}
+
+	return s
+}
+
+func (v Value) Byte() ([]byte, error) {
+	return []byte(v.MustString()), nil
 }
 
 func (v Value) MustByte() []byte {
-	return []byte(v.MustString())
+	b, err := v.Byte()
+	if err != nil {
+		panic(err)
+	}
+
+	return b
 }
 
 func (v Value) Bool() (bool, error) {
@@ -178,156 +196,29 @@ func (v Value) MustInt() int {
 	return i
 }
 
-func (v Value) MustInt8() int8 {
+func (v Value) Int8() (int8, error) {
 	if b, err := v.Bool(); err == nil {
 		if b {
-			return 1
+			return 1, nil
 		}
 
-		return 0
+		return 0, nil
 	}
 
 	i, err := strconv.Atoi(v.v)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	if i > math.MaxInt8 || i < math.MinInt8 { // todo: do the same checks for all other methods like uint32 ...
-		panic("uint overflow")
+		return 0, fmt.Errorf("uint overflow")
 	}
 
-	return int8(i)
+	return int8(i), nil
 }
 
-func (v Value) MustInt16() int16 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.Atoi(v.v)
-	if err != nil {
-		panic(err)
-	}
-
-	return int16(i) //nolint:gosec,lll // accept potential integer overflow, as it is expected, that the developer knows what he is doing. //todo check lint warnings, if should panic
-}
-
-func (v Value) MustInt32() int32 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.Atoi(v.v)
-	if err != nil {
-		panic(err)
-	}
-
-	return int32(i) //nolint:gosec,lll // integer overflow: developer is responsible // TODO should smaller types just be removed to have settings more secure by default? should panic?
-}
-
-func (v Value) MustInt64() int64 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.Atoi(v.v)
-	if err != nil {
-		panic(err)
-	}
-
-	return int64(i)
-}
-
-func (v Value) MustUint() uint {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.ParseUint(v.v, base, 64)
-	if err != nil {
-		panic(err)
-	}
-
-	return uint(i)
-}
-
-func (v Value) MustUint8() uint8 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.ParseUint(v.v, base, 64)
-	if err != nil {
-		panic(err)
-	}
-
-	return uint8(i)
-}
-
-func (v Value) MustUint16() uint16 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.ParseUint(v.v, base, 64)
-	if err != nil {
-		panic(err)
-	}
-
-	return uint16(i)
-}
-
-func (v Value) MustUint32() uint32 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.ParseUint(v.v, base, 64)
-	if err != nil {
-		panic(err)
-	}
-
-	return uint32(i)
-}
-
-func (v Value) MustUint64() uint64 {
-	if b, err := v.Bool(); err == nil {
-		if b {
-			return 1
-		}
-
-		return 0
-	}
-
-	i, err := strconv.ParseUint(v.v, base, 64)
+func (v Value) MustInt8() int8 {
+	i, err := v.Int8()
 	if err != nil {
 		panic(err)
 	}
@@ -335,21 +226,238 @@ func (v Value) MustUint64() uint64 {
 	return i
 }
 
-func (v Value) MustFloat32() float32 {
+func (v Value) Int16() (int16, error) {
 	if b, err := v.Bool(); err == nil {
 		if b {
-			return 1
+			return 1, nil
 		}
 
-		return 0
+		return 0, nil
 	}
 
-	i, err := strconv.ParseFloat(v.v, 64)
+	i, err := strconv.Atoi(v.v)
+	if err != nil {
+		return 0, err
+	}
+
+	return int16(i), nil //nolint:gosec,lll // accept potential integer overflow, as it is expected, that the developer knows what he is doing. //todo check lint warnings, if should panic
+}
+
+func (v Value) MustInt16() int16 {
+	i, err := v.Int16()
 	if err != nil {
 		panic(err)
 	}
 
-	return float32(i)
+	return i
+}
+
+func (v Value) Int32() (int32, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.Atoi(v.v)
+	if err != nil {
+		return 0, err
+	}
+
+	return int32(i), nil //nolint:gosec,lll // integer overflow: developer is responsible // TODO should smaller types just be removed to have settings more secure by default? should panic?
+}
+
+func (v Value) MustInt32() int32 {
+	i, err := v.Int32()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Int64() (int64, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.Atoi(v.v)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(i), nil
+}
+
+func (v Value) MustInt64() int64 {
+	i, err := v.Int64()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Uint() (uint, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseUint(v.v, base, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint(i), nil
+}
+
+func (v Value) MustUint() uint {
+	i, err := v.Uint()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Uint8() (uint8, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseUint(v.v, base, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint8(i), nil
+}
+
+func (v Value) MustUint8() uint8 {
+	i, err := v.Uint8()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Uint16() (uint16, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseUint(v.v, base, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint16(i), nil
+}
+
+func (v Value) MustUint16() uint16 {
+	i, err := v.Uint16()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Uint32() (uint32, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseUint(v.v, base, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(i), nil
+}
+
+func (v Value) MustUint32() uint32 {
+	i, err := v.Uint32()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Uint64() (uint64, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseUint(v.v, base, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return i, nil
+}
+
+func (v Value) MustUint64() uint64 {
+	i, err := v.Uint64()
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (v Value) Float32() (float32, error) {
+	if b, err := v.Bool(); err == nil {
+		if b {
+			return 1, nil
+		}
+
+		return 0, nil
+	}
+
+	i, err := strconv.ParseFloat(v.v, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return float32(i), nil
+}
+
+func (v Value) MustFloat32() float32 {
+	f, err := v.Float32()
+	if err != nil {
+		panic(err)
+	}
+
+	return f
 }
 
 func (v Value) Float64() (float64, error) {
@@ -370,15 +478,15 @@ func (v Value) Float64() (float64, error) {
 }
 
 func (v Value) MustFloat64() float64 {
-	i, err := v.Float64()
+	f, err := v.Float64()
 	if err != nil {
 		panic(err)
 	}
 
-	return i
+	return f
 }
 
-func (v Value) MustUnmarshal(o any) {
+func (v Value) Unmarshal(o any) error {
 	oKind := reflect.TypeOf(o).Elem().Kind()
 	oVal := reflect.Indirect(reflect.ValueOf(o))
 
@@ -388,22 +496,22 @@ func (v Value) MustUnmarshal(o any) {
 		if v.v == "" && oKind != reflect.Bool {
 			oVal.Set(reflect.ValueOf(""))
 
-			return
+			return nil
 		}
 
 		if v.v != "" {
 			if oKind == reflect.String {
 				oVal.Set(reflect.ValueOf(v.v))
 
-				return
+				return nil
 			}
 
 			err := json.Unmarshal([]byte(v.v), o)
 			if err != nil {
-				panic(err)
+				return err
 			}
 
-			return
+			return nil
 		}
 	}
 
@@ -413,24 +521,24 @@ func (v Value) MustUnmarshal(o any) {
 			if b {
 				oVal.Set(reflect.ValueOf("true"))
 
-				return
+				return nil
 			}
 
 			oVal.Set(reflect.ValueOf("false"))
 
-			return
+			return nil
 		case reflect.Bool:
 			if b {
 				oVal.Set(reflect.ValueOf(true))
 
-				return
+				return nil
 			}
 
 			oVal.Set(reflect.ValueOf(false))
 
-			return
+			return nil
 		default:
-			panic("unhandled default case")
+			return fmt.Errorf("unhandled default case")
 		}
 	}
 
@@ -439,26 +547,26 @@ func (v Value) MustUnmarshal(o any) {
 		if err == nil {
 			oVal.Set(reflect.ValueOf(tNow.Format(time.RFC3339Nano)))
 
-			return
+			return nil
 		}
 
 		iVal, err := v.Int()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(strconv.Itoa(iVal)))
 
-			return
+			return nil
 		}
 
 		fVal, err := v.Float64()
 		if err == nil {
 			oVal.Set(reflect.ValueOf(fmt.Sprintf("%.2f", fVal)))
 
-			return
+			return nil
 		}
 
 		oVal.Set(reflect.ValueOf(v.v))
 
-		return
+		return nil
 	}
 
 	if oKind == reflect.Struct {
@@ -466,11 +574,20 @@ func (v Value) MustUnmarshal(o any) {
 		if err == nil {
 			oVal.Set(reflect.ValueOf(tNow))
 
-			return
+			return nil
 		}
 	}
 
 	err := json.Unmarshal([]byte(v.v), o)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v Value) MustUnmarshal(o any) {
+	err := v.Unmarshal(o)
 	if err != nil {
 		panic(err)
 	}
@@ -493,6 +610,3 @@ func (v Value) MustTime() time.Time {
 
 	return t
 }
-
-// v Value Any() any
-// All functions with E at the end returning an error
