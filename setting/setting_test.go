@@ -2,6 +2,7 @@ package setting_test
 
 import (
 	"bytes"
+	"math"
 	"testing"
 	"time"
 
@@ -75,17 +76,18 @@ func TestNewKey(t *testing.T) {
 		},
 	}
 
-	for name, tc := range tests {
-		tc := tc
+	for name, tt := range tests {
+		tt := tt
+
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.expKey, setting.NewKey(tc.context, tc.group, tc.setting).Key())
+			assert.Equal(t, tt.expKey, setting.NewKey(tt.context, tt.group, tt.setting).Key())
 		})
 	}
 }
 
-//nolint:dupl
+//nolint:dupl,maintidx // the test is cumbersome, but covers a lot of cases to be explicit in the behaviour of the type casts.
 func TestNewValue(t *testing.T) {
 	t.Parallel()
 
@@ -720,5 +722,79 @@ func TestNewValue(t *testing.T) {
 		var vNow time.Time
 		value.MustUnmarshal(&vNow)
 		assert.Equal(t, now.Truncate(time.Nanosecond), vNow)
+	})
+}
+
+func TestValue_CheckOverflows(t *testing.T) {
+	t.Parallel()
+
+	t.Run("int8", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(int16(math.MaxInt16))
+
+		i, err := value.Int8()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("int16", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(int32(math.MaxInt32))
+
+		i, err := value.Int16()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("int32", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(int64(math.MaxInt64))
+
+		i, err := value.Int32()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("uint8", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(uint16(math.MaxUint16))
+
+		i, err := value.Uint8()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("uint16", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(uint32(math.MaxUint32))
+
+		i, err := value.Uint16()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("uint32", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(uint64(math.MaxUint64))
+
+		i, err := value.Uint32()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, i)
+	})
+
+	t.Run("float32", func(t *testing.T) {
+		t.Parallel()
+
+		value := setting.NewValue(float64(math.MaxFloat64))
+
+		f, err := value.Float32()
+		assert.ErrorIs(t, err, setting.ErrInvalidValue)
+		assert.Empty(t, f)
 	})
 }

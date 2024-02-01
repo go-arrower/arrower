@@ -2,6 +2,7 @@ package setting
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-arrower/arrower/tests"
 )
@@ -37,7 +38,7 @@ func (s *InMemorySettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 	for _, k := range keys {
 		s, err := s.repo.FindByID(ctx, k.Key())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w", err)
 		}
 
 		settings[k] = s

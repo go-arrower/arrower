@@ -5,14 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound     = errors.New("not found")
+	ErrInvalidValue = errors.New("invalid value")
+)
 
 type Settings interface {
 	Save(ctx context.Context, key Key, value Value) error
@@ -85,9 +87,15 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen
 	case reflect.Uint64:
 		return Value{v: strconv.FormatUint(val.(uint64), base), kind: reflect.Uint64} //nolint:forcetypeassert
 	case reflect.Float32:
-		return Value{v: strconv.FormatFloat(float64(val.(float32)), 'g', -1, 64), kind: reflect.Float32} //nolint:forcetypeassert
+		return Value{
+			v:    strconv.FormatFloat(float64(val.(float32)), 'g', -1, 64), //nolint:forcetypeassert
+			kind: reflect.Float32,
+		}
 	case reflect.Float64:
-		return Value{v: strconv.FormatFloat(val.(float64), 'g', -1, 64), kind: reflect.Float64} //nolint:forcetypeassert
+		return Value{
+			v:    strconv.FormatFloat(val.(float64), 'g', -1, 64), //nolint:forcetypeassert
+			kind: reflect.Float64,
+		}
 	case reflect.Map, reflect.Slice, reflect.Array, reflect.Struct:
 		if t, ok := val.(time.Time); ok {
 			return Value{v: t.Format(time.RFC3339Nano), kind: reflect.Struct}
@@ -158,7 +166,12 @@ func (v Value) Bool() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(v.v)
+	b, err := strconv.ParseBool(v.v)
+	if err != nil {
+		return false, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+	}
+
+	return b, nil
 }
 
 func (v Value) MustBool() bool {
@@ -181,7 +194,7 @@ func (v Value) Int() (int, error) {
 
 	i, err := strconv.Atoi(v.v)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return i, nil
@@ -205,13 +218,9 @@ func (v Value) Int8() (int8, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.Atoi(v.v)
+	i, err := strconv.ParseInt(v.v, 10, 8)
 	if err != nil {
-		return 0, err
-	}
-
-	if i > math.MaxInt8 || i < math.MinInt8 { // todo: do the same checks for all other methods like uint32 ...
-		return 0, fmt.Errorf("uint overflow")
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return int8(i), nil
@@ -235,12 +244,12 @@ func (v Value) Int16() (int16, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.Atoi(v.v)
+	i, err := strconv.ParseInt(v.v, 10, 16)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
-	return int16(i), nil //nolint:gosec,lll // accept potential integer overflow, as it is expected, that the developer knows what he is doing. //todo check lint warnings, if should panic
+	return int16(i), nil
 }
 
 func (v Value) MustInt16() int16 {
@@ -261,12 +270,12 @@ func (v Value) Int32() (int32, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.Atoi(v.v)
+	i, err := strconv.ParseInt(v.v, 10, 32)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
-	return int32(i), nil //nolint:gosec,lll // integer overflow: developer is responsible // TODO should smaller types just be removed to have settings more secure by default? should panic?
+	return int32(i), nil
 }
 
 func (v Value) MustInt32() int32 {
@@ -289,7 +298,7 @@ func (v Value) Int64() (int64, error) {
 
 	i, err := strconv.Atoi(v.v)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return int64(i), nil
@@ -315,7 +324,7 @@ func (v Value) Uint() (uint, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return uint(i), nil
@@ -339,9 +348,9 @@ func (v Value) Uint8() (uint8, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.ParseUint(v.v, base, 64)
+	i, err := strconv.ParseUint(v.v, base, 8)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return uint8(i), nil
@@ -365,9 +374,9 @@ func (v Value) Uint16() (uint16, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.ParseUint(v.v, base, 64)
+	i, err := strconv.ParseUint(v.v, base, 16)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return uint16(i), nil
@@ -391,9 +400,9 @@ func (v Value) Uint32() (uint32, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.ParseUint(v.v, base, 64)
+	i, err := strconv.ParseUint(v.v, base, 32)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return uint32(i), nil
@@ -419,7 +428,7 @@ func (v Value) Uint64() (uint64, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return i, nil
@@ -443,9 +452,9 @@ func (v Value) Float32() (float32, error) {
 		return 0, nil
 	}
 
-	i, err := strconv.ParseFloat(v.v, 64)
+	i, err := strconv.ParseFloat(v.v, 32)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return float32(i), nil
@@ -471,7 +480,7 @@ func (v Value) Float64() (float64, error) {
 
 	i, err := strconv.ParseFloat(v.v, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return i, nil
@@ -490,35 +499,37 @@ func (v Value) Unmarshal(o any) error {
 	oKind := reflect.TypeOf(o).Elem().Kind()
 	oVal := reflect.Indirect(reflect.ValueOf(o))
 
-	//var applyValue reflect.Value // go and build rules and apply only ones in the end
+	var applyValue reflect.Value
 
 	if v.kind == reflect.String {
 		if v.v == "" && oKind != reflect.Bool {
-			oVal.Set(reflect.ValueOf(""))
-
-			return nil
+			applyValue = reflect.ValueOf("")
 		}
 
 		if v.v != "" {
 			if oKind == reflect.String {
-				oVal.Set(reflect.ValueOf(v.v))
+				applyValue = reflect.ValueOf(v.v)
+			} else {
+				err := json.Unmarshal([]byte(v.v), o)
+				if err != nil {
+					return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+				}
 
 				return nil
 			}
-
-			err := json.Unmarshal([]byte(v.v), o)
-			if err != nil {
-				return err
-			}
-
-			return nil
 		}
 	}
 
-	if b, err := v.Bool(); err == nil && (v.kind == reflect.Bool || v.kind == reflect.String) {
+	if applyValue != (reflect.Value{}) {
+		oVal.Set(applyValue)
+
+		return nil
+	}
+
+	if isBool, err := v.Bool(); err == nil && (v.kind == reflect.Bool || v.kind == reflect.String) {
 		switch oKind {
 		case reflect.String:
-			if b {
+			if isBool {
 				oVal.Set(reflect.ValueOf("true"))
 
 				return nil
@@ -528,7 +539,7 @@ func (v Value) Unmarshal(o any) error {
 
 			return nil
 		case reflect.Bool:
-			if b {
+			if isBool {
 				oVal.Set(reflect.ValueOf(true))
 
 				return nil
@@ -538,7 +549,7 @@ func (v Value) Unmarshal(o any) error {
 
 			return nil
 		default:
-			return fmt.Errorf("unhandled default case")
+			return fmt.Errorf("%w: %s", ErrInvalidValue, "unhandled default case")
 		}
 	}
 
@@ -580,7 +591,7 @@ func (v Value) Unmarshal(o any) error {
 
 	err := json.Unmarshal([]byte(v.v), o)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -596,7 +607,7 @@ func (v Value) MustUnmarshal(o any) {
 func (v Value) Time() (time.Time, error) {
 	t, err := time.Parse(time.RFC3339Nano, v.v)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return t, nil
