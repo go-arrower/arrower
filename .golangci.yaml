@@ -33,6 +33,12 @@ linters-settings:
     # with the given prefixes are grouped after 3rd-party packages.
     # Default: ""
     local-prefixes: github.com/go-arrower/arrower
+  gomnd:
+    # List of file patterns to exclude from analysis.
+    # Values always ignored: `.+_test.go`
+    # Default: []
+    ignored-files:
+      - testing.go # ignore public test suites like for setting.Settings interface
   govet:
     # Report about shadowed variables.
     # Default: false
@@ -254,7 +260,7 @@ issues:
     #
     # Exclude issues from test files
     #
-    - path: _test.go
+    - path: _test.go|testing.go
       linters:
         - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
         - funlen  # Allow test functions of any length
@@ -262,7 +268,7 @@ issues:
         - lll # Mostly because of lengthy msgAndArgs params in assertions
         - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
         - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
-    - path: _test.go # partly exclude false positives, but not all. Can not mix with complete exclusion above or "text" filter applies to all linters and e.g. doesn't catch funlen anymore
+    - path: _test.go|testing.go # partly exclude false positives, but not all. Can not mix with complete exclusion above or "text" filter applies to all linters and e.g. doesn't catch funlen anymore
       linters:
         - govet
       text: "fieldalignment" # Prefer easier readability to optimal memory layout for tests

@@ -2,6 +2,7 @@ package setting
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/setting/models"
 )
+
+var ErrOperationFailed = errors.New("operation failed")
 
 func NewPostgresSettings(pgxPool *pgxpool.Pool) *PostgresSettings {
 	return &PostgresSettings{
@@ -26,7 +29,7 @@ type PostgresSettings struct {
 func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error {
 	val, err := value.String()
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	err = s.repo.ConnOrTX(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
@@ -34,7 +37,7 @@ func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error
 		Value: val,
 	})
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil
@@ -43,7 +46,7 @@ func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error
 func (s *PostgresSettings) Setting(ctx context.Context, key Key) (Value, error) {
 	value, err := s.repo.ConnOrTX(ctx).GetSetting(ctx, key.Key())
 	if err != nil {
-		return NewValue(nil), fmt.Errorf("%w: %v", ErrNotFound, err)
+		return NewValue(nil), fmt.Errorf("%w: %v", ErrNotFound, err) //nolint:errorlint // prevent err in api
 	}
 
 	return NewValue(value), nil
@@ -57,10 +60,11 @@ func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 
 	dbSettings, err := s.repo.ConnOrTX(ctx).GetSettings(ctx, compositeKeys)
 	if err != nil {
-		return nil, fmt.Errorf("%v", err)
+		return nil, fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
 
-	var settings = make(map[Key]Value)
+	settings := make(map[Key]Value)
+
 	for _, s := range dbSettings {
 		k := strings.Split(s.Key, ".")
 		settings[NewKey(k[0], k[1], k[2])] = NewValue(s.Value)
@@ -77,7 +81,7 @@ func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 func (s *PostgresSettings) Delete(ctx context.Context, key Key) error {
 	err := s.repo.ConnOrTX(ctx).DeleteSetting(ctx, key.Key())
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return nil

@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSettings(t *testing.T, new func() Settings) {
+func TestSettings(t *testing.T, newSettings func() Settings) { //nolint:tparallel // t.Parallel can only be called ones! The caller decides
 	t.Helper()
 
-	if new == nil {
+	if newSettings == nil {
 		t.Fatal("Settings constructor is nil")
 	}
 
@@ -25,7 +25,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 	t.Run("Save", func(t *testing.T) {
 		t.Parallel()
 
-		settings := new()
+		settings := newSettings()
 
 		t.Run("save", func(t *testing.T) {
 			t.Parallel()
@@ -56,7 +56,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 	t.Run("Setting", func(t *testing.T) {
 		t.Parallel()
 
-		settings := new()
+		settings := newSettings()
 
 		t.Run("get setting", func(t *testing.T) {
 			t.Parallel()
@@ -81,7 +81,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 	t.Run("Settings", func(t *testing.T) {
 		t.Parallel()
 
-		settings := new()
+		settings := newSettings()
 
 		k0 := NewKey("arrower", "test", "s0")
 		k1 := NewKey("arrower", "test", "s1")
@@ -118,7 +118,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 	t.Run("Delete", func(t *testing.T) {
 		t.Parallel()
 
-		settings := new()
+		settings := newSettings()
 
 		t.Run("existing", func(t *testing.T) {
 			t.Parallel()
@@ -145,7 +145,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 	t.Run("serialisation", func(t *testing.T) {
 		t.Parallel()
 
-		settings := new()
+		settings := newSettings()
 
 		type someStruct struct {
 			Field string
@@ -194,7 +194,7 @@ func TestSettings(t *testing.T, new func() Settings) {
 			assert.Equal(t, []byte(`{"key":{"0":{"Field":"field"}}}`), val.MustByte())
 
 			var o map[string]map[int]someStruct
-			val.MustUnmarshal(&o)
+			val.MustUnmarshal(&o) //nolint:contextcheck
 			assert.Equal(t, mp, o)
 		})
 

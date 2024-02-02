@@ -35,14 +35,15 @@ func (s *InMemorySettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 	settings := make(map[Key]Value, len(keys))
 	hasNotFound := false
 
-	for _, k := range keys {
-		s, err := s.repo.FindByID(ctx, k.Key())
+	for _, key := range keys {
+		value, err := s.repo.FindByID(ctx, key.Key())
 		if err != nil {
 			hasNotFound = true
+
 			continue
 		}
 
-		settings[k] = s
+		settings[key] = value
 	}
 
 	if hasNotFound {
