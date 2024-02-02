@@ -1,13 +1,13 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "postgres/query.sql"
+    queries: "alog/query.sql"
     schema: "postgres/migrations"
     strict_function_checks: true
     gen:
       go:
         package: "models"
-        out: "postgres/models"
+        out: "alog/models"
         sql_package: "pgx/v5"
         omit_unused_structs: true
   - engine: "postgresql"
@@ -21,13 +21,23 @@ sql:
         sql_package: "pgx/v5"
         omit_unused_structs: true
   - engine: "postgresql"
-    queries: "alog/query.sql"
+    queries: "postgres/query.sql"
     schema: "postgres/migrations"
     strict_function_checks: true
     gen:
       go:
         package: "models"
-        out: "alog/models"
+        out: "postgres/models"
+        sql_package: "pgx/v5"
+        omit_unused_structs: true
+  - engine: "postgresql"
+    queries: "setting/query.sql"
+    schema: "postgres/migrations"
+    strict_function_checks: true
+    gen:
+      go:
+        package: "models"
+        out: "setting/models"
         sql_package: "pgx/v5"
         omit_unused_structs: true
 overrides:

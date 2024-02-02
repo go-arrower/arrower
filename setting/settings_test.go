@@ -643,8 +643,6 @@ func TestNewValue(t *testing.T) {
 
 			value := setting.NewValue(mp)
 			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
-
-			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
 			assert.Equal(t, []byte(`{"key":{"0":{"Field":"field"}}}`), value.MustByte())
 
 			assert.Panics(t, func() { value.MustBool() })

@@ -23,13 +23,15 @@ type Settings interface {
 	Save(ctx context.Context, key Key, value Value) error
 
 	Setting(ctx context.Context, key Key) (Value, error)
+	// Settings returns a setting for each of the keys.
+	// If not all keys exist, the found settings are returned anyway with an ErrNotFound error.
 	Settings(ctx context.Context, keys []Key) (map[Key]Value, error)
 
 	Delete(ctx context.Context, key Key) error
 }
 
-func NewKey(context string, group string, name string) Key {
-	return Key{context: context, group: group, setting: name}
+func NewKey(context string, group string, setting string) Key {
+	return Key{context: context, group: group, setting: setting}
 }
 
 type Key struct {

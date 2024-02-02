@@ -12,4 +12,5 @@ CREATE INDEX IF NOT EXISTS log_time_idx ON arrower.log(time);
 
 SELECT enable_automatic_updated_at('arrower.log');
 
+
 COMMIT;
