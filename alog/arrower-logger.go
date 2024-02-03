@@ -174,6 +174,7 @@ func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
 						attribute.Bool("enabled", true),
 						attribute.String("userID", userID),
 					)
+
 					return true
 				}
 			}

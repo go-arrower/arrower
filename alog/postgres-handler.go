@@ -21,7 +21,7 @@ var ErrLogFailed = errors.New("could not save log")
 // NewPostgresHandler use this handler in low traffic situations to inspect logs via the arrower admin Context.
 func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *PostgresHandler {
 	// generate json log by writing to local buffer with slog default json
-	buf := &bytes.Buffer{}
+	buf := &bytes.Buffer{} // protect by a mutex?
 	jsonLog := slog.HandlerOptions{
 		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
 		AddSource:   false,
@@ -97,6 +97,7 @@ type (
 		// it didn't reach the maximum size yet.
 		MaxTimeout time.Duration
 	}
+
 	PostgresHandler struct { //nolint:govet // accept fieldalignment
 		queries  *models.Queries
 		renderer slog.Handler
