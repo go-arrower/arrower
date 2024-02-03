@@ -13,7 +13,9 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/setting"
 )
 
 func TestNew(t *testing.T) {
@@ -245,6 +247,72 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 
 		logger.Info(applicationMsg)
 		assert.Contains(t, buf.String(), applicationMsg)
+	})
+
+	t.Run("settings", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("level setting", func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+
+			buf := &bytes.Buffer{}
+			settings := setting.NewInMemorySettings()
+
+			logger := alog.New(
+				alog.WithHandler(slog.NewTextHandler(buf, nil)),
+				alog.WithSettings(settings),
+			)
+
+			settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(slog.LevelInfo))
+			logger.Log(ctx, slog.LevelInfo, "info")
+			logger.Log(ctx, slog.LevelDebug, "debug")
+
+			assert.Contains(t, buf.String(), "info")
+			assert.NotContains(t, buf.String(), "debug")
+
+			// dynamically change log level via settings
+			settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(alog.LevelDebug))
+			logger.Log(ctx, slog.LevelInfo, "info")
+			logger.Log(ctx, slog.LevelDebug, "debug")
+
+			assert.Contains(t, buf.String(), "info")
+			assert.Contains(t, buf.String(), "debug")
+		})
+
+		t.Run("user setting", func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+			userID := "001"
+			buf := &bytes.Buffer{}
+			settings := setting.NewInMemorySettings()
+
+			logger := alog.New(
+				alog.WithHandler(slog.NewTextHandler(buf, nil)),
+				alog.WithSettings(settings),
+			)
+
+			logger.Log(ctx, slog.LevelDebug, "debug")
+			assert.NotContains(t, buf.String(), "debug")
+
+			// dynamically add userID to the setting of users to log
+			settings.Save(ctx, alog.SettingLogUsers, setting.NewValue([]string{userID}))
+
+			ctx = context.WithValue(ctx, arrower.CtxAuthUserID, userID)
+			logger.Log(ctx, slog.LevelDebug, "debug")
+
+			assert.Contains(t, buf.String(), "debug")
+
+			// remove users
+			settings.Save(ctx, alog.SettingLogUsers, setting.NewValue([]string{}))
+			buf.Reset()
+
+			logger.Log(ctx, slog.LevelDebug, "debug")
+
+			assert.NotContains(t, buf.String(), "debug")
+		})
 	})
 }
 

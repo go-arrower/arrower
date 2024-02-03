@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/go-arrower/arrower/alog"
 )
 
 var (
@@ -59,7 +57,7 @@ func (k Key) Key() string {
 }
 
 // NewValue returns a valid Value for val.
-func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen
+func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
 	if val == nil {
 		return Value{v: "", kind: reflect.String}
 	}
@@ -72,31 +70,115 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen
 	case reflect.Bool:
 		return Value{v: strconv.FormatBool(val.(bool)), kind: reflect.Bool} //nolint:forcetypeassert
 	case reflect.Int:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(int(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.Itoa(val.(int)), kind: reflect.Int} //nolint:forcetypeassert
 	case reflect.Int8:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(int8(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.Itoa(int(val.(int8))), kind: reflect.Int8} //nolint:forcetypeassert
 	case reflect.Int16:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(int16(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.Itoa(int(val.(int16))), kind: reflect.Int16} //nolint:forcetypeassert
 	case reflect.Int32:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(int32(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.Itoa(int(val.(int32))), kind: reflect.Int32} //nolint:forcetypeassert
 	case reflect.Int64:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(int64(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.Itoa(int(val.(int64))), kind: reflect.Int64} //nolint:forcetypeassert
 	case reflect.Uint:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(uint(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.FormatUint(uint64(val.(uint)), base), kind: reflect.Uint} //nolint:forcetypeassert
 	case reflect.Uint8:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(uint8(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.FormatUint(uint64(val.(uint8)), base), kind: reflect.Uint8} //nolint:forcetypeassert
 	case reflect.Uint16:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(uint16(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.FormatUint(uint64(val.(uint16)), base), kind: reflect.Uint16} //nolint:forcetypeassert
 	case reflect.Uint32:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(uint32(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.FormatUint(uint64(val.(uint32)), base), kind: reflect.Uint32} //nolint:forcetypeassert
 	case reflect.Uint64:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(uint64(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{v: strconv.FormatUint(val.(uint64), base), kind: reflect.Uint64} //nolint:forcetypeassert
 	case reflect.Float32:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(float32(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{
-			v:    strconv.FormatFloat(float64(val.(float32)), 'g', -1, 64), //nolint:forcetypeassert
+			v:    strconv.FormatFloat(float64(val.(float32)), 'g', -1, 32), //nolint:forcetypeassert
 			kind: reflect.Float32,
 		}
 	case reflect.Float64:
+		valueOf := reflect.ValueOf(val)
+		targetType := reflect.TypeOf(float64(0))
+
+		if valueOf.CanConvert(targetType) {
+			val = valueOf.Convert(targetType).Interface()
+		}
+
 		return Value{
 			v:    strconv.FormatFloat(val.(float64), 'g', -1, 64), //nolint:forcetypeassert
 			kind: reflect.Float64,
@@ -506,7 +588,7 @@ func (v Value) Unmarshal(o any) error {
 
 	oKind := reflect.TypeOf(o).Elem().Kind()
 
-	slog.Log(context.Background(), alog.LevelDebug, "Unmarshal setting.Value into object",
+	slog.Log(context.Background(), alogLevelDebug, "Unmarshal setting.Value into object",
 		slog.String("value", v.v),
 		slog.Any("object_kind", oKind),
 	)
@@ -514,7 +596,7 @@ func (v Value) Unmarshal(o any) error {
 	switch oKind {
 	case reflect.Bool:
 		if isTrue, err := v.Bool(); err == nil {
-			slog.Log(context.Background(), alog.LevelDebug, "is bool", slog.Bool("value", isTrue))
+			slog.Log(context.Background(), alogLevelDebug, "is bool", slog.Bool("value", isTrue))
 			applyValue = reflect.ValueOf(isTrue)
 		} else {
 			return fmt.Errorf("%w", ErrInvalidValue)
@@ -529,18 +611,18 @@ func (v Value) Unmarshal(o any) error {
 				applyValue = reflect.ValueOf("false")
 			}
 		} else if iVal, err := v.Int(); err == nil {
-			slog.Log(context.Background(), alog.LevelDebug, "is int")
+			slog.Log(context.Background(), alogLevelDebug, "is int")
 			applyValue = reflect.ValueOf(strconv.Itoa(iVal))
 		} else if fVal, err := v.Float64(); err == nil {
-			slog.Log(context.Background(), alog.LevelDebug, "is float")
+			slog.Log(context.Background(), alogLevelDebug, "is float")
 			applyValue = reflect.ValueOf(fmt.Sprintf("%.2f", fVal))
 		} else {
-			slog.Log(context.Background(), alog.LevelDebug, "raw string")
+			slog.Log(context.Background(), alogLevelDebug, "raw string")
 			applyValue = reflect.ValueOf(v.v)
 		}
 	case reflect.Struct, reflect.Slice, reflect.Map:
 		if tNow, err := v.Time(); err == nil {
-			slog.Log(context.Background(), alog.LevelDebug, "is time")
+			slog.Log(context.Background(), alogLevelDebug, "is time")
 
 			applyValue = reflect.ValueOf(tNow)
 		} else {
@@ -584,3 +666,5 @@ func (v Value) MustTime() time.Time {
 
 	return t
 }
+
+const alogLevelDebug = -12 // redefine the alog level to prevent import cycles

@@ -2,6 +2,7 @@ package setting_test
 
 import (
 	"bytes"
+	"log/slog"
 	"math"
 	"testing"
 	"time"
@@ -338,6 +339,23 @@ func TestNewValue(t *testing.T) {
 
 			var buf bytes.Buffer
 			assert.Panics(t, func() { value.MustUnmarshal(&buf) })
+		})
+
+		t.Run("slog level", func(t *testing.T) {
+			t.Parallel()
+
+			value := setting.NewValue(slog.LevelInfo)
+			assert.Equal(t, 0, value.MustInt())
+
+			type ownUint uint8
+			value = setting.NewValue(ownUint(1))
+			assert.Equal(t, 1, value.MustInt())
+			assert.Equal(t, uint8(1), value.MustUint8())
+
+			type ownFloat float32
+			value = setting.NewValue(ownFloat(1.0))
+			assert.Equal(t, 1, value.MustInt())
+			assert.InEpsilon(t, float32(1.0), value.MustFloat32(), 0.1)
 		})
 	})
 

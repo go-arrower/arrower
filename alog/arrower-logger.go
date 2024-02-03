@@ -6,10 +6,19 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/go-arrower/arrower"
+	"github.com/go-arrower/arrower/setting"
+)
+
+var (
+	SettingLogLevel = setting.NewKey("arrower", "log", "level") //nolint:gochecknoglobals
+	SettingLogUsers = setting.NewKey("arrower", "log", "users") //nolint:gochecknoglobals
 )
 
 // LoggerOpt allows to initialise a logger with custom options.
@@ -27,6 +36,12 @@ func WithHandler(h slog.Handler) LoggerOpt {
 func WithLevel(level slog.Level) LoggerOpt {
 	return func(l *ArrowerLogger) {
 		l.level = &level
+	}
+}
+
+func WithSettings(settings setting.Settings) LoggerOpt {
+	return func(l *ArrowerLogger) {
+		l.settings = settings
 	}
 }
 
@@ -78,6 +93,7 @@ func NewArrowerHandler(opts ...LoggerOpt) *ArrowerLogger {
 	logger := &ArrowerLogger{
 		handlers: []slog.Handler{},
 		level:    &defaultLevel,
+		settings: nil,
 	}
 
 	for _, opt := range opts {
@@ -96,20 +112,38 @@ func NewArrowerHandler(opts ...LoggerOpt) *ArrowerLogger {
 var _ slog.Handler = (*ArrowerLogger)(nil)
 
 // ArrowerLogger is the main handler of arrower, offering to log to multiple handlers,
-// filtering of context & users.
+// filtering of users.
 // It's also doing all the lifting for observability, see #adl.
 type ArrowerLogger struct {
-	// level reports the minimum record level that will be logged.
+	// settings are used to determine the log level. Especially useful if multiple
+	// replicas should log with the same level.
 	// The handler discards records with lower levels.
-	// If level is nil, the handler assumes LevelInfo.
-	// The handler calls level.level for each record processed;
-	// to adjust the minimum level dynamically, use a LevelVar.
-	// This IS the level for all handlers. The level of the handlers set via
-	// WithHandler are ignored.
+	// This IS the Level for all handlers.
+	// The level of individual handlers set via WithHandler is ignored.
+	//
+	// It also determines if a record should
+	// be logged based on a list of users. This is most useful when debugging user-specific issues.
+	// If level is nil, the handler assumes slog.LevelInfo.
+	settings setting.Settings
+
+	// level reports the minimum record level that will be logged if no settings are present,
+	// as a fallback.
+	// The level of individual handlers set via WithHandler is ignored.
 	level *slog.Level
 
 	// handlers is a list which all get called with the same log message.
 	handlers []slog.Handler
+}
+
+// SetLevel changes the level for all loggers set with WithHandler().
+// Even the ones "copied" via any WithX method.
+// All groups will have the same level.
+func (l *ArrowerLogger) SetLevel(level slog.Level) {
+	*l.level = level
+}
+
+func (l *ArrowerLogger) UsesSettings() bool {
+	return l.settings != nil
 }
 
 func (l *ArrowerLogger) NumHandlers() int {
@@ -121,20 +155,28 @@ func (l *ArrowerLogger) Level() slog.Level {
 	return l.level.Level()
 }
 
-// SetLevel changes the level for all loggers set with WithHandler(). Even the ones "copied" via any WithX method.
-// All groups will have the same level.
-func (l *ArrowerLogger) SetLevel(level slog.Level) {
-	*l.level = level
-}
+func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
+	if l.UsesSettings() { //nolint:nestif // prefer all rules clearly visible at ones.
+		if userID, hasUser := ctx.Value(arrower.CtxAuthUserID).(string); hasUser {
+			val, err := l.settings.Setting(ctx, SettingLogUsers)
+			if err == nil {
+				var users []string
 
-func (l *ArrowerLogger) Enabled(_ context.Context, level slog.Level) bool {
-	minLevel := slog.LevelInfo
+				val.MustUnmarshal(&users) //nolint:contextcheck // fp
 
-	if l.level != nil {
-		minLevel = l.level.Level()
+				if slices.Contains(users, userID) {
+					return true
+				}
+			}
+		}
+
+		val, err := l.settings.Setting(ctx, SettingLogLevel)
+		if err == nil {
+			return level >= slog.Level(val.MustInt())
+		}
 	}
 
-	return level >= minLevel
+	return level >= *l.level
 }
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
@@ -233,6 +275,7 @@ func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &ArrowerLogger{
 		handlers: handlers,
 		level:    l.level,
+		settings: l.settings,
 	}
 }
 
@@ -246,6 +289,7 @@ func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
 	return &ArrowerLogger{
 		handlers: handlers,
 		level:    l.level,
+		settings: l.settings,
 	}
 }
 
