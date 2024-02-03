@@ -156,27 +156,50 @@ func (l *ArrowerLogger) Level() slog.Level {
 }
 
 func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
+	span := trace.SpanFromContext(ctx)
+
+	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log:enabled")
+	defer innerSpan.End()
+
 	if l.UsesSettings() { //nolint:nestif // prefer all rules clearly visible at ones.
-		if userID, hasUser := ctx.Value(arrower.CtxAuthUserID).(string); hasUser {
-			val, err := l.settings.Setting(ctx, SettingLogUsers)
+		if userID, hasUser := newCtx.Value(arrower.CtxAuthUserID).(string); hasUser {
+			val, err := l.settings.Setting(newCtx, SettingLogUsers)
 			if err == nil {
 				var users []string
 
 				val.MustUnmarshal(&users) //nolint:contextcheck // fp
 
 				if slices.Contains(users, userID) {
+					innerSpan.SetAttributes(
+						attribute.Bool("enabled", true),
+						attribute.String("userID", userID),
+					)
 					return true
 				}
 			}
 		}
 
-		val, err := l.settings.Setting(ctx, SettingLogLevel)
+		val, err := l.settings.Setting(newCtx, SettingLogLevel)
 		if err == nil {
-			return level >= slog.Level(val.MustInt())
+			enabled := level >= slog.Level(val.MustInt())
+			innerSpan.SetAttributes(
+				attribute.Bool("enabled", enabled),
+				attribute.Int("level.record", int(level)),
+				attribute.Int("level.setting", val.MustInt()),
+			)
+
+			return enabled
 		}
 	}
 
-	return level >= *l.level
+	enabled := level >= *l.level
+	innerSpan.SetAttributes(
+		attribute.Bool("enabled", enabled),
+		attribute.Int("level.record", int(level)),
+		attribute.Int("level.logger", int(*l.level)),
+	)
+
+	return enabled
 }
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
@@ -185,13 +208,9 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log")
 	defer innerSpan.End()
 
-	if !span.IsRecording() { //nolint:staticcheck,revive // here as a tmp note => remove once this method is cleaned up
-		//	return s.h.Handle(r)
-	}
-
 	record = addTraceAndSpanIDsToLogs(span, record)
 
-	attr, ok := FromContext(ctx)
+	attr, ok := FromContext(newCtx)
 	if ok {
 		record.AddAttrs(attr...)
 	}
