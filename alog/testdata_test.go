@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,6 +25,8 @@ var errSomething = errors.New("some error")
 
 // fakeSpan is an implementation of Span that is minimal for asserting tests.
 type fakeSpan struct {
+	t *testing.T
+
 	embedded.Span
 
 	ID byte
@@ -63,23 +66,31 @@ func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
 
 func (s *fakeSpan) SetName(string) {}
 
-func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{} } //nolint:ireturn
+func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{t: s.t} } //nolint:ireturn
 
-type fakeTraceProvider struct{ embedded.TracerProvider }
+type fakeTraceProvider struct {
+	t *testing.T
 
-func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
-	return &fakeTracer{}
+	embedded.TracerProvider
 }
 
-type fakeTracer struct{ embedded.Tracer }
+func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
+	return &fakeTracer{t: f.t}
+}
+
+type fakeTracer struct {
+	t *testing.T
+
+	embedded.Tracer
+}
 
 func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
 	// Ensures Start() is called from within *ArrowerLogger.Handle.
 	// If not equal the nil will make the test panic, without t present
 	// Used in "record a span for the handle method itself"
-	assert.Equal(nil, "log", spanName)
+	assert.Subset(f.t, []string{"log:enabled", "log"}, []string{spanName})
 
-	return ctx, &fakeSpan{}
+	return ctx, &fakeSpan{t: f.t}
 }
 
 type failingHandler struct{}

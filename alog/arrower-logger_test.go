@@ -365,7 +365,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			assert.NotContains(t, buf.String(), "traceID")
 
 			buf.Reset()
-			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{ID: 1})
+			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{t: t, ID: 1})
 			logger.InfoContext(ctx, applicationMsg)
 			assert.Contains(t, buf.String(), "traceID=")
 			assert.Contains(t, buf.String(), "spanID=")
@@ -377,7 +377,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			buf := &bytes.Buffer{}
 			logger := alog.NewTest(buf)
 
-			span := fakeSpan{ID: 1}
+			span := fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), &span)
 			logger.ErrorContext(ctx, applicationMsg)
 
@@ -392,7 +392,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			logger := alog.NewTest(nil)
 
-			span := &fakeSpan{ID: 1}
+			span := &fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), span)
 
 			logger.InfoContext(ctx, applicationMsg)
@@ -417,7 +417,6 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			logger.InfoContext(context.Background(), applicationMsg)
 			assert.Contains(t, buf.String(), applicationMsg)
-			t.Log(buf.String())
 		})
 
 		t.Run("log attributes in ctx", func(t *testing.T) {
@@ -437,7 +436,6 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			assert.Contains(t, buf.String(), "some=attr")
 			assert.Contains(t, buf.String(), "other=1337")
-			t.Log(buf.String())
 		})
 
 		t.Run("ensure ctx attributes are added as event to span", func(t *testing.T) {
@@ -446,7 +444,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			h := slog.NewTextHandler(buf, nil)
 			logger := alog.New(alog.WithHandler(h))
 
-			span := fakeSpan{ID: 1}
+			span := fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), &span)
 
 			logger = logger.WithGroup("groupPrefix")
