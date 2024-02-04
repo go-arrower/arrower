@@ -5,15 +5,18 @@ WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, id;
 
 -- name: UpsertWorkerToPool :exec
-INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
-VALUES ($1, $2, $3, NOW(), $4)
+INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, version, job_types, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, NOW(), $6)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
-                                      workers    = $3;
+                                      workers    = $3,
+                                      version    = $4,
+                                      job_types  = $5;
 
 -- name: InsertHistory :exec
 INSERT INTO arrower.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
-                                     updated_at, success, finished_at)
-VALUES ($1, $2, $3, $4, $5, $6, sqlc.arg(run_error)::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE, NULL);
+                                      updated_at, success, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, sqlc.arg(run_error)::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE,
+        NULL);
 
 -- name: UpdateHistory :exec
 UPDATE arrower.gue_jobs_history

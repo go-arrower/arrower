@@ -12,7 +12,7 @@ import (
 )
 
 const getWorkerPools = `-- name: GetWorkerPools :many
-SELECT id, queue, workers, created_at, updated_at
+SELECT id, queue, workers, version, job_types, created_at, updated_at
 FROM arrower.gue_jobs_worker_pool
 WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, id
@@ -31,6 +31,8 @@ func (q *Queries) GetWorkerPools(ctx context.Context) ([]ArrowerGueJobsWorkerPoo
 			&i.ID,
 			&i.Queue,
 			&i.Workers,
+			&i.Version,
+			&i.JobTypes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -46,8 +48,9 @@ func (q *Queries) GetWorkerPools(ctx context.Context) ([]ArrowerGueJobsWorkerPoo
 
 const insertHistory = `-- name: InsertHistory :exec
 INSERT INTO arrower.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
-                                     updated_at, success, finished_at)
-VALUES ($1, $2, $3, $4, $5, $6, $8::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE, NULL)
+                                      updated_at, success, finished_at)
+VALUES ($1, $2, $3, $4, $5, $6, $8::text, $7, STATEMENT_TIMESTAMP(), STATEMENT_TIMESTAMP(), FALSE,
+        NULL)
 `
 
 type InsertHistoryParams struct {
@@ -104,16 +107,20 @@ func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) er
 }
 
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
-INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, created_at, updated_at)
-VALUES ($1, $2, $3, NOW(), $4)
+INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, version, job_types, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, NOW(), $6)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
-                                      workers    = $3
+                                      workers    = $3,
+                                      version    = $4,
+                                      job_types  = $5
 `
 
 type UpsertWorkerToPoolParams struct {
 	ID        string
 	Queue     string
 	Workers   int16
+	Version   string
+	JobTypes  []string
 	UpdatedAt pgtype.Timestamptz
 }
 
@@ -122,6 +129,8 @@ func (q *Queries) UpsertWorkerToPool(ctx context.Context, arg UpsertWorkerToPool
 		arg.ID,
 		arg.Queue,
 		arg.Workers,
+		arg.Version,
+		arg.JobTypes,
 		arg.UpdatedAt,
 	)
 	return err

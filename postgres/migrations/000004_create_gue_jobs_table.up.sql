@@ -50,6 +50,8 @@ CREATE UNLOGGED TABLE arrower.gue_jobs_worker_pool
     id         TEXT        NOT NULL,
     queue      TEXT        NOT NULL,
     workers    SMALLINT    NOT NULL DEFAULT 0,
+    version    TEXT        NOT NULL DEFAULT '',
+    job_types  TEXT[]      NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
     UNIQUE (id, queue)
@@ -63,7 +65,8 @@ SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *',
 
 -- reimplement the ulid generation of the underlying Go library, to manually create valid job ids.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE OR REPLACE FUNCTION generate_ulid() RETURNS TEXT AS $$
+CREATE OR REPLACE FUNCTION generate_ulid() RETURNS TEXT AS
+$$
 DECLARE
     -- Crockford's Base32
     encoding  BYTEA = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
