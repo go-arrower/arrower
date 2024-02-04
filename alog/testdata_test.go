@@ -88,7 +88,7 @@ func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.Span
 	// Ensures Start() is called from within *ArrowerLogger.Handle.
 	// If not equal the nil will make the test panic, without t present
 	// Used in "record a span for the handle method itself"
-	assert.Subset(f.t, []string{"log:enabled", "log"}, []string{spanName})
+	assert.Equal(f.t, "log", spanName)
 
 	return ctx, &fakeSpan{t: f.t}
 }

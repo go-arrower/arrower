@@ -90,11 +90,11 @@ func NewArrowerHandler(opts ...LoggerOpt) *ArrowerLogger {
 		defaultHandlers = []slog.Handler{slog.NewJSONHandler(os.Stderr, getDefaultHandlerOptions())}
 	)
 
-	logger := &ArrowerLogger{
+	logger := &ArrowerLogger{&tracedLogger{
 		handlers: []slog.Handler{},
 		level:    &defaultLevel,
 		settings: nil,
-	}
+	}}
 
 	for _, opt := range opts {
 		opt(logger)
@@ -115,92 +115,11 @@ var _ slog.Handler = (*ArrowerLogger)(nil)
 // filtering of users.
 // It's also doing all the lifting for observability, see #adl.
 type ArrowerLogger struct {
-	// settings are used to determine the log level. Especially useful if multiple
-	// replicas should log with the same level.
-	// The handler discards records with lower levels.
-	// This IS the Level for all handlers.
-	// The level of individual handlers set via WithHandler is ignored.
-	//
-	// It also determines if a record should
-	// be logged based on a list of users. This is most useful when debugging user-specific issues.
-	// If level is nil, the handler assumes slog.LevelInfo.
-	settings setting.Settings
-
-	// level reports the minimum record level that will be logged if no settings are present,
-	// as a fallback.
-	// The level of individual handlers set via WithHandler is ignored.
-	level *slog.Level
-
-	// handlers is a list which all get called with the same log message.
-	handlers []slog.Handler
+	*tracedLogger
 }
 
-// SetLevel changes the level for all loggers set with WithHandler().
-// Even the ones "copied" via any WithX method.
-// All groups will have the same level.
-func (l *ArrowerLogger) SetLevel(level slog.Level) {
-	*l.level = level
-}
-
-func (l *ArrowerLogger) UsesSettings() bool {
-	return l.settings != nil
-}
-
-func (l *ArrowerLogger) NumHandlers() int {
-	return len(l.handlers)
-}
-
-// Level returns the log level of the handler.
-func (l *ArrowerLogger) Level() slog.Level {
-	return l.level.Level()
-}
-
-func (l *ArrowerLogger) Enabled(ctx context.Context, level slog.Level) bool {
-	span := trace.SpanFromContext(ctx)
-
-	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log:enabled")
-	defer innerSpan.End()
-
-	if l.UsesSettings() { //nolint:nestif // prefer all rules clearly visible at ones.
-		if userID, hasUser := newCtx.Value(arrower.CtxAuthUserID).(string); hasUser {
-			val, err := l.settings.Setting(newCtx, SettingLogUsers)
-			if err == nil {
-				var users []string
-
-				val.MustUnmarshal(&users) //nolint:contextcheck // fp
-
-				if slices.Contains(users, userID) {
-					innerSpan.SetAttributes(
-						attribute.Bool("enabled", true),
-						attribute.String("userID", userID),
-					)
-
-					return true
-				}
-			}
-		}
-
-		val, err := l.settings.Setting(newCtx, SettingLogLevel)
-		if err == nil {
-			enabled := level >= slog.Level(val.MustInt())
-			innerSpan.SetAttributes(
-				attribute.Bool("enabled", enabled),
-				attribute.Int("level.record", int(level)),
-				attribute.Int("level.setting", val.MustInt()),
-			)
-
-			return enabled
-		}
-	}
-
-	enabled := level >= *l.level
-	innerSpan.SetAttributes(
-		attribute.Bool("enabled", enabled),
-		attribute.Int("level.record", int(level)),
-		attribute.Int("level.logger", int(*l.level)),
-	)
-
-	return enabled
+func (l *ArrowerLogger) Enabled(_ context.Context, _ slog.Level) bool {
+	return true // the check is done in Handle, so that the actual Enabled and Handle calls are in the same span.
 }
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
@@ -209,26 +128,11 @@ func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {
 	newCtx, innerSpan := span.TracerProvider().Tracer("arrower.log").Start(ctx, "log")
 	defer innerSpan.End()
 
-	record = addTraceAndSpanIDsToLogs(span, record)
-
-	attr, ok := FromContext(newCtx)
-	if ok {
-		record.AddAttrs(attr...)
+	if !l.tracedLogger.Enabled(newCtx, record.Level) {
+		return nil
 	}
 
-	attrs := getAttrsFromRecord(record)
-
-	innerSpan.SetAttributes(attrs...)
-	addLogsToActiveSpanAsEvent(span, attrs, record)
-
-	var retErr error
-
-	for _, h := range l.handlers {
-		err := h.Handle(newCtx, record)
-		retErr = errors.Join(retErr, err)
-	}
-
-	return retErr
+	return l.tracedLogger.Handle(newCtx, record)
 }
 
 func addTraceAndSpanIDsToLogs(span trace.Span, record slog.Record) slog.Record {
@@ -286,31 +190,154 @@ func getAttrsFromRecord(record slog.Record) []attribute.KeyValue {
 }
 
 func (l *ArrowerLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return l.tracedLogger.WithAttrs(attrs)
+}
+
+func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
+	return l.tracedLogger.WithGroup(name)
+}
+
+var _ slog.Handler = (*tracedLogger)(nil)
+
+// tracedLogger is used so the whole call to the logger is traced.
+// Otherwise, Enabled and Handle could not share the same span.
+type tracedLogger struct {
+	// settings are used to determine the log level. Especially useful if multiple
+	// replicas should log with the same level.
+	// The handler discards records with lower levels.
+	// This IS the Level for all handlers.
+	// The level of individual handlers set via WithHandler is ignored.
+	//
+	// It also determines if a record should
+	// be logged based on a list of users. This is most useful when debugging user-specific issues.
+	// If level is nil, the handler assumes slog.LevelInfo.
+	settings setting.Settings
+
+	// level reports the minimum record level that will be logged if no settings are present,
+	// as a fallback.
+	// The level of individual handlers set via WithHandler is ignored.
+	level *slog.Level
+
+	// handlers is a list which all get called with the same log message.
+	handlers []slog.Handler
+}
+
+func (l *tracedLogger) UsesSettings() bool {
+	return l.settings != nil
+}
+
+// SetLevel changes the level for all loggers set with WithHandler().
+// Even the ones "copied" via any WithX method.
+// All groups will have the same level.
+func (l *tracedLogger) SetLevel(level slog.Level) {
+	*l.level = level
+}
+
+func (l *tracedLogger) NumHandlers() int {
+	return len(l.handlers)
+}
+
+// Level returns the log level of the handler.
+func (l *tracedLogger) Level() slog.Level {
+	return l.level.Level()
+}
+
+func (l *tracedLogger) Enabled(ctx context.Context, level slog.Level) bool {
+	span := trace.SpanFromContext(ctx)
+
+	if l.UsesSettings() { //nolint:nestif // prefer all rules clearly visible at ones.
+		if userID, hasUser := ctx.Value(arrower.CtxAuthUserID).(string); hasUser {
+			val, err := l.settings.Setting(ctx, SettingLogUsers)
+			if err == nil {
+				var users []string
+
+				val.MustUnmarshal(&users) //nolint:contextcheck // fp
+
+				if slices.Contains(users, userID) {
+					span.SetAttributes(
+						attribute.Bool("enabled", true),
+						attribute.String("userID", userID),
+					)
+
+					return true
+				}
+			}
+		}
+
+		val, err := l.settings.Setting(ctx, SettingLogLevel)
+		if err == nil {
+			enabled := level >= slog.Level(val.MustInt())
+			span.SetAttributes(
+				attribute.Bool("enabled", enabled),
+				attribute.Int("level.record", int(level)),
+				attribute.Int("level.setting", val.MustInt()),
+			)
+
+			return enabled
+		}
+	}
+
+	enabled := level >= *l.level
+	span.SetAttributes(
+		attribute.Bool("enabled", enabled),
+		attribute.Int("level.record", int(level)),
+		attribute.Int("level.logger", int(*l.level)),
+	)
+
+	return enabled
+}
+
+func (l *tracedLogger) Handle(ctx context.Context, record slog.Record) error {
+	span := trace.SpanFromContext(ctx)
+
+	record = addTraceAndSpanIDsToLogs(span, record)
+
+	attr, ok := FromContext(ctx)
+	if ok {
+		record.AddAttrs(attr...)
+	}
+
+	attrs := getAttrsFromRecord(record)
+
+	span.SetAttributes(attrs...)
+	addLogsToActiveSpanAsEvent(span, attrs, record)
+
+	var retErr error
+
+	for _, h := range l.handlers {
+		err := h.Handle(ctx, record)
+		retErr = errors.Join(retErr, err)
+	}
+
+	return retErr
+}
+
+func (l *tracedLogger) WithAttrs(attrs []slog.Attr) slog.Handler {
 	handlers := make([]slog.Handler, len(l.handlers))
 
 	for i, h := range l.handlers {
 		handlers[i] = h.WithAttrs(attrs)
 	}
 
-	return &ArrowerLogger{
+	return &ArrowerLogger{&tracedLogger{
 		handlers: handlers,
 		level:    l.level,
 		settings: l.settings,
-	}
+	}}
 }
 
-func (l *ArrowerLogger) WithGroup(name string) slog.Handler {
+func (l *tracedLogger) WithGroup(name string) slog.Handler {
 	handlers := make([]slog.Handler, len(l.handlers))
 
 	for i, h := range l.handlers {
 		handlers[i] = h.WithGroup(name)
 	}
 
-	return &ArrowerLogger{
+	return &ArrowerLogger{&tracedLogger{
 		handlers: handlers,
 		level:    l.level,
 		settings: l.settings,
-	}
+	}}
 }
 
 // Unwrap unwraps the given logger and returns a ArrowerLogger.
