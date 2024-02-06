@@ -45,6 +45,7 @@ type gueJobHistory struct {
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	FinishedAt *time.Time
+	PrunedAt   *time.Time
 	Args       []byte
 	RunCount   int
 	Priority   int

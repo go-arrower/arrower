@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
     created_at  TIMESTAMPTZ NOT NULL,
     updated_at  TIMESTAMPTZ NOT NULL,
     success     BOOLEAN     NOT NULL DEFAULT FALSE,
-    finished_at TIMESTAMPTZ          DEFAULT NULL
+    finished_at TIMESTAMPTZ          DEFAULT NULL,
+    pruned_at   TIMESTAMPTZ          DEFAULT NULL
 );
 
 SELECT enable_automatic_updated_at('arrower.gue_jobs_history');

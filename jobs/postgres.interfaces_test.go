@@ -620,6 +620,7 @@ func TestGueHandler_History(t *testing.T) {
 		assert.Equal(t, 0, hJob.RunCount)
 		assert.Empty(t, hJob.RunError)
 		assert.NotEqual(t, hJob.CreatedAt, *hJob.FinishedAt)
+		assert.Empty(t, hJob.PrunedAt)
 	})
 
 	t.Run("ensure failed jobs are recorded in gue_jobs_history table", func(t *testing.T) {
