@@ -420,7 +420,7 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 	repo.Lock()
 	defer repo.Unlock()
 
-	repo.Data = make(map[ID]E)
+	clear(repo.Data)
 
 	return nil
 }
