@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
     args        BYTEA       NOT NULL,
     queue       TEXT        NOT NULL,
     run_count   INTEGER     NOT NULL DEFAULT 0, -- how often the job was retried
-    run_error   TEXT,                           -- if the job failed, this is it's error
+    run_error   TEXT        NOT NULL,           -- if the job failed, this is it's error
     created_at  TIMESTAMPTZ NOT NULL,
     updated_at  TIMESTAMPTZ NOT NULL,
     success     BOOLEAN     NOT NULL DEFAULT FALSE,
