@@ -175,7 +175,7 @@ type jobPayload struct {
 	Carrier propagation.MapCarrier `json:"carrier"`
 	// JobData is the actual data as string instead of []byte,
 	// so that it is readable more easily when assessing it via psql directly.
-	JobData string `json:"jobData"`
+	JobData interface{} `json:"jobData"`
 }
 
 func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
@@ -261,12 +261,7 @@ func buildAndAppendGueJob(
 	carrier propagation.MapCarrier,
 	opts ...JobOpt,
 ) ([]*gue.Job, error) {
-	jobByte, err := json.Marshal(job)
-	if err != nil {
-		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
-	}
-
-	args, err := json.Marshal(jobPayload{JobData: string(jobByte), Carrier: carrier})
+	args, err := json.Marshal(jobPayload{JobData: job, Carrier: carrier})
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
@@ -474,8 +469,19 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
 		}
 
-		if err := json.Unmarshal([]byte(payload.JobData), argsP); err != nil {
-			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
+		{
+			// encode to json to then unmarshal it into the target struct type.
+			// payload.JobData is of type map[string]interface {} and cannot be cast to the target type using reflection.
+
+			buf, err := json.Marshal(payload.JobData)
+			if err != nil {
+				return fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
+			}
+
+			err = json.Unmarshal(buf, argsP)
+			if err != nil {
+				return fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
+			}
 		}
 
 		// make the gue job's tx available in the context of the worker, so db can stay consistent

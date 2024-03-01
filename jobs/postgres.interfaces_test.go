@@ -678,20 +678,20 @@ func TestGueHandler_History(t *testing.T) {
 		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
-		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[0].Args).Name, "argName")
 
 		assert.False(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
 		assert.Equal(t, 1, hJobs[1].RunCount)
 		assert.NotEmpty(t, hJobs[1].RunError)
 		assert.Contains(t, hJobs[1].RunError, "arrower: job failed: ")
-		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[1].Args).Name, "argName")
 
 		assert.True(t, hJobs[2].Success)
 		assert.NotEmpty(t, hJobs[2].FinishedAt)
 		assert.Equal(t, 2, hJobs[2].RunCount)
 		assert.Empty(t, hJobs[2].RunError)
-		assert.Contains(t, jobWithArgsFromDBSerialisation(hJobs[0].Args), "argName", "args are json formatted: {\"Name\":\"argName\"}")
+		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[2].Args).Name, "argName")
 	})
 
 	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {
@@ -944,17 +944,19 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	assert.Equal(t, num, c)
 }
 
-func jobWithArgsFromDBSerialisation(rawPayload []byte) string {
+func jobWithArgsFromDBSerialisation(rawPayload []byte) jobWithArgs {
 	type jobPayload struct {
 		Carrier propagation.MapCarrier `json:"carrier"`
-		JobData string                 `json:"jobData"`
+		JobData interface{}            `json:"jobData"`
 	}
 
 	payload := jobPayload{}
 	argsP := jobWithArgs{}
 
 	_ = json.Unmarshal(rawPayload, &payload)
-	_ = json.Unmarshal([]byte(payload.JobData), &argsP)
 
-	return fmt.Sprintf("%v", argsP)
+	b, _ := json.Marshal(payload.JobData)
+	_ = json.Unmarshal(b, &argsP)
+
+	return argsP
 }
