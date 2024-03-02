@@ -7,7 +7,12 @@ import (
 	"time"
 
 	"github.com/vgarvardt/gue/v5"
+
+	"github.com/go-arrower/arrower"
 )
+
+// CtxJobID contains the current job ID.
+const CtxJobID arrower.CTXKey = "arrower.jobs"
 
 var (
 	ErrRegisterJobFuncFailed = errors.New("register JobFunc failed")
@@ -15,6 +20,7 @@ var (
 	ErrEnqueueFailed         = errors.New("enqueue failed")
 	ErrInvalidJobType        = fmt.Errorf("%w: invalid job type", ErrEnqueueFailed)
 	ErrInvalidJobOpt         = fmt.Errorf("%w: invalid job option", ErrEnqueueFailed)
+	ErrInvalidQueueOpt       = errors.New("todo")
 	ErrJobFuncFailed         = errors.New("arrower: job failed")
 )
 
@@ -66,8 +72,13 @@ type (
 	// `cannot use func(ctx context.Context, data []byte) error {…} (value of type func(ctx context.Context, data []byte) error) as func(ctx context.Context, job any) error value in argument to Register.`
 	//nolint:lll // allow full compiler message in one line
 	JobFunc any // func(ctx context.Context, job Job) error
+)
 
-	// JobOpt are functions which allow Queue implementation specific changes in behaviour of a Job, e.g.
+type (
+	// QueueOpt are functions that allow different behaviour of a Queue.
+	QueueOpt func(*queueOpt)
+
+	// JobOpt are functions which allow specific changes in the behaviour of a Job, e.g.
 	// set a priority or a time at which the job should run at.
 	JobOpt func(p Job) error
 )
@@ -82,6 +93,50 @@ const (
 	// are ones with a higher priority scheduled to a later time but already eligible for execution.
 	RunAtPollStrategy
 )
+
+type queueOpt struct {
+	gitHash      string
+	queue        string
+	poolName     string
+	poolSize     int
+	pollInterval time.Duration
+	pollStrategy PollStrategy
+}
+
+// WithQueue sets the name of the queue used for all Jobs.
+func WithQueue(queue string) QueueOpt {
+	return func(h *queueOpt) {
+		h.queue = queue
+	}
+}
+
+// WithPollInterval sets the duration in which to check the database for new Jobs.
+func WithPollInterval(d time.Duration) QueueOpt {
+	return func(h *queueOpt) {
+		h.pollInterval = d
+	}
+}
+
+// WithPoolSize sets the number of workers used to poll from the queue.
+func WithPoolSize(n int) QueueOpt {
+	return func(h *queueOpt) {
+		h.poolSize = n
+	}
+}
+
+// WithPoolName sets the name of the worker pool.
+func WithPoolName(n string) QueueOpt {
+	return func(h *queueOpt) {
+		h.poolName = n
+	}
+}
+
+// WithPollStrategy overrides default poll strategy with given value.
+func WithPollStrategy(s PollStrategy) QueueOpt {
+	return func(h *queueOpt) {
+		h.pollStrategy = s
+	}
+}
 
 // WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
 func WithPriority(priority int16) JobOpt {

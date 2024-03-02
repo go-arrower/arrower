@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"reflect"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -23,52 +24,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
-
-// CtxJobID contains the current job ID.
-const CtxJobID arrower.CTXKey = "arrower.jobs"
-
-// QueueOpt are functions that allow the PostgresJobsHandler different behaviour.
-type QueueOpt func(*PostgresJobsHandler)
-
-// WithQueue sets the name of the queue used for all Jobs.
-func WithQueue(queue string) QueueOpt {
-	return func(h *PostgresJobsHandler) {
-		h.queue = queue
-	}
-}
-
-// WithPollInterval sets the duration in which to check the database for new Jobs.
-func WithPollInterval(d time.Duration) QueueOpt {
-	return func(h *PostgresJobsHandler) {
-		h.pollInterval = d
-	}
-}
-
-// WithPoolSize sets the number of workers used to poll from the queue.
-func WithPoolSize(n int) QueueOpt {
-	return func(h *PostgresJobsHandler) {
-		h.poolSize = n
-	}
-}
-
-// WithPoolName sets the name of the worker pool.
-func WithPoolName(n string) QueueOpt {
-	return func(h *PostgresJobsHandler) {
-		h.poolName = n
-	}
-}
-
-// WithPollStrategy overrides default poll strategy with given value.
-func WithPollStrategy(s PollStrategy) QueueOpt {
-	return func(h *PostgresJobsHandler) {
-		h.pollStrategy = s
-	}
-}
 
 // NewPostgresJobs returns an initialised PostgresJobsHandler.
 // Each Worker in the pool defaults to a poll interval of 5 seconds, which can be
@@ -101,20 +60,23 @@ func NewPostgresJobs(
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
 
 	handler := &PostgresJobsHandler{
-		version:            "",
-		logger:             logger,
-		gueLogger:          gueLogger,
-		meter:              meter,
-		tracer:             tracer,
-		propagator:         propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
-		queries:            models.New(pgxPool),
-		gueClient:          nil, // has to be set after all opts have been applied
-		gueWorkMap:         gue.WorkMap{},
-		pollInterval:       defaultPollInterval,
-		queue:              defaultQueue,
-		poolName:           poolName,
-		poolSize:           defaultPoolSize,
-		pollStrategy:       PriorityPollStrategy,
+		version:    "",
+		logger:     logger,
+		gueLogger:  gueLogger,
+		meter:      meter,
+		tracer:     tracer,
+		propagator: propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}),
+		queries:    models.New(pgxPool),
+		gueClient:  nil, // has to be set after all opts have been applied
+		gueWorkMap: gue.WorkMap{},
+		queueOpt: queueOpt{
+			pollInterval: defaultPollInterval,
+			queue:        defaultQueue,
+			poolName:     poolName,
+			poolSize:     defaultPoolSize,
+			pollStrategy: PriorityPollStrategy,
+			gitHash:      gitHash(),
+		},
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
 		mu:                 sync.Mutex{},
@@ -125,7 +87,7 @@ func NewPostgresJobs(
 
 	// apply all options to the job
 	for _, opt := range opts {
-		opt(handler)
+		opt(&handler.queueOpt)
 	}
 
 	gc, err := gue.NewClient(
@@ -155,13 +117,9 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 
 	queries *models.Queries
 
-	gueClient    *gue.Client
-	gueWorkMap   gue.WorkMap
-	pollInterval time.Duration
-	queue        string
-	poolName     string
-	poolSize     int
-	pollStrategy PollStrategy
+	gueClient  *gue.Client
+	gueWorkMap gue.WorkMap
+	queueOpt
 
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
@@ -170,6 +128,18 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 	startTimer        *time.Timer
 	isStartInProgress bool
 	hasStarted        bool
+}
+
+func gitHash() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+
+	return "unknown"
 }
 
 var _ Queue = (*PostgresJobsHandler)(nil)
