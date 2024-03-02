@@ -286,6 +286,41 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		wg.Wait()
 		_ = jq.Shutdown(ctx)
 	})
+
+	t.Run("ensure worker has job data set", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		wg.Add(1)
+		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+			attr, exists := alog.FromContext(ctx)
+			assert.True(t, exists)
+			assert.Equal(t, "jobID", attr[0].Key)
+			assert.NotEmpty(t, attr[0].Value, "ctx needs a jobID as slog attribute")
+
+			jobID, exists := jobs.FromContext(ctx)
+			assert.True(t, exists)
+			assert.NotEmpty(t, jobID, "ctx needs a jobID")
+
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Wait()
+		_ = jq.Shutdown(ctx)
+	})
 }
 
 func TestGueHandler_Enqueue(t *testing.T) {

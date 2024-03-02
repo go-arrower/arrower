@@ -23,10 +23,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
+
+// CtxJobID contains the current job ID.
+const CtxJobID arrower.CTXKey = "arrower.jobs"
 
 // QueueOpt are functions that allow the PostgresJobsHandler different behaviour.
 type QueueOpt func(*PostgresJobsHandler)
@@ -487,6 +491,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		)
 
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
+		ctx = context.WithValue(ctx, CtxJobID, job.ID.String())
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		// call the JobFunc
@@ -808,4 +813,10 @@ func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
 
 	// in case no transaction is present return the default DB access.
 	return queries
+}
+
+func FromContext(ctx context.Context) (string, bool) {
+	jobID, ok := ctx.Value(CtxJobID).(string)
+
+	return jobID, ok
 }
