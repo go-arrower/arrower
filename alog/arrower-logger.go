@@ -3,13 +3,13 @@ package alog
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"io"
 	"log/slog"
 	"os"
 	"slices"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -57,11 +57,13 @@ func New(opts ...LoggerOpt) *slog.Logger {
 
 // NewDevelopment returns a logger ready for local development purposes.
 func NewDevelopment(pgx *pgxpool.Pool, settings setting.Settings) *slog.Logger {
+	const batchSize = 10
+
 	return New(
 		WithLevel(slog.LevelDebug),
 		WithHandler(slog.NewTextHandler(os.Stderr, getDebugHandlerOptions())),
 		WithHandler(NewLokiHandler(nil)),
-		WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: 10, MaxTimeout: time.Second})),
+		WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: batchSize, MaxTimeout: time.Second})),
 		WithSettings(settings),
 	)
 }

@@ -678,20 +678,20 @@ func TestGueHandler_History(t *testing.T) {
 		assert.Equal(t, 0, hJobs[0].RunCount)
 		assert.NotEmpty(t, hJobs[0].RunError)
 		assert.Contains(t, hJobs[0].RunError, "arrower: job failed: ")
-		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[0].Args).Name, "argName")
+		assert.Equal(t, "argName", jobWithArgsFromDBSerialisation(t, hJobs[0].Args).Name)
 
 		assert.False(t, hJobs[1].Success)
 		assert.NotEmpty(t, hJobs[1].FinishedAt)
 		assert.Equal(t, 1, hJobs[1].RunCount)
 		assert.NotEmpty(t, hJobs[1].RunError)
 		assert.Contains(t, hJobs[1].RunError, "arrower: job failed: ")
-		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[1].Args).Name, "argName")
+		assert.Equal(t, "argName", jobWithArgsFromDBSerialisation(t, hJobs[1].Args).Name)
 
 		assert.True(t, hJobs[2].Success)
 		assert.NotEmpty(t, hJobs[2].FinishedAt)
 		assert.Equal(t, 2, hJobs[2].RunCount)
 		assert.Empty(t, hJobs[2].RunError)
-		assert.Equal(t, jobWithArgsFromDBSerialisation(hJobs[2].Args).Name, "argName")
+		assert.Equal(t, "argName", jobWithArgsFromDBSerialisation(t, hJobs[2].Args).Name)
 	})
 
 	t.Run("ensure panicked workers are recorded in the gue_jobs_history table", func(t *testing.T) {
@@ -944,7 +944,9 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	assert.Equal(t, num, c)
 }
 
-func jobWithArgsFromDBSerialisation(rawPayload []byte) jobWithArgs {
+func jobWithArgsFromDBSerialisation(t *testing.T, rawPayload []byte) jobWithArgs {
+	t.Helper()
+
 	type jobPayload struct {
 		Carrier propagation.MapCarrier `json:"carrier"`
 		JobData interface{}            `json:"jobData"`
@@ -953,10 +955,13 @@ func jobWithArgsFromDBSerialisation(rawPayload []byte) jobWithArgs {
 	payload := jobPayload{}
 	argsP := jobWithArgs{}
 
-	_ = json.Unmarshal(rawPayload, &payload)
+	err := json.Unmarshal(rawPayload, &payload)
+	assert.NoError(t, err)
 
-	b, _ := json.Marshal(payload.JobData)
-	_ = json.Unmarshal(b, &argsP)
+	b, err := json.Marshal(payload.JobData)
+	assert.NoError(t, err)
+	err = json.Unmarshal(b, &argsP)
+	assert.NoError(t, err)
 
 	return argsP
 }

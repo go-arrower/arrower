@@ -457,31 +457,13 @@ func isValidJobFunc(f JobFunc) bool {
 }
 
 func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
+	handlerFuncType := reflect.TypeOf(workerFn)
+	paramType := handlerFuncType.In(1)
+
 	return func(ctx context.Context, job *gue.Job) error {
-		handlerFuncType := reflect.TypeOf(workerFn)
-		paramType := handlerFuncType.In(1)
-		args := reflect.New(paramType)
-		argsP := args.Interface()
-
-		payload := jobPayload{} //nolint:exhaustruct
-
-		if err := json.Unmarshal(job.Args, &payload); err != nil {
-			return fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
-		}
-
-		{
-			// encode to json to then unmarshal it into the target struct type.
-			// payload.JobData is of type map[string]interface {} and cannot be cast to the target type using reflection.
-
-			buf, err := json.Marshal(payload.JobData)
-			if err != nil {
-				return fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
-			}
-
-			err = json.Unmarshal(buf, argsP)
-			if err != nil {
-				return fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
-			}
+		payload, jobData, err := unmarshalArgsToJobPayload(paramType, job.Args)
+		if err != nil {
+			return err
 		}
 
 		// make the gue job's tx available in the context of the worker, so db can stay consistent
@@ -511,7 +493,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		fn := reflect.ValueOf(workerFn)
 		vals := fn.Call([]reflect.Value{
 			reflect.ValueOf(ctx),
-			reflect.ValueOf(argsP).Elem().Convert(paramType),
+			reflect.ValueOf(jobData).Elem().Convert(paramType),
 		})
 
 		// if JobFunc returned an error, put the job back on the queue.
@@ -525,6 +507,31 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 
 		return nil
 	}
+}
+
+func unmarshalArgsToJobPayload(paramType reflect.Type, rawArgs []byte) (jobPayload, any, error) {
+	args := reflect.New(paramType)
+	argsP := args.Interface()
+
+	payload := jobPayload{} //nolint:exhaustruct
+
+	if err := json.Unmarshal(rawArgs, &payload); err != nil {
+		return jobPayload{}, nil, fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
+	}
+
+	// encode to json to then unmarshal it into the target struct type.
+	// payload.JobData is of type map[string]interface {} and cannot be cast to the target type using reflection.
+	buf, err := json.Marshal(payload.JobData)
+	if err != nil {
+		return jobPayload{}, nil, fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	err = json.Unmarshal(buf, argsP)
+	if err != nil {
+		return jobPayload{}, nil, fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	return payload, argsP, nil
 }
 
 // startWorkers expects the locking of h.mu to happen at the caller!
