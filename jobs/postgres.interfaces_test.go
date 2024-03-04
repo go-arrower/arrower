@@ -968,6 +968,35 @@ func TestGueHandler_Instrumentation(t *testing.T) {
 		_ = jq.Shutdown(ctx)
 	})
 
+	t.Run("ensure ctx without userID had none set", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		wg.Add(1)
+		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+			userID := ctx.Value(arrower.CtxAuthUserID)
+			assert.Nil(t, userID, "if userID is not set, prevent invalid value to make uuid.MustParse work")
+
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Wait()
+		_ = jq.Shutdown(ctx)
+	})
+
 	t.Run("args contains version information", func(t *testing.T) {
 		t.Parallel()
 

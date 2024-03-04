@@ -467,8 +467,11 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 		ctx = context.WithValue(ctx, CtxJobID, job.ID.String())
-		ctx = context.WithValue(ctx, arrower.CtxAuthUserID, payload.Ctx.UserID)
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
+
+		if payload.Ctx.UserID != "" {
+			ctx = context.WithValue(ctx, arrower.CtxAuthUserID, payload.Ctx.UserID)
+		}
 
 		// call the JobFunc
 		fn := reflect.ValueOf(workerFn)
