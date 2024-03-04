@@ -24,6 +24,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -144,14 +145,6 @@ func gitHash() string {
 
 var _ Queue = (*PostgresJobsHandler)(nil)
 
-type jobPayload struct {
-	// Carrier contains the otel tracing information.
-	Carrier propagation.MapCarrier `json:"carrier"`
-	// JobData is the actual data as string instead of []byte,
-	// so that it is readable more easily when assessing it via psql directly.
-	JobData interface{} `json:"jobData"`
-}
-
 func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
 	ctx, span := h.tracer.Start(ctx, "enqueue")
 	defer span.End()
@@ -203,7 +196,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 			return nil, err
 		}
 
-		gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, job, carrier, opts...)
+		gueJobs, err = buildAndAppendGueJob(ctx, gueJobs, queue, jobType, job, carrier, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +210,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 				return nil, err
 			}
 
-			gueJobs, err = buildAndAppendGueJob(gueJobs, queue, jobType, job.Interface(), carrier, opts...)
+			gueJobs, err = buildAndAppendGueJob(ctx, gueJobs, queue, jobType, job.Interface(), carrier, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -228,6 +221,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 }
 
 func buildAndAppendGueJob(
+	ctx context.Context,
 	gueJobs []*gue.Job,
 	queue string,
 	jobType string,
@@ -235,7 +229,18 @@ func buildAndAppendGueJob(
 	carrier propagation.MapCarrier,
 	opts ...JobOpt,
 ) ([]*gue.Job, error) {
-	args, err := json.Marshal(jobPayload{JobData: job, Carrier: carrier})
+	var userID string
+	userID, _ = ctx.Value(arrower.CtxAuthUserID).(string)
+
+	args, err := json.Marshal(PersistencePayload{
+		JobData:          job,
+		VersionEnqueued:  gitHash(),
+		VersionProcessed: "",
+		Ctx: PersistenceCtxPayload{
+			Carrier: carrier,
+			UserID:  userID,
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
@@ -446,7 +451,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			return fmt.Errorf("%w: could not unwrap gue job tx for use in the worker", ErrJobFuncFailed)
 		}
 
-		parentCtx := h.propagator.Extract(ctx, payload.Carrier)
+		parentCtx := h.propagator.Extract(ctx, payload.Ctx.Carrier)
 
 		ctx, childSpan := h.tracer.Start(parentCtx, fmt.Sprintf("job: %s run: %d", paramType.String(), job.ErrorCount))
 		defer childSpan.End()
@@ -462,6 +467,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
 		ctx = context.WithValue(ctx, CtxJobID, job.ID.String())
+		ctx = context.WithValue(ctx, arrower.CtxAuthUserID, payload.Ctx.UserID)
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		// call the JobFunc
@@ -484,26 +490,32 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 	}
 }
 
-func unmarshalArgsToJobPayload(paramType reflect.Type, rawArgs []byte) (jobPayload, any, error) {
+func unmarshalArgsToJobPayload(paramType reflect.Type, rawArgs []byte) (PersistencePayload, any, error) {
 	args := reflect.New(paramType)
 	argsP := args.Interface()
 
-	payload := jobPayload{} //nolint:exhaustruct
+	payload := PersistencePayload{} //nolint:exhaustruct
 
 	if err := json.Unmarshal(rawArgs, &payload); err != nil {
-		return jobPayload{}, nil, fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
+		return PersistencePayload{},
+			nil,
+			fmt.Errorf("%w: could not unmarshal job args to job type: %w", ErrJobFuncFailed, err)
 	}
 
 	// encode to json to then unmarshal it into the target struct type.
 	// payload.JobData is of type map[string]interface {} and cannot be cast to the target type using reflection.
 	buf, err := json.Marshal(payload.JobData)
 	if err != nil {
-		return jobPayload{}, nil, fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		return PersistencePayload{},
+			nil,
+			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	err = json.Unmarshal(buf, argsP)
 	if err != nil {
-		return jobPayload{}, nil, fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		return PersistencePayload{},
+			nil,
+			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return payload, argsP, nil
@@ -619,6 +631,25 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 			return
 		}
 
+		logger := logger.With(
+			slog.String("job_id", job.ID.String()),
+			slog.String("queue", job.Queue),
+			slog.String("job_type", job.Type),
+			slog.String("args", string(job.Args)),
+			slog.Int("run_count", int(job.ErrorCount)),
+			slog.Int("priority", int(job.Priority)),
+			slog.Time("run_at", job.RunAt),
+		)
+
+		args, err := recordGitHashToArgs(job.Args)
+		if err != nil {
+			logger.InfoContext(ctx, "recording job worker's git hash failed", slog.String("err", err.Error()))
+
+			return
+		}
+
+		job.Args = args
+
 		tx, ok := pgxv5.UnwrapTx(job.Tx())
 		if !ok {
 			logger.InfoContext(ctx, "could not access transaction to record job in history")
@@ -628,7 +659,7 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 
 		queries := db.WithTx(tx)
 
-		err := queries.InsertHistory(ctx, models.InsertHistoryParams{
+		err = queries.InsertHistory(ctx, models.InsertHistoryParams{
 			JobID:    job.ID.String(),
 			Priority: int16(job.Priority),
 			RunAt:    pgtype.Timestamptz{Time: job.RunAt, Valid: true, InfinityModifier: pgtype.Finite},
@@ -641,17 +672,29 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 		if err != nil {
 			logger.InfoContext(ctx, "could not add started job to gue_jobs_history table",
 				slog.Any("err", err),
-				slog.String("job_id", job.ID.String()),
-				slog.String("queue", job.Queue),
-				slog.String("job_type", job.Type),
-				slog.String("args", string(job.Args)),
-				slog.Int("run_count", int(job.ErrorCount)),
-				slog.Int("priority", int(job.Priority)),
-				slog.Time("run_at", job.RunAt),
 				slog.String("run_error", job.LastError.String),
 			)
 		}
 	}
+}
+
+// recordGitHashToArgs records the version of arrower when the job is processed for better debugging.
+func recordGitHashToArgs(args []byte) ([]byte, error) {
+	payload := PersistencePayload{} //nolint:exhaustruct
+
+	err := json.Unmarshal(args, &payload)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal job data to record processing arrower version: %w", err)
+	}
+
+	payload.VersionProcessed = gitHash()
+
+	args, err = json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal job data to record processing arrower version: %w", err)
+	}
+
+	return args, nil
 }
 
 // recordFinishedJobsToHistory takes each job that's finished and logs it into a new table,
@@ -659,7 +702,7 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 // gue does delete finished jobs from the gue_jobs table, and the information would be lost otherwise.
 func recordFinishedJobsToHistory(logger alog.Logger, db *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
-		logger = logger.With(
+		logger := logger.With(
 			slog.String("job_id", job.ID.String()),
 			slog.String("queue", job.Queue),
 			slog.String("job_type", job.Type),
@@ -783,10 +826,4 @@ func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
 
 	// in case no transaction is present return the default DB access.
 	return queries
-}
-
-func FromContext(ctx context.Context) (string, bool) {
-	jobID, ok := ctx.Value(CtxJobID).(string)
-
-	return jobID, ok
 }

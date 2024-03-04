@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/vgarvardt/gue/v5"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/go-arrower/arrower"
 )
@@ -138,7 +139,8 @@ func WithPollStrategy(s PollStrategy) QueueOpt {
 	}
 }
 
-// WithPriority changes the priority of a Job. The default priority is 0, and a lower number means a higher priority.
+// WithPriority changes the priority of a Job.
+// The default priority is 0, and a lower number means a higher priority.
 func WithPriority(priority int16) JobOpt {
 	return func(j Job) error {
 		if j, ok := (j).(*gue.Job); ok {
@@ -164,4 +166,39 @@ func WithRunAt(runAt time.Time) JobOpt {
 
 		return ErrInvalidJobOpt
 	}
+}
+
+type (
+	// PersistencePayload is the structure of how a Job is saved by each Queue implementation.
+	PersistencePayload struct {
+		// JobData is the actual data as string instead of []byte,
+		// so that it is readable more easily when assessing it via psql directly.
+		JobData interface{} `json:"jobData"`
+
+		// VersionEnqueued is the git hash Job got enqueued with.
+		VersionEnqueued string `json:"versionEnqueued"`
+		// VersionProcessed is the git hash Job got processed with by a JobFunc.
+		// It is only set when the PersistencePayload is stored in the history.
+		VersionProcessed string `json:"versionProcessed"`
+
+		// Ctx persists some NOT ALL information stored in the context.
+		Ctx PersistenceCtxPayload `json:"ctx"`
+	}
+
+	// PersistenceCtxPayload contains a selected subset of the values stored in the request ctx.
+	// These values are partially handed down to the job worker's ctx.
+	//
+	// Note: slog.Attr saves the value as a pointer and does not persist when marshalled to json.
+	PersistenceCtxPayload struct {
+		// Carrier contains the otel tracing information.
+		Carrier propagation.MapCarrier `json:"carrier"`
+
+		UserID string `json:"userId"`
+	}
+)
+
+func FromContext(ctx context.Context) (string, bool) {
+	jobID, ok := ctx.Value(CtxJobID).(string)
+
+	return jobID, ok
 }

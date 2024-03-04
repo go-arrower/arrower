@@ -17,10 +17,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	mnoop "go.opentelemetry.io/otel/metric/noop"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
@@ -281,41 +281,6 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		assert.NoError(t, err)
 
 		err = jq.Enqueue(ctx, jobWithJobType{Name: argName})
-		assert.NoError(t, err)
-
-		wg.Wait()
-		_ = jq.Shutdown(ctx)
-	})
-
-	t.Run("ensure worker has job data set", func(t *testing.T) {
-		t.Parallel()
-
-		var wg sync.WaitGroup
-
-		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
-			jobs.WithPollInterval(time.Nanosecond),
-		)
-		assert.NoError(t, err)
-
-		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
-			attr, exists := alog.FromContext(ctx)
-			assert.True(t, exists)
-			assert.Equal(t, "jobID", attr[0].Key)
-			assert.NotEmpty(t, attr[0].Value, "ctx needs a jobID as slog attribute")
-
-			jobID, exists := jobs.FromContext(ctx)
-			assert.True(t, exists)
-			assert.NotEmpty(t, jobID, "ctx needs a jobID")
-
-			wg.Done()
-
-			return nil
-		})
-		assert.NoError(t, err)
-
-		err = jq.Enqueue(ctx, simpleJob{})
 		assert.NoError(t, err)
 
 		wg.Wait()
@@ -961,6 +926,91 @@ func TestGueHandler_Tx(t *testing.T) {
 	})
 }
 
+func TestGueHandler_Instrumentation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ensure worker has ctx data set after persistence", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		wg.Add(1)
+		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+			attr, exists := alog.FromContext(ctx)
+			assert.True(t, exists)
+			assert.Equal(t, "jobID", attr[0].Key)
+			assert.NotEmpty(t, attr[0].Value, "ctx needs a jobID as slog attribute")
+
+			jobID, exists := jobs.FromContext(ctx)
+			assert.True(t, exists)
+			assert.NotEmpty(t, jobID, "ctx needs a jobID")
+
+			userID, ok := ctx.Value(arrower.CtxAuthUserID).(string)
+			assert.True(t, ok)
+			assert.Equal(t, "user-id", userID)
+
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(context.WithValue(ctx, arrower.CtxAuthUserID, "user-id"), simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Wait()
+		_ = jq.Shutdown(ctx)
+	})
+
+	t.Run("args contains version information", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		wg.Add(1)
+		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+			wg.Done()
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Wait() // waits for the worker
+
+		// Wait until the all worker hooks are processed. The use of a sync.WaitGroup does not work,
+		// because Done() can only be called from the worker func and not the hooks.
+		time.Sleep(time.Millisecond * 200)
+
+		var hJobs []gueJobHistory
+		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM arrower.gue_jobs_history`)
+		assert.NoError(t, err)
+		assert.Len(t, hJobs, 1)
+
+		payload := jobs.PersistencePayload{}
+		err = json.Unmarshal(hJobs[0].Args, &payload)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, payload.VersionEnqueued)
+		assert.Equal(t, "unknown", payload.VersionEnqueued, "while run with `go test` the version is not in the binary")
+		assert.NotEmpty(t, payload.VersionProcessed)
+		assert.Equal(t, "unknown", payload.VersionProcessed, "while run with `go test` the version is not in the binary")
+	})
+}
+
 func ensureJobTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
@@ -982,12 +1032,7 @@ func ensureJobHistoryTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 func jobWithArgsFromDBSerialisation(t *testing.T, rawPayload []byte) jobWithArgs {
 	t.Helper()
 
-	type jobPayload struct {
-		Carrier propagation.MapCarrier `json:"carrier"`
-		JobData interface{}            `json:"jobData"`
-	}
-
-	payload := jobPayload{}
+	payload := jobs.PersistencePayload{}
 	argsP := jobWithArgs{}
 
 	err := json.Unmarshal(rawPayload, &payload)
