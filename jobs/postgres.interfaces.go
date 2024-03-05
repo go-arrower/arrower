@@ -61,7 +61,6 @@ func NewPostgresJobs(
 	poolAdapter := pgxv5.NewConnPool(pgxPool)
 
 	handler := &PostgresJobsHandler{
-		version:    "",
 		logger:     logger,
 		gueLogger:  gueLogger,
 		meter:      meter,
@@ -108,8 +107,6 @@ func NewPostgresJobs(
 
 // PostgresJobsHandler is the main jobs' abstraction.
 type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the struct fields are grouped by meaning
-	version string
-
 	logger     alog.Logger
 	gueLogger  adapter.Logger
 	meter      metric.Meter
@@ -589,7 +586,7 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 	err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 		ID:        h.poolName,
 		Queue:     h.queue,
-		Version:   h.version,
+		Version:   h.gitHash,
 		JobTypes:  registeredJobTypes(h.gueWorkMap),
 		Workers:   int16(h.poolSize),
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
@@ -604,7 +601,7 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 			err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 				ID:        h.poolName,
 				Queue:     h.queue,
-				Version:   h.version,
+				Version:   h.gitHash,
 				JobTypes:  registeredJobTypes(h.gueWorkMap),
 				Workers:   int16(h.poolSize),
 				UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
@@ -628,7 +625,11 @@ func registeredJobTypes(workMap gue.WorkMap) []string {
 	return jobs
 }
 
-func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries, gitHash string) func(context.Context, *gue.Job, error) {
+func recordStartedJobsToHistory(
+	logger alog.Logger,
+	db *models.Queries,
+	gitHash string,
+) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
 		// if jobErr is set, the job could not be pulled from the DB.
 		if jobErr != nil {
@@ -780,7 +781,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 	if err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 		ID:        h.poolName,
 		Queue:     h.queue,
-		Version:   h.version,
+		Version:   h.gitHash,
 		JobTypes:  registeredJobTypes(h.gueWorkMap),
 		Workers:   0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
