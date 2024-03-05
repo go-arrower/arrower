@@ -1033,10 +1033,10 @@ func TestGueHandler_Instrumentation(t *testing.T) {
 		payload := jobs.PersistencePayload{}
 		err = json.Unmarshal(hJobs[0].Args, &payload)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, payload.VersionEnqueued)
-		assert.Equal(t, "unknown", payload.VersionEnqueued, "while run with `go test` the version is not in the binary")
-		assert.NotEmpty(t, payload.VersionProcessed)
-		assert.Equal(t, "unknown", payload.VersionProcessed, "while run with `go test` the version is not in the binary")
+		assert.NotEmpty(t, payload.GitHashEnqueued)
+		assert.Equal(t, "unknown", payload.GitHashEnqueued, "while run with `go test` the version is not in the binary")
+		assert.NotEmpty(t, payload.GitHashProcessed)
+		assert.Equal(t, "unknown", payload.GitHashProcessed, "while run with `go test` the version is not in the binary")
 	})
 }
 

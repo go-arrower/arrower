@@ -175,11 +175,11 @@ type (
 		// so that it is readable more easily when assessing it via psql directly.
 		JobData interface{} `json:"jobData"`
 
-		// VersionEnqueued is the git hash Job got enqueued with.
-		VersionEnqueued string `json:"versionEnqueued"`
-		// VersionProcessed is the git hash Job got processed with by a JobFunc.
+		// GitHashEnqueued is the version of the source code used that got the Job enqueued.
+		GitHashEnqueued string `json:"gitHashEnqueued"`
+		// GitHashProcessed is the version the Job got processed with by a JobFunc.
 		// It is only set when the PersistencePayload is stored in the history.
-		VersionProcessed string `json:"versionProcessed"`
+		GitHashProcessed string `json:"gitHashProcessed"`
 
 		// Ctx persists some NOT ALL information stored in the context.
 		Ctx PersistenceCtxPayload `json:"ctx"`

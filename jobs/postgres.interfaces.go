@@ -196,7 +196,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 			return nil, err
 		}
 
-		gueJobs, err = buildAndAppendGueJob(ctx, gueJobs, queue, jobType, job, carrier, opts...)
+		gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue, jobType, job, carrier, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +210,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 				return nil, err
 			}
 
-			gueJobs, err = buildAndAppendGueJob(ctx, gueJobs, queue, jobType, job.Interface(), carrier, opts...)
+			gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue, jobType, job.Interface(), carrier, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -222,6 +222,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 
 func buildAndAppendGueJob(
 	ctx context.Context,
+	gitHash string,
 	gueJobs []*gue.Job,
 	queue string,
 	jobType string,
@@ -234,8 +235,8 @@ func buildAndAppendGueJob(
 
 	args, err := json.Marshal(PersistencePayload{
 		JobData:          job,
-		VersionEnqueued:  gitHash(),
-		VersionProcessed: "",
+		GitHashEnqueued:  gitHash,
+		GitHashProcessed: "",
 		Ctx: PersistenceCtxPayload{
 			Carrier: carrier,
 			UserID:  userID,
@@ -537,7 +538,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 
 	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
 		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
-		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries)),
+		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries, h.gitHash)),
 		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger, h.queries)),
 		gue.WithPoolID(h.poolName),
 		gue.WithPoolLogger(h.gueLogger), gue.WithPoolMeter(h.meter), gue.WithPoolTracer(h.tracer),
@@ -627,7 +628,7 @@ func registeredJobTypes(workMap gue.WorkMap) []string {
 	return jobs
 }
 
-func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(context.Context, *gue.Job, error) {
+func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries, gitHash string) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
 		// if jobErr is set, the job could not be pulled from the DB.
 		if jobErr != nil {
@@ -644,7 +645,7 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 			slog.Time("run_at", job.RunAt),
 		)
 
-		args, err := recordGitHashToArgs(job.Args)
+		args, err := recordGitHashToArgs(job.Args, gitHash)
 		if err != nil {
 			logger.InfoContext(ctx, "recording job worker's git hash failed", slog.String("err", err.Error()))
 
@@ -682,7 +683,7 @@ func recordStartedJobsToHistory(logger alog.Logger, db *models.Queries) func(con
 }
 
 // recordGitHashToArgs records the version of arrower when the job is processed for better debugging.
-func recordGitHashToArgs(args []byte) ([]byte, error) {
+func recordGitHashToArgs(args []byte, gitHash string) ([]byte, error) {
 	payload := PersistencePayload{} //nolint:exhaustruct
 
 	err := json.Unmarshal(args, &payload)
@@ -690,7 +691,7 @@ func recordGitHashToArgs(args []byte) ([]byte, error) {
 		return nil, fmt.Errorf("could not unmarshal job data to record processing arrower version: %w", err)
 	}
 
-	payload.VersionProcessed = gitHash()
+	payload.GitHashProcessed = gitHash
 
 	args, err = json.Marshal(payload)
 	if err != nil {
