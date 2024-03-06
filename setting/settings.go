@@ -66,6 +66,13 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
 
 	switch r.Kind() {
 	case reflect.String:
+		if t, err := time.Parse(time.RFC3339Nano, val.(string)); err == nil {
+			return Value{
+				v:    fmt.Sprintf("%s%s%s", t.Format(time.RFC3339Nano), timeLocationSeparator, t.Location().String()),
+				kind: reflect.Struct,
+			}
+		}
+
 		return Value{v: val.(string), kind: reflect.String} //nolint:forcetypeassert
 	case reflect.Bool:
 		return Value{v: strconv.FormatBool(val.(bool)), kind: reflect.Bool} //nolint:forcetypeassert
@@ -602,7 +609,7 @@ func (v Value) MustFloat64() float64 {
 	return f
 }
 
-//nolint:gocyclo,nestif,cyclop,varnamelen // the method has to consider all the cases for auto-casting.
+//nolint:gocyclo,nestif,cyclop,varnamelen,funlen,gocognit // the method has to consider all the cases for auto-casting.
 func (v Value) Unmarshal(o any) error {
 	var applyValue reflect.Value
 
@@ -636,15 +643,22 @@ func (v Value) Unmarshal(o any) error {
 		} else if fVal, err := v.Float64(); err == nil {
 			slog.Log(context.Background(), alogLevelDebug, "is float")
 			applyValue = reflect.ValueOf(fmt.Sprintf("%.2f", fVal))
+		} else if isSerialisedTime(v.v) {
+			if tNow, err := v.Time(); err == nil {
+				slog.Log(context.Background(), alogLevelDebug, "is time")
+				applyValue = reflect.ValueOf(tNow.Format(time.RFC3339Nano))
+			}
 		} else {
 			slog.Log(context.Background(), alogLevelDebug, "raw string")
 			applyValue = reflect.ValueOf(v.v)
 		}
 	case reflect.Struct, reflect.Slice, reflect.Map:
-		if tNow, err := v.Time(); err == nil {
-			slog.Log(context.Background(), alogLevelDebug, "is time")
+		if isSerialisedTime(v.v) {
+			if tNow, err := v.Time(); err == nil {
+				slog.Log(context.Background(), alogLevelDebug, "is time")
 
-			applyValue = reflect.ValueOf(tNow)
+				applyValue = reflect.ValueOf(tNow)
+			}
 		} else {
 			err := json.Unmarshal([]byte(v.v), o)
 			if err != nil {
@@ -671,7 +685,7 @@ func (v Value) MustUnmarshal(o any) {
 
 func (v Value) Time() (time.Time, error) {
 	if !isSerialisedTime(v.v) {
-		return time.Time{}, fmt.Errorf("%w: time serialisation wrong", ErrInvalidValue)
+		return time.Time{}, fmt.Errorf("%w: time serialisation wrong: %v", ErrInvalidValue, v.v)
 	}
 
 	tl := strings.Split(v.v, timeLocationSeparator)
