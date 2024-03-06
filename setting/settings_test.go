@@ -218,9 +218,15 @@ func TestNewValue(t *testing.T) {
 		t.Run("time", func(t *testing.T) {
 			t.Parallel()
 
-			now := time.Now()
-			strVal := now.Format(time.RFC3339Nano)
+			loc, err := time.LoadLocation("Asia/Tokyo")
+			assert.NoError(t, err)
+			now := time.Now().In(loc)
+			strVal := now.Format(time.RFC3339Nano) // this step loses the time.Location information.
 			value := setting.NewValue(strVal)
+
+			t.Log(now)
+			t.Log(strVal)
+			t.Log(value)
 
 			assert.Equal(t, strVal, value.MustString())
 			assert.Equal(t, []byte(strVal), value.MustByte())
@@ -242,7 +248,7 @@ func TestNewValue(t *testing.T) {
 			assert.Panics(t, func() { value.MustFloat32() })
 			assert.Panics(t, func() { value.MustFloat64() })
 
-			assert.Equal(t, now.Truncate(time.Nanosecond), value.MustTime())
+			assert.Equal(t, now.Truncate(time.Nanosecond).UTC(), value.MustTime().UTC())
 
 			var b bool
 			assert.Panics(t, func() { value.MustUnmarshal(&b) })
@@ -702,7 +708,9 @@ func TestNewValue(t *testing.T) {
 	t.Run("time", func(t *testing.T) {
 		t.Parallel()
 
-		now := time.Now()
+		loc, err := time.LoadLocation("Asia/Tokyo")
+		assert.NoError(t, err)
+		now := time.Now().In(loc)
 
 		value := setting.NewValue(now)
 
