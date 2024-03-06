@@ -27,14 +27,9 @@ type PostgresSettings struct {
 }
 
 func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error {
-	val, err := value.String()
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
-	}
-
-	err = s.repo.ConnOrTX(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
+	err := s.repo.ConnOrTX(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
 		Key:   key.Key(),
-		Value: val,
+		Value: value.Raw(),
 	})
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api

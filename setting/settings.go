@@ -185,7 +185,10 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
 		}
 	case reflect.Map, reflect.Slice, reflect.Array, reflect.Struct:
 		if t, ok := val.(time.Time); ok {
-			return Value{v: t.Format(time.RFC3339Nano), kind: reflect.Struct}
+			return Value{
+				v:    fmt.Sprintf("%s%s%s", t.Format(time.RFC3339Nano), timeLocationSeparator, t.Location().String()),
+				kind: reflect.Struct,
+			}
 		}
 
 		b, err := json.Marshal(val)
@@ -199,12 +202,25 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
 	}
 }
 
-// base is the base used to format and parse uint values from and to strings.
-const base = 10
+const (
+	// base is the base used to format and parse uint values from and to strings.
+	base = 10
+
+	// timeLocationSeparator is used to serialise time, and it's time zone on the fly.
+	timeLocationSeparator = "|:|"
+)
 
 type Value struct {
 	v    string
 	kind reflect.Kind
+}
+
+// Raw returns the raw string value of Value as created by NewValue.
+// The main purpose is to aid when implementing persistent implementations of Settings,
+// as some types like time have a composite format.
+// Each part is separated by the timeLocationSeparator.
+func (v Value) Raw() string {
+	return v.v
 }
 
 func (v Value) String() (string, error) {
@@ -221,6 +237,10 @@ func (v Value) String() (string, error) {
 	f, err := strconv.ParseFloat(v.v, 64)
 	if err == nil { // match floats
 		return fmt.Sprintf("%.2f", f), nil
+	}
+
+	if isSerialisedTime(v.v) {
+		return strings.Split(v.v, timeLocationSeparator)[0], nil
 	}
 
 	return v.v, nil
@@ -650,12 +670,29 @@ func (v Value) MustUnmarshal(o any) {
 }
 
 func (v Value) Time() (time.Time, error) {
-	t, err := time.Parse(time.RFC3339Nano, v.v)
+	if !isSerialisedTime(v.v) {
+		return time.Time{}, fmt.Errorf("%w: time serialisation wrong", ErrInvalidValue)
+	}
+
+	tl := strings.Split(v.v, timeLocationSeparator)
+
+	loc, err := time.LoadLocation(tl[1])
+	if err != nil {
+		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+	}
+
+	t, err := time.ParseInLocation(time.RFC3339Nano, tl[0], loc)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
 	}
 
 	return t, nil
+}
+
+func isSerialisedTime(v string) bool {
+	tl := strings.Split(v, timeLocationSeparator)
+
+	return len(tl) == 2 //nolint:gomnd // 2 is just the count of time serialisation elements.
 }
 
 func (v Value) MustTime() time.Time {
