@@ -12,7 +12,7 @@ import (
 )
 
 const getWorkerPools = `-- name: GetWorkerPools :many
-SELECT id, queue, workers, version, job_types, created_at, updated_at
+SELECT id, queue, workers, git_hash, job_types, created_at, updated_at
 FROM arrower.gue_jobs_worker_pool
 WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, id
@@ -31,7 +31,7 @@ func (q *Queries) GetWorkerPools(ctx context.Context) ([]ArrowerGueJobsWorkerPoo
 			&i.ID,
 			&i.Queue,
 			&i.Workers,
-			&i.Version,
+			&i.GitHash,
 			&i.JobTypes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -107,11 +107,11 @@ func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) er
 }
 
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
-INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, version, job_types, created_at, updated_at)
+INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, git_hash, job_types, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, NOW(), $6)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
                                       workers    = $3,
-                                      version    = $4,
+                                      git_hash   = $4,
                                       job_types  = $5
 `
 
@@ -119,7 +119,7 @@ type UpsertWorkerToPoolParams struct {
 	ID        string
 	Queue     string
 	Workers   int16
-	Version   string
+	GitHash   string
 	JobTypes  []string
 	UpdatedAt pgtype.Timestamptz
 }
@@ -129,7 +129,7 @@ func (q *Queries) UpsertWorkerToPool(ctx context.Context, arg UpsertWorkerToPool
 		arg.ID,
 		arg.Queue,
 		arg.Workers,
-		arg.Version,
+		arg.GitHash,
 		arg.JobTypes,
 		arg.UpdatedAt,
 	)

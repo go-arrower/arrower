@@ -5,11 +5,11 @@ WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, id;
 
 -- name: UpsertWorkerToPool :exec
-INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, version, job_types, created_at, updated_at)
+INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, git_hash, job_types, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, NOW(), $6)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
                                       workers    = $3,
-                                      version    = $4,
+                                      git_hash   = $4,
                                       job_types  = $5;
 
 -- name: InsertHistory :exec

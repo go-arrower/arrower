@@ -51,7 +51,7 @@ CREATE UNLOGGED TABLE arrower.gue_jobs_worker_pool
     id         TEXT        NOT NULL,
     queue      TEXT        NOT NULL,
     workers    SMALLINT    NOT NULL DEFAULT 0,
-    version    TEXT        NOT NULL DEFAULT '',
+    git_hash   TEXT        NOT NULL DEFAULT '',
     job_types  TEXT[]      NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,

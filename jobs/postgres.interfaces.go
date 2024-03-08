@@ -586,7 +586,7 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 	err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 		ID:        h.poolName,
 		Queue:     h.queue,
-		Version:   h.gitHash,
+		GitHash:   h.gitHash,
 		JobTypes:  registeredJobTypes(h.gueWorkMap),
 		Workers:   int16(h.poolSize),
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
@@ -601,7 +601,7 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 			err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 				ID:        h.poolName,
 				Queue:     h.queue,
-				Version:   h.gitHash,
+				GitHash:   h.gitHash,
 				JobTypes:  registeredJobTypes(h.gueWorkMap),
 				Workers:   int16(h.poolSize),
 				UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
@@ -781,7 +781,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 	if err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 		ID:        h.poolName,
 		Queue:     h.queue,
-		Version:   h.gitHash,
+		GitHash:   h.gitHash,
 		JobTypes:  registeredJobTypes(h.gueWorkMap),
 		Workers:   0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
