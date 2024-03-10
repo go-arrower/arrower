@@ -112,3 +112,45 @@ func (f failingHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 func (f failingHandler) WithGroup(_ string) slog.Handler {
 	panic("implement me")
 }
+
+type fakeNoSettingsSpan struct {
+	embedded.Span
+}
+
+func (f fakeNoSettingsSpan) End(_ ...trace.SpanEndOption) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) AddEvent(_ string, _ ...trace.EventOption) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) IsRecording() bool {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) RecordError(_ error, _ ...trace.EventOption) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) SpanContext() trace.SpanContext {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) SetStatus(_ codes.Code, _ string) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) SetName(_ string) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) SetAttributes(_ ...attribute.KeyValue) {
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
+	panic("implement me")
+}
+
+var _ trace.Span = (*fakeNoSettingsSpan)(nil)

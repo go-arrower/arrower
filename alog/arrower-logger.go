@@ -124,8 +124,13 @@ type ArrowerLogger struct {
 	*tracedLogger
 }
 
-func (l *ArrowerLogger) Enabled(_ context.Context, _ slog.Level) bool {
-	return true // the check is done in Handle, so that the actual Enabled and Handle calls are in the same span.
+func (l *ArrowerLogger) Enabled(_ context.Context, level slog.Level) bool {
+	if l.tracedLogger.UsesSettings() {
+		return true // the check is done in Handle, so that the actual Enabled and Handle calls are in the same span.
+	}
+
+	// if no Settings are used, return early, so the record might not be created if not required anyway.
+	return level >= *l.level
 }
 
 func (l *ArrowerLogger) Handle(ctx context.Context, record slog.Record) error {

@@ -316,6 +316,25 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 	})
 }
 
+func TestArrowerLogger_Enabled(t *testing.T) {
+	t.Parallel()
+
+	t.Run("return early if no settings", func(t *testing.T) {
+		t.Parallel()
+
+		buf0 := &bytes.Buffer{}
+		logger := alog.New(alog.WithHandler(slog.NewTextHandler(buf0, nil)))
+
+		// fakeNoSettingsSpan will panic if TracerProvider() is called and fail this test.
+		// The meaning is: this logger should return early in Enabled() and never call Handle().
+		// If Handle() is not called, the overhead if creating the record is saved.
+		ctx := trace.ContextWithSpan(context.Background(), fakeNoSettingsSpan{})
+
+		logger.DebugContext(ctx, applicationMsg)
+		assert.NotContains(t, buf0.String(), applicationMsg)
+	})
+}
+
 func TestArrowerLogger_Handle(t *testing.T) {
 	t.Parallel()
 
