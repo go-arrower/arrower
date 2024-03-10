@@ -37,6 +37,7 @@ type Config struct {
 	User       string
 	Password   string
 	Database   string
+	SSLMode    string
 	Host       string
 	Port       int
 	MaxConns   int
@@ -47,8 +48,8 @@ func (c Config) toURL() string {
 		c.MaxConns = 10
 	}
 
-	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable&pool_max_conns=%d",
-		c.User, c.Password, net.JoinHostPort(c.Host, strconv.Itoa(c.Port)), c.Database, c.MaxConns)
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s&pool_max_conns=%d",
+		c.User, c.Password, net.JoinHostPort(c.Host, strconv.Itoa(c.Port)), c.Database, c.SSLMode, c.MaxConns)
 }
 
 // Connect connects to a PostgreSQL database.
