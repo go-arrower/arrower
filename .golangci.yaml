@@ -170,6 +170,7 @@ linters:
     - funlen
     - gci
     - ginkgolinter
+    - gocheckcompilerdirectives
     - gochecknoglobals
     - gochecknoinits
     - gochecksumtype
@@ -194,6 +195,7 @@ linters:
     - grouper
     #- ifshort # deprecated
     - importas
+    - inamedparam
     - interfacebloat
     #- interfacer # deprecated
     - ireturn
@@ -226,6 +228,7 @@ linters:
     - rowserrcheck
     #- scopelint # deprecated
     - sloglint
+    - spancheck
     - sqlclosecheck
     #- structcheck # deprecated
     - stylecheck
