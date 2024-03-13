@@ -117,7 +117,7 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 }
 
 var (
-	defaultPGConf = postgres.Config{ //nolint:gochecknoglobals
+	defaultPGConf = postgres.Config{ //nolint:gochecknoglobals,exhaustruct
 		User:       "arrower",
 		Password:   "secret",
 		Database:   "arrower_test",
