@@ -61,7 +61,7 @@ func TestSecret_String(t *testing.T) {
 		"secret":     {"this-should-be-masked"},
 	}
 
-	for name, tc := range tests {
+	for name, tc := range tests { //nolint:paralleltest // fp: maybe linter is not updated to Go 1.22 semantic yet
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
@@ -162,7 +162,7 @@ func Example_accidentalPrint() {
 }
 
 func getLogger() *slog.Logger {
-	return alog.New(alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+	return alog.New(alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: func(_ []string, attr slog.Attr) slog.Attr {
 		if attr.Key == slog.TimeKey {
 			return slog.Attr{}
 		}

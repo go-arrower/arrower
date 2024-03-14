@@ -100,7 +100,7 @@ var passingValidationValue = exampleRequest{
 func exampleUseCaseEnsureNotValidated(t *testing.T) func(context.Context, exampleRequest) (exampleResponse, error) {
 	t.Helper()
 
-	return func(ctx context.Context, in exampleRequest) (exampleResponse, error) {
+	return func(ctx context.Context, _ exampleRequest) (exampleResponse, error) {
 		assert.False(t, mw.PassedValidation(ctx))
 
 		return exampleResponse{Ret0: "non-empty-return"}, nil // do nothing, just simulate a use case.
@@ -110,7 +110,7 @@ func exampleUseCaseEnsureNotValidated(t *testing.T) func(context.Context, exampl
 func exampleUseCaseEnsureValidated(t *testing.T) func(context.Context, exampleRequest) (exampleResponse, error) {
 	t.Helper()
 
-	return func(ctx context.Context, in exampleRequest) (exampleResponse, error) {
+	return func(ctx context.Context, _ exampleRequest) (exampleResponse, error) {
 		assert.True(t, mw.PassedValidation(ctx))
 
 		return exampleResponse{Ret0: "non-empty-return"}, nil // do nothing, just simulate a use case.
@@ -120,7 +120,7 @@ func exampleUseCaseEnsureValidated(t *testing.T) func(context.Context, exampleRe
 func exampleUseCaseUEnsureNotValidated(t *testing.T) func(context.Context, exampleRequest) error {
 	t.Helper()
 
-	return func(ctx context.Context, in exampleRequest) error {
+	return func(ctx context.Context, _ exampleRequest) error {
 		assert.False(t, mw.PassedValidation(ctx))
 
 		return nil // do nothing, just simulate a use case.
@@ -130,7 +130,7 @@ func exampleUseCaseUEnsureNotValidated(t *testing.T) func(context.Context, examp
 func exampleUseCaseUEnsureValidated(t *testing.T) func(context.Context, exampleRequest) error {
 	t.Helper()
 
-	return func(ctx context.Context, in exampleRequest) error {
+	return func(ctx context.Context, _ exampleRequest) error {
 		assert.True(t, mw.PassedValidation(ctx))
 
 		return nil // do nothing, just simulate a use case.

@@ -29,12 +29,12 @@ func Example_postgresJobsHandler() {
 		jobs.WithPollInterval(time.Millisecond), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
-	_ = jq.RegisterJobFunc(func(ctx context.Context, j myJob) error {
-		fmt.Println("myJob with payload:", j.Payload)
+	_ = jq.RegisterJobFunc(func(_ context.Context, job myJob) error {
+		fmt.Println("myJob with payload:", job.Payload)
 
 		return nil
 	})
-	_ = jq.RegisterJobFunc(func(ctx context.Context, j otherJob) error {
+	_ = jq.RegisterJobFunc(func(_ context.Context, _ otherJob) error {
 		fmt.Println("otherJob")
 
 		return nil

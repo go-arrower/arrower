@@ -39,6 +39,7 @@ func (p pgxTraceAdapter) TraceQueryStart(
 		attribute.String("sql", data.SQL),
 		attribute.StringSlice("sql_args", anySliceToStrings(data.Args)),
 	))
+	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
@@ -67,6 +68,7 @@ func (p pgxTraceAdapter) TraceBatchStart(
 		attribute.String("db_user", conn.Config().User),
 		attribute.Int("batch_len", data.Batch.Len()),
 	))
+	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
@@ -110,6 +112,7 @@ func (p pgxTraceAdapter) TraceCopyFromStart(ctx context.Context,
 		attribute.String("copyfrom_table_name", data.TableName.Sanitize()),
 		attribute.StringSlice("copyfrom_column_names", data.ColumnNames),
 	))
+	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
@@ -144,6 +147,7 @@ func (p pgxTraceAdapter) TracePrepareStart(
 		attribute.String("sql", data.SQL),
 		attribute.String("name", data.Name),
 	))
+	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
@@ -169,6 +173,7 @@ func (p pgxTraceAdapter) TraceConnectStart(ctx context.Context, data pgx.TraceCo
 		attribute.Int("db_timeout", int(data.ConnConfig.ConnectTimeout)),
 		attribute.StringSlice("runtime_params", mapToStringSlice(data.ConnConfig.RuntimeParams)),
 	))
+	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }

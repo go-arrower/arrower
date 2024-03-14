@@ -27,8 +27,8 @@ func TestNewInMemoryJobs(t *testing.T) {
 	var wg sync.WaitGroup
 
 	jq := jobs.NewInMemoryJobs()
-	err := jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-		assert.Equal(t, argName, j.Name)
+	err := jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+		assert.Equal(t, argName, job.Name)
 		wg.Done()
 
 		return nil

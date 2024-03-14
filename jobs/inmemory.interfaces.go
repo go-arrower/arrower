@@ -251,7 +251,7 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 
 	expType, err := getJobTypeFromJobStruct(job)
 	if err != nil {
-		return assert.Fail(a.t, fmt.Sprintf("invalid jobType of given job: %s", expType), msgAndArgs...)
+		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
 	}
 
 	jobsByType := map[string]int{}
@@ -259,7 +259,7 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 	for _, j := range a.q.jobs {
 		jobType, err := getJobTypeFromJobStruct(j)
 		if err != nil {
-			return assert.Fail(a.t, fmt.Sprintf("invalid jobType in queue: %s", jobType), msgAndArgs...)
+			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
 		}
 
 		jobsByType[jobType]++

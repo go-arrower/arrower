@@ -21,7 +21,7 @@ type File string
 func WatchFolder(ctx context.Context, path string, fileChanged chan<- File, debounceInterval int) error {
 	fsEvents := make(chan notify.EventInfo, 1)
 
-	path = fmt.Sprintf("%s/...", path)
+	path += "/..."
 
 	if err := notify.Watch(path, fsEvents, notify.All); err != nil {
 		return fmt.Errorf("%w: %v", ErrObserverFSFailed, err) //nolint:errorlint // prevent err in api

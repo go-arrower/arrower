@@ -108,7 +108,7 @@ var (
 
 	retryFunc = func(resource *dockertest.Resource) func() error {
 		return func() error {
-			port := resource.GetPort(fmt.Sprintf("%s/tcp", "5432"))
+			port := resource.GetPort("5432/tcp")
 			url := fmt.Sprintf("postgres://arrower:secret@localhost:%s/dbname_test", port)
 
 			conn, err := pgx.Connect(context.Background(), url)

@@ -17,7 +17,7 @@ func newRootCmd() *cobra.Command {
 Complete documentation is available at http://arrower.org`,
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			_ = cmd.Help()
 		},
 	}

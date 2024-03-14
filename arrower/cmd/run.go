@@ -37,7 +37,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 		Long:                  ``,
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			// log.Debug().Msg("start command `run`")
 
 			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()

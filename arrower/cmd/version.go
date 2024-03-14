@@ -15,7 +15,7 @@ func newVersionCmd() *cobra.Command {
 		Long:                  ``,
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _ []string) {
 			hash, ts := getVersionHashAndTimestamp()
 
 			fmt.Fprintf(cmd.OutOrStdout(), "arrower version: %s from %s\n", hash, ts)

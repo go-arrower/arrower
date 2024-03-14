@@ -38,7 +38,7 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 		pgHandler *postgres.Handler
 
 		retryFunc = func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 			conf := defaultPGConf
 			conf.Port = port
 
@@ -88,7 +88,7 @@ func NewPostgresDockerForIntegrationTesting() *PostgresDocker {
 		pgHandler *postgres.Handler
 
 		retryFunc = func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 			conf := defaultPGConf
 			conf.Port = port
 
@@ -131,9 +131,9 @@ var (
 		Repository: "ghcr.io/go-arrower/postgres",
 		Tag:        "latest",
 		Env: []string{
-			fmt.Sprintf("POSTGRES_USER=%s", defaultPGConf.User),
-			fmt.Sprintf("POSTGRES_PASSWORD=%s", defaultPGConf.Password),
-			fmt.Sprintf("POSTGRES_DB=%s", defaultPGConf.Database),
+			"POSTGRES_USER=" + defaultPGConf.User,
+			"POSTGRES_PASSWORD=" + defaultPGConf.Password,
+			"POSTGRES_DB=" + defaultPGConf.Database,
 			"listen_addresses = '*'",
 			"MaxConnections=1000",
 		},

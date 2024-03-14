@@ -5,7 +5,6 @@ package postgres_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -37,7 +36,7 @@ func TestConnect(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{
@@ -70,7 +69,7 @@ func TestConnect(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
 				handler, err := postgres.Connect(context.Background(), postgres.Config{
@@ -110,7 +109,7 @@ func TestConnectAndMigrate(t *testing.T) {
 		t.Parallel()
 
 		_, _ = tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
@@ -139,7 +138,7 @@ func TestConnectAndMigrate(t *testing.T) {
 
 		var pgHandler *postgres.Handler
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
@@ -174,7 +173,7 @@ func TestConnectAndMigrate(t *testing.T) {
 		var config postgres.Config
 
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
-			port, _ := strconv.Atoi(resource.GetPort(fmt.Sprintf("%s/tcp", "5432")))
+			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 			config = postgres.Config{
 				Host:       "localhost",
 				Port:       port,

@@ -36,7 +36,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), func(url string) error {
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), func(_ string) error {
 				browserStarted = true
 
 				return nil

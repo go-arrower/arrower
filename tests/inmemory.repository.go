@@ -21,42 +21,42 @@ var (
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
 // See the examples in the test files.
 type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of all methods that are possible
-	NextID(context.Context) (ID, error)
+	NextID(ctx context.Context) (ID, error)
 
-	Create(context.Context, E) error
-	Read(context.Context, ID) (E, error)
-	Update(context.Context, E) error
-	Delete(context.Context, E) error
+	Create(ctx context.Context, entity E) error
+	Read(ctx context.Context, id ID) (E, error)
+	Update(ctx context.Context, entity E) error
+	Delete(ctx context.Context, entity E) error
 
-	All(context.Context) ([]E, error)
-	AllByIDs(context.Context, []ID) ([]E, error)
+	All(ctx context.Context) ([]E, error)
+	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
 	FindAll(ctx context.Context) ([]E, error)
-	FindByID(context.Context, ID) (E, error)
-	FindByIDs(context.Context, []ID) (E, error)
-	Exists(context.Context, ID) (bool, error)
-	ExistsByID(context.Context, ID) (bool, error)
-	ExistAll(context.Context, []ID) (bool, error)
-	ExistByIDs(context.Context, []ID) (bool, error)
-	Contains(context.Context, ID) (bool, error)
-	ContainsID(context.Context, ID) (bool, error)
-	ContainsIDs(context.Context, []ID) (bool, error)
-	ContainsAll(context.Context, []ID) (bool, error)
+	FindByID(ctx context.Context, id ID) (E, error)
+	FindByIDs(ctx context.Context, ids []ID) (E, error)
+	Exists(ctx context.Context, id ID) (bool, error)
+	ExistsByID(ctx context.Context, id ID) (bool, error)
+	ExistAll(ctx context.Context, ids []ID) (bool, error)
+	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
+	Contains(ctx context.Context, id ID) (bool, error)
+	ContainsID(ctx context.Context, id ID) (bool, error)
+	ContainsIDs(ctx context.Context, ids []ID) (bool, error)
+	ContainsAll(ctx context.Context, ids []ID) (bool, error)
 
-	Save(context.Context, E) error
-	SaveAll(context.Context, []E) error
-	UpdateAll(context.Context, []E) error
-	Add(context.Context, E) error
-	AddAll(context.Context, []E) error
+	Save(ctx context.Context, entity E) error
+	SaveAll(ctx context.Context, entities []E) error
+	UpdateAll(ctx context.Context, entities []E) error
+	Add(ctx context.Context, entity E) error
+	AddAll(ctx context.Context, entities []E) error
 
-	Count(context.Context) (int, error)
-	Length(context.Context) (int, error)
-	Empty(context.Context) (bool, error)
-	IsEmpty(context.Context) (bool, error)
+	Count(ctx context.Context) (int, error)
+	Length(ctx context.Context) (int, error)
+	Empty(ctx context.Context) (bool, error)
+	IsEmpty(ctx context.Context) (bool, error)
 
-	DeleteByID(context.Context, ID) error
-	DeleteByIDs(context.Context, []ID) error
-	DeleteAll(context.Context) error
-	Clear(context.Context) error
+	DeleteByID(ctx context.Context, id ID) error
+	DeleteByIDs(ctx context.Context, ids []ID) error
+	DeleteAll(ctx context.Context) error
+	Clear(ctx context.Context) error
 }
 
 // WithIDField set's the name of the field that is used as an id or primary key.

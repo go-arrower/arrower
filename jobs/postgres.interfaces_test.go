@@ -145,7 +145,7 @@ func TestNewGueJobs(t *testing.T) {
 			assert.NoError(t, err)
 
 			wg.Add(2)
-			err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
+			err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
 				mu.Lock()
 				defer mu.Unlock()
 
@@ -187,20 +187,20 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		err = jq.RegisterJobFunc(func() {})
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
-		err = jq.RegisterJobFunc(func(id int, data []byte) error { return nil })
+		err = jq.RegisterJobFunc(func(_ int, _ []byte) error { return nil })
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
 		// primitive types do not implement a JobType interface and have no struct name.
-		err = jq.RegisterJobFunc(func(ctx context.Context, data []byte) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ []byte) error { return nil })
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) {})
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) {})
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) int { return 0 })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) int { return 0 })
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
 		assert.NoError(t, err)
 	})
 
@@ -210,13 +210,13 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithSameNameAsSimpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ jobWithSameNameAsSimpleJob) error { return nil })
 		assert.ErrorIs(t, err, jobs.ErrInvalidJobFunc)
 	})
 
@@ -232,8 +232,8 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithJobType) error {
-			assert.Equal(t, jobWithJobType{Name: argName}, j)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithJobType) error {
+			assert.Equal(t, jobWithJobType{Name: argName}, job)
 			wg.Done()
 
 			return nil
@@ -263,7 +263,7 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithJobType) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithJobType) error {
 			mu.Lock()
 			defer mu.Unlock()
 
@@ -328,9 +328,9 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-			assert.Equal(t, payloadJob, j)
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+			assert.Equal(t, payloadJob, job)
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
@@ -355,16 +355,16 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
 		})
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithJobType) error {
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithJobType) error {
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
@@ -399,15 +399,15 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
 		})
 		assert.NoError(t, err)
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithJobType) error {
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithJobType) error {
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
@@ -454,7 +454,7 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(2)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job jobWithArgs) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
 			mu.Lock()
 			defer mu.Unlock()
 
@@ -498,9 +498,9 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
-			assert.Equal(t, payloadJob, j)
-			assert.Equal(t, argName, j.Name)
+		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+			assert.Equal(t, payloadJob, job)
+			assert.Equal(t, argName, job.Name)
 			wg.Done()
 
 			return nil
@@ -592,7 +592,7 @@ func TestGueHandler_History(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ jobWithArgs) error { return nil })
 		assert.NoError(t, err)
 
 		// job history table is empty before the first Job is enqueued
@@ -637,7 +637,7 @@ func TestGueHandler_History(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, _ jobWithArgs) error {
 			if count < 2 { // fail twice
 				count++
 
@@ -708,7 +708,7 @@ func TestGueHandler_History(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j jobWithArgs) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, _ jobWithArgs) error {
 			if count == 0 {
 				count++
 
@@ -782,7 +782,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j simpleJob) error {
+		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
 			t.Log("Started long running job")
 
 			for {
@@ -848,7 +848,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j simpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
 		assert.NoError(t, err)
 
 		// create a new transaction and set it in the context
@@ -878,7 +878,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		err = jq.RegisterJobFunc(func(ctx context.Context, j simpleJob) error { return nil })
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
 		assert.NoError(t, err)
 
 		// create new transaction and set it in the context, same as the middleware does
@@ -908,7 +908,7 @@ func TestGueHandler_Tx(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, j simpleJob) error {
+		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
 			tx, txOk := ctx.Value(postgres.CtxTX).(pgx.Tx)
 			assert.True(t, txOk)
 			assert.NotEmpty(t, tx)
@@ -941,7 +941,7 @@ func TestGueHandler_Instrumentation(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
 			attr, exists := alog.FromContext(ctx)
 			assert.True(t, exists)
 			assert.Equal(t, "jobID", attr[0].Key)
@@ -980,7 +980,7 @@ func TestGueHandler_Instrumentation(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
 			userID := ctx.Value(arrower.CtxAuthUserID)
 			assert.Nil(t, userID, "if userID is not set, prevent invalid value to make uuid.MustParse work")
 
@@ -1009,7 +1009,7 @@ func TestGueHandler_Instrumentation(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(1)
-		err = jq.RegisterJobFunc(func(ctx context.Context, job simpleJob) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error {
 			wg.Done()
 
 			return nil
