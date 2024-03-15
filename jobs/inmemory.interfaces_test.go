@@ -68,6 +68,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 		jassert.Empty()
 
 		_ = jq.Enqueue(ctx, simpleJob{})
+
 		jassert.NotEmpty()
 		jassert.Queued(simpleJob{}, 1)
 	})

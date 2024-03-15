@@ -496,7 +496,7 @@ func TestMemoryRepository_Concurrently(t *testing.T) {
 	wg := sync.WaitGroup{}
 	repo := tests.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 
-	wg.Add(workers) //nolint:wsl
+	wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go func() {
 			repo.Add(ctx, testdata.NewEntity())
@@ -504,7 +504,7 @@ func TestMemoryRepository_Concurrently(t *testing.T) {
 		}()
 	}
 
-	wg.Add(workers) //nolint:wsl
+	wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go func() {
 			repo.Read(ctx, testdata.NewEntity().ID)

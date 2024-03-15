@@ -41,6 +41,7 @@ func TestNewHotReloadServer(t *testing.T) {
 
 			port := 1024 * rand.Intn(10) //nolint:gosec // rand does not need to be secure for port number
 			err := server.Start(fmt.Sprintf(":%d", port))
+
 			if !errors.Is(err, http.ErrServerClosed) {
 				assert.NoError(t, err)
 			}
@@ -66,6 +67,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		addr := server.Listener.Addr().String()
 		ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
 		assert.NoError(t, err)
+
 		defer ws.Close()
 
 		t.Run("reload on view file change", func(t *testing.T) {
@@ -107,10 +109,13 @@ func TestNewHotReloadServer(t *testing.T) {
 
 		wg.Add(maxConnections)
 		wgBrowsersConnected.Add(maxConnections)
+
 		for i := 0; i < maxConnections; i++ {
 			go func() {
 				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
+
 				assert.NoError(t, err)
+
 				defer ws.Close()
 				wgBrowsersConnected.Done()
 

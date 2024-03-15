@@ -379,12 +379,12 @@ func TestArrowerLogger_Handle(t *testing.T) {
 
 			buf := &bytes.Buffer{}
 			logger := alog.NewTest(buf)
+			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{t: t, ID: 1})
 
 			logger.Info(applicationMsg)
 			assert.NotContains(t, buf.String(), "traceID")
 
 			buf.Reset()
-			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{t: t, ID: 1})
 			logger.InfoContext(ctx, applicationMsg)
 			assert.Contains(t, buf.String(), "traceID=")
 			assert.Contains(t, buf.String(), "spanID=")
@@ -409,17 +409,17 @@ func TestArrowerLogger_Handle(t *testing.T) {
 		t.Run("record a span for the handle method itself", func(t *testing.T) {
 			t.Parallel()
 
+			// the nesting of all the tracing stuff is making this case difficult to test:
+			// span => traceProvider => tracer => innerSpan
+			// the assertion is in fakeTracer.Start() as a hack
+			// the assertion is only run, if the tracer is called from within Handle, so it is somewhat of a circular case.
+
 			logger := alog.NewTest(nil)
 
 			span := &fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), span)
 
 			logger.InfoContext(ctx, applicationMsg)
-
-			// the nesting of all the tracing stuff is making this case difficult to test:
-			// span => traceProvider => tracer => innerSpan
-			// the assertion is in fakeTracer.Start() as a hack
-			// the assertion is only run, if the tracer is called from within Handle, so it is somewhat of a circular case.
 		})
 	})
 

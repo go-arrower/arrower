@@ -106,6 +106,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		go func() {
 			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hotReload, noBrowser)
 			assert.NoError(t, err)
+
 			wg.Done()
 		}()
 

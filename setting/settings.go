@@ -609,7 +609,7 @@ func (v Value) MustFloat64() float64 {
 	return f
 }
 
-//nolint:gocyclo,nestif,cyclop,varnamelen,funlen,gocognit // the method has to consider all the cases for auto-casting.
+//nolint:gocyclo,nestif,cyclop,varnamelen,funlen,gocognit,wsl,lll // the method has to consider all the cases for auto-casting.
 func (v Value) Unmarshal(o any) error {
 	var applyValue reflect.Value
 

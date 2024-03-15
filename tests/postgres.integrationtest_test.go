@@ -63,8 +63,9 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 	t.Run("run multiple tests in parallel", func(t *testing.T) {
 		t.Parallel()
 
-		var wg sync.WaitGroup
 		const testNumber = 100
+
+		var wg sync.WaitGroup
 
 		wg.Add(testNumber)
 		for i := 0; i < testNumber; i++ {

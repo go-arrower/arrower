@@ -152,6 +152,7 @@ func TestNewGueJobs(t *testing.T) {
 				if job.Name == "0" { // expect Job with Name 0 to be run first (^= 0) in order
 					assert.Equal(t, 0, order)
 				}
+
 				if job.Name == "1" { // expect Job with Name 1 to be run afterwards ^= higher order
 					assert.Equal(t, 1, order)
 				}
@@ -461,6 +462,7 @@ func TestGueHandler_Enqueue(t *testing.T) {
 			if job.Name == "0" { // expect Job with Name 0 to be run first (^= 0) in order
 				assert.Equal(t, 0, order)
 			}
+
 			if job.Name == "1" { // expect Job with Name 1 to be run afterwards ^= higher order
 				assert.Equal(t, 1, order)
 			}

@@ -43,46 +43,17 @@ linters-settings:
     # Report about shadowed variables.
     # Default: false
     check-shadowing: true
-    # Enable analyzers by name (in addition to default).
+    # Enable all analyzers.
+    # Default: false
+    enable-all: true
+    # Disable analyzers by name.
+    # (in addition to default
+    #   atomicalign, deepequalerrors, fieldalignment, findcall, nilness, reflectvaluecompare, shadow, sortslice,
+    #   timeformat, unusedwrite
+    # ).
     # Run `go tool vet help` to see all analyzers.
     # Default: []
-    enable:
-      - asmdecl
-      - assign
-      - atomic
-      - atomicalign
-      - bools
-      - buildtag
-      - cgocall
-      - composites
-      - copylocks
-      - deepequalerrors
-      - errorsas
-      - fieldalignment
-      - findcall
-      - framepointer
-      - httpresponse
-      - ifaceassert
-      - loopclosure
-      - lostcancel
-      - nilfunc
-      - nilness
-      - printf
-      - reflectvaluecompare
-      - shadow
-      - shift
-      - sigchanyzer
-      - sortslice
-      - stdmethods
-      - stringintconv
-      - structtag
-      - testinggoroutine
-      - tests
-      - unmarshal
-      - unreachable
-      - unsafeptr
-      - unusedresult
-      - unusedwrite
+    disable: []
   maligned:
     # Print struct with more effective memory layout or not.
     # Default: false
@@ -90,22 +61,15 @@ linters-settings:
   misspell:
     locale: UK
   testifylint:
-    # Enable specific checkers.
-    # https://github.com/Antonboom/testifylint#checkers
-    # Default: ["bool-compare", "compares", "empty", "error-is-as", "error-nil", "expected-actual", "float-compare", "len", "require-error", "suite-dont-use-pkg", "suite-extra-assert-call"]
-    enable:
-      - bool-compare
-      - compares
-      - empty
-      - error-is-as
-      - error-nil
-      - expected-actual
-      - float-compare
-      - len
-      # - require-error # don't understand the difference between assert and require (recommended by the linter) package of testify, so I stick with the pattern I know
-      - suite-dont-use-pkg
-      - suite-extra-assert-call
-      - suite-thelper
+    # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    enable-all: true
+    # Disable checkers by name
+    # (in addition to default
+    #   suite-thelper
+    # ).
+    disable:
+      - require-error # the idea is great to prevent assertions to fail after an error is already asserted. I don't like the use of multiple keywords: assert and require at the same time and like to keep it simple and consistent => use assert
   varnamelen:
     # The longest distance, in source lines, that is being considered a "small scope".
     # Variables used in at most this many lines will be ignored.
@@ -275,6 +239,32 @@ issues:
       linters:
         - govet
       text: "fieldalignment" # Prefer easier readability to optimal memory layout for tests
+
+    # partly exclude rules from wsl when testing, to keep tests easier to read.
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "expressions should not be cuddled with declarations or returns" # good for code; makes tests to convoluted, see: https://github.com/bombsimon/wsl/blob/master/doc/rules.md#expressions-should-not-be-cuddled-with-declarations-or-returns
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "declarations should never be cuddled" # combining wait.Group calls to loop where they are used
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "go statements can only invoke functions assigned on line above" # combining wait.Group calls to go routines where they are used
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "for statements should only be cuddled with assignments used in the iteration" # combining wait.Group calls to loop where they are used
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments" # makes setup of variables easier to group and see what belongs together
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together
 
     # Allow patterns that are considered best practises for Corba CLI applications
     - path: arrower/cmd

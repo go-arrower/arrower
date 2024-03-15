@@ -69,11 +69,11 @@ func TestSecret_String(t *testing.T) {
 			secret := secret.New(tc.secret)
 
 			fmt.Fprintln(buf, secret)
-
-			assert.Equal(t, "******\n", buf.String(), "should be masked secret")
 			// uncomment, to see masking of secrets in action:
 			// t.Log(secret)
 			// t.Log(buf.String())
+
+			assert.Equal(t, "******\n", buf.String(), "should be masked secret")
 
 			buf.Reset()
 			fmt.Fprintln(buf, &secret)
@@ -82,13 +82,13 @@ func TestSecret_String(t *testing.T) {
 			buf.Reset()
 			logger := alog.NewTest(buf)
 			logger.Info("msg", slog.Any("secret", secret))
-
-			assert.Contains(t, buf.String(), "******")
-			if notEmpty := strings.Trim(tc.secret, " ") != ""; notEmpty {
-				assert.NotContains(t, buf.String(), tc.secret, "non empty secret should not contain it's original data")
-			}
 			// uncomment, to see masking of secrets in action:
 			// t.Log(buf.String())
+
+			assert.Contains(t, buf.String(), "******")
+			if notEmpty := strings.Trim(tc.secret, " ") != ""; notEmpty { //nolint:wsl
+				assert.NotContains(t, buf.String(), tc.secret, "non empty secret should not contain it's original data")
+			}
 		})
 	}
 }
