@@ -15,10 +15,13 @@ import (
 // Use the Assert() method in your testing.
 func NewTestingJobs() *InMemoryQueue {
 	return &InMemoryQueue{
+		modulePath: modulePath(),
+
 		mu:        sync.Mutex{},
 		jobs:      []Job{},
 		workerMap: map[string]JobFunc{},
-		cancel:    func() {},
+
+		cancel: func() {},
 	}
 }
 
@@ -32,6 +35,8 @@ func NewInMemoryJobs() *InMemoryQueue {
 }
 
 type InMemoryQueue struct { //nolint:govet // alignment less important than grouping of mutex
+	modulePath string
+
 	mu        sync.Mutex
 	jobs      []Job
 	workerMap map[string]JobFunc
@@ -69,7 +74,11 @@ func (q *InMemoryQueue) RegisterJobFunc(jf JobFunc) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	jobType := getJobTypeFromJobFunc(jf)
+	jobType, _, err := getJobTypeFromType(reflect.TypeOf(jf).In(1), q.modulePath)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
 	q.workerMap[jobType] = jf
 
 	return nil
@@ -124,7 +133,7 @@ func (q *InMemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
 		return nil
 	}
 
-	searchType, err := getJobTypeFromJobStruct(job)
+	searchType, _, err := getJobTypeFromType(reflect.TypeOf(job), q.modulePath)
 	if err != nil {
 		return nil
 	}
@@ -132,7 +141,7 @@ func (q *InMemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
 	matchPos := 1
 
 	for _, sJob := range q.jobs {
-		jobType, err := getJobTypeFromJobStruct(sJob)
+		jobType, _, err := getJobTypeFromType(reflect.TypeOf(sJob), q.modulePath)
 		if err != nil {
 			return nil
 		}
@@ -195,7 +204,7 @@ func (q *InMemoryQueue) processFirstJob() {
 	var job Job
 	job, q.jobs = q.jobs[0], q.jobs[1:]
 
-	jt, _ := getJobTypeFromJobStruct(job)
+	jt, _, _ := getJobTypeFromType(reflect.TypeOf(job), q.modulePath)
 	workerFn := q.workerMap[jt]
 
 	// call the JobFunc
@@ -249,7 +258,7 @@ func (a *InMemoryAssertions) NotEmpty(msgAndArgs ...any) bool {
 func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	expType, err := getJobTypeFromJobStruct(job)
+	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
 	if err != nil {
 		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
 	}
@@ -257,7 +266,7 @@ func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bo
 	jobsByType := map[string]int{}
 
 	for _, j := range a.q.jobs {
-		jobType, err := getJobTypeFromJobStruct(j)
+		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
 		if err != nil {
 			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
 		}

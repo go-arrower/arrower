@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -75,8 +76,9 @@ func NewPostgresJobs(
 			poolName:     poolName,
 			poolSize:     defaultPoolSize,
 			pollStrategy: PriorityPollStrategy,
-			gitHash:      gitHash(),
 		},
+		gitHash:            gitHash(),
+		modulePath:         modulePath(),
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
 		mu:                 sync.Mutex{},
@@ -118,6 +120,8 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 	gueClient  *gue.Client
 	gueWorkMap gue.WorkMap
 	queueOpt
+	gitHash    string
+	modulePath string
 
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
@@ -138,6 +142,14 @@ func gitHash() string {
 	}
 
 	return "unknown"
+}
+
+func modulePath() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		return info.Path
+	}
+
+	return ""
 }
 
 var _ Queue = (*PostgresJobsHandler)(nil)
@@ -188,12 +200,14 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 
 	switch reflect.ValueOf(job).Kind() { //nolint:exhaustive // other types are prevented by ensureValidJobTypeForEnqueue
 	case reflect.Struct:
-		jobType, err := getJobTypeFromJobStruct(job)
+		jobType, fullPath, err := getJobTypeFromType(reflect.TypeOf(job), h.modulePath)
 		if err != nil {
 			return nil, err
 		}
 
-		gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue, jobType, job, carrier, opts...)
+		gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue,
+			jobType, fullPath, job, carrier, opts...,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -202,12 +216,14 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 		for i := 0; i < allJobs.Len(); i++ {
 			job := allJobs.Index(i)
 
-			jobType, err := getJobTypeFromJobSliceElement(job)
+			jobType, fullPath, err := getJobTypeFromType(reflect.TypeOf(job.Interface()), h.modulePath)
 			if err != nil {
 				return nil, err
 			}
 
-			gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue, jobType, job.Interface(), carrier, opts...)
+			gueJobs, err = buildAndAppendGueJob(ctx, h.gitHash, gueJobs, queue,
+				jobType, fullPath, job.Interface(), carrier, opts...,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -223,6 +239,7 @@ func buildAndAppendGueJob(
 	gueJobs []*gue.Job,
 	queue string,
 	jobType string,
+	fullPath string,
 	job any,
 	carrier propagation.MapCarrier,
 	opts ...JobOpt,
@@ -231,6 +248,7 @@ func buildAndAppendGueJob(
 	userID, _ = ctx.Value(arrower.CtxAuthUserID).(string)
 
 	args, err := json.Marshal(PersistencePayload{
+		JobStructPath:    fullPath,
 		JobData:          job,
 		GitHashEnqueued:  gitHash,
 		GitHashProcessed: "",
@@ -302,45 +320,6 @@ func ensureValidJobTypeForEnqueue(job Job) error {
 	return ErrInvalidJobType
 }
 
-// getJobTypeFromJobStruct returns a name for a Job.
-// If the parameter implements the JobType interface, then that type is returned as the JobType.
-// Otherwise, it is expected that the Job is a struct and the name of that type is returned.
-func getJobTypeFromJobStruct(job Job) (string, error) {
-	if jt, ok := job.(JobType); ok {
-		return jt.JobType(), nil
-	}
-
-	structTypeName := reflect.TypeOf(job).Name()
-	if structTypeName == "" {
-		return "", ErrInvalidJobType
-	}
-
-	return structTypeName, nil
-}
-
-// getJobTypeFromJobSliceElement does the same getJobTypeFromJobStruct does for a struct but on an element of a slice.
-func getJobTypeFromJobSliceElement(job reflect.Value) (string, error) {
-	if job.Kind() == reflect.Interface { // slice with different types: []any => extract the underlying element first
-		job = job.Elem()
-	}
-
-	jobTypeInterfaceType := reflect.TypeOf((*JobType)(nil)).Elem()
-	if job.CanConvert(jobTypeInterfaceType) {
-		if jv, ok := job.Convert(jobTypeInterfaceType).Interface().(JobType); ok {
-			return jv.JobType(), nil
-		}
-
-		return "", ErrInvalidJobType
-	}
-
-	structTypeName := job.Type().Name()
-	if structTypeName == "" {
-		return "", ErrInvalidJobType
-	}
-
-	return structTypeName, nil
-}
-
 // RegisterJobFunc registers new worker functions for a given JobType.
 func (h *PostgresJobsHandler) RegisterJobFunc(jf JobFunc) error {
 	h.mu.Lock()
@@ -351,7 +330,11 @@ func (h *PostgresJobsHandler) RegisterJobFunc(jf JobFunc) error {
 		return ErrInvalidJobFunc
 	}
 
-	jobType := getJobTypeFromJobFunc(jf)
+	jobType, _, err := getJobTypeFromType(reflect.TypeOf(jf).In(1), h.modulePath)
+	if err != nil {
+		return err
+	}
+
 	if _, ok := h.gueWorkMap[jobType]; ok {
 		return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrInvalidJobFunc, jobType)
 	}
@@ -794,24 +777,6 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 	return nil
 }
 
-// getJobTypeFromJobFunc returns the jobType as the struct name or takes it from JobType
-// if that interface is implemented.
-func getJobTypeFromJobFunc(jf JobFunc) string {
-	jobFunc := reflect.TypeOf(jf)
-	jobType := jobFunc.In(1).Name()
-
-	if jobFunc.In(1).Implements(reflect.TypeOf((*JobType)(nil)).Elem()) {
-		paramType := reflect.New(jobFunc.In(1))
-		paramTypeP := paramType.Interface()
-
-		if t, ok := paramTypeP.(JobType); ok {
-			jobType = t.JobType()
-		}
-	}
-
-	return jobType
-}
-
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") //nolint:gochecknoglobals
 func randomPoolName(n int) string {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // used for ids, not security
@@ -831,4 +796,29 @@ func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
 
 	// in case no transaction is present return the default DB access.
 	return queries
+}
+
+// getJobTypeFromType returns the sanitised and short version as JobType
+// and a full path of the Job struct in the form of PkgPath.Name.
+func getJobTypeFromType(job reflect.Type, basePath string) (string, string, error) {
+	fullPath := job.PkgPath() + "." + job.Name()
+	jobType := strings.TrimPrefix(fullPath, strings.TrimSuffix(basePath, "/")+"/")
+	jobType = strings.TrimPrefix(jobType, "contexts/")
+
+	jobTypeInterfaceType := reflect.TypeOf((*JobType)(nil)).Elem()
+
+	if job.Implements(jobTypeInterfaceType) {
+		paramType := reflect.New(job)
+		paramTypeP := paramType.Interface()
+
+		if t, ok := paramTypeP.(JobType); ok {
+			jobType = t.JobType()
+		}
+	}
+
+	if jobType == "" {
+		return "", "", ErrInvalidJobType
+	}
+
+	return jobType, fullPath, nil
 }
