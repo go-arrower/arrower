@@ -1,4 +1,4 @@
-// Package app does.
+// Package app provides common decorators for use cases in the application layer.
 package app
 
 import (
@@ -12,18 +12,22 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// Request can have produce side effects and return data.
 type Request[Req any, Res any] interface {
 	H(ctx context.Context, req Req) (Res, error)
 }
 
+// Command produces side effects, e.g. mutate state.
 type Command[C any] interface {
 	H(ctx context.Context, cmd C) error
 }
 
+// Query does not produce side effects and returns data.
 type Query[Q any, Res any] interface {
 	H(ctx context.Context, query Q) (Res, error)
 }
 
+// Job produces side effects.
 type Job[J any] interface {
 	H(ctx context.Context, job J) error
 }
