@@ -4,8 +4,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
+
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Request[Req any, Res any] interface {
@@ -22,6 +26,50 @@ type Query[Q any, Res any] interface {
 
 type Job[J any] interface {
 	H(ctx context.Context, job J) error
+}
+
+// NewInstrumentedRequest is a convenience helper for easy dependency setup.
+// The order of dependencies represents the order of calling.
+func NewInstrumentedRequest[Req any, Res any](
+	traceProvider trace.TracerProvider,
+	meterProvider metric.MeterProvider,
+	logger *slog.Logger,
+	cmd Request[Req, Res],
+) Request[Req, Res] {
+	return NewTracedRequest(traceProvider, NewMeteredRequest(meterProvider, NewLoggedRequest(logger, cmd)))
+}
+
+// NewInstrumentedCommand is a convenience helper for easy dependency setup.
+// The order of dependencies represents the order of calling.
+func NewInstrumentedCommand[C any](
+	traceProvider trace.TracerProvider,
+	meterProvider metric.MeterProvider,
+	logger *slog.Logger,
+	cmd Command[C],
+) Command[C] {
+	return NewTracedCommand(traceProvider, NewMeteredCommand(meterProvider, NewLoggedCommand(logger, cmd)))
+}
+
+// NewInstrumentedQuery is a convenience helper for easy dependency setup.
+// The order of dependencies represents the order of calling.
+func NewInstrumentedQuery[Q any, Res any](
+	traceProvider trace.TracerProvider,
+	meterProvider metric.MeterProvider,
+	logger *slog.Logger,
+	query Query[Q, Res],
+) Query[Q, Res] {
+	return NewTracedQuery(traceProvider, NewMeteredQuery(meterProvider, NewLoggedQuery(logger, query)))
+}
+
+// NewInstrumentedJob is a convenience helper for easy dependency setup.
+// The order of dependencies represents the order of calling.
+func NewInstrumentedJob[J any](
+	traceProvider trace.TracerProvider,
+	meterProvider metric.MeterProvider,
+	logger *slog.Logger,
+	job Job[J],
+) Job[J] {
+	return NewTracedJob(traceProvider, NewMeteredJob(meterProvider, NewLoggedJob(logger, job)))
 }
 
 // commandName extracts a printable name from cmd in the format of: functionName.
