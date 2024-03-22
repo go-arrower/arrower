@@ -7,10 +7,10 @@ import (
 	"github.com/go-arrower/arrower/alog"
 )
 
-func NewLoggedRequest[Req any, Res any](logger alog.Logger, handler Request[Req, Res]) Request[Req, Res] {
+func NewLoggedRequest[Req any, Res any](logger alog.Logger, req Request[Req, Res]) Request[Req, Res] {
 	return &requestLoggingDecorator[Req, Res]{
 		logger: logger,
-		base:   handler,
+		base:   req,
 	}
 }
 
@@ -41,10 +41,10 @@ func (d *requestLoggingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res
 	return res, err //nolint:wrapcheck // decorate but not change anything
 }
 
-func NewLoggedCommand[C any](logger alog.Logger, handler Command[C]) Command[C] {
+func NewLoggedCommand[C any](logger alog.Logger, cmd Command[C]) Command[C] {
 	return &commandLoggingDecorator[C]{
 		logger: logger,
-		base:   handler,
+		base:   cmd,
 	}
 }
 
@@ -75,16 +75,16 @@ func (d *commandLoggingDecorator[C]) H(ctx context.Context, cmd C) error {
 	return err //nolint:wrapcheck // decorate but not change anything
 }
 
-func NewLoggedQuery[Q any, Res any](logger alog.Logger, handler Request[Q, Res]) Request[Q, Res] {
+func NewLoggedQuery[Q any, Res any](logger alog.Logger, query Query[Q, Res]) Query[Q, Res] {
 	return &queryLoggingDecorator[Q, Res]{
 		logger: logger,
-		base:   handler,
+		base:   query,
 	}
 }
 
 type queryLoggingDecorator[Q any, Res any] struct {
 	logger alog.Logger
-	base   Request[Q, Res]
+	base   Query[Q, Res]
 }
 
 func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) { //nolint:ireturn,lll // valid use of generics
@@ -109,16 +109,16 @@ func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, er
 	return res, err //nolint:wrapcheck // decorate but not change anything
 }
 
-func NewLoggedJob[J any](logger alog.Logger, handler Command[J]) Command[J] {
+func NewLoggedJob[J any](logger alog.Logger, job Job[J]) Job[J] {
 	return &jobLoggingDecorator[J]{
 		logger: logger,
-		base:   handler,
+		base:   job,
 	}
 }
 
 type jobLoggingDecorator[J any] struct {
 	logger alog.Logger
-	base   Command[J]
+	base   Job[J]
 }
 
 func (d *jobLoggingDecorator[J]) H(ctx context.Context, job J) error {
