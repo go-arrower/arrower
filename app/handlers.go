@@ -4,9 +4,10 @@ package app
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"reflect"
 	"strings"
+
+	"github.com/go-arrower/arrower/alog"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -37,7 +38,7 @@ type Job[J any] interface {
 func NewInstrumentedRequest[Req any, Res any](
 	traceProvider trace.TracerProvider,
 	meterProvider metric.MeterProvider,
-	logger *slog.Logger,
+	logger alog.Logger,
 	cmd Request[Req, Res],
 ) Request[Req, Res] {
 	return NewTracedRequest(traceProvider, NewMeteredRequest(meterProvider, NewLoggedRequest(logger, cmd)))
@@ -48,7 +49,7 @@ func NewInstrumentedRequest[Req any, Res any](
 func NewInstrumentedCommand[C any](
 	traceProvider trace.TracerProvider,
 	meterProvider metric.MeterProvider,
-	logger *slog.Logger,
+	logger alog.Logger,
 	cmd Command[C],
 ) Command[C] {
 	return NewTracedCommand(traceProvider, NewMeteredCommand(meterProvider, NewLoggedCommand(logger, cmd)))
@@ -59,7 +60,7 @@ func NewInstrumentedCommand[C any](
 func NewInstrumentedQuery[Q any, Res any](
 	traceProvider trace.TracerProvider,
 	meterProvider metric.MeterProvider,
-	logger *slog.Logger,
+	logger alog.Logger,
 	query Query[Q, Res],
 ) Query[Q, Res] {
 	return NewTracedQuery(traceProvider, NewMeteredQuery(meterProvider, NewLoggedQuery(logger, query)))
@@ -70,7 +71,7 @@ func NewInstrumentedQuery[Q any, Res any](
 func NewInstrumentedJob[J any](
 	traceProvider trace.TracerProvider,
 	meterProvider metric.MeterProvider,
-	logger *slog.Logger,
+	logger alog.Logger,
 	job Job[J],
 ) Job[J] {
 	return NewTracedJob(traceProvider, NewMeteredJob(meterProvider, NewLoggedJob(logger, job)))
