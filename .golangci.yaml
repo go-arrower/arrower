@@ -230,7 +230,7 @@ issues:
     - path: _test.go|testing.go
       linters:
         - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
-        - funlen  # Allow test functions of any length
+        - funlen # Allow test functions of any length
         - exhaustruct # Don't force complete struct initialisation to keep test cases simpler to read
         - lll # Mostly because of lengthy msgAndArgs params in assertions
         - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
