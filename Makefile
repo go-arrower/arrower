@@ -17,8 +17,9 @@ generate: ## Generate all code to run the service
 
 .PHONY: test
 test: static-check generate test-unit test-integration ## Run all tests
-	go tool cover -html=cover.out -o cover.html; xdg-open cover.html
 	go tool cover -func cover.out | grep total:
+	go tool cover -html=cover.out -o cover.html; xdg-open cover.html
+	go-cover-treemap -coverprofile cover.out > cover.svg; firefox cover.svg #xdg-open cover.svg
 
 
 .PHONY: test-unit
@@ -42,6 +43,7 @@ install-tools: ## Initialise this machine with development dependencies
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.56.2
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
+	go install github.com/nikolaydubina/go-cover-treemap@latest
 
 
 
