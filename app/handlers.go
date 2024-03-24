@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-arrower/arrower/alog"
-
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/go-arrower/arrower/alog"
 )
 
 // Request can have produce side effects and return data.
