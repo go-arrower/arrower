@@ -3,9 +3,11 @@ package alog
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,6 +63,7 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 
 	return &PostgresHandler{
 		queries:  queries,
+		mu:       sync.Mutex{},
 		renderer: renderer,
 		output:   buf,
 		isAsync:  isAsync,
@@ -70,17 +73,18 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 
 func processBatches(queries *models.Queries, records chan logRecord, maxBatchSite int, maxTimeout time.Duration) {
 	batch := []logRecord{}
-	expire := time.After(maxTimeout)
+
+	expire := time.NewTicker(maxTimeout)
 
 	for {
 		select {
 		case value := <-records:
 			batch = append(batch, value)
-			if len(batch) == maxBatchSite {
+			if len(batch) >= maxBatchSite {
 				_ = saveLogs(context.Background(), queries, batch)
 				batch = batch[:0]
 			}
-		case <-expire:
+		case <-expire.C:
 			_ = saveLogs(context.Background(), queries, batch)
 			batch = batch[:0]
 		}
@@ -99,7 +103,9 @@ type (
 	}
 
 	PostgresHandler struct { //nolint:govet // accept fieldalignment
-		queries  *models.Queries
+		queries *models.Queries
+
+		mu       sync.Mutex
 		renderer slog.Handler
 		output   *bytes.Buffer
 
@@ -129,14 +135,16 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 		}
 	}
 
-	_ = l.renderer.Handle(ctx, record)
+	out, err := l.render(ctx, record)
+	if err != nil {
+		return fmt.Errorf("%w: could not render the record: %w", ErrLogFailed, err)
+	}
+
 	lRecord := logRecord{
 		time:   record.Time,
 		userID: userID,
-		Log:    l.output.Bytes(),
+		Log:    out,
 	}
-
-	l.output.Reset()
 
 	if l.isAsync {
 		l.records <- lRecord
@@ -144,7 +152,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 		return nil
 	}
 
-	err := saveLogs(ctx, l.queries, []logRecord{lRecord})
+	err = saveLogs(ctx, l.queries, []logRecord{lRecord})
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrLogFailed, err) //nolint:errorlint // prevent err in api
 	}
@@ -152,7 +160,41 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 	return nil
 }
 
+// render is used to create a valid json of the record.
+// Relying on renderer.Handle which is using a slog.JSONHandler does sometimes result in invalid json.
+// And postgres returns with a 22P02 error.
+// The reason is unclear to me (no visual indicators): converting from and to json again seams to work.
+func (l *PostgresHandler) render(ctx context.Context, record slog.Record) ([]byte, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	err := l.renderer.Handle(ctx, record)
+	if err != nil {
+		return nil, fmt.Errorf("could not handle: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+	}
+
+	var nmap map[string]interface{}
+
+	err = json.Unmarshal(l.output.Bytes(), &nmap)
+	if err != nil {
+		return nil, fmt.Errorf("could not unmarshal: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+	}
+
+	output, err := json.Marshal(nmap)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+	}
+
+	l.output.Reset()
+
+	return output, nil
+}
+
 func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) error {
+	if len(logs) == 0 {
+		return nil
+	}
+
 	params := []models.LogRecordsParams{}
 
 	for _, log := range logs {
@@ -174,6 +216,7 @@ func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) er
 func (l *PostgresHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &PostgresHandler{
 		queries:  l.queries,
+		mu:       sync.Mutex{},
 		renderer: l.renderer.WithAttrs(attrs),
 		output:   l.output,
 		isAsync:  l.isAsync,
@@ -184,6 +227,7 @@ func (l *PostgresHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 func (l *PostgresHandler) WithGroup(name string) slog.Handler {
 	return &PostgresHandler{
 		queries:  l.queries,
+		mu:       sync.Mutex{},
 		renderer: l.renderer.WithGroup(name),
 		output:   l.output,
 		isAsync:  l.isAsync,

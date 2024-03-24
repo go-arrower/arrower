@@ -6,7 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"math/rand"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -89,6 +91,34 @@ func TestPostgresHandler_Handle(t *testing.T) {
 
 			time.Sleep(150 * time.Millisecond)
 			ensureLogTableRows(t, pg, 3)
+		})
+
+		t.Run("parallel timeout", func(t *testing.T) {
+			t.Parallel()
+
+			pg := pgHandler.NewTestDatabase()
+			logger := alog.New(
+				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{MaxBatchSize: 1000, MaxTimeout: time.Millisecond})),
+			)
+
+			var wg sync.WaitGroup
+			const maxRequests = 100
+
+			wg.Add(maxRequests)
+			for i := 0; i < maxRequests; i++ {
+				go func() {
+					time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond) //nolint:gosec // no need for secure number, just spread logs
+					logger.Info("some msg")
+
+					wg.Done()
+				}()
+			}
+
+			wg.Wait()
+
+			time.Sleep(time.Millisecond * 100)
+
+			ensureLogTableRows(t, pg, maxRequests)
 		})
 	})
 }
