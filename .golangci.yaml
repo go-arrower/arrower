@@ -40,9 +40,6 @@ linters-settings:
     ignored-files:
       - testing.go # ignore public test suites like for setting.Settings interface
   govet:
-    # Report about shadowed variables.
-    # Default: false
-    check-shadowing: true
     # Enable all analyzers.
     # Default: false
     enable-all: true
@@ -54,12 +51,13 @@ linters-settings:
     # Run `go tool vet help` to see all analyzers.
     # Default: []
     disable: []
-  maligned:
-    # Print struct with more effective memory layout or not.
-    # Default: false
-    suggest-new: true
   misspell:
     locale: UK
+  nlreturn:
+    # Size of the block (including return statement that is still "OK")
+    # so no return split required.
+    # Default: 1
+    block-size: 2
   testifylint:
     # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
     # Default: false
