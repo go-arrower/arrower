@@ -10,92 +10,96 @@ import (
 // your calling code relying on this usecase pattern.
 //
 
-var ErrUseCaseFailed = errors.New("usecase failed")
+var errUseCaseFailed = errors.New("usecase failed")
 
-func TestSuccessRequestHandler[Req any, Res any]() Request[Req, Res] {
-	return &testSuccessRequestHandler[Req, Res]{}
+func TestRequestHandler[Req any, Res any](handlerFunc dualHandlerFunc[Req, Res]) Request[Req, Res] {
+	return &testDualHandler[Req, Res]{handler: handlerFunc}
 }
 
-type testSuccessRequestHandler[Req any, Res any] struct{}
+func TestCommandHandler[C any](handlerFunc unaryHandlerFunc[C]) Command[C] {
+	return &testUnaryHandler[C]{handler: handlerFunc}
+}
 
-func (h *testSuccessRequestHandler[Req, Res]) H(_ context.Context, _ Req) (Res, error) { //nolint:ireturn // valid use of generics
-	var result Res
+func TestQueryHandler[Q any, Res any](handlerFunc dualHandlerFunc[Q, Res]) Query[Q, Res] {
+	return &testDualHandler[Q, Res]{handler: handlerFunc}
+}
 
-	return result, nil
+func TestJobHandler[J any](handlerFunc unaryHandlerFunc[J]) Job[J] {
+	return &testUnaryHandler[J]{handler: handlerFunc}
+}
+
+func TestSuccessRequestHandler[Req any, Res any]() Request[Req, Res] {
+	return TestRequestHandler(func(_ context.Context, _ Req) (Res, error) {
+		var result Res
+
+		return result, nil
+	})
 }
 
 func TestFailureRequestHandler[Req any, Res any]() Request[Req, Res] {
-	return &testFailureRequestHandler[Req, Res]{}
-}
+	return TestRequestHandler(func(_ context.Context, _ Req) (Res, error) {
+		var result Res
 
-type testFailureRequestHandler[Req any, Res any] struct{}
-
-func (h *testFailureRequestHandler[Req, Res]) H(_ context.Context, _ Req) (Res, error) { //nolint:ireturn // valid use of generics
-	var result Res
-
-	return result, ErrUseCaseFailed
+		return result, errUseCaseFailed
+	})
 }
 
 func TestSuccessCommandHandler[C any]() Command[C] {
-	return &testSuccessCommandHandler[C]{}
-}
-
-type testSuccessCommandHandler[C any] struct{}
-
-func (h *testSuccessCommandHandler[C]) H(_ context.Context, _ C) error {
-	return nil
+	return TestCommandHandler(func(_ context.Context, _ C) error {
+		return nil
+	})
 }
 
 func TestFailureCommandHandler[C any]() Command[C] {
-	return &testFailureCommandHandler[C]{}
-}
-
-type testFailureCommandHandler[C any] struct{}
-
-func (h *testFailureCommandHandler[C]) H(_ context.Context, _ C) error {
-	return ErrUseCaseFailed
+	return TestCommandHandler(func(_ context.Context, _ C) error {
+		return errUseCaseFailed
+	})
 }
 
 func TestSuccessQueryHandler[Q any, Res any]() Query[Q, Res] {
-	return &testSuccessQueryHandler[Q, Res]{}
-}
+	return TestQueryHandler(func(_ context.Context, _ Q) (Res, error) {
+		var result Res
 
-type testSuccessQueryHandler[Q any, Res any] struct{}
-
-func (h *testSuccessQueryHandler[Q, Res]) H(_ context.Context, _ Q) (Res, error) { //nolint:ireturn // valid use of generics
-	var result Res
-
-	return result, nil
+		return result, nil
+	})
 }
 
 func TestFailureQueryHandler[Q any, Res any]() Query[Q, Res] {
-	return &testFailureQueryHandler[Q, Res]{}
-}
+	return TestQueryHandler(func(_ context.Context, _ Q) (Res, error) {
+		var result Res
 
-type testFailureQueryHandler[Q any, Res any] struct{}
-
-func (h *testFailureQueryHandler[Q, Res]) H(_ context.Context, _ Q) (Res, error) { //nolint:ireturn // valid use of generics
-	var result Res
-
-	return result, ErrUseCaseFailed
+		return result, errUseCaseFailed
+	})
 }
 
 func TestSuccessJobHandler[J any]() Job[J] {
-	return &testSuccessJobHandler[J]{}
-}
-
-type testSuccessJobHandler[J any] struct{}
-
-func (h *testSuccessJobHandler[J]) H(_ context.Context, _ J) error {
-	return nil
+	return TestJobHandler(func(_ context.Context, _ J) error {
+		return nil
+	})
 }
 
 func TestFailureJobHandler[J any]() Job[J] {
-	return &testFailureJobHandler[J]{}
+	return TestJobHandler(func(_ context.Context, _ J) error {
+		return errUseCaseFailed
+	})
 }
 
-type testFailureJobHandler[J any] struct{}
+type dualHandlerFunc[Req any, Res any] func(_ context.Context, _ Req) (Res, error)
 
-func (h *testFailureJobHandler[J]) H(_ context.Context, _ J) error {
-	return ErrUseCaseFailed
+type testDualHandler[Req any, Res any] struct {
+	handler dualHandlerFunc[Req, Res]
+}
+
+func (h *testDualHandler[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn // valid use of generics
+	return h.handler(ctx, req)
+}
+
+type unaryHandlerFunc[C any] func(_ context.Context, _ C) error
+
+type testUnaryHandler[C any] struct {
+	handler unaryHandlerFunc[C]
+}
+
+func (h *testUnaryHandler[C]) H(ctx context.Context, cmd C) error {
+	return h.handler(ctx, cmd)
 }

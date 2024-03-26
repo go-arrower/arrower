@@ -46,7 +46,7 @@ type InMemoryQueue struct { //nolint:govet // alignment less important than grou
 
 var _ Queue = (*InMemoryQueue)(nil)
 
-func (q *InMemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOpt) error {
+func (q *InMemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) error {
 	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err

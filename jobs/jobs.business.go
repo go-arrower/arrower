@@ -30,7 +30,7 @@ type Enqueuer interface {
 	// Enqueue schedules new Jobs. Use the JobOpts to configure the Jobs scheduled.
 	// You can schedule and individual or multiple jobs at the same time.
 	// If ctx has a postgres.CtxTX present, that transaction is used to persist the new job(s).
-	Enqueue(ctx context.Context, job Job, jobOptions ...JobOpt) error
+	Enqueue(ctx context.Context, job Job, jobOptions ...JobOption) error
 }
 
 type Queue interface {
@@ -76,12 +76,12 @@ type (
 )
 
 type (
-	// QueueOpt are functions that allow different behaviour of a Queue.
-	QueueOpt func(*queueOpt)
+	// QueueOption are functions that allow different behaviour of a Queue.
+	QueueOption func(*queueOpt)
 
-	// JobOpt are functions which allow specific changes in the behaviour of a Job, e.g.
+	// JobOption are functions which allow specific changes in the behaviour of a Job, e.g.
 	// set a priority or a time at which the job should run at.
-	JobOpt func(p Job) error
+	JobOption func(p Job) error
 )
 
 type PollStrategy int
@@ -104,35 +104,35 @@ type queueOpt struct {
 }
 
 // WithQueue sets the name of the queue used for all Jobs.
-func WithQueue(queue string) QueueOpt {
+func WithQueue(queue string) QueueOption {
 	return func(h *queueOpt) {
 		h.queue = queue
 	}
 }
 
 // WithPollInterval sets the duration in which to check the database for new Jobs.
-func WithPollInterval(d time.Duration) QueueOpt {
+func WithPollInterval(d time.Duration) QueueOption {
 	return func(h *queueOpt) {
 		h.pollInterval = d
 	}
 }
 
 // WithPoolSize sets the number of workers used to poll from the queue.
-func WithPoolSize(n int) QueueOpt {
+func WithPoolSize(n int) QueueOption {
 	return func(h *queueOpt) {
 		h.poolSize = n
 	}
 }
 
 // WithPoolName sets the name of the worker pool.
-func WithPoolName(n string) QueueOpt {
+func WithPoolName(n string) QueueOption {
 	return func(h *queueOpt) {
 		h.poolName = n
 	}
 }
 
 // WithPollStrategy overrides default poll strategy with given value.
-func WithPollStrategy(s PollStrategy) QueueOpt {
+func WithPollStrategy(s PollStrategy) QueueOption {
 	return func(h *queueOpt) {
 		h.pollStrategy = s
 	}
@@ -140,7 +140,7 @@ func WithPollStrategy(s PollStrategy) QueueOpt {
 
 // WithPriority changes the priority of a Job.
 // The default priority is 0, and a lower number means a higher priority.
-func WithPriority(priority int16) JobOpt {
+func WithPriority(priority int16) JobOption {
 	return func(j Job) error {
 		if j, ok := (j).(*gue.Job); ok {
 			j.Priority = gue.JobPriority(priority)
@@ -155,7 +155,7 @@ func WithPriority(priority int16) JobOpt {
 // WithRunAt defines the time when a Job should be run at. Use it to schedule the Job into the future.
 // This is not a guarantee, that the Job will be executed at the exact runAt time, just that it will not
 // be processed earlier. If your queue is full, or you have to few workers, it might be picked up later.
-func WithRunAt(runAt time.Time) JobOpt {
+func WithRunAt(runAt time.Time) JobOption {
 	return func(j Job) error {
 		if j, ok := (j).(*gue.Job); ok {
 			j.RunAt = runAt

@@ -19,7 +19,7 @@ func TestRequestTracingDecorator_H(t *testing.T) {
 	t.Run("successful request", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedRequest[request, response](newFakeTracer(t), app.TestSuccessRequestHandler[request, response]())
+		handler := app.NewTracedRequest(newFakeTracer(t), app.TestSuccessRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -28,7 +28,7 @@ func TestRequestTracingDecorator_H(t *testing.T) {
 	t.Run("failed request", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedRequest[request, response](newFakeTracer(t), app.TestFailureRequestHandler[request, response]())
+		handler := app.NewTracedRequest(newFakeTracer(t), app.TestFailureRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
@@ -41,7 +41,7 @@ func TestCommandTracingDecorator_H(t *testing.T) {
 	t.Run("successful command", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedCommand[command](newFakeTracer(t), app.TestSuccessCommandHandler[command]())
+		handler := app.NewTracedCommand(newFakeTracer(t), app.TestSuccessCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.NoError(t, err)
@@ -50,7 +50,7 @@ func TestCommandTracingDecorator_H(t *testing.T) {
 	t.Run("failed command", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedCommand[command](newFakeTracer(t), app.TestFailureCommandHandler[command]())
+		handler := app.NewTracedCommand(newFakeTracer(t), app.TestFailureCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.Error(t, err)
@@ -63,7 +63,7 @@ func TestQueryTracingDecorator_H(t *testing.T) {
 	t.Run("successful query", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedQuery[query, response](newFakeTracer(t), app.TestSuccessQueryHandler[query, response]())
+		handler := app.NewTracedQuery(newFakeTracer(t), app.TestSuccessQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.NoError(t, err)
@@ -72,7 +72,7 @@ func TestQueryTracingDecorator_H(t *testing.T) {
 	t.Run("failed query", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedQuery[query, response](newFakeTracer(t), app.TestFailureQueryHandler[query, response]())
+		handler := app.NewTracedQuery(newFakeTracer(t), app.TestFailureQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.Error(t, err)
@@ -86,7 +86,7 @@ func TestJobTracingDecorator_H(t *testing.T) {
 	t.Run("successful job", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedJob[job](newFakeTracer(t), app.TestSuccessJobHandler[job]())
+		handler := app.NewTracedJob(newFakeTracer(t), app.TestSuccessJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.NoError(t, err)
@@ -95,7 +95,7 @@ func TestJobTracingDecorator_H(t *testing.T) {
 	t.Run("failed job", func(t *testing.T) {
 		t.Parallel()
 
-		handler := app.NewTracedJob[job](newFakeTracer(t), app.TestFailureJobHandler[job]())
+		handler := app.NewTracedJob(newFakeTracer(t), app.TestFailureJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.Error(t, err)

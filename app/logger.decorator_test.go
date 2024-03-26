@@ -20,7 +20,7 @@ func TestRequestLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedRequest[request, response](logger, app.TestSuccessRequestHandler[request, response]())
+		handler := app.NewLoggedRequest(logger, app.TestSuccessRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -35,7 +35,7 @@ func TestRequestLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedRequest[request, response](logger, app.TestFailureRequestHandler[request, response]())
+		handler := app.NewLoggedRequest(logger, app.TestFailureRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
@@ -55,7 +55,7 @@ func TestCommandLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedCommand[command](logger, app.TestSuccessCommandHandler[command]())
+		handler := app.NewLoggedCommand(logger, app.TestSuccessCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.NoError(t, err)
@@ -70,7 +70,7 @@ func TestCommandLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedCommand[command](logger, app.TestFailureCommandHandler[command]())
+		handler := app.NewLoggedCommand(logger, app.TestFailureCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.Error(t, err)
@@ -91,7 +91,7 @@ func TestQueryLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedQuery[query, response](logger, app.TestSuccessQueryHandler[query, response]())
+		handler := app.NewLoggedQuery(logger, app.TestSuccessQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.NoError(t, err)
@@ -106,7 +106,7 @@ func TestQueryLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedQuery[query, response](logger, app.TestFailureQueryHandler[query, response]())
+		handler := app.NewLoggedQuery(logger, app.TestFailureQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.Error(t, err)
@@ -126,7 +126,7 @@ func TestJobLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedJob[job](logger, app.TestSuccessJobHandler[job]())
+		handler := app.NewLoggedJob(logger, app.TestSuccessJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.NoError(t, err)
@@ -141,7 +141,7 @@ func TestJobLoggingDecorator_H(t *testing.T) {
 
 		buf := &bytes.Buffer{}
 		logger := alog.NewTest(buf)
-		handler := app.NewLoggedJob[job](logger, app.TestFailureJobHandler[job]())
+		handler := app.NewLoggedJob(logger, app.TestFailureJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.Error(t, err)

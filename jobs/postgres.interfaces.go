@@ -42,10 +42,10 @@ func NewPostgresJobs(
 	meterProvider metric.MeterProvider,
 	traceProvider trace.TracerProvider,
 	pgxPool *pgxpool.Pool,
-	opts ...QueueOpt,
+	opts ...QueueOption,
 ) (*PostgresJobsHandler, error) {
 	const (
-		// defaults of gue, set it here, so it can be overwritten by QueueOpt.
+		// defaults of gue, set it here, so it can be overwritten by QueueOption.
 		defaultQueue          = ""
 		defaultPollInterval   = 5 * time.Second
 		defaultPoolSize       = 10
@@ -154,7 +154,7 @@ func modulePath() string {
 
 var _ Queue = (*PostgresJobsHandler)(nil)
 
-func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOpt) error {
+func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobOption) error {
 	ctx, span := h.tracer.Start(ctx, "enqueue")
 	defer span.End()
 
@@ -191,7 +191,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 	ctx context.Context,
 	queue string,
 	job Job,
-	opts ...JobOpt,
+	opts ...JobOption,
 ) ([]*gue.Job, error) {
 	gueJobs := []*gue.Job{}
 
@@ -242,7 +242,7 @@ func buildAndAppendGueJob(
 	fullPath string,
 	job any,
 	carrier propagation.MapCarrier,
-	opts ...JobOpt,
+	opts ...JobOption,
 ) ([]*gue.Job, error) {
 	var userID string
 	userID, _ = ctx.Value(arrower.CtxAuthUserID).(string)

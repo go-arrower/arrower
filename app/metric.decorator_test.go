@@ -47,7 +47,7 @@ func TestRequestMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredRequest[request, response](meterProvider, app.TestSuccessRequestHandler[request, response]())
+		handler := app.NewMeteredRequest(meterProvider, app.TestSuccessRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -76,7 +76,7 @@ func TestRequestMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredRequest[request, response](meterProvider, app.TestFailureRequestHandler[request, response]())
+		handler := app.NewMeteredRequest(meterProvider, app.TestFailureRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
@@ -109,7 +109,7 @@ func TestCommandMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredCommand[request](meterProvider, app.TestSuccessCommandHandler[request]())
+		handler := app.NewMeteredCommand(meterProvider, app.TestSuccessCommandHandler[request]())
 
 		err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -138,7 +138,7 @@ func TestCommandMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredCommand[request](meterProvider, app.TestFailureCommandHandler[request]())
+		handler := app.NewMeteredCommand(meterProvider, app.TestFailureCommandHandler[request]())
 
 		err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
@@ -172,7 +172,7 @@ func TestQueryMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredQuery[request, response](meterProvider, app.TestSuccessQueryHandler[request, response]())
+		handler := app.NewMeteredQuery(meterProvider, app.TestSuccessQueryHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -201,7 +201,7 @@ func TestQueryMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredQuery[request, response](meterProvider, app.TestFailureQueryHandler[request, response]())
+		handler := app.NewMeteredQuery(meterProvider, app.TestFailureQueryHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
@@ -234,7 +234,7 @@ func TestJobMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredJob[request](meterProvider, app.TestSuccessJobHandler[request]())
+		handler := app.NewMeteredJob(meterProvider, app.TestSuccessJobHandler[request]())
 
 		err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
@@ -263,7 +263,7 @@ func TestJobMeteringDecorator_H(t *testing.T) {
 		exporter, _ := prometheus.New(prometheus.WithRegisterer(registry))
 		meterProvider := metric.NewMeterProvider(metric.WithReader(exporter))
 
-		handler := app.NewMeteredJob[request](meterProvider, app.TestFailureJobHandler[request]())
+		handler := app.NewMeteredJob(meterProvider, app.TestFailureJobHandler[request]())
 
 		err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
