@@ -38,7 +38,7 @@ func TestRequestValidatingDecorator_H(t *testing.T) {
 
 		res, err := handler.H(context.Background(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
-		_ = errors.As(err, &validationErrors)
+		errors.As(err, &validationErrors)
 
 		assert.Error(t, err)
 		assert.Len(t, validationErrors, 2)
@@ -84,7 +84,7 @@ func TestCommandValidatingDecorator_H(t *testing.T) {
 
 		err := handler.H(context.Background(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
-		_ = errors.As(err, &validationErrors)
+		errors.As(err, &validationErrors)
 
 		assert.Error(t, err)
 		assert.Len(t, validationErrors, 2)
@@ -130,7 +130,7 @@ func TestQueryValidatingDecorator_H(t *testing.T) {
 
 		res, err := handler.H(context.Background(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
-		_ = errors.As(err, &validationErrors)
+		errors.As(err, &validationErrors)
 
 		assert.Error(t, err)
 		assert.Len(t, validationErrors, 2)
@@ -176,7 +176,7 @@ func TestJobValidatingDecorator_H(t *testing.T) {
 
 		err := handler.H(context.Background(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
-		_ = errors.As(err, &validationErrors)
+		errors.As(err, &validationErrors)
 
 		assert.Error(t, err)
 		assert.Len(t, validationErrors, 2)
