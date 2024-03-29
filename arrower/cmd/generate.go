@@ -19,7 +19,7 @@ func newGenerateCmd() *cobra.Command {
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			fmt.Fprintf(cmd.OutOrStdout(), "arrower generate\n")
+			cmd.Help()
 
 			return nil
 		},

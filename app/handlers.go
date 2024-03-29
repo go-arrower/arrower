@@ -13,7 +13,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 )
 
-// Request can have produce side effects and return data.
+// Request can produce side effects and return data.
 type Request[Req any, Res any] interface {
 	H(ctx context.Context, req Req) (Res, error)
 }
