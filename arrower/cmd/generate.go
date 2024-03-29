@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color" //nolint:misspell
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/internal/generate"
@@ -34,14 +35,22 @@ func newGenerateRequest() *cobra.Command {
 		Use:     "request",
 		Aliases: []string{"req"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, _ := os.Getwd()
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
 
 			files, err := generate.Generate(path, args, generate.Request)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "generate request\n%v\n", files)
+			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
+
+			fmt.Fprintf(cmd.OutOrStdout(), "New request generated\n")
+			for _, f := range files {
+				blue(cmd.OutOrStdout(), "%s\n", f)
+			}
 
 			return nil
 		},
