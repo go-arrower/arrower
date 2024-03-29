@@ -98,8 +98,8 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 
 func detectApplicationPath(dir string) string {
 	searchDirs := []string{
-		path.Join(dir, "/", "application"),
 		path.Join(dir, "/", "shared/application"),
+		path.Join(dir, "/", "application"),
 	}
 
 	for _, searchDir := range searchDirs {

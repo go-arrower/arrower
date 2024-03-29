@@ -26,6 +26,9 @@ func newGenerateCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newGenerateRequest())
+	cmd.AddCommand(newGenerateCommand())
+	cmd.AddCommand(newGenerateQuery())
+	cmd.AddCommand(newGenerateJob())
 
 	return cmd
 }
@@ -45,11 +48,94 @@ func newGenerateRequest() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
+			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
-			fmt.Fprintf(cmd.OutOrStdout(), "New request generated\n")
+			blue(cmd.OutOrStdout(), "New request generated")
 			for _, f := range files {
-				blue(cmd.OutOrStdout(), "%s\n", f)
+				yellow(cmd.OutOrStdout(), f)
+			}
+
+			return nil
+		},
+	}
+}
+
+func newGenerateCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "command",
+		Aliases: []string{"cmd"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			files, err := generate.Generate(path, args, generate.Command)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
+
+			blue(cmd.OutOrStdout(), "New command generated\n")
+			for _, f := range files {
+				yellow(cmd.OutOrStdout(), "%s\n", f)
+			}
+
+			return nil
+		},
+	}
+}
+
+func newGenerateQuery() *cobra.Command {
+	return &cobra.Command{
+		Use: "query",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			files, err := generate.Generate(path, args, generate.Query)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
+
+			blue(cmd.OutOrStdout(), "New query generated\n")
+			for _, f := range files {
+				yellow(cmd.OutOrStdout(), "%s\n", f)
+			}
+
+			return nil
+		},
+	}
+}
+
+func newGenerateJob() *cobra.Command {
+	return &cobra.Command{
+		Use: "job",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			files, err := generate.Generate(path, args, generate.Job)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
+
+			blue(cmd.OutOrStdout(), "New job generated\n")
+			for _, f := range files {
+				yellow(cmd.OutOrStdout(), "%s\n", f)
 			}
 
 			return nil
