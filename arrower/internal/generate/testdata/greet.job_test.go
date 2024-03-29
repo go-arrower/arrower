@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	application "github.com/go-arrower/arrower/arrower/internal/generate/testdata"
+	"example/app"
 )
 
 func TestGreetJobHandler_H(t *testing.T) {

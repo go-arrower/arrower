@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
 	"github.com/fatih/camelcase"
+	"golang.org/x/mod/modfile"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -65,7 +67,12 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 		cType = parsedType
 	}
 
-	fileContent, err := renderFiles(arg, cType)
+	pkgPath, err := pkgPath(calledFromPath)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	fileContent, err := renderFiles(arg, cType, pkgPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not render usecase: %w", err)
 	}
@@ -73,15 +80,52 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 	codeFile := strings.Join(arg, "-") + "." + strings.ToLower(cType.String()) + ".go"
 	testFile := strings.Join(arg, "-") + "." + strings.ToLower(cType.String()) + "_test.go"
 
+	applicationPath := detectApplicationPath(calledFromPath)
+
 	err = saveFiles(map[string][]byte{
-		calledFromPath + "/" + codeFile: fileContent[0],
-		calledFromPath + "/" + testFile: fileContent[1],
+		path.Join(applicationPath, codeFile): fileContent[0],
+		path.Join(applicationPath, testFile): fileContent[1],
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not save usecase: %w", err)
 	}
 
-	return []string{codeFile, testFile}, nil
+	return []string{
+		strings.TrimPrefix(path.Join(applicationPath, codeFile), calledFromPath+"/"),
+		strings.TrimPrefix(path.Join(applicationPath, testFile), calledFromPath+"/"),
+	}, nil
+}
+
+func detectApplicationPath(dir string) string {
+	searchDirs := []string{
+		path.Join(dir, "/", "application"),
+		path.Join(dir, "/", "shared/application"),
+	}
+
+	for _, searchDir := range searchDirs {
+		_, err := os.Stat(searchDir)
+		if !os.IsNotExist(err) { // folder exists
+			return searchDir
+		}
+	}
+
+	return dir
+}
+
+func pkgPath(calledFromPath string) (string, error) {
+	b, err := os.ReadFile(path.Join(calledFromPath, "go.mod"))
+	if err != nil {
+		return "", fmt.Errorf("could not read go.mod file: %w", err)
+	}
+
+	file, err := modfile.Parse("go.mod", b, nil)
+	if err != nil {
+		return "", fmt.Errorf("could not parse go.mod file: %w", err)
+	}
+
+	appPath := strings.TrimPrefix(path.Join(detectApplicationPath(calledFromPath)), path.Join(calledFromPath))
+
+	return path.Join(file.Module.Mod.String(), appPath), nil
 }
 
 type renderData struct {
@@ -92,6 +136,7 @@ type renderData struct {
 	ParamType  string
 	ReturnType string
 
+	PkgPath         string
 	PkgName         string
 	ConstructorName string
 	HandlerName     string
@@ -99,8 +144,9 @@ type renderData struct {
 }
 
 //nolint:funlen // long but straight forward to read
-func renderFiles(arg []string, cType CodeType) ([][]byte, error) {
+func renderFiles(arg []string, cType CodeType, pkgPath string) ([][]byte, error) {
 	data := renderData{ //nolint:exhaustruct // not shared fields are set below
+		PkgPath: pkgPath,
 		PkgName: "application",
 		Type:    cType,
 	}
@@ -221,7 +267,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	application "github.com/go-arrower/arrower/arrower/internal/generate/testdata"
+	"{{- .PkgPath -}}"
 )
 
 func Test{{- .ConstructorName -}}Handler_H(t *testing.T) {
@@ -270,7 +316,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	application "github.com/go-arrower/arrower/arrower/internal/generate/testdata"
+	"{{- .PkgPath -}}"
 )
 
 func Test{{- .ConstructorName -}}Handler_H(t *testing.T) {

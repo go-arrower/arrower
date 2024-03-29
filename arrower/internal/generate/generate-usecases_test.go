@@ -5,6 +5,8 @@ package generate_test
 import (
 	"flag"
 	"os"
+	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -117,7 +119,7 @@ func TestGenerate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			dir := t.TempDir()
+			dir := newTempProject(t)
 
 			files, err := generate.Generate(dir, tt.args, tt.cType)
 			assert.NoError(t, err)
@@ -160,4 +162,60 @@ func TestGenerate(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("detect proper folder", func(t *testing.T) {
+		t.Parallel()
+
+		tests := map[string]struct {
+			folderPath string
+			err        error
+		}{
+			"no application folder found": {
+				"",
+				nil,
+			},
+			"application in root": {
+				"application",
+				nil,
+			},
+			"arrower shared": {
+				"shared/application/",
+				nil,
+			},
+		}
+
+		for name, tt := range tests {
+			tt := tt
+
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+
+				dir := newTempProject(t)
+				err := os.MkdirAll(path.Join(dir, tt.folderPath), os.ModePerm)
+				assert.NoError(t, err)
+
+				files, err := generate.Generate(dir, []string{"example"}, generate.Request)
+				assert.ErrorIs(t, err, tt.err)
+
+				t.Log(files)
+
+				// files got created
+				assert.FileExists(t, path.Join(dir, files[0]))
+				assert.Equal(t, "example.request.go", strings.TrimPrefix(files[0], path.Join(tt.folderPath)+"/"))
+				assert.FileExists(t, path.Join(dir, files[1]))
+				assert.Equal(t, "example.request_test.go", strings.TrimPrefix(files[1], path.Join(tt.folderPath)+"/"))
+			})
+		}
+	})
+}
+
+func newTempProject(t *testing.T) string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	err := os.WriteFile(dir+"/go.mod", []byte(`module example/app`), 0o600)
+	assert.NoError(t, err)
+
+	return dir
 }
