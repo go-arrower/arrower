@@ -5,5 +5,5 @@
 With `go install`
 
 ```bash
-go install github.com/go-arrower/arrower
+go install github.com/go-arrower/arrower/...
 ```

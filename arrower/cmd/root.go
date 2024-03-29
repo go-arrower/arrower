@@ -28,6 +28,7 @@ func NewArrowerCLI(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFu
 	rootCmd := newRootCmd()
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newRunCmd(osSignal, openBrowser))
+	rootCmd.AddCommand(newGenerateCmd())
 
 	return rootCmd
 }
