@@ -197,8 +197,6 @@ func TestGenerate(t *testing.T) {
 				files, err := generate.Generate(dir, []string{"example"}, generate.Request)
 				assert.ErrorIs(t, err, tt.err)
 
-				t.Log(files)
-
 				// files got created
 				assert.FileExists(t, path.Join(dir, files[0]))
 				assert.Equal(t, "example.request.go", strings.TrimPrefix(files[0], path.Join(tt.folderPath)+"/"))

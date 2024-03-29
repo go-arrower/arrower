@@ -30,6 +30,10 @@ test-unit:
 test-integration:
 	go test -race --tags="integration" ./... -coverprofile cover.out
 
+.PHONY: test-update
+test-update:
+	go test --tags="integration" ./arrower/internal/generate/... -update
+
 
 
 
