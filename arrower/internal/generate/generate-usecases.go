@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -226,6 +227,11 @@ func camelName(arg []string) string {
 func saveFiles(templates map[string][]byte) error {
 	for path, templ := range templates {
 		err := os.WriteFile(path, templ, 0o644) //nolint:gosec,gomnd // same permissions as default desktop behaviour
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		err = exec.Command("go", "fmt", path).Run()
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
