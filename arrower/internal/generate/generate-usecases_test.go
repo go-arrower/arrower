@@ -6,7 +6,6 @@ import (
 	"flag"
 	"os"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,41 +18,75 @@ var update = flag.Bool("update", false, "update golden files")
 func TestParseArgs(t *testing.T) {
 	t.Parallel()
 
+	dir := newTempProject(t)
+
 	tests := map[string]struct {
-		args    []string
-		parsed  []string
-		appType generate.CodeType
-		err     error
+		rawArgs    []string
+		parsedArgs generate.ParsedArgs
+		err        error
 	}{
 		"nil": {
 			nil,
-			nil,
-			generate.Unknown,
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     nil,
+				CodeType: generate.Unknown,
+			},
 			generate.ErrInvalidArguments,
 		},
 		"empty": {
 			[]string{},
-			nil,
-			generate.Unknown,
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     nil,
+				CodeType: generate.Unknown,
+			},
 			generate.ErrInvalidArguments,
 		},
 		"too many args": {
-			[]string{"too", "many"},
-			nil,
-			generate.Unknown,
+			[]string{"too", "many", "args"},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     nil,
+				CodeType: generate.Unknown,
+			},
 			generate.ErrInvalidArguments,
 		},
 		"dash case": {
 			[]string{" say-Hello"},
-			[]string{"say", "hello"},
-			generate.Unknown,
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Unknown,
+			},
 			nil,
 		},
 		"camel case": {
 			[]string{"sayHello "},
-			[]string{"say", "hello"},
-			generate.Unknown,
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Unknown,
+			},
 			nil,
+		},
+		"existing context": {
+			[]string{"admin ", "sayHello "},
+			generate.ParsedArgs{
+				Context:  "admin",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Unknown,
+			},
+			nil,
+		},
+		"unknown context": {
+			[]string{"non-existing", "sayHello "},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     nil,
+				CodeType: generate.Unknown,
+			},
+			generate.ErrInvalidArguments,
 		},
 	}
 
@@ -63,10 +96,9 @@ func TestParseArgs(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			args, appType, err := generate.ParseArgs(tt.args)
+			args, err := generate.ParseArgs(dir, tt.rawArgs)
 			assert.ErrorIs(t, err, tt.err)
-			assert.Equal(t, tt.parsed, args)
-			assert.Equal(t, tt.appType, appType)
+			assert.Equal(t, tt.parsedArgs, args)
 		})
 	}
 }
@@ -199,11 +231,26 @@ func TestGenerate(t *testing.T) {
 
 				// files got created
 				assert.FileExists(t, path.Join(dir, files[0]))
-				assert.Equal(t, "example.request.go", strings.TrimPrefix(files[0], path.Join(tt.folderPath)+"/"))
+				assert.Equal(t, path.Join(tt.folderPath, "example.request.go"), files[0])
 				assert.FileExists(t, path.Join(dir, files[1]))
-				assert.Equal(t, "example.request_test.go", strings.TrimPrefix(files[1], path.Join(tt.folderPath)+"/"))
+				assert.Equal(t, path.Join(tt.folderPath, "example.request_test.go"), files[1])
 			})
 		}
+	})
+
+	t.Run("detect context folders", func(t *testing.T) {
+		t.Parallel()
+
+		dir := newTempProject(t)
+
+		files, err := generate.Generate(dir, []string{"admin", "example"}, generate.Request)
+		assert.NoError(t, err)
+
+		// files got created
+		assert.FileExists(t, path.Join(dir, files[0]))
+		assert.Equal(t, "contexts/admin/internal/application/example.request.go", files[0])
+		assert.FileExists(t, path.Join(dir, files[1]))
+		assert.Equal(t, "contexts/admin/internal/application/example.request_test.go", files[1])
 	})
 }
 
@@ -213,6 +260,9 @@ func newTempProject(t *testing.T) string {
 	dir := t.TempDir()
 
 	err := os.WriteFile(dir+"/go.mod", []byte(`module example/app`), 0o600)
+	assert.NoError(t, err)
+
+	err = os.MkdirAll(path.Join(dir, "contexts/admin/internal/application"), os.ModePerm)
 	assert.NoError(t, err)
 
 	return dir

@@ -33,13 +33,34 @@ const (
 	Job
 )
 
-func ParseArgs(args []string) ([]string, CodeType, error) {
-	if len(args) != 1 {
-		return nil, Unknown, ErrInvalidArguments
+type ParsedArgs struct {
+	Context  string
+	Args     []string
+	CodeType CodeType
+}
+
+func ParseArgs(calledFromPath string, args []string) (ParsedArgs, error) {
+	argsLength := len(args)
+
+	const numArgsForContextCall = 2
+	if argsLength == 0 || argsLength > numArgsForContextCall {
+		return ParsedArgs{}, ErrInvalidArguments
+	}
+
+	context := ""
+	hasContext := argsLength == numArgsForContextCall
+
+	if hasContext {
+		context = strings.TrimSpace(args[0])
+
+		_, err := os.Stat(path.Join(calledFromPath, "contexts", context, "internal/application"))
+		if os.IsNotExist(err) { // folder exists
+			return ParsedArgs{}, fmt.Errorf("%w: context does not exist", ErrInvalidArguments)
+		}
 	}
 
 	camelCaseRE := regexp.MustCompile(`^[a-z]+(?:[A-Z][a-z]+)*$`)
-	arg := strings.TrimSpace(args[0])
+	arg := strings.TrimSpace(args[argsLength-1])
 
 	var parsed []string
 
@@ -48,40 +69,40 @@ func ParseArgs(args []string) ([]string, CodeType, error) {
 	} else if strings.Contains(arg, "-") {
 		parsed = strings.Split(arg, "-")
 	} else {
-		return nil, Unknown, fmt.Errorf("%w: could not detect kebab-case or camelCase", ErrInvalidArguments)
+		return ParsedArgs{}, fmt.Errorf("%w: could not parse name, use kebab-case or camelCase", ErrInvalidArguments)
 	}
 
 	for i, p := range parsed {
 		parsed[i] = strings.ToLower(strings.TrimSpace(p))
 	}
 
-	return parsed, Unknown, nil
+	return ParsedArgs{Args: parsed, Context: context, CodeType: Unknown}, nil
 }
 
 func Generate(calledFromPath string, args []string, cType CodeType) ([]string, error) {
-	arg, parsedType, err := ParseArgs(args)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse args: %w", err)
-	}
-
-	if cType == Unknown { // if no type is set, use the parsed one
-		cType = parsedType
-	}
-
-	pkgPath, err := pkgPath(calledFromPath)
+	pargs, err := ParseArgs(calledFromPath, args)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
 
-	fileContent, err := renderFiles(arg, cType, pkgPath)
+	if cType == Unknown { // if no type is set, use the parsed one
+		cType = pargs.CodeType
+	}
+
+	pkgPath, err := pkgPath(calledFromPath, pargs.Context)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+
+	fileContent, err := renderFiles(pargs.Args, cType, pkgPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not render usecase: %w", err)
 	}
 
-	codeFile := strings.Join(arg, "-") + "." + strings.ToLower(cType.String()) + ".go"
-	testFile := strings.Join(arg, "-") + "." + strings.ToLower(cType.String()) + "_test.go"
+	codeFile := strings.Join(pargs.Args, "-") + "." + strings.ToLower(cType.String()) + ".go"
+	testFile := strings.Join(pargs.Args, "-") + "." + strings.ToLower(cType.String()) + "_test.go"
 
-	applicationPath := detectApplicationPath(calledFromPath)
+	applicationPath := detectApplicationPath(calledFromPath, pargs.Context)
 
 	err = saveFiles(map[string][]byte{
 		path.Join(applicationPath, codeFile): fileContent[0],
@@ -97,8 +118,9 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 	}, nil
 }
 
-func detectApplicationPath(dir string) string {
+func detectApplicationPath(dir string, context string) string {
 	searchDirs := []string{
+		path.Join(dir, "/", "contexts", context, "internal/application"),
 		path.Join(dir, "/", "shared/application"),
 		path.Join(dir, "/", "application"),
 	}
@@ -113,7 +135,7 @@ func detectApplicationPath(dir string) string {
 	return dir
 }
 
-func pkgPath(calledFromPath string) (string, error) {
+func pkgPath(calledFromPath string, context string) (string, error) {
 	b, err := os.ReadFile(path.Join(calledFromPath, "go.mod"))
 	if err != nil {
 		return "", fmt.Errorf("could not read go.mod file: %w", err)
@@ -124,7 +146,7 @@ func pkgPath(calledFromPath string) (string, error) {
 		return "", fmt.Errorf("could not parse go.mod file: %w", err)
 	}
 
-	appPath := strings.TrimPrefix(path.Join(detectApplicationPath(calledFromPath)), path.Join(calledFromPath))
+	appPath := strings.TrimPrefix(path.Join(detectApplicationPath(calledFromPath, context)), path.Join(calledFromPath))
 
 	return path.Join(file.Module.Mod.String(), appPath), nil
 }
