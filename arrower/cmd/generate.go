@@ -23,12 +23,41 @@ func newGenerateCmd() *cobra.Command {
 		},
 	}
 
+	cmd.AddCommand(newGenerateUsecase())
 	cmd.AddCommand(newGenerateRequest())
 	cmd.AddCommand(newGenerateCommand())
 	cmd.AddCommand(newGenerateQuery())
 	cmd.AddCommand(newGenerateJob())
 
 	return cmd
+}
+
+func newGenerateUsecase() *cobra.Command {
+	return &cobra.Command{
+		Use:     "usecase",
+		Aliases: []string{"uc"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			files, err := generate.Generate(path, args, generate.Unknown)
+			if err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
+
+			blue(cmd.OutOrStdout(), "New usecase generated")
+			for _, f := range files {
+				yellow(cmd.OutOrStdout(), f)
+			}
+
+			return nil
+		},
+	}
 }
 
 func newGenerateRequest() *cobra.Command {

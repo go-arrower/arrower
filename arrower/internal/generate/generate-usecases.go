@@ -39,6 +39,8 @@ type ParsedArgs struct {
 	CodeType CodeType
 }
 
+// ParseArgs takes the raw input from the developer and understands what usecase
+// to generate.
 func ParseArgs(calledFromPath string, args []string) (ParsedArgs, error) {
 	argsLength := len(args)
 
@@ -76,7 +78,36 @@ func ParseArgs(calledFromPath string, args []string) (ParsedArgs, error) {
 		parsed[i] = strings.ToLower(strings.TrimSpace(p))
 	}
 
-	return ParsedArgs{Args: parsed, Context: context, CodeType: Unknown}, nil
+	parsed, cType := detectCodeType(parsed)
+
+	return ParsedArgs{Args: parsed, Context: context, CodeType: cType}, nil
+}
+
+// detectCodeType extracts the intended type from the developer's input.
+// sayHelloRequest is understood as a Request with the name sayHello.
+func detectCodeType(parsed []string) ([]string, CodeType) {
+	checkIfCodeType := parsed[len(parsed)-1]
+
+	var cType CodeType
+
+	switch checkIfCodeType {
+	case "request":
+		cType = Request
+	case "command":
+		cType = Command
+	case "query":
+		cType = Query
+	case "job":
+		cType = Job
+	default:
+		cType = Usecase
+	}
+
+	if cType != Unknown && cType != Usecase { // type found => don't return it
+		return parsed[:len(parsed)-1], cType
+	}
+
+	return parsed, cType
 }
 
 func Generate(calledFromPath string, args []string, cType CodeType) ([]string, error) {
@@ -196,7 +227,8 @@ func renderFiles(arg []string, cType CodeType, pkgPath string) ([][]byte, error)
 		data.ParamName = "query"
 		data.ParamType = camelName(arg) + data.Type.String()
 		data.ReturnType = camelName(arg) + "Response"
-	default: // Request
+	default: // Request, Usecase
+		data.Type = Request
 		data.CodeTemplate = requestTemplate
 		data.TestTemplate = requestTestTemplate
 		data.ConstructorName = camelName(arg) + Request.String()

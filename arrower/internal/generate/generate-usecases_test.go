@@ -57,7 +57,7 @@ func TestParseArgs(t *testing.T) {
 			generate.ParsedArgs{
 				Context:  "",
 				Args:     []string{"say", "hello"},
-				CodeType: generate.Unknown,
+				CodeType: generate.Usecase,
 			},
 			nil,
 		},
@@ -66,7 +66,7 @@ func TestParseArgs(t *testing.T) {
 			generate.ParsedArgs{
 				Context:  "",
 				Args:     []string{"say", "hello"},
-				CodeType: generate.Unknown,
+				CodeType: generate.Usecase,
 			},
 			nil,
 		},
@@ -75,7 +75,7 @@ func TestParseArgs(t *testing.T) {
 			generate.ParsedArgs{
 				Context:  "admin",
 				Args:     []string{"say", "hello"},
-				CodeType: generate.Unknown,
+				CodeType: generate.Usecase,
 			},
 			nil,
 		},
@@ -87,6 +87,42 @@ func TestParseArgs(t *testing.T) {
 				CodeType: generate.Unknown,
 			},
 			generate.ErrInvalidArguments,
+		},
+		"detect request": {
+			[]string{"sayHelloRequest "},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Request,
+			},
+			nil,
+		},
+		"detect command": {
+			[]string{"sayHelloCommand"},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Command,
+			},
+			nil,
+		},
+		"detect query": {
+			[]string{"say-hello-query"},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Query,
+			},
+			nil,
+		},
+		"detect job": {
+			[]string{" sayHelloJob"},
+			generate.ParsedArgs{
+				Context:  "",
+				Args:     []string{"say", "hello"},
+				CodeType: generate.Job,
+			},
+			nil,
 		},
 	}
 
@@ -113,12 +149,12 @@ func TestGenerate(t *testing.T) {
 		expFiles []string
 		expErr   error
 	}{
-		// "usecase": {
-		// 	[]string{"helloWorld"},
-		//	generate.Unknown,
-		//	[]string{"hello-world.usecase.go", "hello-world.usecase_test.go"},
-		//	nil,
-		// },
+		"usecase": {
+			[]string{"helloArrower"},
+			generate.Unknown,
+			[]string{"hello-arrower.usecase.go", "hello-arrower.usecase_test.go"},
+			nil,
+		},
 		"request": {
 			[]string{"helloWorld"},
 			generate.Request,
@@ -141,6 +177,12 @@ func TestGenerate(t *testing.T) {
 			[]string{"greet"},
 			generate.Job,
 			[]string{"greet.job.go", "greet.job_test.go"},
+			nil,
+		},
+		"detect query": {
+			[]string{"getSomethingQuery"},
+			0,
+			[]string{"get-something.query.go", "get-something.query_test.go"},
 			nil,
 		},
 	}
