@@ -108,7 +108,7 @@ func newGenerateCommand() *cobra.Command {
 
 			blue(cmd.OutOrStdout(), "New command generated\n")
 			for _, f := range files {
-				yellow(cmd.OutOrStdout(), "%s\n", f)
+				yellow(cmd.OutOrStdout(), f)
 			}
 
 			return nil
@@ -135,7 +135,7 @@ func newGenerateQuery() *cobra.Command {
 
 			blue(cmd.OutOrStdout(), "New query generated\n")
 			for _, f := range files {
-				yellow(cmd.OutOrStdout(), "%s\n", f)
+				yellow(cmd.OutOrStdout(), f)
 			}
 
 			return nil
@@ -162,7 +162,7 @@ func newGenerateJob() *cobra.Command {
 
 			blue(cmd.OutOrStdout(), "New job generated\n")
 			for _, f := range files {
-				yellow(cmd.OutOrStdout(), "%s\n", f)
+				yellow(cmd.OutOrStdout(), f)
 			}
 
 			return nil
