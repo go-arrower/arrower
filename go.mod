@@ -8,7 +8,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/fatih/camelcase v1.0.0
 	github.com/fatih/color v1.16.0
-	github.com/georgysavva/scany/v2 v2.1.1
+	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/go-testfixtures/testfixtures/v3 v3.10.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
