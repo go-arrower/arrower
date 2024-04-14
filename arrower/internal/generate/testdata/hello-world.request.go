@@ -2,9 +2,12 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-arrower/arrower/app"
 )
+
+var ErrHelloWorldFailed = errors.New("hello world failed")
 
 func NewHelloWorldRequestHandler() app.Request[HelloWorldRequest, HelloWorldResponse] {
 	return &helloWorldRequestHandler{}

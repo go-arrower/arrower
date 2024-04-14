@@ -192,9 +192,11 @@ type renderData struct {
 
 	PkgPath         string
 	PkgName         string
-	ConstructorName string
-	HandlerName     string
-	Type            CodeType
+	Usecase         string // the name of the use case without any postfixes
+	ConstructorName string // returns a struct of type HandlerName
+	HandlerName     string // the struct that implements this usecase
+	ErrMsg          string
+	Type            CodeType // the usecase type
 }
 
 //nolint:funlen // long but straight forward to read
@@ -202,7 +204,9 @@ func renderFiles(arg []string, cType CodeType, pkgPath string) ([][]byte, error)
 	data := renderData{ //nolint:exhaustruct // not shared fields are set below
 		PkgPath: pkgPath,
 		PkgName: "application",
+		Usecase: camelName(arg),
 		Type:    cType,
+		ErrMsg:  strings.Join(arg, " "),
 	}
 	switch data.Type {
 	case Command:
@@ -299,9 +303,12 @@ const requestTemplate = `package {{ .PkgName }}
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-arrower/arrower/app"
 )
+
+var Err{{- .Usecase -}}Failed = errors.New("{{ .ErrMsg }} failed")
 
 func New{{- .ConstructorName -}}Handler() app.{{- .Type -}}[{{- .ParamType -}}, {{ .ReturnType -}}] {
 	return &{{- .HandlerName -}}Handler{}
@@ -349,9 +356,12 @@ const commandTemplate = `package {{ .PkgName }}
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-arrower/arrower/app"
 )
+
+var Err{{- .Usecase -}}Failed = errors.New("{{ .ErrMsg }} failed")
 
 func New{{- .ConstructorName -}}Handler() app.{{- .Type -}}[{{- .ParamType -}}] {
 	return &{{- .HandlerName -}}Handler{}

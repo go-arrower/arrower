@@ -2,9 +2,12 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-arrower/arrower/app"
 )
+
+var ErrGreetFailed = errors.New("greet failed")
 
 func NewGreetJobHandler() app.Job[GreetJob] {
 	return &greetJobHandler{}
