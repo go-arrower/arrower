@@ -84,7 +84,7 @@ func NewInstrumentedJob[J any](
 // packageName.structName	 					=> fmt.Sprintf("%T", cmd)
 // github.com/go-arrower/skeleton/.../package	=> fmt.Sprintln(reflect.TypeOf(cmd).PkgPath())
 // structName is used, the other examples are for inspiration.
-// The use case function can not be used, as it is anonymous / a closure returned by the use case constructor.
+// The use case function cannot be used, as it is anonymous / a closure returned by the use case constructor.
 // Accessing the function name with runtime.Caller(4) will always lead to ".func1".
 func commandName(cmd any) string {
 	pkgPath := reflect.TypeOf(cmd).PkgPath()
@@ -99,7 +99,7 @@ func commandName(cmd any) string {
 		if len(pkg1) == 2 { //nolint:gomnd
 			context := pkg1[0]
 
-			return fmt.Sprintf("%s.%T", context, cmd)
+			return fmt.Sprintf("%s/%T", context, cmd)
 		}
 	}
 

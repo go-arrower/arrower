@@ -51,7 +51,7 @@ func TestGetJobTypeFromType(t *testing.T) {
 		},
 	}
 
-	for name, tt := range tests { //nolint:paralleltest // fp: maybe linter is not updated to Go 1.22 semantic yet
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
