@@ -238,33 +238,38 @@ issues:
         - govet
       text: "fieldalignment" # Prefer easier readability to optimal memory layout for tests
 
-    # partly exclude rules from wsl when testing, to keep tests easier to read.
+    # Partly exclude wsl when testing, to keep tests easier to read.
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "expressions should not be cuddled with declarations or returns" # good for code; makes tests to convoluted, see: https://github.com/bombsimon/wsl/blob/master/doc/rules.md#expressions-should-not-be-cuddled-with-declarations-or-returns
+      text: "expressions should not be cuddled with declarations or returns" # good for code; makes tests to convoluted, see: https://github.com/bombsimon/wsl/blob/master/doc/rules.md#expressions-should-not-be-cuddled-with-declarations-or-returns"
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "declarations should never be cuddled" # combining wait.Group calls to loop where they are used
+      text: "declarations should never be cuddled" # combining wait.Group calls to loop where they are used"
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "go statements can only invoke functions assigned on line above" # combining wait.Group calls to go routines where they are used
+      text: "go statements can only invoke functions assigned on line above" # combining wait.Group calls to go routines where they are used"
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "for statements should only be cuddled with assignments used in the iteration" # combining wait.Group calls to loop where they are used
+      text: "for statements should only be cuddled with assignments used in the iteration" # combining wait.Group calls to loop where they are used"
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "assignments should only be cuddled with other assignments" # makes setup of variables easier to group and see what belongs together
+      text: "assignments should only be cuddled with other assignments" # makes setup of variables easier to group and see what belongs together"
     - path: _test.go|testing.go
       linters:
         - wsl
-      text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together
+      text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together"
 
-    # Allow patterns that are considered best practises for Corba CLI applications
+    # Allow patterns that are considered best practices for Corba CLI applications
     - path: arrower/cmd
       linters:
         - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
+
+    # Fix: paralleltest still reporting loop var sharing on Go 1.22, see: https://gist.github.com/kunwardeep/80c2e9f3d3256c894898bae82d9f75d0
+    - linters:
+        - paralleltest
+      text: "does not reinitialise the variable"
