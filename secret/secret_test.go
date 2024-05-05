@@ -61,7 +61,7 @@ func TestSecret_String(t *testing.T) {
 		"secret":     {"this-should-be-masked"},
 	}
 
-	for name, tc := range tests { //nolint:paralleltest // fp: maybe linter is not updated to Go 1.22 semantic yet
+	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
