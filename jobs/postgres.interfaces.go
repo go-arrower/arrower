@@ -800,10 +800,15 @@ func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
 
 // getJobTypeFromType returns the sanitised and short version as JobType
 // and a full path of the Job struct in the form of PkgPath.Name.
+//
+// For example, github.com/go-arrower/skeleton/contexts/auth/internal/application.NewUserVerificationEmail
+// will become: auth/application.NewUserVerificationEmail.
 func getJobTypeFromType(job reflect.Type, basePath string) (string, string, error) {
 	fullPath := job.PkgPath() + "." + job.Name()
+
 	jobType := strings.TrimPrefix(fullPath, strings.TrimSuffix(basePath, "/")+"/")
 	jobType = strings.TrimPrefix(jobType, "contexts/")
+	jobType = strings.Replace(jobType, "internal/", "", 1)
 
 	jobTypeInterfaceType := reflect.TypeOf((*JobType)(nil)).Elem()
 
