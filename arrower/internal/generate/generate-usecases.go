@@ -130,8 +130,8 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 		return nil, fmt.Errorf("could not render usecase: %w", err)
 	}
 
-	codeFile := strings.Join(pargs.Args, "-") + "." + strings.ToLower(cType.String()) + ".go"
-	testFile := strings.Join(pargs.Args, "-") + "." + strings.ToLower(cType.String()) + "_test.go"
+	codeFile := strings.Join(pargs.Args, "-") + ".usecase.go"
+	testFile := strings.Join(pargs.Args, "-") + ".usecase_test.go"
 
 	applicationPath := detectApplicationPath(calledFromPath, pargs.Context)
 

@@ -158,31 +158,31 @@ func TestGenerate(t *testing.T) {
 		"request": {
 			[]string{"helloWorld"},
 			generate.Request,
-			[]string{"hello-world.request.go", "hello-world.request_test.go"},
+			[]string{"hello-world.usecase.go", "hello-world.usecase_test.go"},
 			nil,
 		},
 		"command": {
 			[]string{"say-hello"},
 			generate.Command,
-			[]string{"say-hello.command.go", "say-hello.command_test.go"},
+			[]string{"say-hello.usecase.go", "say-hello.usecase_test.go"},
 			nil,
 		},
 		"query": {
 			[]string{"getHelloWorld"},
 			generate.Query,
-			[]string{"get-hello-world.query.go", "get-hello-world.query_test.go"},
+			[]string{"get-hello-world.usecase.go", "get-hello-world.usecase_test.go"},
 			nil,
 		},
 		"job": {
 			[]string{"greet"},
 			generate.Job,
-			[]string{"greet.job.go", "greet.job_test.go"},
+			[]string{"greet.usecase.go", "greet.usecase_test.go"},
 			nil,
 		},
 		"detect query": {
 			[]string{"getSomethingQuery"},
 			0,
-			[]string{"get-something.query.go", "get-something.query_test.go"},
+			[]string{"get-something.usecase.go", "get-something.usecase_test.go"},
 			nil,
 		},
 	}
@@ -273,9 +273,9 @@ func TestGenerate(t *testing.T) {
 
 				// files got created
 				assert.FileExists(t, path.Join(dir, files[0]))
-				assert.Equal(t, path.Join(tt.folderPath, "example.request.go"), files[0])
+				assert.Equal(t, path.Join(tt.folderPath, "example.usecase.go"), files[0])
 				assert.FileExists(t, path.Join(dir, files[1]))
-				assert.Equal(t, path.Join(tt.folderPath, "example.request_test.go"), files[1])
+				assert.Equal(t, path.Join(tt.folderPath, "example.usecase_test.go"), files[1])
 			})
 		}
 	})
@@ -290,9 +290,9 @@ func TestGenerate(t *testing.T) {
 
 		// files got created
 		assert.FileExists(t, path.Join(dir, files[0]))
-		assert.Equal(t, "contexts/admin/internal/application/example.request.go", files[0])
+		assert.Equal(t, "contexts/admin/internal/application/example.usecase.go", files[0])
 		assert.FileExists(t, path.Join(dir, files[1]))
-		assert.Equal(t, "contexts/admin/internal/application/example.request_test.go", files[1])
+		assert.Equal(t, "contexts/admin/internal/application/example.usecase_test.go", files[1])
 	})
 }
 
