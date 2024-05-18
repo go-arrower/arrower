@@ -3,12 +3,12 @@ package setting
 import (
 	"context"
 
-	"github.com/go-arrower/arrower/tests"
+	"github.com/go-arrower/arrower/repository"
 )
 
 func NewInMemorySettings() *InMemorySettings {
 	return &InMemorySettings{
-		repo: &inMemoryRepository{MemoryRepository: tests.NewMemoryRepository[Value, string]()},
+		repo: &inMemoryRepository{MemoryRepository: repository.NewMemoryRepository[Value, string]()},
 	}
 }
 
@@ -58,7 +58,7 @@ func (s *InMemorySettings) Delete(ctx context.Context, key Key) error {
 }
 
 type inMemoryRepository struct {
-	*tests.MemoryRepository[Value, string]
+	*repository.MemoryRepository[Value, string]
 }
 
 func (repo *inMemoryRepository) Save(_ context.Context, key Key, value Value) error {

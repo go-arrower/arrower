@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-arrower/arrower/tests"
+	"github.com/go-arrower/arrower/repository"
 )
 
 func Example_extendRepositoryWithNewMethods() {
@@ -28,12 +28,12 @@ type User struct {
 
 func NewUserMemoryRepository() *UserMemoryRepository {
 	return &UserMemoryRepository{
-		MemoryRepository: tests.NewMemoryRepository[User, UserID](),
+		MemoryRepository: repository.NewMemoryRepository[User, UserID](),
 	}
 }
 
 type UserMemoryRepository struct {
-	*tests.MemoryRepository[User, UserID]
+	*repository.MemoryRepository[User, UserID]
 }
 
 // FindByLogin implements a custom method, that is not supported by the tests.Repository out of the box.
@@ -46,5 +46,5 @@ func (repo *UserMemoryRepository) FindByLogin(ctx context.Context, login string)
 		}
 	}
 
-	return User{}, tests.ErrNotFound
+	return User{}, repository.ErrNotFound
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-arrower/arrower/tests"
+	"github.com/go-arrower/arrower/repository"
 )
 
 func Example_overwriteRepositoryMethodWithOwnBehaviour() {
@@ -25,12 +25,12 @@ type Element struct {
 
 func NewElementMemoryRepository() *ElementMemoryRepository {
 	return &ElementMemoryRepository{
-		MemoryRepository: tests.NewMemoryRepository[Element, int](),
+		MemoryRepository: repository.NewMemoryRepository[Element, int](),
 	}
 }
 
 type ElementMemoryRepository struct {
-	*tests.MemoryRepository[Element, int]
+	*repository.MemoryRepository[Element, int]
 }
 
 // Count overwrites the existing Count method with your own implementation.
