@@ -11,7 +11,7 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.1
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/go-testfixtures/testfixtures/v3 v3.10.0
-	github.com/golang-migrate/migrate/v4 v4.17.0
+	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/khaiql/dbcleaner v2.3.0+incompatible
