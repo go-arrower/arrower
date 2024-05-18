@@ -21,14 +21,14 @@ func TestGenerateCmd(t *testing.T) {
 		output, err := executeCommand(NewTestArrowerCLI(), "generate", "request", "some-test")
 		assert.NoError(t, err)
 		assert.Contains(t, output, "New request generated")
-		assert.Contains(t, output, "some-test.request.go")
-		assert.Contains(t, output, "some-test.request_test.go")
+		assert.Contains(t, output, "some-test.usecase.go")
+		assert.Contains(t, output, "some-test.usecase_test.go")
 
 		err = os.Remove("go.mod")
 		assert.NoError(t, err)
-		err = os.Remove("some-test.request.go")
+		err = os.Remove("some-test.usecase.go")
 		assert.NoError(t, err)
-		err = os.Remove("some-test.request_test.go")
+		err = os.Remove("some-test.usecase_test.go")
 		assert.NoError(t, err)
 	})
 }
