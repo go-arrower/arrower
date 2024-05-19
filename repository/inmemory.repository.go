@@ -33,7 +33,7 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
 	FindAll(ctx context.Context) ([]E, error)
 	FindByID(ctx context.Context, id ID) (E, error)
-	FindByIDs(ctx context.Context, ids []ID) (E, error)
+	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
 	Exists(ctx context.Context, id ID) (bool, error)
 	ExistsByID(ctx context.Context, id ID) (bool, error)
 	ExistAll(ctx context.Context, ids []ID) (bool, error)
