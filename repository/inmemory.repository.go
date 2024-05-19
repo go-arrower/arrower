@@ -379,27 +379,6 @@ func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) 
 	return repo.ContainsIDs(ctx, ids)
 }
 
-func (repo *MemoryRepository[E, ID]) Count(_ context.Context) (int, error) {
-	repo.Lock()
-	defer repo.Unlock()
-
-	return len(repo.Data), nil
-}
-
-func (repo *MemoryRepository[E, ID]) Length(ctx context.Context) (int, error) {
-	return repo.Count(ctx)
-}
-
-func (repo *MemoryRepository[E, ID]) Empty(ctx context.Context) (bool, error) {
-	return repo.IsEmpty(ctx)
-}
-
-func (repo *MemoryRepository[E, ID]) IsEmpty(ctx context.Context) (bool, error) {
-	c, err := repo.Count(ctx)
-
-	return c == 0, err
-}
-
 func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
@@ -458,6 +437,27 @@ func (repo *MemoryRepository[E, ID]) AddAll(ctx context.Context, entities []E) e
 	}
 
 	return repo.SaveAll(ctx, entities)
+}
+
+func (repo *MemoryRepository[E, ID]) Count(_ context.Context) (int, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	return len(repo.Data), nil
+}
+
+func (repo *MemoryRepository[E, ID]) Length(ctx context.Context) (int, error) {
+	return repo.Count(ctx)
+}
+
+func (repo *MemoryRepository[E, ID]) Empty(ctx context.Context) (bool, error) {
+	return repo.IsEmpty(ctx)
+}
+
+func (repo *MemoryRepository[E, ID]) IsEmpty(ctx context.Context) (bool, error) {
+	c, err := repo.Count(ctx)
+
+	return c == 0, err
 }
 
 func (repo *MemoryRepository[E, ID]) DeleteByID(ctx context.Context, id ID) error {

@@ -37,24 +37,27 @@ type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfa
 	ContainsIDs(ctx context.Context, tenantID tID, ids []eID) (bool, error)
 	ContainsAll(ctx context.Context, tenantID tID, ids []eID) (bool, error)
 
-	// Save(ctx context.Context, entity E) error
-	// SaveAll(ctx context.Context, entities []E) error
-	// UpdateAll(ctx context.Context, entities []E) error
-	// Add(ctx context.Context, entity E) error
-	// AddAll(ctx context.Context, entities []E) error
-	//
-	// Count(ctx context.Context) (int, error)
-	// CountOfTenant(ctx context.Context) (int, error)
-	// Length(ctx context.Context) (int, error)
-	// Empty(ctx context.Context) (bool, error)
-	// IsEmpty(ctx context.Context) (bool, error)
-	//
-	// DeleteByID(ctx context.Context, id ID) error
-	// DeleteByIDs(ctx context.Context, ids []ID) error
-	// DeleteAll(ctx context.Context) error
-	// DeleteAllOfTenant(ctx context.Context) error
-	// Clear(ctx context.Context) error
-	// ClearTenant(ctx context.Context) error
+	Save(ctx context.Context, tenantID tID, entity E) error
+	SaveAll(ctx context.Context, tenantID tID, entities []E) error
+	UpdateAll(ctx context.Context, tenantID tID, entities []E) error
+	Add(ctx context.Context, tenantID tID, entity E) error
+	AddAll(ctx context.Context, tenantID tID, entities []E) error
+
+	Count(ctx context.Context) (int, error)
+	CountOfTenant(ctx context.Context, tenantID tID) (int, error)
+	Length(ctx context.Context) (int, error)
+	LengthOfTenant(ctx context.Context, tenantID tID) (int, error)
+	Empty(ctx context.Context) (bool, error)
+	EmptyTenant(ctx context.Context, tenantID tID) (bool, error)
+	IsEmpty(ctx context.Context) (bool, error)
+	IsEmptyTenant(ctx context.Context, tenantID tID) (bool, error)
+
+	DeleteByID(ctx context.Context, tenantID tID, id eID) error
+	DeleteByIDs(ctx context.Context, tenantID tID, ids []eID) error
+	DeleteAll(ctx context.Context) error
+	DeleteAllOfTenant(ctx context.Context, tenantID tID) error
+	Clear(ctx context.Context) error
+	ClearTenant(ctx context.Context, tenantID tID) error
 }
 
 // NewMemoryTenantRepository returns an implementation of MemoryTenantRepository for the given tenant T and entity E.
@@ -343,4 +346,169 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsAll(
 	ids []eID,
 ) (bool, error) {
 	return repo.ExistAll(ctx, tenantID, ids)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Save(_ context.Context, tenantID tID, entity E) error {
+	repo.Lock()
+	defer repo.Unlock()
+
+	id := repo.getID(entity)
+	if id == *new(eID) {
+		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+	}
+
+	repo.ensureTenantInitialised(tenantID)
+
+	repo.Data[tenantID][id] = entity
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) SaveAll(_ context.Context, tenantID tID, entities []E) error {
+	repo.Lock()
+	defer repo.Unlock()
+
+	for _, e := range entities {
+		if repo.getID(e) == *new(eID) {
+			return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+		}
+	}
+
+	repo.ensureTenantInitialised(tenantID)
+
+	for _, e := range entities {
+		repo.Data[tenantID][repo.getID(e)] = e
+	}
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) UpdateAll(ctx context.Context, tenantID tID, entities []E) error {
+	return repo.SaveAll(ctx, tenantID, entities)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Add(ctx context.Context, tenantID tID, entity E) error {
+	return repo.Create(ctx, tenantID, entity)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) AddAll(ctx context.Context, tenantID tID, entities []E) error {
+	for _, e := range entities {
+		ex, _ := repo.Exists(ctx, tenantID, repo.getID(e))
+		if ex {
+			return ErrAlreadyExists
+		}
+	}
+
+	return repo.SaveAll(ctx, tenantID, entities)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Count(_ context.Context) (int, error) {
+	count := 0
+
+	for _, t := range repo.Data {
+		count += len(t)
+	}
+
+	return count, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) CountOfTenant(_ context.Context, tenantID tID) (int, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	return len(repo.Data[tenantID]), nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Length(ctx context.Context) (int, error) {
+	return repo.Count(ctx)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) LengthOfTenant(ctx context.Context, tenantID tID) (int, error) {
+	return repo.CountOfTenant(ctx, tenantID)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Empty(ctx context.Context) (bool, error) {
+	return repo.IsEmpty(ctx)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) EmptyTenant(ctx context.Context, tenantID tID) (bool, error) {
+	return repo.IsEmptyTenant(ctx, tenantID)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) IsEmpty(ctx context.Context) (bool, error) {
+	c, err := repo.Count(ctx)
+
+	return c == 0, err
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) IsEmptyTenant(ctx context.Context, tenantID tID) (bool, error) {
+	c, err := repo.CountOfTenant(ctx, tenantID)
+
+	return c == 0, err
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByID(ctx context.Context, tenantID tID, id eID) error {
+	return repo.DeleteByIDs(ctx, tenantID, []eID{id})
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByIDs(_ context.Context, tenantID tID, ids []eID) error {
+	repo.Lock()
+	defer repo.Unlock()
+
+	for _, id := range ids {
+		delete(repo.Data[tenantID], id)
+	}
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAll(_ context.Context) error {
+	repo.Lock()
+	defer repo.Unlock()
+
+	clear(repo.Data)
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAllOfTenant(_ context.Context, tenantID tID) error {
+	repo.Lock()
+	defer repo.Unlock()
+
+	clear(repo.Data[tenantID])
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Clear(ctx context.Context) error {
+	return repo.DeleteAll(ctx)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ClearTenant(ctx context.Context, tenantID tID) error {
+	return repo.DeleteAllOfTenant(ctx, tenantID)
 }
