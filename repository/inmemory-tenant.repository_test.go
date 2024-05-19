@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/repository"
@@ -119,7 +120,7 @@ func TestMemoryTenantRepository_Update(t *testing.T) {
 		err := repo.Update(ctx, defaultTenant.ID, entity)
 		assert.NoError(t, err)
 
-		e, err := repo.Read(ctx, defaultTenant.ID, entity.ID)
+		e, err := repo.FindByID(ctx, defaultTenant.ID, entity.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, entity, e)
 	})
@@ -212,8 +213,26 @@ func TestMemoryTenantRepository_All(t *testing.T) {
 	t.Parallel()
 
 	repo := repository.NewMemoryTenantRepository[Tenant, TenantID, Entity, EntityID]()
+	all, err := repo.AllOfTenant(ctx, defaultTenant.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, all)
+	assert.Empty(t, all, "new repository should be empty")
 
-	all, err := repo.All(ctx, defaultTenant.ID)
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+	repo.Create(ctx, testTenant().ID, testEntity())
+
+	all, err = repo.All(ctx)
+	assert.NoError(t, err)
+	assert.Len(t, all, 3, "should have three entities")
+}
+
+func TestMemoryTenantRepository_AllOfTenant(t *testing.T) {
+	t.Parallel()
+
+	repo := repository.NewMemoryTenantRepository[Tenant, TenantID, Entity, EntityID]()
+
+	all, err := repo.AllOfTenant(ctx, defaultTenant.ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, all)
 	assert.Empty(t, all, "new repository should be empty")
@@ -221,7 +240,82 @@ func TestMemoryTenantRepository_All(t *testing.T) {
 	repo.Create(ctx, defaultTenant.ID, testEntity())
 	repo.Create(ctx, defaultTenant.ID, testEntity())
 
-	all, err = repo.All(ctx, defaultTenant.ID)
+	all, err = repo.AllOfTenant(ctx, defaultTenant.ID)
 	assert.NoError(t, err)
 	assert.Len(t, all, 2, "should have two entities")
+}
+
+func TestMemoryTenantRepository_AllByIDs(t *testing.T) {
+	t.Parallel()
+
+	e0 := testEntity()
+	e1 := testEntity()
+	repo := repository.NewMemoryTenantRepository[Tenant, TenantID, Entity, EntityID]()
+	repo.Create(ctx, defaultTenant.ID, e0)
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+	repo.Create(ctx, defaultTenant.ID, e1)
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+
+	all, err := repo.AllByIDs(ctx, defaultTenant.ID, nil)
+	assert.NoError(t, err)
+	assert.Empty(t, all)
+
+	all, err = repo.AllByIDs(ctx, defaultTenant.ID, []EntityID{})
+	assert.NoError(t, err, "empty list should not return an error")
+	assert.Empty(t, all)
+
+	all, err = repo.AllByIDs(ctx, defaultTenant.ID, []EntityID{e0.ID, e1.ID})
+	assert.NoError(t, err)
+	assert.Len(t, all, 2, "should find all ids")
+
+	all, err = repo.AllByIDs(ctx, defaultTenant.ID, []EntityID{
+		e0.ID,
+		EntityID(uuid.New().String()),
+	})
+	assert.ErrorIs(t, err, repository.ErrNotFound, "should not find all ids")
+	assert.Empty(t, all)
+}
+
+func TestMemoryTenantRepository_Contains(t *testing.T) {
+	t.Parallel()
+
+	repo := repository.NewMemoryTenantRepository[Tenant, TenantID, Entity, EntityID]()
+
+	ex, err := repo.ContainsID(ctx, defaultTenant.ID, testEntity().ID)
+	assert.NoError(t, err)
+	assert.False(t, ex, "id should not exist")
+
+	repo.Create(ctx, defaultTenant.ID, defaultEntity)
+
+	ex, err = repo.Contains(ctx, defaultTenant.ID, defaultEntity.ID)
+	assert.NoError(t, err)
+	assert.True(t, ex, "id should exist")
+}
+
+func TestMemoryTenantRepository_ContainsAll(t *testing.T) {
+	t.Parallel()
+
+	e0 := testEntity()
+	e1 := testEntity()
+	repo := repository.NewMemoryTenantRepository[Tenant, TenantID, Entity, EntityID]()
+	repo.Create(ctx, defaultTenant.ID, e0)
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+	repo.Create(ctx, defaultTenant.ID, e1)
+	repo.Create(ctx, defaultTenant.ID, testEntity())
+
+	ex, err := repo.ContainsAll(ctx, defaultTenant.ID, nil)
+	assert.NoError(t, err)
+	assert.False(t, ex)
+
+	ex, err = repo.ContainsAll(ctx, defaultTenant.ID, []EntityID{})
+	assert.NoError(t, err)
+	assert.False(t, ex)
+
+	ex, err = repo.ContainsAll(ctx, defaultTenant.ID, []EntityID{e0.ID, e1.ID})
+	assert.NoError(t, err)
+	assert.True(t, ex)
+
+	ex, err = repo.ContainsAll(ctx, defaultTenant.ID, []EntityID{testEntity().ID})
+	assert.NoError(t, err)
+	assert.False(t, ex)
 }

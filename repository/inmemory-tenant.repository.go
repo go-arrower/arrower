@@ -13,28 +13,30 @@ import (
 // which methods are available by the generic MemoryTenantRepository.
 // tID is the primary key for the tenant and eID of the entity and needs to be of one of the underlying types.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
-type TenantRepository[T any, tID id, E any, eID id] interface {
-	// NextID(ctx context.Context) (ID, error)
+type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfacebloat,lll // showcase of all methods that are possible
+	// NextID(ctx context.Context, tenantID tID) (eID, error)
 
 	Create(ctx context.Context, tenantID tID, entity E) error
 	Read(ctx context.Context, tenantID tID, id eID) (E, error)
 	Update(ctx context.Context, tenantID tID, entity E) error
 	Delete(ctx context.Context, tenantID tID, entity E) error
 
-	All(ctx context.Context, tenantID tID) ([]E, error)
-	// AllByIDs(ctx context.Context, ids []ID) ([]E, error)
-	// FindAll(ctx context.Context) ([]E, error)
-	// FindByID(ctx context.Context, id ID) (E, error)
-	// FindByIDs(ctx context.Context, ids []ID) (E, error)
-	// Exists(ctx context.Context, id ID) (bool, error)
-	// ExistsByID(ctx context.Context, id ID) (bool, error)
-	// ExistAll(ctx context.Context, ids []ID) (bool, error)
-	// ExistByIDs(ctx context.Context, ids []ID) (bool, error)
-	// Contains(ctx context.Context, id ID) (bool, error)
-	// ContainsID(ctx context.Context, id ID) (bool, error)
-	// ContainsIDs(ctx context.Context, ids []ID) (bool, error)
-	// ContainsAll(ctx context.Context, ids []ID) (bool, error)
-	//
+	All(ctx context.Context) ([]E, error)
+	AllOfTenant(ctx context.Context, tenantID tID) ([]E, error)
+	AllByIDs(ctx context.Context, tenantID tID, ids []eID) ([]E, error)
+	FindAll(ctx context.Context) ([]E, error)
+	FindAllOfTenant(ctx context.Context, tenantID tID) ([]E, error)
+	FindByID(ctx context.Context, tenantID tID, id eID) (E, error)
+	FindByIDs(ctx context.Context, tenantID tID, ids []eID) ([]E, error)
+	Exists(ctx context.Context, tenantID tID, id eID) (bool, error)
+	ExistsByID(ctx context.Context, tenantID tID, id eID) (bool, error)
+	ExistByIDs(ctx context.Context, tenantID tID, ids []eID) (bool, error)
+	ExistAll(ctx context.Context, tenantID tID, ids []eID) (bool, error)
+	Contains(ctx context.Context, tenantID tID, id eID) (bool, error)
+	ContainsID(ctx context.Context, tenantID tID, id eID) (bool, error)
+	ContainsIDs(ctx context.Context, tenantID tID, ids []eID) (bool, error)
+	ContainsAll(ctx context.Context, tenantID tID, ids []eID) (bool, error)
+
 	// Save(ctx context.Context, entity E) error
 	// SaveAll(ctx context.Context, entities []E) error
 	// UpdateAll(ctx context.Context, entities []E) error
@@ -42,6 +44,7 @@ type TenantRepository[T any, tID id, E any, eID id] interface {
 	// AddAll(ctx context.Context, entities []E) error
 	//
 	// Count(ctx context.Context) (int, error)
+	// CountOfTenant(ctx context.Context) (int, error)
 	// Length(ctx context.Context) (int, error)
 	// Empty(ctx context.Context) (bool, error)
 	// IsEmpty(ctx context.Context) (bool, error)
@@ -49,7 +52,9 @@ type TenantRepository[T any, tID id, E any, eID id] interface {
 	// DeleteByID(ctx context.Context, id ID) error
 	// DeleteByIDs(ctx context.Context, ids []ID) error
 	// DeleteAll(ctx context.Context) error
+	// DeleteAllOfTenant(ctx context.Context) error
 	// Clear(ctx context.Context) error
+	// ClearTenant(ctx context.Context) error
 }
 
 // NewMemoryTenantRepository returns an implementation of MemoryTenantRepository for the given tenant T and entity E.
@@ -199,7 +204,22 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Delete(_ context.Context, te
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) All(_ context.Context, tenantID tID) ([]E, error) {
+func (repo *MemoryTenantRepository[T, tID, E, eID]) All(_ context.Context) ([]E, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	result := []E{}
+
+	for _, t := range repo.Data {
+		for _, e := range t {
+			result = append(result, e)
+		}
+	}
+
+	return result, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) AllOfTenant(_ context.Context, tenantID tID) ([]E, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -210,4 +230,117 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) All(_ context.Context, tenan
 	}
 
 	return result, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) AllByIDs(_ context.Context, tenantID tID, ids []eID) ([]E, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	result := []E{}
+
+	for _, v := range repo.Data[tenantID] {
+		for _, id := range ids {
+			if repo.getID(v) == id {
+				result = append(result, v)
+			}
+		}
+	}
+
+	if len(result) != len(ids) {
+		return []E(nil), ErrNotFound
+	}
+
+	return result, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) FindAll(ctx context.Context) ([]E, error) {
+	return repo.All(ctx)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) FindAllOfTenant(ctx context.Context, tenantID tID) ([]E, error) {
+	return repo.AllOfTenant(ctx, tenantID)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) FindByID(ctx context.Context, tenantID tID, id eID) (E, error) { //nolint:ireturn,lll // valid use of generics
+	return repo.Read(ctx, tenantID, id)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) FindByIDs(
+	ctx context.Context,
+	tenantID tID,
+	ids []eID,
+) ([]E, error) {
+	return repo.AllByIDs(ctx, tenantID, ids)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Exists(_ context.Context, tenantID tID, id eID) (bool, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	if _, ok := repo.Data[tenantID][id]; ok {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistsByID(
+	ctx context.Context,
+	tenantID tID,
+	id eID,
+) (bool, error) {
+	return repo.Exists(ctx, tenantID, id)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistByIDs(
+	ctx context.Context,
+	tenantID tID,
+	ids []eID,
+) (bool, error) {
+	return repo.ExistAll(ctx, tenantID, ids)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistAll(_ context.Context, tenantID tID, ids []eID) (bool, error) {
+	repo.Lock()
+	defer repo.Unlock()
+
+	if len(ids) == 0 {
+		return false, nil
+	}
+
+	for _, id := range ids {
+		if _, ok := repo.Data[tenantID][id]; !ok {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) Contains(ctx context.Context, tenantID tID, id eID) (bool, error) {
+	return repo.Exists(ctx, tenantID, id)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsID(
+	ctx context.Context,
+	tenantID tID,
+	id eID,
+) (bool, error) {
+	return repo.ExistsByID(ctx, tenantID, id)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsIDs(
+	ctx context.Context,
+	tenantID tID,
+	ids []eID,
+) (bool, error) {
+	return repo.ExistByIDs(ctx, tenantID, ids)
+}
+
+func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsAll(
+	ctx context.Context,
+	tenantID tID,
+	ids []eID,
+) (bool, error) {
+	return repo.ExistAll(ctx, tenantID, ids)
 }

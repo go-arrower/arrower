@@ -36,8 +36,8 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
 	Exists(ctx context.Context, id ID) (bool, error)
 	ExistsByID(ctx context.Context, id ID) (bool, error)
-	ExistAll(ctx context.Context, ids []ID) (bool, error)
 	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
+	ExistAll(ctx context.Context, ids []ID) (bool, error)
 	Contains(ctx context.Context, id ID) (bool, error)
 	ContainsID(ctx context.Context, id ID) (bool, error)
 	ContainsIDs(ctx context.Context, ids []ID) (bool, error)
@@ -342,6 +342,10 @@ func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (boo
 	return repo.Exists(ctx, id)
 }
 
+func (repo *MemoryRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
+	return repo.ExistAll(ctx, ids)
+}
+
 func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool, error) {
 	repo.Lock()
 	defer repo.Unlock()
@@ -357,10 +361,6 @@ func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool
 	}
 
 	return true, nil
-}
-
-func (repo *MemoryRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
-	return repo.ExistAll(ctx, ids)
 }
 
 func (repo *MemoryRepository[E, ID]) Contains(ctx context.Context, id ID) (bool, error) {
