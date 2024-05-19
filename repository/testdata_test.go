@@ -16,12 +16,20 @@ var errStoreFailed = errors.New("store failed")
 
 var (
 	ctx           = context.Background()
-	defaultEntity = newEntity()
+	defaultEntity = testEntity()
+	defaultTenant = testTenant()
 )
 
-func newEntity() Entity {
+func testEntity() Entity {
 	return Entity{
 		ID:   EntityID(uuid.New().String()),
+		Name: gofakeit.Name(),
+	}
+}
+
+func testTenant() Tenant {
+	return Tenant{
+		ID:   TenantID(uuid.New().String()),
 		Name: gofakeit.Name(),
 	}
 }
@@ -30,6 +38,12 @@ type (
 	EntityID string
 	Entity   struct {
 		ID   EntityID
+		Name string
+	}
+
+	TenantID string
+	Tenant   struct {
+		ID   TenantID
 		Name string
 	}
 )

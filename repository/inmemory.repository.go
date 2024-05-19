@@ -128,10 +128,6 @@ func NewMemoryRepository[E any, ID id](opts ...memoryRepositoryOption) *MemoryRe
 	return repo
 }
 
-func defaultFileName(entity any) string {
-	return reflect.TypeOf(entity).Elem().Name() + ".json"
-}
-
 // MemoryRepository implements Repository in a generic way. Use it to speed up your unit testing.
 type MemoryRepository[E any, ID id] struct {
 	// Mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex as other methods.
@@ -146,7 +142,13 @@ type MemoryRepository[E any, ID id] struct {
 	repoConfig
 }
 
-func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
+const panicIDNotSupported = "type of ID is not supported: "
+
+func defaultFileName(entity any) string {
+	return reflect.TypeOf(entity).Elem().Name() + ".json"
+}
+
+func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:dupl,ireturn,lll // needs acces to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(t)
 
 	idField := val.FieldByName(repo.idFieldName)
@@ -164,7 +166,7 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // f
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		reflect.ValueOf(&id).Elem().SetUint(idField.Uint())
 	default:
-		panic("type of ID is not supported: " + idField.Kind().String())
+		panic(panicIDNotSupported + idField.Kind().String())
 	}
 
 	return id
@@ -202,7 +204,7 @@ func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //n
 
 		reflect.ValueOf(&id).Elem().SetUint(newID)
 	default:
-		panic("type of ID is not supported: " + reflect.TypeOf(id).Kind().String())
+		panic(panicIDNotSupported + reflect.TypeOf(id).Kind().String())
 	}
 
 	return id, nil
@@ -297,8 +299,8 @@ func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, erro
 	repo.Lock()
 	defer repo.Unlock()
 
-	if t, ok := repo.Data[id]; ok {
-		return t, nil
+	if e, ok := repo.Data[id]; ok {
+		return e, nil
 	}
 
 	return *new(E), ErrNotFound
