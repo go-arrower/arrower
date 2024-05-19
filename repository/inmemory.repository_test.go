@@ -1,7 +1,6 @@
 package repository_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 
@@ -11,8 +10,6 @@ import (
 
 	"github.com/go-arrower/arrower/repository"
 )
-
-var ctx = context.Background()
 
 func TestNewMemoryRepository(t *testing.T) {
 	t.Parallel()
@@ -146,12 +143,12 @@ func TestMemoryRepository_Create(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
-		err := repo.Create(ctx, DefaultEntity)
+		err := repo.Create(ctx, defaultEntity)
 		assert.NoError(t, err)
 
-		got, err := repo.Read(ctx, DefaultEntity.ID)
+		got, err := repo.Read(ctx, defaultEntity.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, DefaultEntity, got)
+		assert.Equal(t, defaultEntity, got)
 	})
 
 	t.Run("create same again", func(t *testing.T) {
@@ -159,10 +156,10 @@ func TestMemoryRepository_Create(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-		err := repo.Create(ctx, DefaultEntity)
+		err := repo.Create(ctx, defaultEntity)
 		assert.NoError(t, err)
 
-		err = repo.Create(ctx, DefaultEntity)
+		err = repo.Create(ctx, defaultEntity)
 		assert.ErrorIs(t, err, repository.ErrAlreadyExists, "already exists")
 	})
 
@@ -180,7 +177,7 @@ func TestMemoryRepository_Create(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
 
-		err := repo.Create(ctx, DefaultEntity)
+		err := repo.Create(ctx, defaultEntity)
 		assert.NoError(t, err)
 	})
 
@@ -189,7 +186,7 @@ func TestMemoryRepository_Create(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
 
-		err := repo.Create(ctx, DefaultEntity)
+		err := repo.Create(ctx, defaultEntity)
 		assert.Error(t, err)
 	})
 }
@@ -201,7 +198,7 @@ func TestMemoryRepository_Update(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
-		entity := NewEntity()
+		entity := newEntity()
 		repo.Create(ctx, entity)
 
 		entity.Name = "updated-name"
@@ -217,7 +214,7 @@ func TestMemoryRepository_Update(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-		err := repo.Update(ctx, DefaultEntity)
+		err := repo.Update(ctx, defaultEntity)
 		assert.ErrorIs(t, err, repository.ErrSaveFailed)
 	})
 
@@ -225,7 +222,7 @@ func TestMemoryRepository_Update(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
-		repo.Create(ctx, DefaultEntity)
+		repo.Create(ctx, defaultEntity)
 
 		err := repo.Update(ctx, Entity{})
 		assert.ErrorIs(t, err, repository.ErrSaveFailed)
@@ -236,7 +233,7 @@ func TestMemoryRepository_Update(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
 
-		entity := NewEntity()
+		entity := newEntity()
 		repo.Create(ctx, entity)
 
 		entity.Name = "updated-name"
@@ -252,12 +249,12 @@ func TestMemoryRepository_Delete(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
-		repo.Add(ctx, DefaultEntity)
+		repo.Add(ctx, defaultEntity)
 
-		err := repo.Delete(ctx, DefaultEntity)
+		err := repo.Delete(ctx, defaultEntity)
 		assert.NoError(t, err)
 
-		e, err := repo.FindByID(ctx, DefaultEntity.ID)
+		e, err := repo.FindByID(ctx, defaultEntity.ID)
 		assert.ErrorIs(t, err, repository.ErrNotFound)
 		assert.Empty(t, e)
 	})
@@ -266,9 +263,9 @@ func TestMemoryRepository_Delete(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
-		repo.Add(ctx, DefaultEntity)
+		repo.Add(ctx, defaultEntity)
 
-		err := repo.Delete(ctx, DefaultEntity)
+		err := repo.Delete(ctx, defaultEntity)
 		assert.Error(t, err)
 	})
 }
@@ -283,8 +280,8 @@ func TestMemoryRepository_All(t *testing.T) {
 	assert.NotNil(t, all)
 	assert.Empty(t, all, "new repository should be empty")
 
-	repo.Create(ctx, NewEntity())
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
+	repo.Create(ctx, newEntity())
 
 	all, err = repo.All(ctx)
 	assert.NoError(t, err)
@@ -294,13 +291,13 @@ func TestMemoryRepository_All(t *testing.T) {
 func TestMemoryRepository_AllByIDs(t *testing.T) {
 	t.Parallel()
 
-	e0 := NewEntity()
-	e1 := NewEntity()
+	e0 := newEntity()
+	e1 := newEntity()
 	repo := repository.NewMemoryRepository[Entity, EntityID]()
 	repo.Create(ctx, e0)
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
 	repo.Create(ctx, e1)
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
 
 	all, err := repo.AllByIDs(ctx, nil)
 	assert.NoError(t, err)
@@ -327,7 +324,7 @@ func TestMemoryRepository_FindByID(t *testing.T) {
 
 	repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-	e, err := repo.FindByID(ctx, NewEntity().ID)
+	e, err := repo.FindByID(ctx, newEntity().ID)
 	assert.ErrorIs(t, err, repository.ErrNotFound)
 	assert.Empty(t, e)
 }
@@ -341,9 +338,9 @@ func TestMemoryRepository_Contains(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, ex, "id should not exist")
 
-	repo.Create(ctx, DefaultEntity)
+	repo.Create(ctx, defaultEntity)
 
-	ex, err = repo.Contains(ctx, DefaultEntity.ID)
+	ex, err = repo.Contains(ctx, defaultEntity.ID)
 	assert.NoError(t, err)
 	assert.True(t, ex, "id should exist")
 }
@@ -351,13 +348,13 @@ func TestMemoryRepository_Contains(t *testing.T) {
 func TestMemoryRepository_ContainsAll(t *testing.T) {
 	t.Parallel()
 
-	e0 := NewEntity()
-	e1 := NewEntity()
+	e0 := newEntity()
+	e1 := newEntity()
 	repo := repository.NewMemoryRepository[Entity, EntityID]()
 	repo.Create(ctx, e0)
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
 	repo.Create(ctx, e1)
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
 
 	ex, err := repo.ContainsAll(ctx, nil)
 	assert.NoError(t, err)
@@ -371,7 +368,7 @@ func TestMemoryRepository_ContainsAll(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, ex)
 
-	ex, err = repo.ContainsAll(ctx, []EntityID{NewEntity().ID})
+	ex, err = repo.ContainsAll(ctx, []EntityID{newEntity().ID})
 	assert.NoError(t, err)
 	assert.False(t, ex)
 }
@@ -384,7 +381,7 @@ func TestMemoryRepository_Save(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
 
-		entity := NewEntity()
+		entity := newEntity()
 		err := repo.Save(ctx, entity)
 		assert.NoError(t, err)
 
@@ -397,7 +394,7 @@ func TestMemoryRepository_Save(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-		entity := NewEntity()
+		entity := newEntity()
 		err := repo.Save(ctx, entity)
 		assert.NoError(t, err)
 
@@ -426,7 +423,7 @@ func TestMemoryRepository_Save(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
 
-		err := repo.Save(ctx, NewEntity())
+		err := repo.Save(ctx, newEntity())
 		assert.Error(t, err)
 	})
 }
@@ -437,11 +434,11 @@ func TestMemoryRepository_UpdateAll(t *testing.T) {
 	t.Run("save all", func(t *testing.T) {
 		t.Parallel()
 
-		e := NewEntity()
+		e := newEntity()
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
 		repo.Create(ctx, e)
 
-		err := repo.UpdateAll(ctx, []Entity{e, NewEntity(), NewEntity()})
+		err := repo.UpdateAll(ctx, []Entity{e, newEntity(), newEntity()})
 		assert.NoError(t, err)
 
 		c, _ := repo.Count(ctx)
@@ -453,7 +450,7 @@ func TestMemoryRepository_UpdateAll(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-		err := repo.UpdateAll(ctx, []Entity{NewEntity(), NewEntity(), {}, NewEntity()})
+		err := repo.UpdateAll(ctx, []Entity{newEntity(), newEntity(), {}, newEntity()})
 		assert.ErrorIs(t, err, repository.ErrSaveFailed)
 
 		empty, _ := repo.IsEmpty(ctx)
@@ -465,7 +462,7 @@ func TestMemoryRepository_UpdateAll(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
 
-		err := repo.UpdateAll(ctx, []Entity{NewEntity(), NewEntity()})
+		err := repo.UpdateAll(ctx, []Entity{newEntity(), newEntity()})
 		assert.Error(t, err)
 	})
 }
@@ -478,7 +475,7 @@ func TestMemoryRepository_AddAll(t *testing.T) {
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
 
-		repo.AddAll(ctx, []Entity{NewEntity(), DefaultEntity, NewEntity()})
+		repo.AddAll(ctx, []Entity{newEntity(), defaultEntity, newEntity()})
 
 		c, _ := repo.Count(ctx)
 		assert.Equal(t, 3, c)
@@ -488,9 +485,9 @@ func TestMemoryRepository_AddAll(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID]()
-		repo.Save(ctx, DefaultEntity)
+		repo.Save(ctx, defaultEntity)
 
-		err := repo.AddAll(ctx, []Entity{NewEntity(), DefaultEntity, NewEntity()})
+		err := repo.AddAll(ctx, []Entity{newEntity(), defaultEntity, newEntity()})
 		assert.ErrorIs(t, err, repository.ErrAlreadyExists)
 
 		c, _ := repo.Count(ctx)
@@ -507,8 +504,8 @@ func TestMemoryRepository_Length(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count, "new repository should be empty")
 
-	repo.Create(ctx, NewEntity())
-	repo.Create(ctx, NewEntity())
+	repo.Create(ctx, newEntity())
+	repo.Create(ctx, newEntity())
 
 	count, err = repo.Length(ctx)
 	assert.NoError(t, err)
@@ -519,9 +516,9 @@ func TestMemoryRepository_DeleteByID(t *testing.T) {
 	t.Parallel()
 
 	repo := repository.NewMemoryRepository[Entity, EntityID]()
-	repo.Create(ctx, DefaultEntity)
+	repo.Create(ctx, defaultEntity)
 
-	err := repo.DeleteByID(ctx, DefaultEntity.ID)
+	err := repo.DeleteByID(ctx, defaultEntity.ID)
 	assert.NoError(t, err)
 
 	empty, _ := repo.Empty(ctx)
@@ -534,9 +531,9 @@ func TestMemoryRepository_DeleteByIDs(t *testing.T) {
 	t.Run("delete", func(t *testing.T) {
 		t.Parallel()
 
-		e0 := NewEntity()
-		e1 := NewEntity()
-		e2 := NewEntity()
+		e0 := newEntity()
+		e1 := newEntity()
+		e2 := newEntity()
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
 		repo.AddAll(ctx, []Entity{e0, e1, e2})
 
@@ -550,9 +547,9 @@ func TestMemoryRepository_DeleteByIDs(t *testing.T) {
 	t.Run("store fails", func(t *testing.T) {
 		t.Parallel()
 
-		e0 := NewEntity()
-		e1 := NewEntity()
-		e2 := NewEntity()
+		e0 := newEntity()
+		e1 := newEntity()
+		e2 := newEntity()
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
 		repo.AddAll(ctx, []Entity{e0, e1, e2})
 
@@ -568,7 +565,7 @@ func TestMemoryRepository_DeleteAll(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreSuccessEntity(t)))
-		repo.Create(ctx, DefaultEntity)
+		repo.Create(ctx, defaultEntity)
 
 		err := repo.DeleteAll(ctx)
 		assert.NoError(t, err)
@@ -581,7 +578,7 @@ func TestMemoryRepository_DeleteAll(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(testStoreStoreFails()))
-		repo.Create(ctx, DefaultEntity)
+		repo.Create(ctx, defaultEntity)
 
 		err := repo.DeleteAll(ctx)
 		assert.Error(t, err)
@@ -592,7 +589,7 @@ func TestMemoryRepository_Clear(t *testing.T) {
 	t.Parallel()
 
 	repo := repository.NewMemoryRepository[Entity, EntityID]()
-	repo.Create(ctx, DefaultEntity)
+	repo.Create(ctx, defaultEntity)
 
 	err := repo.Clear(ctx)
 	assert.NoError(t, err)
@@ -612,7 +609,7 @@ func TestMemoryRepository_Concurrently(t *testing.T) {
 	wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go func() {
-			repo.Add(ctx, NewEntity())
+			repo.Add(ctx, newEntity())
 			wg.Done()
 		}()
 	}
@@ -620,7 +617,7 @@ func TestMemoryRepository_Concurrently(t *testing.T) {
 	wg.Add(workers)
 	for i := 0; i < workers; i++ {
 		go func() {
-			repo.Read(ctx, NewEntity().ID)
+			repo.Read(ctx, newEntity().ID)
 			wg.Done()
 		}()
 	}

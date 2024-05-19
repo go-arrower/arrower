@@ -20,7 +20,7 @@ func TestStore(t *testing.T) {
 	store := repository.NewJSONStore(dir)
 
 	t.Run("load from empty folder", func(t *testing.T) {
-		repo := NewEntityMemoryRepository(store)
+		repo := testEntityMemoryRepository(store)
 
 		count, err := repo.Count(ctx)
 		assert.NoError(t, err)
@@ -28,23 +28,23 @@ func TestStore(t *testing.T) {
 	})
 
 	t.Run("store", func(t *testing.T) {
-		repo := NewEntityMemoryRepository(store)
+		repo := testEntityMemoryRepository(store)
 
-		err := repo.Save(ctx, DefaultEntity)
+		err := repo.Save(ctx, defaultEntity)
 		assert.NoError(t, err)
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
 	})
 
 	t.Run("load", func(t *testing.T) {
-		repo := NewEntityMemoryRepository(store)
+		repo := testEntityMemoryRepository(store)
 
 		count, err := repo.Count(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, count)
 
-		e, err := repo.FindByID(ctx, DefaultEntity.ID)
+		e, err := repo.FindByID(ctx, defaultEntity.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, DefaultEntity, e)
+		assert.Equal(t, defaultEntity, e)
 	})
 
 	t.Run("second entity, different file, some store", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestStore(t *testing.T) {
 			repository.WithStore(store),
 			repository.WithStoreFilename("Entity2.json"),
 		)
-		err := repo.Save(ctx, DefaultEntity)
+		err := repo.Save(ctx, defaultEntity)
 		assert.NoError(t, err)
 
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
@@ -62,7 +62,7 @@ func TestStore(t *testing.T) {
 	t.Run("parallel", func(t *testing.T) {
 		t.Parallel()
 
-		repo := NewEntityMemoryRepository(store)
+		repo := testEntityMemoryRepository(store)
 		wg := sync.WaitGroup{}
 
 		const routines = 15
@@ -70,7 +70,7 @@ func TestStore(t *testing.T) {
 
 		for range routines {
 			go func() {
-				err := repo.Save(ctx, DefaultEntity)
+				err := repo.Save(ctx, defaultEntity)
 				assert.NoError(t, err)
 
 				wg.Done()

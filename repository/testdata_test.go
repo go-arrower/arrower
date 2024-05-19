@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -13,9 +14,12 @@ import (
 
 var errStoreFailed = errors.New("store failed")
 
-var DefaultEntity = NewEntity()
+var (
+	ctx           = context.Background()
+	defaultEntity = newEntity()
+)
 
-func NewEntity() Entity {
+func newEntity() Entity {
 	return Entity{
 		ID:   EntityID(uuid.New().String()),
 		Name: gofakeit.Name(),
@@ -34,13 +38,13 @@ type EntityWithoutID struct {
 	Name string
 }
 
-func NewEntityMemoryRepository(s repository.Store) *EntityMemoryRepository {
-	return &EntityMemoryRepository{
+func testEntityMemoryRepository(s repository.Store) *entityMemoryRepository {
+	return &entityMemoryRepository{
 		MemoryRepository: repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(s)),
 	}
 }
 
-type EntityMemoryRepository struct {
+type entityMemoryRepository struct {
 	*repository.MemoryRepository[Entity, EntityID]
 }
 
