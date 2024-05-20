@@ -196,3 +196,7 @@ func (f fakeSpan) SetAttributes(_ ...attribute.KeyValue) {
 func (f fakeSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
 	panic("implement me")
 }
+
+func (f fakeSpan) AddLink(_ trace.Link) {
+	panic("implement me")
+}

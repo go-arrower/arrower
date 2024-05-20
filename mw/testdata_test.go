@@ -113,6 +113,10 @@ func (f fakeSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
 	panic("implement me")
 }
 
+func (f fakeSpan) AddLink(_ trace.Link) {
+	panic("implement me")
+}
+
 var (
 	// needs to match the exact format expected from the prometheus endpoint
 	// prepare the output, so it can be read multiple times by different tests, see:https://siongui.github.io/2018/10/28/go-read-twice-from-same-io-reader/

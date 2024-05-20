@@ -68,6 +68,10 @@ func (s *fakeSpan) SetName(string) {}
 
 func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{t: s.t} } //nolint:ireturn
 
+func (s fakeSpan) AddLink(_ trace.Link) {
+	panic("implement me")
+}
+
 type fakeTraceProvider struct {
 	t *testing.T
 
@@ -150,6 +154,10 @@ func (f fakeNoSettingsSpan) SetAttributes(_ ...attribute.KeyValue) {
 }
 
 func (f fakeNoSettingsSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
+	panic("implement me")
+}
+
+func (f fakeNoSettingsSpan) AddLink(_ trace.Link) {
 	panic("implement me")
 }
 
