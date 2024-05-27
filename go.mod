@@ -13,7 +13,7 @@ require (
 	github.com/go-testfixtures/testfixtures/v3 v3.10.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.5.5
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/khaiql/dbcleaner v2.3.0+incompatible
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/ory/dockertest/v3 v3.10.0
