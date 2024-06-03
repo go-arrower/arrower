@@ -9,7 +9,7 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fatih/color v1.17.0
 	github.com/georgysavva/scany/v2 v2.1.3
-	github.com/go-playground/validator/v10 v10.20.0
+	github.com/go-playground/validator/v10 v10.21.0
 	github.com/go-testfixtures/testfixtures/v3 v3.10.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
