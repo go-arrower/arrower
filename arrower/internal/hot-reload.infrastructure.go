@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -52,6 +53,9 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 
 	cont := TestCasesController{repo: repository.NewMemoryRepository[testcase, string](repository.WithIDField("Name"))}
 	router.GET("/testcase", cont.showTestCase())
+	router.HEAD("/testcase", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
 	router.POST("/testcase", cont.storeTestcase())
 	router.POST("/testcase/assertion", cont.storeAssertion())
 
