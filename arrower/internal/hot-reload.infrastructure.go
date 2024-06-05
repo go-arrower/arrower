@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/go-arrower/skeleton/shared/infrastructure/web" // TODO move renderer to this project
 	"github.com/labstack/echo/v4"
+	"go.opentelemetry.io/otel/trace/noop"
 	"golang.org/x/net/websocket"
+
+	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/repository"
 )
 
 var ErrConnectionFailed = errors.New("ws connection failed")
@@ -25,12 +31,31 @@ const (
 )
 
 func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
-	e := echo.New()
-	e.Logger.SetOutput(io.Discard)
+	router := echo.New()
+	router.Logger.SetOutput(io.Discard)
 
-	e.GET("/ws", HotReloadHandler(notify))
+	// todo right path
+	renderer, err := web.NewEchoRenderer(
+		alog.NewTest(os.Stdout),
+		noop.NewTracerProvider(),
+		router,
+		os.DirFS("/home/tsd/Projekte/go-arrower/arrower/arrower/internal/views"),
+		true,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("could not create renderer: %w", err)
+	}
 
-	return e, nil
+	router.Renderer = renderer
+
+	router.GET("/ws", HotReloadHandler(notify))
+
+	cont := TestCasesController{repo: repository.NewMemoryRepository[testcase, string](repository.WithIDField("Name"))}
+	router.GET("/testcase", cont.showTestCase())
+	router.POST("/testcase", cont.storeTestcase())
+	router.POST("/testcase/assertion", cont.storeAssertion())
+
+	return router, nil
 }
 
 type browserTab struct {

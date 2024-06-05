@@ -40,6 +40,9 @@ linters-settings:
     ignored-files:
       - testing.go # ignore public test suites like for setting.Settings interface
   govet:
+    # Report about shadowed variables.
+    # Default: false
+    check-shadowing: true
     # Enable all analyzers.
     # Default: false
     enable-all: true
@@ -87,6 +90,27 @@ linters-settings:
     ignore-decls:
       - c echo.Context
       - w io.Writer
+      - i int
+  wrapcheck:
+    # An array of strings that specify substrings of signatures to ignore.
+    # If this set, it will override the default set of ignored signatures.
+    # See https://github.com/tomarrell/wrapcheck#configuration for more information.
+    # Default: [".Errorf(", "errors.New(", "errors.Unwrap(", "errors.Join(", ".Wrap(", ".Wrapf(", ".WithMessage(", ".WithMessagef(", ".WithStack("]
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+      - .NoContent( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .Redirect(  # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .Render(    # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .String(    # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .JSON(      # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
 
 linters:
   # Disable all linters.
