@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-arrower/skeleton/shared/infrastructure/web" // TODO move renderer to this project
 	"github.com/labstack/echo/v4"
 	"go.opentelemetry.io/otel/trace/noop"
 	"golang.org/x/net/websocket"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/renderer"
 	"github.com/go-arrower/arrower/repository"
 )
 
@@ -36,7 +36,7 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 	router.Logger.SetOutput(io.Discard)
 
 	// todo right path
-	renderer, err := web.NewEchoRenderer(
+	renderer, err := renderer.NewEchoRenderer(
 		alog.NewTest(os.Stdout),
 		noop.NewTracerProvider(),
 		router,
