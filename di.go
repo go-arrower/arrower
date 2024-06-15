@@ -7,17 +7,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
 	"time"
 
-	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/jobs"
-	"github.com/go-arrower/arrower/postgres"
-	"github.com/go-arrower/arrower/renderer"
-	"github.com/go-arrower/arrower/setting"
+	"github.com/go-arrower/arrower/contexts/auth"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -36,8 +34,12 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"google.golang.org/grpc"
 
-	"github.com/go-arrower/skeleton/contexts/auth"
-	"github.com/go-arrower/skeleton/shared/views"
+	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/jobs"
+	"github.com/go-arrower/arrower/postgres"
+	"github.com/go-arrower/arrower/renderer"
+	"github.com/go-arrower/arrower/secret"
+	"github.com/go-arrower/arrower/setting"
 )
 
 var ErrMissingDependency = errors.New("missing dependency")
@@ -63,6 +65,36 @@ type Container struct {
 	DefaultQueue jobs.Queue
 
 	Settings setting.Settings
+}
+
+func New() (*Container, func(ctx context.Context) error, error) {
+	return InitialiseDefaultArrowerDependencies(context.Background(),
+		&Config{
+			OrganisationName: "arrower",
+			ApplicationName:  "",
+			InstanceName:     getOutboundIP(),
+			Debug:            true,
+			Postgres: Postgres{
+				User:     "arrower",
+				Password: secret.New("secret"),
+				Database: "arrower",
+				Host:     "localhost",
+				Port:     5432, //nolint:gomnd
+				SSLMode:  "disable",
+				MaxConns: 100, //nolint:gomnd
+			},
+			Web: Web{
+				Secret:             secret.New("secret"),
+				Port:               8080,
+				Hostname:           "www.servername.tld",
+				StatusEndpoint:     true,
+				StatusEndpointPort: 2223,
+			},
+			OTEL: OTEL{
+				Host: "localhost",
+				Port: 4317,
+			},
+		})
 }
 
 func (c *Container) EnsureAllDependenciesPresent() error {
@@ -194,10 +226,10 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		}
 
 		r, _ := renderer.NewEchoRenderer(container.Logger, container.TraceProvider, router, os.DirFS("shared/views"), hotReload) // todo: if prod load from embed
-		err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(container.Settings))
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not add default base data: %w", err) // todo return shutdown, as some services like postgres are already started
-		}
+		//err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(container.Settings))
+		//if err != nil {
+		//	return nil, nil, fmt.Errorf("could not add default base data: %w", err) // todo return shutdown, as some services like postgres are already started
+		//}
 
 		router.Renderer = r
 		container.WebRenderer = r
@@ -415,4 +447,20 @@ func gitHash() string {
 	}
 
 	return "unknown"
+}
+
+// Get preferred outbound ip of this machine.
+//
+// Actually, it does not establish any connection and the destination does not need to be existed at all :)
+// So, what the code does actually, is to get the local up address if it would connect to that target,
+// you can change to any other IP address you want. conn.LocalAddr().String() is the local ip and port.
+// https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "5.1.66.255:80")
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }

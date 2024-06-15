@@ -1,0 +1,167 @@
+{{ define "admin.title" }}Schedule a Job{{ end }}
+
+
+<div class="flex flex-col lg:flex-row">
+  <form
+    autocomplete="off"
+    method="post"
+    action="{{ route "admin.jobs.new" }}"
+    class="space-y-8"
+  >
+    <div class="join flex items-center">
+      <label class="join-item w-32" for="queues">Queue</label>
+      <!-- todo make default value a var -->
+      <input
+        class="input join-item"
+        id="queues"
+        list="known-queues"
+        name="queue"
+        value="Default"
+        hx-get="/admin/jobs/jobTypes"
+        hx-trigger="input"
+        hx-target="#known-job-types"
+      />
+      <datalist id="known-queues">
+        {{ range .Queues }}
+          <option value="{{ . }}"></option>
+        {{ end }}
+      </datalist>
+    </div>
+
+    <div class="join flex items-center">
+      <label class="join-item w-32" for="job-type">Job Type</label>
+      <input
+        class="input join-item"
+        id="job-type"
+        name="job-type"
+        list="known-job-types"
+      />
+      <datalist id="known-job-types">
+        {{ block "known-job-types" . }}
+          {{ range .JobTypes }}
+            <option value="{{ . }}"></option>
+          {{ end }}
+        {{ end }}
+      </datalist>
+    </div>
+
+    <div class="join flex items-center">
+      <label class="join-items w-32" for="priority">Priority</label>
+      <input
+        class="join-items"
+        type="range"
+        list="priorities"
+        min="-1000"
+        max="1000"
+        id="priority"
+        name="priority"
+      />
+      <datalist id="priorities">
+        <option value="-1000"></option>
+        <option value="-500"></option>
+        <option value="-250"></option>
+        <option value="-100"></option>
+        <option value="0"></option>
+        <option value="100"></option>
+        <option value="250"></option>
+        <option value="500"></option>
+        <option value="1000"></option>
+      </datalist>
+    </div>
+
+    <div class="join flex items-start">
+      <label class="join-item w-32" for="payload">Payload</label>
+      <div class="join-item">
+        <textarea
+          class="input join-item h-64 rounded-3xl bg-neutral text-neutral-content"
+          id="payload"
+          name="payload"
+          onchange="
+                    let data = {};
+                    try {data = JSON.parse(document.getElementById('payload').value)}catch (e) {
+                        document.getElementById('payload-error').classList.remove('invisible');
+                        return;
+                    }
+                    document.getElementById('payload').value = JSON.stringify(data, undefined, 2);
+                    document.getElementById('payload-error').classList.add('invisible');
+                "
+        >
+{}</textarea
+        >
+        <br />
+        <span id="payload-error" class="join-item invisible text-error"
+          >The payload is not valid JSON</span
+        >
+      </div>
+    </div>
+
+    <div class="join flex items-center">
+      <label class="join-item w-32" for="count">Amount</label>
+      <input
+        class="input join-item"
+        type="number"
+        id="count"
+        name="count"
+        min="1"
+        max="1000000000"
+        value="1"
+      />
+    </div>
+
+    <div class="join flex items-center">
+      <label class="join-item w-32" for="runAt">Run At time</label>
+      <input
+        class="input join-item"
+        type="datetime-local"
+        id="runAt"
+        name="runAt-time"
+        value="{{ .RunAt }}"
+        min="{{ .RunAtMin }}"
+        required
+      />
+    </div>
+
+    <button type="submit" class="w-full rounded bg-primary px-4 py-2">
+      Schedule
+    </button>
+  </form>
+
+  {{ block "payload-examples" .Payloads }}
+    <table
+      id="payload-examples"
+      class="table mt-16 lg:ml-16 lg:mt-0"
+      hx-get="/admin/jobs/payloads"
+      hx-include="#queues, #job-type"
+      hx-trigger="input from:#job-type delay:200ms"
+      hx-swap="outerHTML"
+    >
+      {{ if .Payloads }}
+        {{/* only render this, if payloads are present. If not he hx-triggers are still firing */}}
+        <thead>
+          <tr>
+            <th>{{ .Queue }}: {{ .JobType }} - past payloads</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .Payloads }}
+            <tr
+              onclick="
+                document.getElementById('payload').value = this.firstElementChild.firstElementChild.innerHTML;
+                document.getElementById('payload-error').classList.add('invisible');
+                "
+            >
+              <td>
+                <pre
+                  class="whitespace-pre-wrap rounded p-1 hover:bg-neutral hover:text-neutral-content"
+                >
+                            {{- . -}}
+                        </pre
+                >
+              </td>
+            </tr>
+          {{ end }}
+        </tbody>
+      {{ end }}
+    </table>
+  {{ end }}
+</div>

@@ -1,0 +1,340 @@
+{{ define "admin.title" }}Logs{{ end }}
+{{ define "page.js" }}
+  <script src="/js/behaviors/logs-autoscroll.js"></script>
+{{ end }}
+
+{{ if .Settings.Enabled }}
+  <div class="flex border p-2">
+    <div class="relative m-2">
+      <select
+        name="level"
+        class="w-full rounded border-t-transparent bg-transparent text-sm focus:border-2 focus:border-green-200 focus:border-t-transparent focus:outline-0"
+        autocomplete="off"
+        hx-get="/admin/logs/setting"
+      >
+        {{ block "level-setting" .Settings }}
+          <option value="0" {{ if eq .Level "INFO" }}selected{{ end }}>
+            Info
+          </option>
+          <option value="-4" {{ if eq .Level "DEBUG" }}selected{{ end }}>
+            Debug
+          </option>
+          <option value="-8" {{ if eq .Level "ARROWER:INFO" }}selected{{ end }}>
+            Arrower: Info
+          </option>
+          <option
+            value="-12"
+            {{ if eq .Level "ARROWER:DEBUG" }}selected{{ end }}
+          >
+            Arrower: Debug
+          </option>
+        {{ end }}
+      </select>
+      <label
+        class="before:border-blue-gray-200 absolute -top-1.5 left-0 flex text-[11px] leading-tight transition-all before:pointer-events-none before:mr-1 before:mt-[6.5px] before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-l before:border-t before:transition-all after:pointer-events-none after:ml-1 after:mt-[6.5px] after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-r after:border-t after:transition-all"
+      >
+        Level
+      </label>
+    </div>
+    <div class="m-2">
+      <label for="setting-user-search"></label>
+      <input
+        id="setting-user-search"
+        type="search"
+        name="msg"
+        value="{{ .SearchMsg }}"
+        placeholder="Search Users..."
+        hx-get="/admin/logs/setting"
+        hx-trigger="keyup delay:100ms changed"
+      />
+    </div>
+  </div>
+{{ end }}
+
+
+<div class="mx-64 my-4 flex border border-orange-400 p-2">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke-width="1.5"
+    stroke="currentColor"
+    class="h-6 w-6 text-orange-400"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+    />
+  </svg>
+  <div class="ml-2 text-orange-400">
+    Do not use this feature in production. It is designed for a small amount of
+    logs only!
+    <a href="https://www.arrower.org/docs/basics/observability"
+      >Ship your logs</a
+    >
+    to something like Grafana instead.
+  </div>
+</div>
+
+<form
+  id="filterForm"
+  autocomplete="off"
+  hx-target="tbody"
+  hx-select="tbody tr"
+  hx-include="#filterForm"
+  hx-push-url="true"
+>
+  <div class="flex border p-2">
+    <div class="flex flex-col">
+      <div class="my-2">
+        <select
+          name="range"
+          class="w-full rounded text-sm focus:border-2 focus:border-green-200"
+          autocomplete="off"
+          hx-get="/admin/logs/"
+        >
+          <option value="5" {{ if eq .Filter.Range 5 }}selected{{ end }}>
+            Last 5 minutes
+          </option>
+          <option value="15" {{ if eq .Filter.Range 15 }}selected{{ end }}>
+            Last 15 minutes
+          </option>
+          <option value="30" {{ if eq .Filter.Range 30 }}selected{{ end }}>
+            Last 30 minutes
+          </option>
+          <option value="60" {{ if eq .Filter.Range 60 }}selected{{ end }}>
+            Last 1 hour
+          </option>
+          <option value="180" {{ if eq .Filter.Range 180 }}selected{{ end }}>
+            Last 3 hours
+          </option>
+          <option value="360" {{ if eq .Filter.Range 360 }}selected{{ end }}>
+            Last 6 hours
+          </option>
+          <option value="720" {{ if eq .Filter.Range 720 }}selected{{ end }}>
+            Last 12 hours
+          </option>
+          <option value="1440" {{ if eq .Filter.Range 1440 }}selected{{ end }}>
+            Last 24 hours
+          </option>
+          <option value="2880" {{ if eq .Filter.Range 2880 }}selected{{ end }}>
+            Last 2 days
+          </option>
+          <option
+            value="10080"
+            {{ if eq .Filter.Range 10080 }}selected{{ end }}
+          >
+            Last 7 days
+          </option>
+          <option
+            value="43200"
+            {{ if eq .Filter.Range 43200 }}selected{{ end }}
+          >
+            Last 30 days
+          </option>
+          <option
+            value="129600"
+            {{ if eq .Filter.Range 129600 }}selected{{ end }}
+          >
+            Last 90 days
+          </option>
+          <option
+            value="525600"
+            {{ if eq .Filter.Range 525600 }}selected{{ end }}
+          >
+            Last 1 year
+          </option>
+        </select>
+      </div>
+
+      <div class="my-2">
+        <label for="search"></label>
+        <input
+          id="search"
+          type="search"
+          name="msg"
+          value="{{ .SearchMsg }}"
+          placeholder="Search msg"
+          hx-get="/admin/logs/"
+          hx-trigger="keyup delay:100ms changed"
+        />
+      </div>
+
+      <div class="my-2">User filter dropdown/selection</div>
+      <!-- see https://tailwindcomponents.com/component/dropdown-with-search -->
+    </div>
+
+    <div class="w-8"></div>
+
+    <div class="grid grid-cols-2">
+      <input
+        type="search"
+        name="k0"
+        value="{{ .Filter.K0 }}"
+        list="filterKeys"
+        placeholder="Filer Key"
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:500ms changed"
+      />
+      <input
+        type="search"
+        name="f0"
+        value="{{ .Filter.F0 }}"
+        placeholder=""
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:100ms changed"
+      />
+
+      <input
+        type="search"
+        name="k1"
+        value="{{ .Filter.K1 }}"
+        list="filterKeys"
+        placeholder="Filer Key"
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:500ms changed"
+      />
+      <input
+        type="search"
+        name="f1"
+        value="{{ .Filter.F1 }}"
+        placeholder=""
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:100ms changed"
+      />
+
+      <input
+        type="search"
+        name="k2"
+        value="{{ .Filter.K2 }}"
+        list="filterKeys"
+        placeholder="Filer Key"
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:500ms changed"
+      />
+      <input
+        type="search"
+        name="f2"
+        value="{{ .Filter.F2 }}"
+        placeholder=""
+        hx-get="/admin/logs/"
+        hx-trigger="keyup delay:100ms changed"
+      />
+
+      <datalist id="filterKeys">
+        <option value="command"></option>
+        <option value="err"></option>
+        <option value="level"></option>
+        <option value="userID"></option>
+        <option value="traceID"></option>
+        <option value="spanID"></option>
+        <option value="msg"></option>
+        <option value="time"></option>
+      </datalist>
+    </div>
+
+    <div class="w-8"></div>
+    <!-- TODO use tailwind spacer instead of this hack (also above -->
+    <div>
+      <div class="relative">
+        <select
+          name="level"
+          class="w-full rounded border-t-transparent bg-transparent text-sm focus:border-2 focus:border-green-200 focus:border-t-transparent focus:outline-0"
+          autocomplete="off"
+          hx-get="/admin/logs/"
+        >
+          <option
+            value="INFO"
+            {{ if eq .Filter.Level "INFO" }}selected{{ end }}
+          >
+            Info
+          </option>
+          <option
+            value="DEBUG"
+            {{ if eq .Filter.Level "DEBUG" }}selected{{ end }}
+          >
+            Debug
+          </option>
+        </select>
+        <label
+          class="before:border-blue-gray-200 absolute -top-1.5 left-0 flex text-[11px] leading-tight transition-all before:pointer-events-none before:mr-1 before:mt-[6.5px] before:box-border before:block before:h-1.5 before:w-2.5 before:rounded-tl-md before:border-l before:border-t before:transition-all after:pointer-events-none after:ml-1 after:mt-[6.5px] after:box-border after:block after:h-1.5 after:w-2.5 after:flex-grow after:rounded-tr-md after:border-r after:border-t after:transition-all"
+        >
+          Level
+        </label>
+      </div>
+
+      <div id="autoScroll" class="my-2"></div>
+    </div>
+  </div>
+</form>
+
+<table class="mt-4 w-full table-auto">
+  <thead class="bg-gray-100">
+    <tr>
+      <th scope="col" class="w-1/12 min-w-fit border border-slate-300 p-1">
+        Time
+      </th>
+      <th scope="col" class="w-1/12 min-w-fit border border-slate-300 p-1">
+        User
+      </th>
+      <th scope="col" class="w-1/5 min-w-fit border border-slate-300 p-1">
+        Msg
+      </th>
+      <th scope="col" class="w-full min-w-fit border border-slate-300 p-1">
+        Attributes
+      </th>
+    </tr>
+  </thead>
+</table>
+<div class="max-h-[40vh] overflow-y-auto" data-js-logs-autoscroll tabindex="0">
+  <!-- tabindex, so that keyboard events are generated -->
+  <table class="w-full table-auto">
+    <tbody class="bg-grey-light text-sm">
+      {{ $last := sub (len .Logs) 1 }}
+      {{ range $i, $log := .Logs }}
+        <tr
+          class="odd:bg-white even:bg-slate-50"
+          {{ if eq $last $i }}
+            hx-get="/admin/logs/?time={{ $log.Time.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
+            hx-trigger="intersect once delay:1s" hx-swap="afterend"
+            hx-select="tbody > tr" hx-include="#filterForm"
+          {{ end }}
+        >
+          <td class="w-1/12">{{ $log.Time | date "2006-01-02 15:04:05" }}</td>
+          <td class="w-1/12">{{ $log.UserID }}</td>
+          {{ range $key, $value := $log.Log }}
+            {{ if eq $key "msg" }}
+              <td class="w-1/5" title="INFO">{{ $value }}</td>
+            {{ end }}
+          {{ end }}
+          <td class="w-full">
+            {{ range $key, $value := $log.Log }}
+              {{ if not (or (or (eq $key "level") (eq $key "msg")) (eq $key "time")) }}
+                <span
+                  class="hover:bg-gray-300{{ if eq $key "err" }}
+                    text-red-600
+                  {{ end }}"
+                >
+                  <strong>{{ $key }}</strong>:
+                  {{ $value }}
+                </span>
+              {{ end }}
+            {{ end }}
+          </td>
+        </tr>
+      {{ else }}
+        <tr
+          hx-get="/admin/logs/?time={{ .LastLogTime.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
+          hx-trigger="intersect once delay:1s"
+          hx-swap="outerHTML"
+          hx-select="tbody > tr"
+          hx-include="#filterForm"
+        >
+          <!-- TODO trigger does not respect autoscolling variable-->
+          <td colspan="2" class="text-center">Waiting for logs...</td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>

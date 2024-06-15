@@ -1,0 +1,162 @@
+{{ define "admin.title" }}
+<div class="flex items-center">
+    {{ if gt (len .Jobs) 0 }}
+        {{ with (index .Jobs 0)}}
+            Job: {{ .JobType }}
+            {{ if .Success }}
+                <span class="ml-5 badge badge-primary">finished</span>
+            {{ else }}
+                <span class="ml-5 badge badge-info text-info-content">pending</span>
+            {{ end }}
+        {{end}}
+    {{ end }}
+</div>
+{{ end }}
+
+
+{{ if gt (len .Jobs) 0 }}
+{{ with index .Jobs 0 }}
+    <div class="space-y-1">
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Job ID</div>
+            <div class="indicator">
+                <span class="indicator-item badge badge-info text-info-content hidden">copied</span>
+                <div onclick="
+                        let that = this;
+                        navigator.clipboard.writeText(this.innerHTML).then(function() {
+                            that.previousElementSibling.classList.toggle('hidden');
+                            setTimeout(function() {
+                                that.previousElementSibling.classList.toggle('hidden');
+                            }, 1000); // time in milliseconds
+                        }, function(err) {
+                            console.error('Could not copy job id to clipboard: ', err);
+                        });
+                     "
+                >{{ .JobID }}</div>
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Queue</div>
+            <div>
+                {{ if eq .Queue "" }}
+                    <a class="text-secondary" href="{{ route "admin.jobs.queue" "Default" }}">Default</a>
+                {{else}}
+                    <a class="text-secondary" href="{{ route "admin.jobs.queue" .Queue }}">{{ .Queue }}</a>
+                {{end}}
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Enqueued</div>
+            <div>
+                {{ $firstTry := index $.Jobs (sub (len $.Jobs) 1 )}}
+                {{ $firstTry.EnqueuedAgo }}
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Priority</div>
+            <div>{{ .Priority }}</div>
+        </div>
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Finished</div>
+            <div>
+                {{ if (index $.Jobs 0).Success }}
+                    {{ .FinishedAgo }}
+                {{ end }}
+            </div>
+        </div>
+        {{ if not (index $.Jobs 0).Success }}
+{{/*        {{ if $.ShowActions }}*/}}
+        <div class="flex space-x-2">
+            <div class="w-32 font-bold">Actions</div>
+            <div class="flex">
+                <span class="hover:text-success" title="Run now">
+                    <a href="/admin/jobs/{{ .Queue }}/reschedule/{{ .JobID }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </a>
+                </span>
+                <span title="Logs">
+                        <a href="/admin/logs/?level=DEBUG&range=43200&k0=jobID&f0={{ .JobID }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                            </svg>
+                        </a>
+                    </span>
+                <span class="hover:text-error" title="Delete">
+                    <a href="/admin/jobs/{{ .Queue }}/delete/{{ .JobID }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                    </a>
+                </span>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    <div class="mt-4">
+        {{ if not .PrunedAt.Valid }}
+            <pre class="whitespace-pre-wrap p-1 hover:bg-neutral hover:text-neutral-content rounded">{{ .PrettyPayload }}</pre>
+        {{ else}}
+            <pre class="whitespace-pre-wrap p-1 hover:bg-neutral hover:text-neutral-content rounded">Job data pruned {{ ago .PrunedAt.Time }} ago</pre>
+        {{ end }}
+    </div>
+{{ end }}
+{{ end }}
+
+{{ $hasFailed := gt (len .Jobs) 1 }}
+{{ $lastJobFailed := false }}
+{{ if gt (len .Jobs) 0 }}
+    {{ $lastJobFailed = not ((index .Jobs 0).Success) }}
+{{ end }}
+
+{{ if or $hasFailed $lastJobFailed }}
+    <ul class="mt-8 w-48 timeline timeline-vertical">
+        {{ if not ((index .Jobs 0).Success) }} {{/* if job is not finished yet: add indicator to continue */}}
+        <li>
+            <div class="timeline-end timeline-box invisible"></div>
+            <hr class="bg-error"/>
+        </li>
+        {{ end }}
+        {{ range $i, $DOT := .Jobs }}
+            {{ if .Success }}
+                <li>
+                    <div class="timeline-start">{{ .CreatedAt }}</div>
+{{/*                    <div class="timeline-start">{{ $.TimelineTime .CreatedAt }}</div>*/}}
+                    <div class="timeline-middle text-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
+                    </div>
+                    <div class="min-w-64 timeline-end timeline-box invisible"></div>
+                    <hr class="bg-success"/>
+                </li>
+            {{ else }}
+                <li class="group">
+                    <hr class="bg-error"/>
+                    <div class="timeline-start">{{ .CreatedAt }}</div>
+{{/*                    <div class="timeline-start">{{ $.TimelineTime .CreatedAt }}</div>*/}}
+                    <div class="timeline-middle text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
+                    </div>
+                    <div class="indicator min-w-64 md:max-w-3xl lg:max-w-5xl xl:max-w-7xl timeline-end timeline-box group-hover:bg-error group-hover:text-error-content"
+                         onclick="
+                            let that = this;
+                            navigator.clipboard.writeText(this.lastElementChild.innerHTML).then(function() {
+                                that.firstElementChild.classList.toggle('hidden');
+                                setTimeout(function() {
+                                    that.firstElementChild.classList.toggle('hidden');
+                                }, 1000); // time in milliseconds
+                            }, function(err) {
+                                console.error('Could not copy error to clipboard: ', err);
+                            });
+                         ">
+                        <span class="indicator-item badge badge-info text-info-content hidden">copied</span>
+                        <div  title="{{ .RunCount }}"><pre class="whitespace-pre">{{ .RunError }}</pre></div>
+                    </div>
+                    {{ if ne $i (sub (len $.Jobs) 1) }}
+                        <hr class="bg-error"/>
+                    {{ end }}
+                </li>
+            {{ end }}
+        {{ end }}
+    </ul>
+{{ end }}

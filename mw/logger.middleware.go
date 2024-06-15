@@ -71,14 +71,14 @@ func LoggedU[in any, F DecoratorFuncUnary[in]](logger *slog.Logger, next F) F { 
 // structName	 								=> strings.Split(fmt.Sprintf("%T", cmd), ".")[1]
 // structname	 								=> strings.ToLower(strings.Split(fmt.Sprintf("%T", cmd), ".")[1])
 // packageName.structName	 					=> fmt.Sprintf("%T", cmd)
-// github.com/go-arrower/skeleton/.../package	=> fmt.Sprintln(reflect.TypeOf(cmd).PkgPath())
+// github.com/go-arrower/arrower/.../package	=> fmt.Sprintln(reflect.TypeOf(cmd).PkgPath())
 // structName is used, the other examples are for inspiration.
 // The use case function can not be used, as it is anonymous / a closure returned by the use case constructor.
 // Accessing the function name with runtime.Caller(4) will always lead to ".func1".
 func commandName(cmd any) string {
 	pkgPath := reflect.TypeOf(cmd).PkgPath()
 
-	// example: github.com/go-arrower/skeleton/contexts/admin/internal/application_test
+	// example: github.com/go-arrower/arrower/contexts/admin/internal/application_test
 	// take string after /contexts/ and then take string before /internal/
 	pkg0 := strings.Split(pkgPath, "/contexts/")
 

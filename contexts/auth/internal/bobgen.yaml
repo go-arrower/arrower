@@ -1,0 +1,10 @@
+tags:
+struct_tag_casing: camel # use the same as tagliatelle linter
+wipe: false
+
+psql:
+  dsn: "postgres://arrower:secret@localhost:5432/arrower?sslmode=disable"
+  schemas:
+    - auth
+  output: contexts/auth/internal/interfaces/repository/models
+  uuid_pkg: google

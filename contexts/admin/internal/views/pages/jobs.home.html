@@ -1,0 +1,123 @@
+{{ define "admin.title" }}
+  {{ if eq 1 (len .Queues) }}
+    1 Queue
+  {{ else }}
+    {{ len .Queues }} Queues
+  {{ end }}
+{{ end }}
+{{ define "page.js" }}
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.2/echarts.min.js"
+    integrity="sha512-VdqgeoWrVJcsDXFlQEKqE5MyhaIgB9yXUVaiUa8DR2J4Lr1uWcFm+ZH/YnzV5WqgKf4GPyHQ64vVLgzqGIchyw=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+  <script src="/js/behaviors/pending-jobs-by-queue.js"></script>
+  <script src="/js/behaviors/processed-jobs.js"></script>
+{{ end }}
+
+{{ if .Queues }}
+  <div
+    id="statistics"
+    class="grid grid-cols-1 justify-between md:grid-cols-2 xl:grid-cols-3"
+  >
+    <div data-js-pending-jobs-by-queue class="h-96"></div>
+    <div class="hidden md:block xl:hidden"></div>
+    <!-- artificial gap to keep the two charts below in one row in 2 cols layout -->
+    <div data-js-processed-jobs data-interval="hour" class="h-96"></div>
+    <div data-js-processed-jobs data-interval="week" class="h-96"></div>
+  </div>
+{{ end }}
+
+
+<div class="{{ if .Queues }}md:mt-8 xl:mt-16{{ end }} overflow-x-auto">
+  <table
+    hx-get="/admin/jobs"
+    hx-trigger="every 4.5s"
+    hx-swap="outerHTML"
+    hx-select="#queue-list"
+    hx-target="#queue-list"
+    hx-disinherit="hx-target hx-select hx-swap"
+    class="table{{ if ge ( len .Queues) 4 }}table-zebra{{ end }}"
+  >
+    <!-- todo add #statistics BUT js will not redraw the charts -->
+    <thead>
+      <tr>
+        <th scope="col">Queue</th>
+        <th scope="col">State</th>
+        <th scope="col">Pending</th>
+        <th scope="col">Processed</th>
+        <th scope="col">Failed</th>
+        <th scope="col">Pending Errors</th>
+      </tr>
+    </thead>
+    <tbody id="queue-list">
+      {{ range .Queues }}
+        <tr>
+          <td>
+            <a class="text-secondary" href="/admin/jobs/{{ .QueueName }}"
+              >{{ .QueueName }}</a
+            >
+          </td>
+          <td>
+            {{ if and (eq 0 .PendingJobs) (ne 0 .AvailableWorkers) }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="h-6 w-6 text-success"
+              >
+                <title>Waiting for jobs</title>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            {{ else if eq 0 .AvailableWorkers }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="h-6 w-6 text-warning"
+              >
+                <title>No workers</title>
+                <path
+                  fill-rule="evenodd"
+                  d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM9 8.25a.75.75 0 00-.75.75v6c0 .414.336.75.75.75h.75a.75.75 0 00.75-.75V9a.75.75 0 00-.75-.75H9zm5.25 0a.75.75 0 00-.75.75v6c0 .414.336.75.75.75H15a.75.75 0 00.75-.75V9a.75.75 0 00-.75-.75h-.75z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            {{ else }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="h-6 w-6 text-success"
+              >
+                <title>Processing...</title>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            {{ end }}
+          </td>
+          <td>{{ .PendingJobs }}</td>
+          <td>{{ .ProcessedJobs }}</td>
+          <td>{{ .FailedJobs }}</td>
+          <td>{{ .PendingJobsErrorRate }}%</td>
+        </tr>
+      {{ else }}
+        <tr class="border-none">
+          <td colspan="6" class="text-center">No Queues.</td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>

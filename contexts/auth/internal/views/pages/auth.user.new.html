@@ -1,0 +1,93 @@
+{{ define "admin.title" }}Lege einen neuen Benutzer an{{ end }}
+
+
+<form action="/admin/auth/users/new" method="post" autocomplete="off">
+  <fieldset>
+    <legend>Benutzer Informationen</legend>
+
+    <div>
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="h-6 w-6"
+          >
+            <path
+              stroke-linecap="round"
+              d="M16.5 12a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 10-2.636 6.364M16.5 12V8.25"
+            />
+          </svg>
+        </span>
+        <label for="email">
+          <input
+            type="text"
+            id="email"
+            name="email"
+            value="{{ .Email }}"
+            placeholder="E-Mail"
+            class="py-2 pl-10 focus:outline-none"
+            autofocus="autofocus"
+          />
+        </label>
+      </div>
+      {{ with .Errors.Email }}
+        <span class="pl-10 text-red-500">{{ . }}</span>
+      {{ end }}
+    </div>
+
+    <div>
+      <label>
+        Vorname
+        <input
+          type="text"
+          name="firstName"
+          value="{{ .FirstName }}"
+          placeholder="Vorname"
+        />
+      </label>
+    </div>
+    <div>
+      <label>
+        Nachname
+        <input
+          type="text"
+          name="lastName"
+          value="{{ .LastName }}"
+          placeholder="Nachname"
+        />
+      </label>
+    </div>
+    <div>
+      <label>
+        Anzeigename
+        <input
+          type="text"
+          name="displayName"
+          value="{{ .DisplayName }}"
+          placeholder="Anzeigename"
+        />
+      </label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Rechte</legend>
+    <div>
+      <label for="superuser">
+        <input
+          type="checkbox"
+          id="superuser"
+          name="superuser"
+          value="true"
+          class=""
+        />Superuser
+      </label>
+    </div>
+  </fieldset>
+
+  <input type="submit" value="Erstellen" />
+</form>

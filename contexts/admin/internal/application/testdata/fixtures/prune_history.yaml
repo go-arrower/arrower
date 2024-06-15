@@ -1,0 +1,21 @@
+arrower.gue_jobs_history:
+  - job_id: old-job
+    priority: 0
+    run_at: RAW=NOW()
+    job_type: some-type
+    args:
+      -
+    queue: ""
+    created_at: "2006-01-02 15:04:05.000000+00"
+    updated_at: RAW=NOW()
+    run_error: "0"
+  - job_id: current-job
+    priority: 0
+    run_at: RAW=NOW()
+    job_type: some-type
+    args:
+      -
+    queue: ""
+    created_at: RAW=NOW()
+    updated_at: RAW=NOW()
+    run_error: "0"

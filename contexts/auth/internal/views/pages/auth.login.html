@@ -1,0 +1,102 @@
+<div>
+  <h1 class="text-4xl font-bold">Login</h1>
+</div>
+
+<div>
+  <form action="/auth/login" method="post">
+    <fieldset>
+      <legend>Login</legend>
+
+      <div>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="h-6 w-6"
+            >
+              <path
+                stroke-linecap="round"
+                d="M16.5 12a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zm0 0c0 1.657 1.007 3 2.25 3S21 13.657 21 12a9 9 0 10-2.636 6.364M16.5 12V8.25"
+              />
+            </svg>
+          </span>
+          <label for="login">
+            <input
+              type="text"
+              id="login"
+              name="login"
+              value="{{ .LoginEmail }}"
+              placeholder="Email"
+              class="py-2 pl-10 focus:outline-none"
+              autocomplete="off"
+              autofocus="autofocus"
+            />
+            {{/* Login E-Mail */}}
+          </label>
+        </div>
+        {{ with .Errors.LoginEmail }}
+          <span class="pl-10 text-red-500">{{ . }}</span>
+        {{ end }}
+      </div>
+
+      <div class="mt-2">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="h-6 w-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+              />
+            </svg>
+          </span>
+          <label for="password">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value=""
+              placeholder="Password"
+              class="py-2 pl-10 focus:outline-none"
+            />
+            {{/* Password */}}
+          </label>
+        </div>
+        {{ with .Errors.Password }}
+          <span class="pl-10 text-red-500">{{ . }}</span>
+        {{ end }}
+      </div>
+    </fieldset>
+
+    <div class="mt-4">
+      <label for="remember_me">
+        <input type="checkbox" name="remember_me" class="mr-2" value="true" />
+        Remember me
+      </label>
+    </div>
+
+    <div class="mt-4">
+      <input
+        type="submit"
+        class="w-64 rounded bg-green-200 py-2 hover:bg-green-300"
+        value="Login"
+      />
+    </div>
+  </form>
+
+  <div class="mt-4">
+    Sie haben noch kein Konto?
+    <a href="/auth/register" class="text-green-700">Registrieren</a>
+  </div>
+</div>

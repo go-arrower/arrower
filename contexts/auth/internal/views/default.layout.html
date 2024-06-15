@@ -1,0 +1,15 @@
+---------------------------------------------------------------------------
+<div class="w-full">
+  <header class="w-full grow py-4">
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900">
+      {{ block "title" . }}Auth Context{{ end }}
+    </h1>
+  </header>
+  <div class="w-full grow rounded-l-lg rounded-t-lg bg-white p-6">
+    <main class="bg-white">
+      {{ block "content" . }}
+        Fallback, if "content" is not defined elsewhere
+      {{ end }}
+    </main>
+  </div>
+</div>

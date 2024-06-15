@@ -645,7 +645,7 @@ func (r *Renderer) AddLayoutData(context string, layoutName string, dataFunc Dat
 	}
 
 	if _, exists := r.views[context].rawLayouts[layoutName]; !exists {
-		return fmt.Errorf("%w: could not add layout data", ErrCreateRendererFailed)
+		return fmt.Errorf("%w: could not add layout data: missing layout", ErrCreateRendererFailed)
 	}
 
 	funcs := r.contextData[context][layoutName]

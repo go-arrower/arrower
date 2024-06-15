@@ -1,0 +1,105 @@
+{{ define "admin.title" }}
+  <div class="indicator">
+    <span
+      class="badge indicator-item badge-accent text-accent-content"
+      hx-get="{{ route "admin.jobs.finished_total" }}"
+      hx-trigger="load, every 10s, arrower:admin.jobs.filter.changed from:body"
+      hx-include="#queue, #job-type"
+    ></span>
+    Finished Jobs
+  </div>
+{{ end }}
+
+
+<div class="flex">
+  <select
+    class="select w-full max-w-xs border-0 focus:outline-none"
+    autocomplete="off"
+    name="queue"
+    id="queue"
+    hx-get="{{ route "admin.jobs.finished" }}"
+    hx-target="#jobs-list"
+  >
+    <option disabled selected value="">Filter by Queue</option>
+    {{ range .Queues }}
+      <option value="{{ . }}">
+        {{ . }}
+      </option>
+    {{ end }}
+  </select>
+
+  {{ block "known-job-types" . }}
+    <select
+      class="select w-full max-w-xs border-0 focus:outline-none"
+      autocomplete="off"
+      name="job-type"
+      id="job-type"
+      hx-get="{{ route "admin.jobs.finished" }}"
+      hx-target="#jobs-list"
+      hx-include="#queue"
+    >
+      <option
+        disabled
+        selected
+        value=""
+        hx-get="{{ route "admin.jobs.finished" }}"
+        hx-trigger="arrower:admin.jobs.filter.changed from:body"
+        hx-include="#queue, #job-type"
+        hx-vals='{"updateJobTypes": "true"}'
+        hx-target="closest select"
+        hx-swap="outerHTML"
+      >
+        Filter by Job Type
+      </option>
+      {{ $.Selected }}
+      {{ range .JobType }}
+        {{ eq $.Selected . }}
+        <option value="{{ . }}" {{ if eq $.Selected . }}selected{{ end }}>
+          {{ . }}
+        </option>
+      {{ end }}
+    </select>
+  {{ end }}
+</div>
+
+{{ block "jobs.list" . }}
+  <div id="jobs-list" class="overflow-x-auto">
+    <table class="table table-zebra">
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Queue</th>
+          <th>Finished</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{ range .Jobs }}
+          <tr>
+            <td>
+              <div>
+                <span class="text-lg text-primary">
+                  <a href="{{ route "admin.jobs.job" .ID }}">{{ .Type }}</a>
+                </span>
+                <br />
+                <pre
+                  class="whitespace-pre-wrap rounded p-1 hover:bg-neutral hover:text-neutral-content"
+                >
+{{ .Payload }}</pre
+                >
+                <span class="text-xs">Enqueued {{ .EnqueuedAtFmt }}</span>
+              </div>
+            </td>
+            <td class="align-top text-secondary">
+              <a href="{{ route "admin.jobs.queue" .Queue }}">{{ .Queue }}</a>
+            </td>
+            <td class="align-top">{{ .FinishedAtFmt }}</td>
+          </tr>
+        {{ else }}
+          <tr class="border-none">
+            <td colspan="3" class="text-center">No Jobs.</td>
+          </tr>
+        {{ end }}
+      </tbody>
+    </table>
+  </div>
+{{ end }}
