@@ -21,6 +21,20 @@ CREATE INDEX IF NOT EXISTS idx_gue_jobs_selector ON arrower.gue_jobs (queue, run
 
 SELECT enable_automatic_updated_at('arrower.gue_jobs');
 
+
+CREATE TABLE IF NOT EXISTS arrower.gueron_meta
+(
+    queue        TEXT                     NOT NULL PRIMARY KEY,
+    hash         TEXT                     NOT NULL,
+    scheduled_at TIMESTAMPTZ              NOT NULL,
+    horizon_at   TIMESTAMPTZ              NOT NULL,
+    created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+SELECT enable_automatic_updated_at('arrower.gueron_meta');
+
+
 SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM arrower.gue_jobs');
 
 

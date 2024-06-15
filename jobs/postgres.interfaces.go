@@ -18,6 +18,7 @@ import (
 	"github.com/vgarvardt/gue/v5"
 	"github.com/vgarvardt/gue/v5/adapter"
 	"github.com/vgarvardt/gue/v5/adapter/pgxv5"
+	"github.com/vgarvardt/gueron/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -79,6 +80,7 @@ func NewPostgresJobs(
 		},
 		gitHash:            gitHash(),
 		modulePath:         modulePath(),
+		scheduler:          nil, // has to be set after all opts have benn applied
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
 		mu:                 sync.Mutex{},
@@ -104,6 +106,20 @@ func NewPostgresJobs(
 
 	handler.gueClient = gc
 
+	scheduler, err := gueron.NewScheduler(
+		poolAdapter,
+		gueron.WithQueueName(handler.queue),
+		gueron.WithHorizon(time.Hour),
+		gueron.WithLogger(gueLogger),
+		gueron.WithMeter(meter),
+		gueron.WithPollInterval(handler.pollInterval),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("could not create cron scheduler: %w", err)
+	}
+
+	handler.scheduler = scheduler
+
 	return handler, nil
 }
 
@@ -122,6 +138,7 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 	queueOpt
 	gitHash    string
 	modulePath string
+	scheduler  *gueron.Scheduler
 
 	shutdownWorkerPool context.CancelFunc
 	groupWorkerPool    *errgroup.Group
@@ -182,6 +199,38 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 	err = h.gueClient.EnqueueBatch(ctx, gueJobs)
 	if err != nil {
 		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrEnqueueFailed, err) //nolint:errorlint // prevent err in api
+	}
+
+	return nil
+}
+
+func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
+	if reflect.TypeOf(job).Kind() != reflect.Struct {
+		return ErrInvalidJobType
+	}
+
+	jobType, fullPath, err := getJobTypeFromType(reflect.TypeOf(job), h.modulePath)
+	if err != nil {
+		return fmt.Errorf("%w: could not get job type: %w", ErrScheduleFailed, err)
+	}
+
+	args, err := json.Marshal(PersistencePayload{
+		JobStructPath:    fullPath,
+		JobData:          job,
+		GitHashEnqueued:  h.gitHash,
+		GitHashProcessed: "",
+		Ctx: PersistenceCtxPayload{
+			UserID:  "",
+			Carrier: nil,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("%w: could not marshal cron: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	_, err = h.scheduler.Add(spec, jobType, args)
+	if err != nil {
+		return fmt.Errorf("%w: could not schedule cron: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return nil
@@ -530,15 +579,25 @@ func (h *PostgresJobsHandler) startWorkers() error {
 	}
 
 	ctx, shutdown := context.WithCancel(context.Background())
+	group, gctx := errgroup.WithContext(ctx)
 
-	go h.continuouslyRegisterWorkerPool(ctx)
+	go h.continuouslyRegisterWorkerPool(gctx)
 
 	// work jobs in goroutine
-	group, gctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
 		err := workers.Run(gctx)
 		if err != nil {
 			return fmt.Errorf("gue worker failed: %w", err)
+		}
+
+		return nil
+	})
+
+	// start scheduler in goroutine
+	group.Go(func() error {
+		err := h.scheduler.Run(context.Background(), h.gueWorkMap, 0) // zero => use pool of queue above instead
+		if err != nil {
+			return fmt.Errorf("gueron worker failed: %w", err)
 		}
 
 		return nil

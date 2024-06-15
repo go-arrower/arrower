@@ -19,6 +19,7 @@ var (
 	ErrRegisterJobFuncFailed = errors.New("register JobFunc failed")
 	ErrInvalidJobFunc        = fmt.Errorf("%w: invalid JobFunc func signature", ErrRegisterJobFuncFailed)
 	ErrEnqueueFailed         = errors.New("enqueue failed")
+	ErrScheduleFailed        = errors.New("schedule failed")
 	ErrInvalidJobType        = fmt.Errorf("%w: invalid job type", ErrEnqueueFailed)
 	ErrInvalidJobOpt         = fmt.Errorf("%w: invalid job option", ErrEnqueueFailed)
 	ErrInvalidQueueOpt       = errors.New("todo")
@@ -33,8 +34,32 @@ type Enqueuer interface {
 	Enqueue(ctx context.Context, job Job, jobOptions ...JobOption) error
 }
 
+// Scheduler is an interface that allows Jobs to be regularly scheduled.
+type Scheduler interface {
+	// Schedule schedules a Job repeatingly. Spec is the crontab format with some additional nonstandard definitions.
+	//
+	// ┌───────────── minute (0 - 59)
+	// │ ┌───────────── hour (0 - 23)
+	// │ │ ┌───────────── day of the month (1 - 31)
+	// │ │ │ ┌───────────── month (1 - 12)
+	// │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+	// │ │ │ │ │                                   7 is also Sunday on some systems)
+	// │ │ │ │ │
+	// │ │ │ │ │
+	// * * * * *
+	//
+	// `@yearly` (or `@annually`)	=> `0 0 1 1 *`
+	// `@monthly` 					=> `0 0 1 * *`
+	// `@weekly` 					=> `0 0 * * 0`
+	// `@daily` (or `@midnight`) 	=> `0 0 * * *`
+	// `@hourly` 					=> `0 * * * *`
+	// `@every [interval]` where interval is the duration string that can be parsed by time.ParseDuration.
+	Schedule(spec string, job Job) error
+}
+
 type Queue interface {
 	Enqueuer
+	Scheduler
 
 	// RegisterJobFunc registers a new JobFunc in the Queue. The name of the Job struct of JobFunc is used
 	// as the job type, except Job implements the JobType interface. Then that is used as a job type.

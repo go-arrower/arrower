@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/jobs"
@@ -115,6 +117,62 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 
 		wg.Wait()
 		jq.Assert(t).QueuedTotal(totalProducers)
+	})
+}
+
+func TestInMemoryQueue_Schedule(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid schedule", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.NewTestingJobs()
+
+		err := jq.Schedule("", simpleJob{})
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, jobs.ErrScheduleFailed)
+	})
+
+	t.Run("invalid job", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.NewTestingJobs()
+
+		err := jq.Schedule("@every 1ms", nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("run cron", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			mu      sync.Mutex
+			counter int
+		)
+
+		jq := jobs.NewTestingJobs()
+		err := jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
+			mu.Lock()
+			defer mu.Unlock()
+
+			counter++
+			assert.NotEmpty(t, job.Name)
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Schedule("@every 1ms", jobWithArgs{Name: gofakeit.Name()})
+		assert.NoError(t, err)
+		err = jq.Schedule("@every 1ms", jobWithArgs{Name: gofakeit.Name()})
+		assert.NoError(t, err)
+
+		jq.Start(ctx)
+
+		// it looks like the cron library ignores 1ms values and always ticks at a second mark
+		time.Sleep(2100 * time.Millisecond)
+
+		assert.GreaterOrEqual(t, counter, 4)
 	})
 }
 

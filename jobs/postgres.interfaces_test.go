@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestNewGueJobs(t *testing.T) {
+func TestNewPostgresJobs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("initialise a new PostgresJobsHandler", func(t *testing.T) {
@@ -164,13 +164,14 @@ func TestNewGueJobs(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
+			time.Sleep(1 * time.Second)
 			wg.Wait()
 			_ = jq.Shutdown(ctx)
 		})
 	})
 }
 
-func TestGueHandler_RegisterJobFunc(t *testing.T) {
+func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ensure JobFunc is of type func and signature has two arguments with first ctx and returns error", func(t *testing.T) {
@@ -289,7 +290,7 @@ func TestGueHandler_RegisterJobFunc(t *testing.T) {
 	})
 }
 
-func TestGueHandler_Enqueue(t *testing.T) {
+func TestPostgresJobs_Enqueue(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid job", func(t *testing.T) {
@@ -383,7 +384,7 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		wg.Wait()                          // all workers are done, and now:
 		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
-		ensureJobTableRows(t, pg, 0)        // all Jobs are processed
+		ensureJobTableRows(t, pg, 0+1)      // all Jobs are processed and cron jobs are left
 		ensureJobHistoryTableRows(t, pg, 4) // history has all Jobs
 
 		_ = jq.Shutdown(ctx)
@@ -422,7 +423,7 @@ func TestGueHandler_Enqueue(t *testing.T) {
 		wg.Wait()                          // all workers are done, and now:
 		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
-		ensureJobTableRows(t, pg, 0)        // all Jobs are processed
+		ensureJobTableRows(t, pg, 0+1)      // all Jobs are processed and cron jobs are left
 		ensureJobHistoryTableRows(t, pg, 2) // history has all Jobs
 
 		_ = jq.Shutdown(ctx)
@@ -479,7 +480,63 @@ func TestGueHandler_Enqueue(t *testing.T) {
 	})
 }
 
-func TestGueHandler_StartWorkers(t *testing.T) {
+func TestPostgresJobsHandler_Schedule(t *testing.T) {
+	t.Parallel()
+
+	t.Run("schedule a task", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			wg      sync.WaitGroup
+			mu      sync.Mutex
+			counter int
+		)
+
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error {
+			mu.Lock()
+			defer mu.Unlock()
+
+			// prevent calling Done() on a finished wg, panic: WaitGroup is reused before previous Wait has returned
+			if counter < 2 {
+				wg.Done()
+			}
+
+			counter++
+
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = jq.Schedule("@every 1ms", simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Add(2)
+		wg.Wait()                          // all workers are done, and now:
+		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
+		_ = jq.Shutdown(ctx)
+
+		var c int
+		err = pgxscan.Get(ctx, pg, &c, `SELECT COUNT(*) FROM arrower.gue_jobs;`)
+		assert.NoError(t, err)
+		assert.Greater(t, c, 3590, "60*60-2+1 = 3599 expected: horizon 1 hour -2 crons processed + one job of gueron")
+		// to prevent any timing issues: don't assert on the exact number
+
+		var hJobs []gueJobHistory
+		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM arrower.gue_jobs_history`)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(hJobs), 2)
+		assert.Contains(t, hJobs[0].JobType, "simpleJob")
+		assert.Contains(t, hJobs[1].JobType, "simpleJob")
+	})
+}
+
+func TestPostgresJobs_StartWorkers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("restart queue if RegisterJobFunc is called after start", func(t *testing.T) {
@@ -582,7 +639,7 @@ func TestGueHandler_StartWorkers(t *testing.T) {
 	})
 }
 
-func TestGueHandler_History(t *testing.T) {
+func TestPostgresJobs_History(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ensure successful jobs are recorded into gue_jobs_history table", func(t *testing.T) {
@@ -759,7 +816,7 @@ func TestGueHandler_History(t *testing.T) {
 	})
 }
 
-func TestGueHandler_Shutdown(t *testing.T) {
+func TestPostgresJobs_Shutdown(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ensure shutdown can be called without workers started", func(t *testing.T) {
@@ -838,7 +895,7 @@ func TestGueHandler_Shutdown(t *testing.T) {
 	})
 }
 
-func TestGueHandler_Tx(t *testing.T) {
+func TestPostgresJobs_Tx(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ensure tx from ctx is used and job is not enqueued on rollback", func(t *testing.T) {
@@ -928,7 +985,7 @@ func TestGueHandler_Tx(t *testing.T) {
 	})
 }
 
-func TestGueHandler_Instrumentation(t *testing.T) {
+func TestPostgresJobs_Instrumentation(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ensure worker has ctx data set after persistence", func(t *testing.T) {

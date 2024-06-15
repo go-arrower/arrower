@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +23,10 @@ func NewTestingJobs() *InMemoryQueue {
 		workerMap: map[string]JobFunc{},
 
 		cancel: func() {},
+
+		cron: cron.New(cron.WithParser(
+			cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor),
+		)),
 	}
 }
 
@@ -42,6 +47,8 @@ type InMemoryQueue struct { //nolint:govet // alignment less important than grou
 	workerMap map[string]JobFunc
 
 	cancel context.CancelFunc
+
+	cron *cron.Cron
 }
 
 var _ Queue = (*InMemoryQueue)(nil)
@@ -70,6 +77,25 @@ func (q *InMemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) erro
 	return nil
 }
 
+func (q *InMemoryQueue) Schedule(spec string, job Job) error {
+	err := ensureValidJobTypeForEnqueue(job)
+	if err != nil {
+		return err
+	}
+
+	_, err = q.cron.AddFunc(spec, func() {
+		q.mu.Lock()
+		defer q.mu.Unlock()
+
+		q.jobs = append(q.jobs, job)
+	})
+	if err != nil {
+		return fmt.Errorf("%w: could not schedule job: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	return nil
+}
+
 func (q *InMemoryQueue) RegisterJobFunc(jf JobFunc) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -86,6 +112,9 @@ func (q *InMemoryQueue) RegisterJobFunc(jf JobFunc) error {
 
 func (q *InMemoryQueue) Shutdown(_ context.Context) error {
 	q.cancel()
+
+	wait := q.cron.Stop()
+	<-wait.Done()
 
 	return nil
 }
@@ -178,10 +207,12 @@ func (q *InMemoryQueue) Start(ctx context.Context) {
 	q.cancel = cancel
 
 	go q.runWorkers(ctx)
+	go q.cron.Run()
 }
 
 func (q *InMemoryQueue) runWorkers(ctx context.Context) {
-	interval := time.NewTicker(time.Second)
+	const tickerDuration = 10 * time.Millisecond
+	interval := time.NewTicker(tickerDuration)
 
 	for {
 		select {
@@ -205,7 +236,11 @@ func (q *InMemoryQueue) processFirstJob() {
 	job, q.jobs = q.jobs[0], q.jobs[1:]
 
 	jt, _, _ := getJobTypeFromType(reflect.TypeOf(job), q.modulePath)
-	workerFn := q.workerMap[jt]
+
+	workerFn, exists := q.workerMap[jt]
+	if !exists { // silently fail, if no JobFunc is registered
+		return
+	}
 
 	// call the JobFunc
 	fn := reflect.ValueOf(workerFn)
