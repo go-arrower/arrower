@@ -1,3 +1,11 @@
+// Package jobs provides an easy way to run workload in the background.
+//
+// To do so create a Queue and customise it with different QueueOptions.
+// Jobs can be any struct with arbitrary payload,
+// and they can be enqueued to run ones or scheduled to run repeatedly.
+//
+// To ensure your features are implemented correctly a InMemoryQueue is available
+// offering common test assertions.
 package jobs
 
 import (
@@ -6,14 +14,14 @@ import (
 	"fmt"
 	"time"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/vgarvardt/gue/v5"
 	"go.opentelemetry.io/otel/propagation"
-
-	"github.com/go-arrower/arrower"
 )
 
-// CtxJobID contains the current job ID.
-const CtxJobID arrower.CTXKey = "arrower.jobs"
+// CTXJobID contains the current job ID.
+const CTXJobID ctx2.CTXKey = "arrower.jobs"
 
 var (
 	ErrRegisterJobFuncFailed = errors.New("register JobFunc failed")
@@ -48,11 +56,11 @@ type Scheduler interface {
 	// │ │ │ │ │
 	// * * * * *
 	//
-	// `@yearly` (or `@annually`)	=> `0 0 1 1 *`
-	// `@monthly` 					=> `0 0 1 * *`
-	// `@weekly` 					=> `0 0 * * 0`
-	// `@daily` (or `@midnight`) 	=> `0 0 * * *`
-	// `@hourly` 					=> `0 * * * *`
+	// `@yearly` (or `@annually`)   => `0 0 1 1 *`
+	// `@monthly`                   => `0 0 1 * *`
+	// `@weekly`                    => `0 0 * * 0`
+	// `@daily` (or `@midnight`)    => `0 0 * * *`
+	// `@hourly`                    => `0 * * * *`
 	// `@every [interval]` where interval is the duration string that can be parsed by time.ParseDuration.
 	Schedule(spec string, job Job) error
 }
@@ -115,6 +123,7 @@ const (
 	// PriorityPollStrategy cares about the priority first to lock top priority Jobs first even if there are available
 	// ones that should be executed earlier but with lower priority.
 	PriorityPollStrategy PollStrategy = iota
+
 	// RunAtPollStrategy cares about the scheduled time first to lock earliest to execute jobs first even if there
 	// are ones with a higher priority scheduled to a later time but already eligible for execution.
 	RunAtPollStrategy
@@ -213,15 +222,15 @@ type (
 		GitHashProcessed string `json:"gitHashProcessed"`
 
 		// Ctx persists some NOT ALL information stored in the context.
-		Ctx PersistenceCtxPayload `json:"ctx"`
+		Ctx PersistenceCTXPayload `json:"ctx"`
 	}
 
-	// PersistenceCtxPayload contains a selected subset of the values stored in the request ctx.
+	// PersistenceCTXPayload contains a selected subset of the values stored in the request ctx.
 	// These values are partially handed down to the job worker's ctx.
 	//
 	// Note: slog.Attr saves the value as a pointer and does not persist when marshalled to json.
 	//nolint:govet // fieldalignment not important compared to sort order of fields when serialising.
-	PersistenceCtxPayload struct {
+	PersistenceCTXPayload struct {
 		UserID string `json:"userId"`
 
 		// Carrier contains the otel tracing information.
@@ -229,8 +238,9 @@ type (
 	}
 )
 
+// FromContext returns the CTXJobID.
 func FromContext(ctx context.Context) (string, bool) {
-	jobID, ok := ctx.Value(CtxJobID).(string)
+	jobID, ok := ctx.Value(CTXJobID).(string)
 
 	return jobID, ok
 }

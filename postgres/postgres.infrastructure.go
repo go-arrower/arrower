@@ -10,18 +10,18 @@ import (
 	"net"
 	"strconv"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/go-arrower/arrower"
 )
 
 // CtxTX contains a database transaction, only if set by e.g. a middleware.
-const CtxTX arrower.CTXKey = "arrower.tx"
+const CtxTX ctx2.CTXKey = "arrower.tx"
 
 //go:embed migrations/*.sql
 var ArrowerDefaultMigrations embed.FS

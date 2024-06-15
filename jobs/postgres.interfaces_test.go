@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +22,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
@@ -1010,7 +1011,7 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 			assert.True(t, exists)
 			assert.NotEmpty(t, jobID, "ctx needs a jobID")
 
-			userID, ok := ctx.Value(arrower.CtxAuthUserID).(string)
+			userID, ok := ctx.Value(ctx2.CtxAuthUserID).(string)
 			assert.True(t, ok)
 			assert.Equal(t, "user-id", userID)
 
@@ -1020,7 +1021,7 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = jq.Enqueue(context.WithValue(ctx, arrower.CtxAuthUserID, "user-id"), simpleJob{})
+		err = jq.Enqueue(context.WithValue(ctx, ctx2.CtxAuthUserID, "user-id"), simpleJob{})
 		assert.NoError(t, err)
 
 		wg.Wait()
@@ -1040,7 +1041,7 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 
 		wg.Add(1)
 		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
-			userID := ctx.Value(arrower.CtxAuthUserID)
+			userID := ctx.Value(ctx2.CtxAuthUserID)
 			assert.Nil(t, userID, "if userID is not set, prevent invalid value to make uuid.MustParse work")
 
 			wg.Done()

@@ -3,12 +3,12 @@ package app
 import (
 	"context"
 
-	"github.com/go-playground/validator/v10"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 
-	"github.com/go-arrower/arrower"
+	"github.com/go-playground/validator/v10"
 )
 
-const CtxValidated arrower.CTXKey = "arrower.validated"
+const CtxValidated ctx2.CTXKey = "arrower.validated"
 
 // PassedValidation is a helper giving you feedback, if a request passed validation of this middleware.
 // Use it in case you want to ensure that this middleware was called before continuing with your business logic.

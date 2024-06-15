@@ -9,11 +9,12 @@ import (
 	"os"
 	"testing"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/setting"
 )
@@ -300,7 +301,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 			// dynamically add userID to the setting of users to log
 			settings.Save(ctx, alog.SettingLogUsers, setting.NewValue([]string{userID}))
 
-			ctx = context.WithValue(ctx, arrower.CtxAuthUserID, userID)
+			ctx = context.WithValue(ctx, ctx2.CtxAuthUserID, userID)
 			logger.Log(ctx, slog.LevelDebug, "debug")
 
 			assert.Contains(t, buf.String(), "debug")

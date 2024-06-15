@@ -14,8 +14,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog/models"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 var ErrLogFailed = errors.New("could not save log")
@@ -128,7 +128,7 @@ func (l *PostgresHandler) Enabled(_ context.Context, _ slog.Level) bool {
 
 func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error {
 	var userID uuid.NullUUID
-	if v, ok := ctx.Value(arrower.CtxAuthUserID).(string); ok { // auth.CurrentUserID() // TODO use auth.CtxAuthUserID
+	if v, ok := ctx.Value(ctx2.CtxAuthUserID).(string); ok { // auth.CurrentUserID() // TODO use auth.CtxAuthUserID
 		userID = uuid.NullUUID{
 			UUID:  uuid.MustParse(v),
 			Valid: true,

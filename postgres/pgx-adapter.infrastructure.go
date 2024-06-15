@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/go-arrower/arrower"
 )
 
-const spanKey arrower.CTXKey = "otel_span"
+const spanKey ctx2.CTXKey = "otel_span"
 
 var (
 	_ pgx.QueryTracer    = (*pgxTraceAdapter)(nil)

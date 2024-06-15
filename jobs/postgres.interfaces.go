@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +28,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -219,7 +220,7 @@ func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
 		JobData:          job,
 		GitHashEnqueued:  h.gitHash,
 		GitHashProcessed: "",
-		Ctx: PersistenceCtxPayload{
+		Ctx: PersistenceCTXPayload{
 			UserID:  "",
 			Carrier: nil,
 		},
@@ -294,14 +295,14 @@ func buildAndAppendGueJob(
 	opts ...JobOption,
 ) ([]*gue.Job, error) {
 	var userID string
-	userID, _ = ctx.Value(arrower.CtxAuthUserID).(string)
+	userID, _ = ctx.Value(ctx2.CtxAuthUserID).(string)
 
 	args, err := json.Marshal(PersistencePayload{
 		JobStructPath:    fullPath,
 		JobData:          job,
 		GitHashEnqueued:  gitHash,
 		GitHashProcessed: "",
-		Ctx: PersistenceCtxPayload{
+		Ctx: PersistenceCTXPayload{
 			Carrier: carrier,
 			UserID:  userID,
 		},
@@ -496,11 +497,11 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 		)
 
 		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
-		ctx = context.WithValue(ctx, CtxJobID, job.ID.String())
+		ctx = context.WithValue(ctx, CTXJobID, job.ID.String())
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		if payload.Ctx.UserID != "" {
-			ctx = context.WithValue(ctx, arrower.CtxAuthUserID, payload.Ctx.UserID)
+			ctx = context.WithValue(ctx, ctx2.CtxAuthUserID, payload.Ctx.UserID)
 		}
 
 		// call the JobFunc

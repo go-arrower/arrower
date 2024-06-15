@@ -3,12 +3,12 @@ package mw
 import (
 	"context"
 
-	"github.com/go-playground/validator/v10"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 
-	"github.com/go-arrower/arrower"
+	"github.com/go-playground/validator/v10"
 )
 
-const CtxValidated arrower.CTXKey = "arrower.validated"
+const CtxValidated ctx2.CTXKey = "arrower.validated"
 
 // Validate validates the incoming request / DTO in according to its validation tags and returns in a case of error.
 // If you don't pass a validator a default one is used. Possible drawback: validator.Validate uses caching
