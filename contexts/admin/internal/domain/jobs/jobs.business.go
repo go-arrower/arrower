@@ -54,11 +54,11 @@ type (
 	}
 
 	WorkerPool struct {
-		LastSeen time.Time
 		ID       string
-		Queue    QueueName
-		Workers  int
 		Version  string
+		Queue    QueueName
+		LastSeen time.Time
 		JobTypes []JobType
+		Workers  int
 	}
 )
