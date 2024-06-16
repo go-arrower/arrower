@@ -11,6 +11,8 @@ import (
 	"io/fs"
 	"log/slog"
 
+	"github.com/go-arrower/arrower/alog"
+
 	"github.com/go-arrower/arrower"
 	alogmodels "github.com/go-arrower/arrower/alog/models"
 	"github.com/go-arrower/arrower/app"
@@ -42,6 +44,7 @@ func NewAdminContext(ctx context.Context, di *arrower.Container) (*AdminContext,
 
 type AdminContext struct {
 	globalContainer *arrower.Container
+	logger          alog.Logger
 
 	jobRepository jobs.Repository
 
@@ -91,6 +94,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 	admin := &AdminContext{
 		globalContainer: di,
+		logger:          logger,
 
 		jobRepository: jobRepository,
 
@@ -116,9 +120,6 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 	{ // add context-specific web views.
 		var views fs.FS = views.AdminViews
 		//if di.Config.Debug { // TODO fix when running debug from other repo than arrower
-		//	fmt.Println(os.Getwd())
-		//	fmt.Println(os.Getwd())
-		//	fmt.Println(os.Getwd())
 		//	views = os.DirFS("contexts/admin/internal/views")
 		//}
 

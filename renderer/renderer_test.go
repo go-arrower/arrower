@@ -346,12 +346,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("shared component", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViews(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViews(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "#c1", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "#c1", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), testdata.C1Content)
@@ -360,12 +360,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("overwrite shared component", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViews(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViews(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "#c0", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "#c0", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), testdata.C0ContextContent, "context component overwrites shared component with same name")
@@ -374,12 +374,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("context layout and page", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 			t.Log(buf.String())
 			assert.Contains(t, buf.String(), testdata.P0ContextContent)
@@ -407,12 +407,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("context page fragment", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "p1#f", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "p1#f", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "fragment")
@@ -424,14 +424,14 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("context page rendered as admin", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
-			err = renderer.AddContext("admin", testdata.ContextAdmin)
+			err = render.AddContext("admin", testdata.ContextAdmin)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, "/admin/"+testdata.ExampleContext, "p0", nil)
+			err = render.Render(ctx, buf, "/admin/"+testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -446,12 +446,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("shared page", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "shared", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "shared", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -465,12 +465,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("overwrite shared page", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "conflict-page", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "conflict-page", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -488,12 +488,12 @@ func TestRenderer_Render(t *testing.T) {
 		t.Run("context layout and page", func(t *testing.T) {
 			t.Parallel()
 
-			renderer, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, true)
-			err := renderer.AddContext(testdata.ExampleContext, testdata.ContextViews)
+			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, true)
+			err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = renderer.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+			err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 			t.Log(buf.String())
 			assert.Contains(t, buf.String(), testdata.P0ContextContent)
@@ -506,6 +506,20 @@ func TestRenderer_Render(t *testing.T) {
 			assert.NotContains(t, buf.String(), testdata.C0Content, "c0 is overwritten")
 		})
 	})
+
+	//t.Run("no base", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	render, err := renderer.New(nil, nil, fstest.MapFS{
+	//		"pages/p0.html": {Data: []byte("p0")},
+	//	}, template.FuncMap{}, true)
+	//	assert.NoError(t, err)
+	//
+	//	buf := &bytes.Buffer{}
+	//	err = render.Render(ctx, buf, "", "p0", nil)
+	//	assert.NoError(t, err)
+	//	assert.Contains(t, buf.String(), "p0")
+	//})
 }
 
 func TestRenderer_AddContext(t *testing.T) {

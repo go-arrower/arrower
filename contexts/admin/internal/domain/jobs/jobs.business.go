@@ -9,6 +9,13 @@ import (
 
 var ErrJobLockedAlready = fmt.Errorf("%w: job might be processing already", postgres.ErrQueryFailed)
 
+const DefaultQueueName = QueueName("Default")
+
+type (
+	QueueName  string
+	QueueNames []QueueName
+)
+
 type (
 	JobType string
 
@@ -30,10 +37,10 @@ type (
 		CreatedAt  time.Time
 		UpdatedAt  time.Time
 		RunAt      time.Time
-		RunAtFmt   string
+		RunAtFmt   string // TODO REMOVE
 		ID         string
 		Type       string
-		Queue      string
+		Queue      string // TODO change type
 		Payload    string
 		LastError  string
 		ErrorCount int32

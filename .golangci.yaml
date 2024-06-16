@@ -288,6 +288,12 @@ issues:
         - wsl
       text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together"
 
+    # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
+    - path: "contexts/(.*)/init/(.*).go"
+      linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments"
+
     # Allow patterns that are considered best practices for Corba CLI applications
     - path: arrower/cmd
       linters:
