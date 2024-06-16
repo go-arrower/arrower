@@ -28,14 +28,12 @@ func NewJobsController(
 	logger alog.Logger,
 	queries *models.Queries,
 	repo jobs.Repository,
-	app application.JobsApplication,
 	appDI application.App,
 ) *JobsController {
 	return &JobsController{
 		logger:  logger,
 		queries: queries,
 		repo:    repo,
-		app:     app,
 		appDI:   appDI,
 	}
 }
@@ -45,7 +43,6 @@ type JobsController struct {
 
 	queries *models.Queries
 	repo    jobs.Repository
-	app     application.JobsApplication
 	appDI   application.App
 }
 
@@ -197,7 +194,7 @@ func (jc *JobsController) RescheduleJob() func(c echo.Context) error {
 		q := c.Param("queue")
 		jobID := c.Param("job_id")
 
-		_ = jc.app.RescheduleJob(c.Request().Context(), application.RescheduleJobRequest{JobID: jobID})
+		_ = jc.repo.RunJobAt(c.Request().Context(), jobID, time.Now())
 
 		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+q)
 	}
@@ -351,7 +348,7 @@ func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error 
 
 func (jc *JobsController) CreateJobs() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		queues, _ := jc.app.Queues(c.Request().Context())
+		queues, _ := jc.repo.Queues(c.Request().Context())
 
 		jobType, _ := jc.appDI.JobTypesForQueue.H(
 			c.Request().Context(),

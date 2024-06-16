@@ -27,7 +27,7 @@ type vacuumJobTableRequestHandler struct {
 
 type (
 	VacuumJobTableRequest struct {
-		Table string // todo require this field
+		Table string
 	}
 
 	VacuumJobTableResponse struct {
@@ -44,7 +44,7 @@ func (h *vacuumJobTableRequestHandler) H(
 		return VacuumJobTableResponse{}, fmt.Errorf("%w: invalid table: %s", ErrVacuumJobTableFailed, req.Table)
 	}
 
-	_, err := h.db.Exec(ctx, fmt.Sprintf(`VACUUM FULL arrower.%s`, validTables()[req.Table]))
+	_, err := h.db.Exec(ctx, `VACUUM FULL arrower.`+validTables()[req.Table])
 	if err != nil {
 		return VacuumJobTableResponse{}, fmt.Errorf("%w for table: %s: %v", ErrVacuumJobTableFailed, req.Table, err) //nolint:errorlint,lll // prevent err in api
 	}

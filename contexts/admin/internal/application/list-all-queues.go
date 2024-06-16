@@ -28,8 +28,6 @@ type (
 	}
 )
 
-// todo how different to Queues and make that clear in the naming of the methods
-// ListAllQueues returns all Queues.
 func (h *listAllQueuesQueryHandler) H(ctx context.Context, _ ListAllQueuesQuery) (ListAllQueuesResponse, error) {
 	queues, err := h.repo.Queues(ctx)
 	if err != nil {

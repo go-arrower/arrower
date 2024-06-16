@@ -103,10 +103,6 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 			logger,
 			models.New(di.PGx),
 			jobRepository,
-			application.NewLoggedJobsApplication(
-				application.NewJobsApplication(repository.NewPostgresJobsRepository(di.PGx)),
-				logger,
-			),
 			appDI,
 		),
 		logsController: web.NewLogsController(
