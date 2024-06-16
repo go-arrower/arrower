@@ -29,7 +29,7 @@ func (repo *TracedJobsRepository) Queues(ctx context.Context) (jobs.QueueNames, 
 	return repo.repo.Queues(ctx) //nolint:wrapcheck // this is decorator
 }
 
-func (repo *TracedJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.PendingJob, error) {
+func (repo *TracedJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.Job, error) {
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
 		Start(ctx, "repo", trace.WithAttributes(
 			attribute.String("method", "PendingJobs"),
@@ -84,7 +84,7 @@ func (repo *TracedJobsRepository) WorkerPools(ctx context.Context) ([]jobs.Worke
 	return repo.repo.WorkerPools(ctx) //nolint:wrapcheck // this is decorator
 }
 
-func (repo *TracedJobsRepository) FinishedJobs(ctx context.Context, f jobs.Filter) ([]jobs.PendingJob, error) {
+func (repo *TracedJobsRepository) FinishedJobs(ctx context.Context, f jobs.Filter) ([]jobs.Job, error) {
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("arrower.jobs").
 		Start(ctx, "repo", trace.WithAttributes(
 			attribute.String("method", "FinishedJobs"),

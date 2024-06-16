@@ -458,7 +458,7 @@ func presentWorkers(pool []jobs.WorkerPool) []pages.JobWorker {
 
 	for i, _ := range pool {
 		jobWorkers[i].ID = pool[i].ID
-		jobWorkers[i].Queue = pool[i].Queue
+		jobWorkers[i].Queue = string(pool[i].Queue)
 		jobWorkers[i].Workers = pool[i].Workers
 		jobWorkers[i].Version = pool[i].Version
 		jobWorkers[i].JobTypes = pool[i].JobTypes
@@ -522,24 +522,31 @@ type (
 	}
 
 	QueuePage struct {
-		Jobs      []jobs.PendingJob
+		Jobs      []viewJob
 		QueueName string
 		Stats     QueueStats
 	}
 )
 
-func buildQueuePage(queue string, jobs []jobs.PendingJob, kpis jobs.QueueKPIs) QueuePage {
-	jobs = prettyFormatPayload(jobs)
+func buildQueuePage(queue string, jobs []jobs.Job, kpis jobs.QueueKPIs) QueuePage {
+	vjobs := prettyFormatPayload(jobs)
 
 	return QueuePage{
 		QueueName: queue,
 		Stats:     queueKpiToStats(queue, kpis),
 
-		Jobs: jobs,
+		Jobs: vjobs,
 	}
 }
 
-func prettyFormatPayload(pJobs []jobs.PendingJob) []jobs.PendingJob {
+type viewJob struct {
+	jobs.Job
+	RunAtFmt string
+}
+
+func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
+	vJobs := make([]viewJob, len(pJobs))
+
 	for i := 0; i < len(pJobs); i++ { //nolint:varnamelen
 		var m application.JobPayload
 
@@ -552,13 +559,18 @@ func prettyFormatPayload(pJobs []jobs.PendingJob) []jobs.PendingJob {
 		}
 
 		if pJobs[i].Queue == "" {
-			pJobs[i].Queue = string(jobs.DefaultQueueName)
+			pJobs[i].Queue = jobs.DefaultQueueName
 		}
 		pJobs[i].Payload = prettyJSON.String()
-		pJobs[i].RunAtFmt = fmtRunAtTime(pJobs[i].RunAt)
+
+		vJobs[i] = viewJob{
+			Job:      pJobs[i],
+			RunAtFmt: fmtRunAtTime(pJobs[i].RunAt),
+		}
+
 	}
 
-	return pJobs
+	return vJobs
 }
 
 func fmtRunAtTime(tme time.Time) string {

@@ -9,7 +9,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 )
 
-func NewFinishedJobs(jobs []jobs.PendingJob, queues jobs.QueueNames) echo.Map {
+func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) echo.Map {
 	type finishedJob struct {
 		EnqueuedAtFmt string
 		FinishedAtFmt string
@@ -30,7 +30,7 @@ func NewFinishedJobs(jobs []jobs.PendingJob, queues jobs.QueueNames) echo.Map {
 		fjobs[i].FinishedAtFmt = TimeAgo(jobs[i].UpdatedAt) // todo use finished at
 		fjobs[i].ID = jobs[i].ID
 		fjobs[i].Type = jobs[i].Type
-		fjobs[i].Queue = jobs[i].Queue
+		fjobs[i].Queue = string(jobs[i].Queue)
 	}
 
 	return echo.Map{

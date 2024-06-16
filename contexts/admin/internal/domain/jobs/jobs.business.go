@@ -33,14 +33,13 @@ type (
 )
 
 type (
-	PendingJob struct {
+	Job struct {
 		CreatedAt  time.Time
 		UpdatedAt  time.Time
 		RunAt      time.Time
-		RunAtFmt   string // TODO REMOVE
 		ID         string
 		Type       string
-		Queue      string // TODO change type
+		Queue      QueueName
 		Payload    string
 		LastError  string
 		ErrorCount int32
@@ -59,7 +58,7 @@ type (
 	WorkerPool struct {
 		LastSeen time.Time
 		ID       string
-		Queue    string // todo change type
+		Queue    QueueName
 		Workers  int
 		Version  string
 		JobTypes []string

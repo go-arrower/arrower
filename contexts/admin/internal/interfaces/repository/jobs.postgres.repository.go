@@ -46,7 +46,7 @@ func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames
 	return queueNames, nil
 }
 
-func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.PendingJob, error) { // todo change signature to use queename type
+func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.Job, error) { // todo change signature to use queename type
 	name := queueNameFromDomain(queue)
 
 	jobs, err := repo.Conn().GetPendingJobs(ctx, name)
@@ -57,8 +57,8 @@ func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.
 	return jobsToDomain(jobs), nil
 }
 
-func jobsToDomain(j []models.ArrowerGueJob) []jobs.PendingJob {
-	jobs := make([]jobs.PendingJob, len(j))
+func jobsToDomain(j []models.ArrowerGueJob) []jobs.Job {
+	jobs := make([]jobs.Job, len(j))
 
 	for i := 0; i < len(j); i++ {
 		jobs[i] = jobToDomain(j[i])
@@ -67,8 +67,8 @@ func jobsToDomain(j []models.ArrowerGueJob) []jobs.PendingJob {
 	return jobs
 }
 
-func jobToDomain(job models.ArrowerGueJob) jobs.PendingJob {
-	return jobs.PendingJob{
+func jobToDomain(job models.ArrowerGueJob) jobs.Job {
+	return jobs.Job{
 		ID:         job.JobID,
 		Priority:   job.Priority,
 		RunAt:      job.RunAt.Time,
@@ -76,7 +76,7 @@ func jobToDomain(job models.ArrowerGueJob) jobs.PendingJob {
 		Payload:    string(job.Args),
 		ErrorCount: job.ErrorCount,
 		LastError:  job.LastError,
-		Queue:      job.Queue,
+		Queue:      jobs.QueueName(job.Queue),
 		CreatedAt:  job.CreatedAt.Time,
 		UpdatedAt:  job.UpdatedAt.Time,
 	}
@@ -223,7 +223,7 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	for i, w := range w {
 		workers[i] = jobs.WorkerPool{
 			ID:       w.ID,
-			Queue:    string(queueNameToDomain(w.Queue)), // todo change struct type
+			Queue:    queueNameToDomain(w.Queue),
 			Version:  w.GitHash,
 			JobTypes: w.JobTypes,
 			Workers:  int(w.Workers),
@@ -234,7 +234,7 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	return workers
 }
 
-func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, f jobs.Filter) ([]jobs.PendingJob, error) {
+func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, f jobs.Filter) ([]jobs.Job, error) {
 	queue := queueNameFromDomain(f.Queue)
 
 	if f.Queue != "" && f.JobType != "" {
@@ -298,8 +298,8 @@ func (repo *PostgresJobsRepository) FinishedJobsTotal(ctx context.Context, f job
 	return total, nil
 }
 
-func historyJobsToDomain(j []models.ArrowerGueJobsHistory) []jobs.PendingJob {
-	jobs := make([]jobs.PendingJob, len(j))
+func historyJobsToDomain(j []models.ArrowerGueJobsHistory) []jobs.Job {
+	jobs := make([]jobs.Job, len(j))
 
 	for i := 0; i < len(j); i++ {
 		jobs[i] = historyJobToDomain(j[i])
@@ -308,8 +308,8 @@ func historyJobsToDomain(j []models.ArrowerGueJobsHistory) []jobs.PendingJob {
 	return jobs
 }
 
-func historyJobToDomain(job models.ArrowerGueJobsHistory) jobs.PendingJob {
-	return jobs.PendingJob{
+func historyJobToDomain(job models.ArrowerGueJobsHistory) jobs.Job {
+	return jobs.Job{
 		ID:         job.JobID,
 		Priority:   job.Priority,
 		RunAt:      job.RunAt.Time,
@@ -317,7 +317,7 @@ func historyJobToDomain(job models.ArrowerGueJobsHistory) jobs.PendingJob {
 		Payload:    string(job.Args),
 		ErrorCount: job.RunCount,
 		LastError:  job.RunError,
-		Queue:      string(queueNameToDomain(job.Queue)), // todo change type of struct
+		Queue:      queueNameToDomain(job.Queue),
 		CreatedAt:  job.CreatedAt.Time,
 		UpdatedAt:  job.UpdatedAt.Time,
 	}

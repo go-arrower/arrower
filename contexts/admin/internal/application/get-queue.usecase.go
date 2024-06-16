@@ -24,7 +24,7 @@ type (
 		QueueName jobs.QueueName
 	}
 	GetQueueResponse struct {
-		Jobs []jobs.PendingJob
+		Jobs []jobs.Job
 		Kpis jobs.QueueKPIs
 	}
 )
