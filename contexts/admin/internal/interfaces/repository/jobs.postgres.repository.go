@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-arrower/arrower/postgres"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
+	"github.com/go-arrower/arrower/postgres"
 )
 
 func NewPostgresJobsRepository(pg *pgxpool.Pool) *PostgresJobsRepository {
@@ -36,6 +36,7 @@ func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames
 
 	queueNames := make(jobs.QueueNames, len(queues))
 	for i, q := range queues {
+
 		if q == "" {
 			q = string(jobs.DefaultQueueName)
 		}
@@ -46,7 +47,7 @@ func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames
 	return queueNames, nil
 }
 
-func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.Job, error) { // todo change signature to use queename type
+func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.QueueName) ([]jobs.Job, error) {
 	name := queueNameFromDomain(queue)
 
 	jobs, err := repo.Conn().GetPendingJobs(ctx, name)
@@ -72,7 +73,7 @@ func jobToDomain(job models.ArrowerGueJob) jobs.Job {
 		ID:         job.JobID,
 		Priority:   job.Priority,
 		RunAt:      job.RunAt.Time,
-		Type:       job.JobType,
+		Type:       jobs.JobType(job.JobType),
 		Payload:    string(job.Args),
 		ErrorCount: job.ErrorCount,
 		LastError:  job.LastError,
@@ -221,11 +222,17 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	workers := make([]jobs.WorkerPool, len(w))
 
 	for i, w := range w {
+		jt := []jobs.JobType{}
+
+		for _, t := range w.JobTypes {
+			jt = append(jt, jobs.JobType(t))
+		}
+
 		workers[i] = jobs.WorkerPool{
 			ID:       w.ID,
 			Queue:    queueNameToDomain(w.Queue),
 			Version:  w.GitHash,
-			JobTypes: w.JobTypes,
+			JobTypes: jt,
 			Workers:  int(w.Workers),
 			LastSeen: w.UpdatedAt.Time,
 		}
@@ -313,7 +320,7 @@ func historyJobToDomain(job models.ArrowerGueJobsHistory) jobs.Job {
 		ID:         job.JobID,
 		Priority:   job.Priority,
 		RunAt:      job.RunAt.Time,
-		Type:       job.JobType,
+		Type:       jobs.JobType(job.JobType),
 		Payload:    string(job.Args),
 		ErrorCount: job.RunCount,
 		LastError:  job.RunError,

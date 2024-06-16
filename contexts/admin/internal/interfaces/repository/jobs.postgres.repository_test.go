@@ -181,7 +181,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready)
 
 		pending, _ = repo.PendingJobs(ctx, "")
-		assert.Len(t, pending, 1, "delete should fail, as the job is currently processed and thus locked by the db")
+		assert.Len(t, pending, 1+1, "delete should fail, as the job is currently processed and thus locked by the db") // +1 is gueron job
 	})
 }
 

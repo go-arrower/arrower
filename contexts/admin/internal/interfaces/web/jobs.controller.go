@@ -1,13 +1,9 @@
 package web
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
-	"sort"
 	"strconv"
 	"time"
 
@@ -156,7 +152,7 @@ func (jc *JobsController) ShowQueue() func(c echo.Context) error {
 			return fmt.Errorf("%w", err)
 		}
 
-		page := buildQueuePage(queue, res.Jobs, res.Kpis)
+		page := pages.BuildQueuePage(queue, res.Jobs, res.Kpis)
 
 		return c.Render(http.StatusOK, "jobs.queue",
 			echo.Map{
@@ -177,7 +173,7 @@ func (jc *JobsController) ListWorkers() func(c echo.Context) error {
 
 		return c.Render(http.StatusOK, "jobs.workers", echo.Map{
 			"Title":   "Workers",
-			"workers": presentWorkers(res.Pool),
+			"workers": pages.PresentWorkers(res.Pool),
 		})
 	}
 }
@@ -450,162 +446,6 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 		}
 
 		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+queue)
-	}
-}
-
-func presentWorkers(pool []jobs.WorkerPool) []pages.JobWorker {
-	jobWorkers := make([]pages.JobWorker, len(pool))
-
-	for i, _ := range pool {
-		jobWorkers[i].ID = pool[i].ID
-		jobWorkers[i].Queue = string(pool[i].Queue)
-		jobWorkers[i].Workers = pool[i].Workers
-		jobWorkers[i].Version = pool[i].Version
-		jobWorkers[i].JobTypes = pool[i].JobTypes
-
-		sort.Slice(jobWorkers[i].JobTypes, func(ii, ij int) bool {
-			return jobWorkers[i].JobTypes[ii] <= jobWorkers[i].JobTypes[ij]
-		})
-
-		var warningSecondsWorkerPoolNotSeenSince time.Duration = 30
-
-		jobWorkers[i].LastSeenAtColourSuccess = true
-		if time.Since(pool[i].LastSeen)/time.Second >= warningSecondsWorkerPoolNotSeenSince {
-			jobWorkers[i].LastSeenAtColourSuccess = false
-		}
-
-		jobWorkers[i].NotSeenSince = notSeenSinceTimeString(pool[i].LastSeen, warningSecondsWorkerPoolNotSeenSince)
-	}
-
-	sort.Slice(jobWorkers, func(i, j int) bool {
-		return jobWorkers[i].ID <= jobWorkers[j].ID
-	})
-
-	return jobWorkers
-}
-
-func notSeenSinceTimeString(t time.Time, warningSecondsWorkerPoolNotSeenSince time.Duration) string {
-	seconds := time.Since(t).Seconds()
-
-	if time.Duration(seconds) >= warningSecondsWorkerPoolNotSeenSince && seconds < 60 {
-		return "recently"
-	}
-
-	secondsPerMinute := 60.0
-	if seconds > secondsPerMinute {
-		minutes := int(math.Round(seconds / secondsPerMinute))
-		if minutes == 1 {
-			return fmt.Sprintf("%d minute ago", minutes)
-		}
-
-		return fmt.Sprintf("%d minutes ago", minutes)
-	}
-
-	return "now"
-}
-
-type (
-	QueueStats struct {
-		PendingJobsPerType   map[string]int
-		QueueName            string
-		PendingJobs          int
-		FailedJobs           int
-		ProcessedJobs        int
-		AvailableWorkers     int
-		PendingJobsErrorRate float64 // can be calculated: FailedJobs * 100 / PendingJobs
-		AverageTimePerJob    time.Duration
-		EstimateUntilEmpty   time.Duration // can be calculated
-	}
-
-	ListQueuesPage struct {
-		Queues map[jobs.QueueName]jobs.QueueStats
-	}
-
-	QueuePage struct {
-		Jobs      []viewJob
-		QueueName string
-		Stats     QueueStats
-	}
-)
-
-func buildQueuePage(queue string, jobs []jobs.Job, kpis jobs.QueueKPIs) QueuePage {
-	vjobs := prettyFormatPayload(jobs)
-
-	return QueuePage{
-		QueueName: queue,
-		Stats:     queueKpiToStats(queue, kpis),
-
-		Jobs: vjobs,
-	}
-}
-
-type viewJob struct {
-	jobs.Job
-	RunAtFmt string
-}
-
-func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
-	vJobs := make([]viewJob, len(pJobs))
-
-	for i := 0; i < len(pJobs); i++ { //nolint:varnamelen
-		var m application.JobPayload
-
-		_ = json.Unmarshal([]byte(pJobs[i].Payload), &m)
-		data, _ := json.Marshal(m.JobData)
-
-		var prettyJSON bytes.Buffer
-
-		if err := json.Indent(&prettyJSON, data, "", "  "); err != nil {
-		}
-
-		if pJobs[i].Queue == "" {
-			pJobs[i].Queue = jobs.DefaultQueueName
-		}
-		pJobs[i].Payload = prettyJSON.String()
-
-		vJobs[i] = viewJob{
-			Job:      pJobs[i],
-			RunAtFmt: fmtRunAtTime(pJobs[i].RunAt),
-		}
-
-	}
-
-	return vJobs
-}
-
-func fmtRunAtTime(tme time.Time) string {
-	now := time.Now()
-
-	isToday := tme.Year() == now.Year() && tme.Month() == now.Month() && tme.Day() == now.Day()
-	if isToday {
-		return fmt.Sprintf("%02d:%02d", tme.Hour(), tme.Minute())
-	}
-
-	return tme.Format("2006.01.02 15:04")
-}
-
-func queueKpiToStats(queue string, kpis jobs.QueueKPIs) QueueStats {
-	var errorRate float64
-
-	if kpis.FailedJobs != 0 {
-		errorRate = float64(kpis.FailedJobs * 100 / kpis.PendingJobs)
-	}
-
-	var duration time.Duration
-	if kpis.AvailableWorkers != 0 {
-		duration = time.Duration(kpis.PendingJobs/kpis.AvailableWorkers) * kpis.AverageTimePerJob
-	}
-
-	return QueueStats{
-		QueueName:            queue,
-		PendingJobs:          kpis.PendingJobs,
-		PendingJobsPerType:   kpis.PendingJobsPerType,
-		FailedJobs:           kpis.FailedJobs,
-		ProcessedJobs:        kpis.ProcessedJobs,
-		AvailableWorkers:     kpis.AvailableWorkers,
-		PendingJobsErrorRate: errorRate,
-		AverageTimePerJob:    kpis.AverageTimePerJob.Truncate(time.Second),
-		EstimateUntilEmpty:   duration.Truncate(time.Second),
 	}
 }
 

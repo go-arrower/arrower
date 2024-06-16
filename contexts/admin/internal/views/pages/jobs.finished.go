@@ -29,7 +29,7 @@ func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) echo.Map {
 		fjobs[i].EnqueuedAtFmt = TimeAgo(jobs[i].CreatedAt)
 		fjobs[i].FinishedAtFmt = TimeAgo(jobs[i].UpdatedAt) // todo use finished at
 		fjobs[i].ID = jobs[i].ID
-		fjobs[i].Type = jobs[i].Type
+		fjobs[i].Type = string(jobs[i].Type)
 		fjobs[i].Queue = string(jobs[i].Queue)
 	}
 
