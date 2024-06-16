@@ -2,6 +2,9 @@ run:
   build-tags:
     - integration
 
+  skip-files:
+    - filesystem_store_test.go # the file is only intended to be used temporarily until the issue is fixed: https://github.com/gorilla/sessions/issues/267
+
 linters-settings:
   exhaustive:
     # Presence of "default" case in switch statements satisfies exhaustiveness,

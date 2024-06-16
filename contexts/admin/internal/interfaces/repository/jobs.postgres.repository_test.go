@@ -8,16 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-arrower/arrower/alog"
-	ajobs "github.com/go-arrower/arrower/jobs"
-	"github.com/go-arrower/arrower/tests"
 	"github.com/stretchr/testify/assert"
 	mnoop "go.opentelemetry.io/otel/metric/noop"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/testdata"
+	ajobs "github.com/go-arrower/arrower/jobs"
+	"github.com/go-arrower/arrower/tests"
 )
 
 var (
@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 	pgHandler.Cleanup()
 	os.Exit(code)
 }
+
 func TestPostgresGueRepository_Queues(t *testing.T) {
 	t.Parallel()
 
@@ -47,14 +48,14 @@ func TestPostgresGueRepository_Queues(t *testing.T) {
 		jq0, _ := ajobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond),
 		)
-		_ = jq0.RegisterJobFunc(func(ctx context.Context, job testdata.SimpleJob) error { return nil })
+		_ = jq0.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
 		_ = jq0.Enqueue(ctx, testdata.SimpleJob{})
 
 		// And given a different job queue run in the future, meaning: this queue does not have a history yet
 		jq1, _ := ajobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond), ajobs.WithQueue("some_queue"),
 		)
-		_ = jq1.RegisterJobFunc(func(ctx context.Context, job testdata.SimpleJob) error { return nil })
+		_ = jq1.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
 		_ = jq1.Enqueue(ctx, testdata.SimpleJob{}, ajobs.WithRunAt(time.Now().Add(1*time.Hour)))
 
 		time.Sleep(100 * time.Millisecond) // wait for job to finish
@@ -163,7 +164,7 @@ func TestPostgresJobsRepository_Delete(t *testing.T) {
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
 
-		_ = jq.RegisterJobFunc(func(ctx context.Context, job testdata.SimpleJob) error {
+		_ = jq.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error {
 			time.Sleep(1 * time.Minute) // simulate a long-running job
 			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
 
@@ -221,7 +222,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
 
-		_ = jq.RegisterJobFunc(func(ctx context.Context, job testdata.SimpleJob) error {
+		_ = jq.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error {
 			time.Sleep(1 * time.Minute) // simulate a long-running job
 			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
 

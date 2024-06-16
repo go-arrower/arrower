@@ -31,12 +31,12 @@ var _ jobs.Repository = (*PostgresJobsRepository)(nil)
 func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames, error) {
 	queues, err := repo.Conn().GetQueues(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not query queues: %w: %v", postgres.ErrQueryFailed, err)
+		return nil, fmt.Errorf("could not query queues: %w: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	queueNames := make(jobs.QueueNames, len(queues))
-	for i, q := range queues {
 
+	for i, q := range queues {
 		if q == "" {
 			q = string(jobs.DefaultQueueName)
 		}
@@ -83,7 +83,7 @@ func jobToDomain(job models.ArrowerGueJob) jobs.Job {
 	}
 }
 
-func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue jobs.QueueName) (jobs.QueueKPIs, error) { //nolint:funlen
+func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue jobs.QueueName) (jobs.QueueKPIs, error) { //nolint:funlen,lll
 	var kpis jobs.QueueKPIs
 
 	queueName := queueNameFromDomain(queue)
@@ -221,7 +221,7 @@ func (repo *PostgresJobsRepository) WorkerPools(ctx context.Context) ([]jobs.Wor
 func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	workers := make([]jobs.WorkerPool, len(w))
 
-	for i, w := range w {
+	for i, w := range w { //nolint:varnamelen // fp as loop index vars are allowed by config
 		jt := []jobs.JobType{}
 
 		for _, t := range w.JobTypes {
@@ -241,25 +241,25 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	return workers
 }
 
-func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, f jobs.Filter) ([]jobs.Job, error) {
-	queue := queueNameFromDomain(f.Queue)
+func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, filter jobs.Filter) ([]jobs.Job, error) {
+	queue := queueNameFromDomain(filter.Queue)
 
-	if f.Queue != "" && f.JobType != "" {
+	if filter.Queue != "" && filter.JobType != "" {
 		jobs, err := repo.Conn().GetFinishedJobsByQueueAndType(ctx, models.GetFinishedJobsByQueueAndTypeParams{
 			Queue:   queue,
-			JobType: string(f.JobType),
+			JobType: string(filter.JobType),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("could not get finished jobs by queue and job type: %v", err)
+			return nil, fmt.Errorf("%w: could not get finished jobs by queue and job type: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		return historyJobsToDomain(jobs), nil
 	}
 
-	if f.Queue != "" {
+	if filter.Queue != "" {
 		jobs, err := repo.Conn().GetFinishedJobsByQueue(ctx, queue)
 		if err != nil {
-			return nil, fmt.Errorf("could not get finished jobs by queue: %v", err)
+			return nil, fmt.Errorf("%w: could not get finished jobs by queue: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		return historyJobsToDomain(jobs), nil
@@ -267,31 +267,31 @@ func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, f jobs.Fil
 
 	jobs, err := repo.Conn().GetFinishedJobs(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("could not get finished jobs: %v", err)
+		return nil, fmt.Errorf("%w: could not get finished jobs: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return historyJobsToDomain(jobs), nil
 }
 
-func (repo *PostgresJobsRepository) FinishedJobsTotal(ctx context.Context, f jobs.Filter) (int64, error) {
-	queue := queueNameFromDomain(f.Queue)
+func (repo *PostgresJobsRepository) FinishedJobsTotal(ctx context.Context, filter jobs.Filter) (int64, error) {
+	queue := queueNameFromDomain(filter.Queue)
 
-	if f.Queue != "" && f.JobType != "" {
+	if filter.Queue != "" && filter.JobType != "" {
 		total, err := repo.Conn().TotalFinishedJobsByQueueAndType(ctx, models.TotalFinishedJobsByQueueAndTypeParams{
 			Queue:   queue,
-			JobType: string(f.JobType),
+			JobType: string(filter.JobType),
 		})
 		if err != nil {
-			return 0, fmt.Errorf("%v", err)
+			return 0, fmt.Errorf("%w: %v", postgres.ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 		}
 
 		return total, nil
 	}
 
-	if f.Queue != "" {
+	if filter.Queue != "" {
 		total, err := repo.Conn().TotalFinishedJobsByQueue(ctx, queue)
 		if err != nil {
-			return 0, fmt.Errorf("%v", err)
+			return 0, fmt.Errorf("%w: %v", postgres.ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 		}
 
 		return total, nil
@@ -299,7 +299,7 @@ func (repo *PostgresJobsRepository) FinishedJobsTotal(ctx context.Context, f job
 
 	total, err := repo.Conn().TotalFinishedJobs(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("%v", err)
+		return 0, fmt.Errorf("%w: %v", postgres.ErrQueryFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	return total, nil

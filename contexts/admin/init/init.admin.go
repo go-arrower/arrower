@@ -88,7 +88,7 @@ func ensureRequiredDependencies(di *arrower.Container) error {
 func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 	logger := di.Logger.With(slog.String("context", contextName))
 
-	jobRepository := repository.NewTracedJobsRepository(repository.NewPostgresJobsRepository(di.PGx))
+	jobRepository := repository.NewPostgresJobsRepository(di.PGx)
 
 	appDI := setupApplication(di, jobRepository)
 
@@ -143,7 +143,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 	return admin, nil
 }
 
-func setupApplication(di *arrower.Container, jobRepository *repository.TracedJobsRepository) application.App {
+func setupApplication(di *arrower.Container, jobRepository jobs.Repository) application.App {
 	return application.App{
 		PruneJobHistory: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, di.Logger,
 			application.NewPruneJobHistoryRequestHandler(models.New(di.PGx)),
