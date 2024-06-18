@@ -14,10 +14,10 @@ import (
 	"fmt"
 	"time"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/vgarvardt/gue/v5"
 	"go.opentelemetry.io/otel/propagation"
+
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 // CTXJobID contains the current job ID.

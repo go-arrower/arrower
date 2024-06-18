@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,6 +21,7 @@ import (
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/go-arrower/arrower/alog"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -966,6 +965,8 @@ func TestPostgresJobs_Tx(t *testing.T) {
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
+		_, err = pg.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table (id SERIAL PRIMARY KEY);`)
+		assert.NoError(t, err)
 
 		wg.Add(1)
 		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
@@ -973,16 +974,85 @@ func TestPostgresJobs_Tx(t *testing.T) {
 			assert.True(t, txOk)
 			assert.NotEmpty(t, tx)
 
+			_, err = tx.Exec(ctx, `INSERT INTO some_table(id) VALUES (DEFAULT);`)
+			assert.NoError(t, err)
+
+			var ids []int
+			err = pgxscan.Select(ctx, tx, &ids, `SELECT * FROM some_table;`)
+			assert.NoError(t, err)
+			assert.Len(t, ids, 1)
+
 			wg.Done()
 
 			return nil
 		})
 		assert.NoError(t, err)
 
-		_ = jq.Enqueue(ctx, simpleJob{})
+		err = jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
 
 		wg.Wait()
-		_ = jq.Shutdown(ctx)
+		time.Sleep(400 * time.Millisecond)
+
+		err = jq.Shutdown(ctx)
+		assert.NoError(t, err)
+
+		var ids []int
+		err = pgxscan.Select(ctx, pg, &ids, `SELECT * FROM some_table;`)
+		assert.NoError(t, err)
+		assert.Len(t, ids, 1, "job inserts into db in transaction")
+
+		ensureJobTableRows(t, pg, 1) // gueron
+		ensureJobHistoryTableRows(t, pg, 1)
+	})
+
+	t.Run("ensure tx is rolled back", func(t *testing.T) {
+		t.Parallel()
+
+		var wg sync.WaitGroup
+		pg := pgHandler.NewTestDatabase()
+		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+		_, err = pg.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table (id SERIAL PRIMARY KEY);`)
+		assert.NoError(t, err)
+
+		wg.Add(1)
+		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
+			tx, _ := ctx.Value(postgres.CtxTX).(pgx.Tx)
+			assert.NotEmpty(t, tx)
+
+			_, err = tx.Exec(ctx, `INSERT INTO some_table(id) VALUES (DEFAULT);`)
+			assert.NoError(t, err)
+
+			var ids []int
+			err = pgxscan.Select(ctx, tx, &ids, `SELECT * FROM some_table;`)
+			assert.NoError(t, err)
+			assert.Len(t, ids, 1)
+
+			wg.Done()
+
+			return errors.New("some-error") //nolint:goerr113
+		})
+		assert.NoError(t, err)
+
+		err = jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
+
+		wg.Wait()
+		time.Sleep(400 * time.Millisecond)
+
+		err = jq.Shutdown(ctx)
+		assert.NoError(t, err)
+
+		var ids []int
+		err = pgxscan.Select(ctx, pg, &ids, `SELECT * FROM some_table;`)
+		assert.NoError(t, err)
+		assert.Empty(t, ids, "tx got rolled back")
+
+		ensureJobTableRows(t, pg, 1+1) // one job + gueron
+		ensureJobHistoryTableRows(t, pg, 1)
 	})
 }
 

@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -466,7 +465,7 @@ func isValidJobFunc(f JobFunc) bool {
 	return true
 }
 
-func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
+func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { //nolint:funlen
 	handlerFuncType := reflect.TypeOf(workerFn)
 	paramType := handlerFuncType.In(1)
 
@@ -504,6 +503,11 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			ctx = context.WithValue(ctx, ctx2.CtxAuthUserID, payload.Ctx.UserID)
 		}
 
+		_, err = txHandle.Exec(ctx, `SAVEPOINT before_worker;`)
+		if err != nil {
+			return fmt.Errorf("%w: could not create savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		}
+
 		// call the JobFunc
 		fn := reflect.ValueOf(workerFn)
 		vals := fn.Call([]reflect.Value{
@@ -516,8 +520,18 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc {
 			if jobErr, ok := vals[0].Interface().(error); ok && jobErr != nil {
 				childSpan.SetStatus(codes.Error, jobErr.Error())
 
+				_, err = txHandle.Exec(ctx, `ROLLBACK TO before_worker;`)
+				if err != nil {
+					return fmt.Errorf("%w: could not roll back to savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+				}
+
 				return fmt.Errorf("%w: %s", ErrJobFuncFailed, jobErr) //nolint:errorlint // prevent err in api
 			}
+		}
+
+		_, err = txHandle.Exec(ctx, `RELEASE SAVEPOINT before_worker;`)
+		if err != nil {
+			return fmt.Errorf("%w: could not release savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
 		}
 
 		return nil
