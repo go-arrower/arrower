@@ -9,13 +9,12 @@ import (
 	"os"
 	"testing"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/alog"
+	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/setting"
 )
 

@@ -9,13 +9,12 @@ import (
 	"slices"
 	"time"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/setting"
 )
 

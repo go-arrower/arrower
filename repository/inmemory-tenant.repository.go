@@ -66,7 +66,7 @@ type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfa
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case.
 func NewMemoryTenantRepository[T any, tID id, E any, eID id](
-	opts ...memoryRepositoryOption,
+	opts ...repositoryOption,
 ) *MemoryTenantRepository[T, tID, E, eID] {
 	repo := &MemoryTenantRepository[T, tID, E, eID]{
 		Mutex: &sync.Mutex{},
@@ -110,7 +110,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ensureTenantInitialised(id t
 	}
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs acces to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *MemoryTenantRepository[T, tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(e)
 
 	idField := val.FieldByName(repo.idFieldName)

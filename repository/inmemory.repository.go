@@ -62,23 +62,26 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 
 // WithIDField set's the name of the field that is used as an id or primary key.
 // If not set, it is assumed that the entity struct has a field with the name "ID".
-func WithIDField(idFieldName string) memoryRepositoryOption { //nolint:revive // unexported-return is OK for this option
+func WithIDField(idFieldName string) repositoryOption { //nolint:revive // unexported-return is OK for this option
 	return func(config *repoConfig) {
 		config.idFieldName = idFieldName
 	}
 }
 
 // WithStore sets a Store used to persist the Repository.
+// ONLY applies to the in memory implementations.
+//
 // There are no transactions or any consistency guarantees at all! For example, if a store fails,
 // the collection is still changed in memory of the repository.
-func WithStore(store Store) memoryRepositoryOption { //nolint:revive // unexported-return is OK for this option
+func WithStore(store Store) repositoryOption { //nolint:revive // unexported-return is OK for this option
 	return func(config *repoConfig) {
 		config.store = store
 	}
 }
 
 // WithStoreFilename overwrites the file name a Store should use to persist this Repository.
-func WithStoreFilename(name string) memoryRepositoryOption { //nolint:revive // unexported-return is OK for this option
+// ONLY applies to the in memory implementations.
+func WithStoreFilename(name string) repositoryOption { //nolint:revive // unexported-return is OK for this option
 	return func(config *repoConfig) {
 		config.filename = name
 	}
@@ -91,7 +94,7 @@ type id interface {
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
 
-type memoryRepositoryOption func(*repoConfig)
+type repositoryOption func(*repoConfig)
 
 type repoConfig struct {
 	idFieldName string
@@ -104,7 +107,7 @@ type repoConfig struct {
 // be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case. See the examples in the test files.
-func NewMemoryRepository[E any, ID id](opts ...memoryRepositoryOption) *MemoryRepository[E, ID] {
+func NewMemoryRepository[E any, ID id](opts ...repositoryOption) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:        &sync.Mutex{},
 		Data:         make(map[ID]E),
@@ -148,7 +151,7 @@ func defaultFileName(entity any) string {
 	return reflect.TypeOf(entity).Elem().Name() + ".json"
 }
 
-func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:dupl,ireturn,lll // needs acces to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(t)
 
 	idField := val.FieldByName(repo.idFieldName)
