@@ -3,6 +3,7 @@
 package jobs_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -492,8 +493,9 @@ func TestPostgresJobsHandler_Schedule(t *testing.T) {
 			counter int
 		)
 
+		buf := bytes.Buffer{}
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoopLogger(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(alog.NewTest(&buf), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -521,6 +523,8 @@ func TestPostgresJobsHandler_Schedule(t *testing.T) {
 		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
 		_ = jq.Shutdown(ctx)
 
+		assert.NotContains(t, buf.String(), "recording job worker's git hash failed")
+
 		var c int
 		err = pgxscan.Get(ctx, pg, &c, `SELECT COUNT(*) FROM arrower.gue_jobs;`)
 		assert.NoError(t, err)
@@ -533,6 +537,44 @@ func TestPostgresJobsHandler_Schedule(t *testing.T) {
 		assert.GreaterOrEqual(t, len(hJobs), 2)
 		assert.Contains(t, hJobs[0].JobType, "simpleJob")
 		assert.Contains(t, hJobs[1].JobType, "simpleJob")
+	})
+
+	t.Run("gueron job works with arrower custom payload", func(t *testing.T) {
+		t.Parallel()
+
+		pg := pgHandler.NewTestDatabase()
+		buf := bytes.Buffer{}
+		logger := alog.NewTest(&buf)
+		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
+		jq, err := jobs.NewPostgresJobs(logger, mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jobs.WithPollInterval(time.Nanosecond),
+		)
+		assert.NoError(t, err)
+
+		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
+		assert.NoError(t, err)
+
+		err = jq.Schedule("@every 1ms", simpleJob{})
+		assert.NoError(t, err)
+
+		time.Sleep(3000 * time.Millisecond) // wait until gueron is set up
+
+		c, err := pg.Exec(ctx, `UPDATE arrower.gue_jobs SET run_at = $1 WHERE job_type = $2;`, "2023-06-20 19:35:27-01", "gueron-refresh-schedule")
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), c.RowsAffected())
+
+		time.Sleep(2000 * time.Millisecond) // wait until gue has processed the gueron job
+		_ = jq.Shutdown(ctx)
+
+		assert.NotContains(t, buf.String(), "git hash failed", "gueron should deserialise into the arrower job payload without issue")
+
+		var hJobs []gueJobHistory
+		err = pgxscan.Select(ctx, pg, &hJobs, `SELECT * FROM arrower.gue_jobs_history WHERE job_type='gueron-refresh-schedule'`)
+		assert.NoError(t, err)
+		assert.Len(t, hJobs, 1)
+		assert.Contains(t, string(hJobs[0].Args), "gitHashProcessed", "gueron does not have the arrower payload, but should at least record what is possible")
+		assert.NotContains(t, string(hJobs[0].Args), `"jobData":null`)
+		assert.Contains(t, string(hJobs[0].Args), `"jobData":{}`)
 	})
 }
 

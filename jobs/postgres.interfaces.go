@@ -744,14 +744,18 @@ func recordStartedJobsToHistory(
 func recordGitHashToArgs(args []byte, gitHash string) ([]byte, error) {
 	payload := PersistencePayload{} //nolint:exhaustruct
 
-	err := json.Unmarshal(args, &payload)
-	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal job data to record processing arrower version: %w", err)
+	if len(args) > 0 {
+		err := json.Unmarshal(args, &payload)
+		if err != nil {
+			return nil, fmt.Errorf("could not unmarshal job data to record processing arrower version: %w", err)
+		}
+	} else {
+		payload.JobData = struct{}{} // if job has no args, prevent `null` and set to `{}` in marshalled json
 	}
 
 	payload.GitHashProcessed = gitHash
 
-	args, err = json.Marshal(payload)
+	args, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal job data to record processing arrower version: %w", err)
 	}
