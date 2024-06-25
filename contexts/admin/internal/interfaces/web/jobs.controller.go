@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -72,9 +73,20 @@ func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 			return fmt.Errorf("%w", err)
 		}
 
+		keys := []string{}
+
+		for k := range res.QueueStats {
+			keys = append(keys, string(k))
+		}
+
+		sort.Sort(sort.StringSlice(keys))
+
 		var json []pieData
-		for _, q := range res.QueueStats {
-			json = append(json, pieData{Name: string(q.QueueName), Value: q.PendingJobs})
+		for _, k := range keys {
+			json = append(json, pieData{
+				Name:  string(res.QueueStats[jobs.QueueName(k)].QueueName),
+				Value: res.QueueStats[jobs.QueueName(k)].PendingJobs,
+			})
 		}
 
 		return c.JSON(http.StatusOK, json)
