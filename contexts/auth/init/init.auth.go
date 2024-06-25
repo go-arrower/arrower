@@ -5,24 +5,19 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/views"
-
-	"github.com/go-arrower/arrower"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
-	"github.com/go-arrower/arrower/contexts/auth"
-
-	"github.com/go-arrower/arrower/setting"
-
-	"github.com/go-arrower/arrower/mw"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-arrower/arrower"
+	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/web"
+	"github.com/go-arrower/arrower/contexts/auth/internal/views"
+	"github.com/go-arrower/arrower/mw"
+	"github.com/go-arrower/arrower/setting"
 )
 
 const contextName = "auth"

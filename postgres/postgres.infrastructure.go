@@ -10,14 +10,14 @@ import (
 	"net"
 	"strconv"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"go.opentelemetry.io/otel/trace"
+
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 // CtxTX contains a database transaction, only if set by e.g. a middleware.

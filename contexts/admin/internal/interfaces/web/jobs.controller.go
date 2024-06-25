@@ -102,15 +102,23 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 
 		if interval == "hour" { // show last 60 minutes
 			jobData, err = jc.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{
-				DateBin:    pgtype.Interval{Valid: true, Microseconds: int64(time.Minute * 5 / time.Microsecond)},
-				FinishedAt: pgtype.Timestamptz{Valid: true, Time: time.Now().UTC().Add(-time.Hour), InfinityModifier: pgtype.Finite},
-				Limit:      bucketsPerHour,
+				DateBin: pgtype.Interval{Valid: true, Microseconds: int64(time.Minute * 5 / time.Microsecond)},
+				FinishedAt: pgtype.Timestamptz{
+					Valid:            true,
+					Time:             time.Now().UTC().Add(-time.Hour),
+					InfinityModifier: pgtype.Finite,
+				},
+				Limit: bucketsPerHour,
 			})
 		} else {
 			jobData, err = jc.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{ // show whole week
-				DateBin:    pgtype.Interval{Valid: true, Days: 1},
-				FinishedAt: pgtype.Timestamptz{Valid: true, Time: time.Now().UTC().Add(-time.Hour * 24 * bucketsPerWeek), InfinityModifier: pgtype.Finite},
-				Limit:      bucketsPerWeek,
+				DateBin: pgtype.Interval{Valid: true, Days: 1},
+				FinishedAt: pgtype.Timestamptz{
+					Valid:            true,
+					Time:             time.Now().UTC().Add(-time.Hour * 24 * bucketsPerWeek),
+					InfinityModifier: pgtype.Finite,
+				},
+				Limit: bucketsPerWeek,
 			})
 		}
 
@@ -212,7 +220,7 @@ func (jc *JobsController) ShowMaintenance() func(c echo.Context) error {
 		for q, _ := range res.QueueStats {
 			queue := string(q)
 			if queue == "" {
-				queue = "Default"
+				queue = string(jobs.DefaultQueueName)
 			}
 
 			queues = append(queues, queue)
@@ -285,7 +293,7 @@ func (jc *JobsController) PruneHistory() func(echo.Context) error {
 		estimateBefore := time.Now().Add(-1 * time.Duration(days) * timeDay)
 
 		queue := c.FormValue("queue")
-		if queue == "Default" {
+		if queue == string(jobs.DefaultQueueName) {
 			queue = ""
 		}
 
@@ -421,6 +429,7 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
+
 		priority *= -1
 
 		count, err := strconv.Atoi(num)

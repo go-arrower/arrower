@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-arrower/arrower/app"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/web"
 )

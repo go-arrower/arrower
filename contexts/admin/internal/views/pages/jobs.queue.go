@@ -46,14 +46,14 @@ func BuildQueuePage(queue string, jobs []jobs.Job, kpis jobs.QueueKPIs) QueuePag
 }
 
 type viewJob struct {
-	jobs.Job
 	RunAtFmt string
+	jobs.Job
 }
 
 func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
 	vJobs := make([]viewJob, len(pJobs))
 
-	for i := 0; i < len(pJobs); i++ { //nolint:varnamelen
+	for i := 0; i < len(pJobs); i++ {
 		var m application.JobPayload
 
 		_ = json.Unmarshal([]byte(pJobs[i].Payload), &m)
@@ -61,19 +61,18 @@ func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
 
 		var prettyJSON bytes.Buffer
 
-		if err := json.Indent(&prettyJSON, data, "", "  "); err != nil {
-		}
+		_ = json.Indent(&prettyJSON, data, "", "  ")
 
 		if pJobs[i].Queue == "" {
 			pJobs[i].Queue = jobs.DefaultQueueName
 		}
+
 		pJobs[i].Payload = prettyJSON.String()
 
 		vJobs[i] = viewJob{
 			Job:      pJobs[i],
 			RunAtFmt: fmtRunAtTime(pJobs[i].RunAt),
 		}
-
 	}
 
 	return vJobs

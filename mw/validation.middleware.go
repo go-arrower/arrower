@@ -3,9 +3,9 @@ package mw
 import (
 	"context"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/go-playground/validator/v10"
+
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 const CtxValidated ctx2.CTXKey = "arrower.validated"

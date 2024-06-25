@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 )
 

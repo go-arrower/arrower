@@ -11,9 +11,8 @@ import (
 	"io/fs"
 	"log/slog"
 
-	"github.com/go-arrower/arrower/alog"
-
 	"github.com/go-arrower/arrower"
+	"github.com/go-arrower/arrower/alog"
 	alogmodels "github.com/go-arrower/arrower/alog/models"
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
@@ -115,16 +114,16 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 	{ // add context-specific web views.
 		var views fs.FS = views.AdminViews
-		//if di.Config.Debug { // TODO fix when running debug from other repo than arrower
+		// if di.Config.Debug { // TODO fix when running debug from other repo than arrower
 		//	views = os.DirFS("contexts/admin/internal/views")
-		//}
+		// }
 
 		err := di.WebRenderer.AddContext(contextName, views)
 		if err != nil {
 			return nil, fmt.Errorf("could not add context views: %w", err)
 		}
 
-		err = di.WebRenderer.AddLayoutData(contextName, "default", func(ctx context.Context) (map[string]any, error) {
+		err = di.WebRenderer.AddLayoutData(contextName, "default", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"Title": "arrower admin",
 			}, nil

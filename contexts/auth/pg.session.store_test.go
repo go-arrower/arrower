@@ -9,7 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-arrower/arrower/tests"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
+	"github.com/go-arrower/arrower/tests"
 )
 
 var (

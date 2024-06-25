@@ -6,9 +6,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type emptyRenderer struct{}
+type emptyRenderer struct{} // todo replace with new test renderer
 
-func (t *emptyRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+func (t *emptyRenderer) Render(_ io.Writer, _ string, _ interface{}, c echo.Context) error {
 	return nil
 }
 

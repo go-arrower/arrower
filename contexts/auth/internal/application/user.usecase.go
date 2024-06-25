@@ -268,11 +268,11 @@ func ShowUser(repo domain.Repository) func(context.Context, ShowUserRequest) (Sh
 
 type (
 	NewUserRequest struct {
-		Email       string `form:"email" validate:"max=1024,required,email"`
-		FirstName   string `form:"firstName" validate:"max=1024"`
-		LastName    string `form:"lastName" validate:"max=1024"`
+		Email       string `form:"email"       validate:"max=1024,required,email"`
+		FirstName   string `form:"firstName"   validate:"max=1024"`
+		LastName    string `form:"lastName"    validate:"max=1024"`
 		DisplayName string `form:"displayName" validate:"max=1024"`
-		Superuser   bool   `form:"superuser" validate:"boolean"`
+		Superuser   bool   `form:"superuser"   validate:"boolean"`
 	}
 )
 

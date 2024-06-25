@@ -24,12 +24,12 @@ func NewScheduleJobsCommandHandler(queries *models.Queries) app.Command[Schedule
 }
 
 type ScheduleJobsCommand struct {
+	RunAt    time.Time
 	Queue    string
 	JobType  string
 	Payload  string
-	Priority int16
 	Count    int
-	RunAt    time.Time
+	Priority int16
 }
 
 type scheduleJobsCommandHandler struct {
@@ -66,12 +66,12 @@ func buildJobs(in ScheduleJobsCommand, carrier propagation.MapCarrier) ([]models
 
 	err := json.Unmarshal([]byte(strings.TrimSpace(in.Payload)), &buf)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal job: %v", err) //nolint:errorlint // prevent err in api
+		return nil, fmt.Errorf("%w: could not unmarshal job: %v", ErrScheduleJobsFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	args, err := json.Marshal(JobPayload{JobData: buf, Carrier: carrier})
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal job: %v", err) //nolint:errorlint // prevent err in api
+		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrScheduleJobsFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	for i := 0; i < in.Count; i++ {
@@ -84,7 +84,7 @@ func buildJobs(in ScheduleJobsCommand, carrier propagation.MapCarrier) ([]models
 			Queue:     in.Queue,
 			JobType:   in.JobType,
 			Priority:  in.Priority,
-			RunAt:     pgtype.Timestamptz{Time: in.RunAt, Valid: true},
+			RunAt:     pgtype.Timestamptz{Time: in.RunAt, Valid: true, InfinityModifier: pgtype.Finite},
 			Args:      args,
 		}
 	}

@@ -38,13 +38,11 @@ type LogsController struct {
 	r        *echo.Group
 }
 
+// ShowLogs pattern issue: how to add route with and without trailing slash?
 func (lc *LogsController) ShowLogs() {
-	// FIXME: how to add route with and without trailing slash
-
 	const defaultLogs = 1000
 
-	type filter struct {
-		Range int    `query:"range"`
+	type logFilter struct {
 		Level string `query:"level"`
 		K0    string `query:"k0"`
 		F0    string `query:"f0"`
@@ -52,8 +50,10 @@ func (lc *LogsController) ShowLogs() {
 		F1    string `query:"f1"`
 		K2    string `query:"k2"`
 		F2    string `query:"f2"`
+		Range int    `query:"range"`
 	}
-	type log struct {
+
+	type logLine struct {
 		Time   time.Time
 		Log    map[string]any
 		UserID string
@@ -63,7 +63,7 @@ func (lc *LogsController) ShowLogs() {
 		timeParam := c.QueryParam("time")
 		searchMsgParam := c.QueryParam("msg")
 
-		var filter filter
+		var filter logFilter
 		err := c.Bind(&filter)
 		if err != nil {
 			return c.String(http.StatusBadRequest, "bad request")
@@ -74,7 +74,7 @@ func (lc *LogsController) ShowLogs() {
 		}
 
 		filterTime := time.Now().UTC().Add(-time.Duration(filter.Range) * time.Minute)
-		if t, err := time.Parse("2006-01-02T15:04:05.999999999", timeParam); err == nil {
+		if t, err := time.Parse("2006-01-02T15:04:05.999999999", timeParam); err == nil { //nolint:govet // shadow err is ok
 			filterTime = t
 		}
 
@@ -104,14 +104,14 @@ func (lc *LogsController) ShowLogs() {
 
 		rawLogs, _ := lc.queries.GetRecentLogs(c.Request().Context(), queryParams)
 
-		var logs []log
+		var logs []logLine
 		for _, l := range rawLogs {
-			log := log{}
+			var log logLine
 
-			json.Unmarshal(l.Log, &log.Log)
+			_ = json.Unmarshal(l.Log, &log.Log)
 			log.Time = l.Time.Time
 			log.UserID = l.UserID.UUID.String()
-			if (uuid.NullUUID{}) == l.UserID {
+			if (uuid.NullUUID{}) == l.UserID { //nolint:exhaustruct // checking if user ID is empty
 				log.UserID = ""
 			}
 
@@ -163,6 +163,7 @@ func (lc *LogsController) SettingLogs() {
 	})
 }
 
+//nolint:misspell // leveller is wrong in this case
 func getLevelName(leveler slog.Leveler) string {
 	return map[slog.Leveler]string{
 		slog.LevelInfo:  "INFO",

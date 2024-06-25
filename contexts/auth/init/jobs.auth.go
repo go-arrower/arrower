@@ -1,10 +1,9 @@
 package init
 
 import (
+	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/mw"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 )
 
 // registerJobs initialises all jobs to be run by this Context.
