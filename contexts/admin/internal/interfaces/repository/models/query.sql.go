@@ -204,7 +204,7 @@ const getPendingJobs = `-- name: GetPendingJobs :many
 SELECT job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at
 FROM arrower.gue_jobs
 WHERE queue = $1
-ORDER BY priority, run_at ASC
+ORDER BY run_at,priority ASC
 LIMIT 100
 `
 

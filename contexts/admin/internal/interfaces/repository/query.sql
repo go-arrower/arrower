@@ -66,7 +66,7 @@ FROM arrower.gue_jobs_history;
 SELECT *
 FROM arrower.gue_jobs
 WHERE queue = $1
-ORDER BY priority, run_at ASC
+ORDER BY run_at,priority ASC
 LIMIT 100;
 
 -- name: GetFinishedJobs :many
