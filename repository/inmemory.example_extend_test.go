@@ -37,7 +37,7 @@ type UserMemoryRepository struct {
 	*repository.MemoryRepository[User, UserID]
 }
 
-// FindByLogin implements a custom method, that is not supported by the tests.Repository out of the box.
+// FindByLogin implements a custom method, that is not supported by the Repository out of the box.
 func (repo *UserMemoryRepository) FindByLogin(ctx context.Context, login string) (User, error) {
 	all, _ := repo.All(ctx)
 
