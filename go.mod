@@ -4,13 +4,14 @@ go 1.22.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/afiskon/promtail-client v0.0.0-20190305142237-506f3f921e9c
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/fatih/camelcase v1.0.0
 	github.com/fatih/color v1.17.0
 	github.com/georgysavva/scany/v2 v2.1.3
-	github.com/go-playground/validator/v10 v10.21.0
+	github.com/go-playground/validator/v10 v10.22.0
 	github.com/go-testfixtures/testfixtures/v3 v3.11.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
@@ -55,7 +56,6 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.24.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/alexflint/go-filemutex v1.3.0 // indirect
