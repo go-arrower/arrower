@@ -4,6 +4,7 @@ go 1.22.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
+	github.com/Masterminds/squirrel v1.5.4
 	github.com/afiskon/promtail-client v0.0.0-20190305142237-506f3f921e9c
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -28,7 +29,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rjeczalik/notify v0.9.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/vgarvardt/gue/v5 v5.6.2
 	github.com/vgarvardt/gueron/v2 v2.2.1
@@ -55,7 +56,6 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.24.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
-	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/alexflint/go-filemutex v1.3.0 // indirect
