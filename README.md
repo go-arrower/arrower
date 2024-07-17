@@ -22,12 +22,28 @@
 
 
 ## About the Project
-A complete framework to develop Go web applications.
+Arrows for your application's needs - a complete framework to develop web applications in Go.
 
-Learn more about the [motivation behind arrower](https://www.arrower.org/docs/why).
+[Motivation](https://www.arrower.org/docs/why)\
+[Documentation](https://www.arrower.org/docs/getting-started)
 
 
-## Create new Database Migration
+## Usage
+
+**Install the CLI**
+```shell
+go install github.com/go-arrower/arrower/...
+
+arrower version
+```
+
+**Use in your project**
+```shell
+go get github.com/go-arrower/arrower
+```
+
+
+### Create new Database Migration
 ```shell
 export POSTGRESQL_URL='postgres://arrower:secret@localhost:5432/arrower?sslmode=disable'
 migrate create -ext sql -dir postgres/migrations -seq create_test_table
