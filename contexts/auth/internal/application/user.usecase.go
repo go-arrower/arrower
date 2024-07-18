@@ -122,13 +122,6 @@ type (
 	RegisterUserResponse struct {
 		User domain.Descriptor
 	}
-
-	NewUserVerificationEmail struct {
-		UserID     domain.ID
-		OccurredAt time.Time
-		IP         domain.ResolvedIP
-		Device     domain.Device
-	}
 )
 
 func RegisterUser(
@@ -184,36 +177,6 @@ func RegisterUser(
 
 		// todo return a short "UserDescriptor" or something instead of a partial user.
 		return RegisterUserResponse{User: usr.Descriptor()}, nil
-	}
-}
-
-func SendNewUserVerificationEmail(
-	logger alog.Logger,
-	repo domain.Repository,
-) func(context.Context, NewUserVerificationEmail) error {
-	return func(ctx context.Context, in NewUserVerificationEmail) error {
-		usr, err := repo.FindByID(ctx, in.UserID)
-		if err != nil {
-			return fmt.Errorf("could not get user: %w", err)
-		}
-
-		verify := domain.NewVerificationService(repo)
-
-		token, err := verify.NewVerificationToken(ctx, usr)
-		if err != nil {
-			return fmt.Errorf("could not generate verification token: %w", err)
-		}
-
-		// later: instead of logging this => send it to an email output port
-		logger.InfoContext(ctx, "send verification email to user",
-			slog.String("token", token.Token().String()),
-			slog.String("device", in.Device.Name()+" "+in.Device.OS()),
-			slog.String("ip", in.IP.IP.String()),
-			slog.String("time", in.OccurredAt.String()),
-			slog.String("email", string(usr.Login)),
-		)
-
-		return nil
 	}
 }
 

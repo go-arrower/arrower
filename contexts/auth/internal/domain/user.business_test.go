@@ -404,16 +404,25 @@ func TestDevice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		testName     string
-		userAgent    string
-		expectedName string
-		expectedOS   string
+		testName       string
+		userAgent      string
+		expectedName   string
+		expectedOS     string
+		expectedString string
 	}{
+		{
+			"empty",
+			"",
+			"",
+			"",
+			"",
+		},
 		{
 			"",
 			"Mozilla/5.0 (Linux; Android 4.3; GT-I9300 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36",
 			"Chrome v59.0.3071.125",
 			"Android v4.3",
+			"Chrome v59.0.3071.125 Android v4.3",
 		},
 	}
 
@@ -423,6 +432,7 @@ func TestDevice(t *testing.T) {
 
 			assert.Equal(t, tt.expectedName, domain.NewDevice(tt.userAgent).Name())
 			assert.Equal(t, tt.expectedOS, domain.NewDevice(tt.userAgent).OS())
+			assert.Equal(t, tt.expectedString, domain.NewDevice(tt.userAgent).String())
 			assert.Equal(t, tt.userAgent, domain.NewDevice(tt.userAgent).UserAgent())
 		})
 	}

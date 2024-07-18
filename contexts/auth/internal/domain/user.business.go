@@ -298,17 +298,29 @@ type Device struct {
 func (d Device) Name() string {
 	ua := useragent.Parse(d.userAgent)
 
+	if ua.Name == "" && ua.Version == "" {
+		return ""
+	}
+
 	return fmt.Sprintf("%s v%s", ua.Name, ua.Version)
 }
 
 func (d Device) OS() string {
 	ua := useragent.Parse(d.userAgent)
 
+	if ua.OS == "" && ua.OSVersion == "" {
+		return ""
+	}
+
 	return fmt.Sprintf("%s v%s", ua.OS, ua.OSVersion)
 }
 
 func (d Device) UserAgent() string {
 	return d.userAgent
+}
+
+func (d Device) String() string {
+	return strings.TrimSpace(d.Name() + " " + d.OS())
 }
 
 type Session struct {

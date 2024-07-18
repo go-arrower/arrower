@@ -3,7 +3,6 @@ package application_test
 import (
 	"bytes"
 	"testing"
-	"time"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 
@@ -158,28 +157,6 @@ func TestRegisterUser(t *testing.T) {
 		assert.NotEmpty(t, job.OccurredAt)
 		assert.Equal(t, resolvedIP, job.IP)
 		assert.Equal(t, domain.NewDevice(userAgent), job.Device)
-	})
-}
-
-func TestSendNewUserVerificationEmail(t *testing.T) {
-	t.Parallel()
-
-	t.Run("send new verification email", func(t *testing.T) {
-		t.Parallel()
-
-		repo := repository.NewMemoryRepository()
-		repo.Save(ctx, userNotVerified)
-
-		cmd := application.SendNewUserVerificationEmail(alog.NewTest(nil), repo)
-		err := cmd(ctx, application.NewUserVerificationEmail{
-			UserID:     userNotVerifiedUserID,
-			OccurredAt: time.Now().UTC(),
-			IP:         resolvedIP,
-			Device:     domain.NewDevice(userAgent),
-		})
-		assert.NoError(t, err)
-
-		// later: assert the email has been sent via the email interface
 	})
 }
 
