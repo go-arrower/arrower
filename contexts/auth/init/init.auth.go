@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower"
+	"github.com/go-arrower/arrower/contexts"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
@@ -23,7 +26,9 @@ import (
 const contextName = "auth"
 
 func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
-	// todo if di == nil => load and initialise all dependencies from config
+	if di == nil {
+		return nil, fmt.Errorf("%w: missing dependency container", contexts.ErrInitialisationFailed)
+	}
 
 	if err := di.EnsureAllDependenciesPresent(); err != nil {
 		return nil, fmt.Errorf("could not initialise auth context: %w", err)
@@ -35,12 +40,19 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	_ = meter
 	_ = tracer
 
-	//_ = di.WebRenderer.AddContext("auth", os.DirFS("contexts/auth/internal/views")) // todo build path automatically, as it is a convention (?)
-	_ = di.WebRenderer.AddContext("auth", views.AuthViews) // todo build path automatically, as it is a convention (?)
+	if di.Config.Debug {
+		// ../arrower/ is to access the views from the skeleton project for local development
+		_ = di.WebRenderer.AddContext(contextName, os.DirFS("../arrower/contexts/auth/internal/views"))
+	} else {
+		err := di.WebRenderer.AddContext(contextName, views.AuthViews)
+		if err != nil {
+			return nil, fmt.Errorf("could not load auth views: %w", err)
+		}
+	}
 
 	err := di.WebRenderer.AddLayoutData(contextName, "default", func(ctx context.Context) (map[string]any, error) {
 		return map[string]any{
-			"Title": "arrower auth",
+			"Title": strings.Title(contextName),
 		}, nil
 	})
 	if err != nil {
