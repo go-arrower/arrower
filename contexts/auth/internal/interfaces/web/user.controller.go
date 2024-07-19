@@ -46,7 +46,6 @@ type UserController struct {
 
 	Queries *models.Queries
 
-	CmdRegisterUser func(context.Context, application.RegisterUserRequest) (application.RegisterUserResponse, error)
 	CmdShowUserUser func(context.Context, application.ShowUserRequest) (application.ShowUserResponse, error)
 	CmdNewUser      func(context.Context, application.NewUserRequest) error
 	CmdVerifyUser   func(context.Context, application.VerifyUserRequest) error
@@ -280,7 +279,7 @@ func (uc UserController) Register() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		response, err := uc.CmdRegisterUser(c.Request().Context(), newUser)
+		response, err := uc.app.RegisterUser.H(c.Request().Context(), newUser)
 		if err != nil {
 			valErrs := make(map[string]string)
 

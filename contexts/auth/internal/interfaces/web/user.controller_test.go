@@ -303,17 +303,15 @@ func TestUserController_Register(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdRegisterUser = func(
-			ctx context.Context,
-			in application.RegisterUserRequest,
-		) (application.RegisterUserResponse, error) {
-			assert.Equal(t, "1337", in.RegisterEmail)
-			assert.Equal(t, "12345678", in.Password)
-			assert.Equal(t, "12345678", in.PasswordConfirmation)
+		controller := web.NewUserController(application.UserApplication{
+			RegisterUser: app.TestRequestHandler(func(_ context.Context, in application.RegisterUserRequest) (application.RegisterUserResponse, error) {
+				assert.Equal(t, "1337", in.RegisterEmail)
+				assert.Equal(t, "12345678", in.Password)
+				assert.Equal(t, "12345678", in.PasswordConfirmation)
 
-			return application.RegisterUserResponse{}, errUCFailed
-		}
+				return application.RegisterUserResponse{}, errUCFailed
+			}),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Register())
@@ -335,21 +333,19 @@ func TestUserController_Register(t *testing.T) {
 		req.Header.Set("User-Agent", "arrower/0")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdRegisterUser = func(
-			ctx context.Context,
-			in application.RegisterUserRequest,
-		) (application.RegisterUserResponse, error) {
-			assert.Equal(t, "1337", in.RegisterEmail)
-			assert.Equal(t, "12345678", in.Password)
-			assert.Equal(t, "12345678", in.PasswordConfirmation)
-			assert.True(t, in.AcceptedTermsOfService)
-			assert.NotEmpty(t, in.IP)
-			assert.NotEmpty(t, in.UserAgent)
-			assert.NotEmpty(t, in.SessionKey)
+		controller := web.NewUserController(application.UserApplication{
+			RegisterUser: app.TestRequestHandler(func(_ context.Context, in application.RegisterUserRequest) (application.RegisterUserResponse, error) {
+				assert.Equal(t, "1337", in.RegisterEmail)
+				assert.Equal(t, "12345678", in.Password)
+				assert.Equal(t, "12345678", in.PasswordConfirmation)
+				assert.True(t, in.AcceptedTermsOfService)
+				assert.NotEmpty(t, in.IP)
+				assert.NotEmpty(t, in.UserAgent)
+				assert.NotEmpty(t, in.SessionKey)
 
-			return application.RegisterUserResponse{}, nil
-		}
+				return application.RegisterUserResponse{}, nil
+			}),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Register())

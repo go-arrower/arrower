@@ -4,16 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 
-	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/jobs"
 	"github.com/google/uuid"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 )
 
 var (
@@ -30,78 +25,6 @@ type (
 		// Ip Location
 	}
 )
-
-type (
-	RegisterUserRequest struct { //nolint:govet // fieldalignment less important than grouping of params.
-		RegisterEmail          string `form:"login" validate:"max=1024,required,email"`
-		Password               string `form:"password" validate:"max=1024,min=8"`
-		PasswordConfirmation   string `form:"password_confirmation" validate:"max=1024,eqfield=Password"`
-		AcceptedTermsOfService bool   `form:"tos" validate:"boolean,required"`
-
-		UserAgent  string
-		IP         string `validate:"ip"`
-		SessionKey string
-	}
-	RegisterUserResponse struct {
-		User domain.Descriptor
-	}
-)
-
-func RegisterUser(
-	logger alog.Logger,
-	repo domain.Repository,
-	registrator *domain.RegistrationService,
-	queue jobs.Enqueuer,
-) func(context.Context, RegisterUserRequest) (RegisterUserResponse, error) {
-	var ip domain.IPResolver = infrastructure.NewIP2LocationService("")
-
-	return func(ctx context.Context, in RegisterUserRequest) (RegisterUserResponse, error) {
-		usr, err := registrator.RegisterNewUser(ctx, in.RegisterEmail, in.Password)
-		if err != nil {
-			if errors.Is(err, domain.ErrUserAlreadyExists) {
-				logger.Log(ctx, slog.LevelInfo, "register new user failed",
-					slog.String("email", in.RegisterEmail),
-					slog.String("ip", in.IP),
-				)
-			}
-
-			return RegisterUserResponse{}, fmt.Errorf("%w", err)
-		}
-
-		// The session is not valid until the end of the controller.
-		// Thus, the session is created here and very short-lived, as the controller will update it with the right values.
-		usr.Sessions = append(usr.Sessions, domain.Session{
-			ID:        in.SessionKey,
-			Device:    domain.NewDevice(in.UserAgent),
-			CreatedAt: time.Now().UTC(),
-			// ExpiresAt: // will be set & updated via the session store
-		})
-
-		err = repo.Save(ctx, usr)
-		if err != nil {
-			return RegisterUserResponse{}, fmt.Errorf("could not save new user: %w", err)
-		}
-
-		resolved, err := ip.ResolveIP(in.IP)
-		if err != nil {
-			return RegisterUserResponse{}, fmt.Errorf("could not resolve ip address: %w", err)
-		}
-
-		// !!! CONSIDER !!! if the email output port is async (outbox pattern) call it directly instead of a job
-		err = queue.Enqueue(ctx, NewUserVerificationEmail{
-			UserID:     usr.ID,
-			OccurredAt: time.Now().UTC(),
-			IP:         resolved,
-			Device:     domain.NewDevice(in.UserAgent),
-		})
-		if err != nil {
-			return RegisterUserResponse{}, fmt.Errorf("could not queue job to send verification email: %w", err)
-		}
-
-		// todo return a short "UserDescriptor" or something instead of a partial user.
-		return RegisterUserResponse{User: usr.Descriptor()}, nil
-	}
-}
 
 type (
 	VerifyUserRequest struct {

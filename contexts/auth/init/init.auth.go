@@ -97,27 +97,23 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	webRoutes := di.WebRouter.Group(fmt.Sprintf("/%s", contextName))
 	adminRouter := di.AdminRouter.Group(fmt.Sprintf("/%s", contextName))
 
-	app := application.UserApplication{
+	uc := application.UserApplication{
+		RegisterUser: app.NewInstrumentedRequest(
+			di.TraceProvider, di.MeterProvider, logger,
+			app.NewValidatedRequest(nil,
+				application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue),
+			)),
 		LoginUser: app.NewInstrumentedRequest(
 			di.TraceProvider, di.MeterProvider, logger,
 			app.NewValidatedRequest(
 				nil,
-				application.NewLoginUserRequestHandler(di.Logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings))),
-		),
-		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, di.Logger, application.NewListUsersQueryHandler(repo)),
+				application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings)),
+			)),
+		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewListUsersQueryHandler(repo)),
 	}
 
-	userController := web.NewUserController(app, webRoutes, []byte("secret"), di.Settings)
+	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)
 	userController.Queries = queries
-	userController.CmdRegisterUser = mw.Traced(di.TraceProvider,
-		mw.Metric(di.MeterProvider,
-			mw.Logged(logger,
-				mw.Validate(nil,
-					application.RegisterUser(di.Logger, repo, registrator, di.ArrowerQueue),
-				),
-			),
-		),
-	)
 	userController.CmdShowUserUser = mw.Traced(di.TraceProvider,
 		mw.Metric(di.MeterProvider,
 			mw.Logged(logger,

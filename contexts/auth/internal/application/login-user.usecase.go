@@ -63,6 +63,7 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 		h.logger.Log(ctx, slog.LevelInfo, "login failed",
 			slog.String("email", req.LoginEmail),
 			slog.String("ip", req.IP),
+			slog.String("err", err.Error()),
 		)
 
 		return LoginUserResponse{}, ErrLoginFailed
