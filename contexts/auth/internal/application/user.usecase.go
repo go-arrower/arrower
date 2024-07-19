@@ -22,19 +22,6 @@ var (
 )
 
 type (
-	LoginUserRequest struct { //nolint:govet // fieldalignment less important than grouping of params.
-		LoginEmail string `form:"login" validate:"max=1024,required,email"`
-		Password   string `form:"password" validate:"max=1024,min=8"`
-
-		IsNewDevice bool
-		UserAgent   string
-		IP          string `validate:"ip"`
-		SessionKey  string
-	}
-	LoginUserResponse struct {
-		User domain.User
-	}
-
 	SendConfirmationNewDeviceLoggedIn struct {
 		UserID     domain.ID
 		OccurredAt time.Time
@@ -43,70 +30,6 @@ type (
 		// Ip Location
 	}
 )
-
-func LoginUser(
-	logger alog.Logger,
-	repo domain.Repository,
-	queue jobs.Enqueuer,
-	authenticator *domain.AuthenticationService,
-) func(context.Context, LoginUserRequest) (LoginUserResponse, error) {
-	var ip domain.IPResolver = infrastructure.NewIP2LocationService("")
-
-	return func(ctx context.Context, in LoginUserRequest) (LoginUserResponse, error) {
-		usr, err := repo.FindByLogin(ctx, domain.Login(in.LoginEmail))
-		if err != nil {
-			logger.Log(ctx, slog.LevelInfo, "login failed",
-				slog.String("email", in.LoginEmail),
-				slog.String("ip", in.IP),
-			)
-
-			return LoginUserResponse{}, ErrLoginFailed
-		}
-
-		if !authenticator.Authenticate(ctx, usr, in.Password) {
-			logger.Log(ctx, slog.LevelInfo, "login failed",
-				slog.String("email", in.LoginEmail),
-				slog.String("ip", in.IP),
-			)
-
-			return LoginUserResponse{}, ErrLoginFailed
-		}
-
-		// The session is not valid until the end of the controller.
-		// Thus, the session is created here and very short-lived, as the controller will update it with the right values.
-		usr.Sessions = append(usr.Sessions, domain.Session{
-			ID:        in.SessionKey,
-			Device:    domain.NewDevice(in.UserAgent),
-			CreatedAt: time.Now().UTC(),
-			// ExpiresAt: // will be set & updated via the session store
-		})
-
-		err = repo.Save(ctx, usr)
-		if err != nil {
-			return LoginUserResponse{}, fmt.Errorf("could not update user session: %w", err)
-		}
-		// FIXME: add a method to user or a domain service, that ensures session is not added, if one with same ID already exists.
-
-		if in.IsNewDevice {
-			resolved, err := ip.ResolveIP(in.IP)
-			if err != nil {
-				return LoginUserResponse{}, fmt.Errorf("could not resolve ip address: %w", err)
-			}
-
-			err = queue.Enqueue(ctx, SendConfirmationNewDeviceLoggedIn{
-				UserID:     usr.ID,
-				OccurredAt: time.Now().UTC(),
-				IP:         resolved,
-				Device:     domain.NewDevice(in.UserAgent),
-			})
-			if err != nil {
-				return LoginUserResponse{}, fmt.Errorf("could not queue confirmation about new device: %w", err)
-			}
-		}
-
-		return LoginUserResponse{User: usr}, nil
-	}
-}
 
 type (
 	RegisterUserRequest struct { //nolint:govet // fieldalignment less important than grouping of params.

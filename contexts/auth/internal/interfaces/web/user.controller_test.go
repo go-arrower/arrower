@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
@@ -61,19 +62,17 @@ func TestUserController_Login(t *testing.T) {
 		req.Header.Set("User-Agent", "arrower/0")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdLoginUser = func(
-			ctx context.Context,
-			in application.LoginUserRequest,
-		) (application.LoginUserResponse, error) {
-			assert.Equal(t, "1337", in.LoginEmail)
-			assert.Equal(t, "12345678", in.Password)
-			assert.NotEmpty(t, in.IP)
-			assert.NotEmpty(t, in.UserAgent)
-			assert.NotEmpty(t, in.SessionKey)
+		controller := web.NewUserController(application.UserApplication{
+			LoginUser: app.TestRequestHandler(func(_ context.Context, in application.LoginUserRequest) (application.LoginUserResponse, error) {
+				assert.Equal(t, "1337", in.LoginEmail)
+				assert.Equal(t, "12345678", in.Password)
+				assert.NotEmpty(t, in.IP)
+				assert.NotEmpty(t, in.UserAgent)
+				assert.NotEmpty(t, in.SessionKey)
 
-			return application.LoginUserResponse{}, nil
-		}
+				return application.LoginUserResponse{}, nil
+			}),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/login", controller.Login())
@@ -98,16 +97,14 @@ func TestUserController_Login(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdLoginUser = func(
-			ctx context.Context,
-			in application.LoginUserRequest,
-		) (application.LoginUserResponse, error) {
-			assert.Equal(t, "1337", in.LoginEmail)
-			assert.Equal(t, "12345678", in.Password)
+		controller := web.NewUserController(application.UserApplication{
+			LoginUser: app.TestRequestHandler(func(_ context.Context, in application.LoginUserRequest) (application.LoginUserResponse, error) {
+				assert.Equal(t, "1337", in.LoginEmail)
+				assert.Equal(t, "12345678", in.Password)
 
-			return application.LoginUserResponse{}, errUCFailed
-		}
+				return application.LoginUserResponse{}, errUCFailed
+			}),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
@@ -128,15 +125,13 @@ func TestUserController_Login(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdLoginUser = func(
-			ctx context.Context,
-			in application.LoginUserRequest,
-		) (application.LoginUserResponse, error) {
-			assert.True(t, in.IsNewDevice)
+		controller := web.NewUserController(application.UserApplication{
+			LoginUser: app.TestRequestHandler(func(_ context.Context, in application.LoginUserRequest) (application.LoginUserResponse, error) {
+				assert.True(t, in.IsNewDevice)
 
-			return application.LoginUserResponse{}, nil
-		}
+				return application.LoginUserResponse{}, nil
+			}),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
@@ -157,15 +152,13 @@ func TestUserController_Login(t *testing.T) {
 			req.AddCookie(result.Cookies()[1])
 			rec := httptest.NewRecorder()
 
-			controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-			controller.CmdLoginUser = func(
-				ctx context.Context,
-				in application.LoginUserRequest,
-			) (application.LoginUserResponse, error) {
-				assert.False(t, in.IsNewDevice)
+			controller := web.NewUserController(application.UserApplication{
+				LoginUser: app.TestRequestHandler(func(_ context.Context, in application.LoginUserRequest) (application.LoginUserResponse, error) {
+					assert.False(t, in.IsNewDevice)
 
-				return application.LoginUserResponse{}, nil
-			}
+					return application.LoginUserResponse{}, nil
+				}),
+			}, nil, []byte(secret), nil)
 
 			echoRouter.POST("/", controller.Login())
 			echoRouter.ServeHTTP(rec, req)
@@ -189,13 +182,9 @@ func TestUserController_Login(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdLoginUser = func(
-			ctx context.Context,
-			in application.LoginUserRequest,
-		) (application.LoginUserResponse, error) {
-			return application.LoginUserResponse{}, nil
-		}
+		controller := web.NewUserController(application.UserApplication{
+			LoginUser: app.TestSuccessRequestHandler[application.LoginUserRequest, application.LoginUserResponse](),
+		}, nil, []byte(secret), nil)
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
@@ -240,13 +229,9 @@ func TestUserController_Logout(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		rec := httptest.NewRecorder()
 
-		controller := web.NewUserController(application.UserApplication{}, nil, []byte(secret), nil)
-		controller.CmdLoginUser = func(
-			ctx context.Context,
-			in application.LoginUserRequest,
-		) (application.LoginUserResponse, error) {
-			return application.LoginUserResponse{}, nil
-		}
+		controller := web.NewUserController(application.UserApplication{
+			LoginUser: app.TestSuccessRequestHandler[application.LoginUserRequest, application.LoginUserResponse](),
+		}, nil, []byte(secret), nil)
 
 		echoRouter.POST("/login", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
