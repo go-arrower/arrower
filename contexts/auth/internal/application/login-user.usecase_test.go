@@ -33,7 +33,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 			Password:   "wrong-password",
 		})
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, application.ErrLoginFailed)
+		assert.ErrorIs(t, err, application.ErrLoginUserFailed)
 
 		// assert failed attempt is logged, e.g. for monitoring or fail2ban etc.
 		assert.Contains(t, buf.String(), "login failed")

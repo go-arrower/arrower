@@ -55,6 +55,14 @@ type (
 	LoginUserResponse struct {
 		User domain.User
 	}
+
+	SendConfirmationNewDeviceLoggedIn struct {
+		UserID     domain.ID
+		OccurredAt time.Time
+		IP         domain.ResolvedIP
+		Device     domain.Device
+		// Ip Location
+	}
 )
 
 func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (LoginUserResponse, error) {
@@ -66,7 +74,7 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 			slog.String("err", err.Error()),
 		)
 
-		return LoginUserResponse{}, ErrLoginFailed
+		return LoginUserResponse{}, ErrLoginUserFailed
 	}
 
 	if !h.authenticator.Authenticate(ctx, usr, req.Password) {
@@ -75,7 +83,7 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 			slog.String("ip", req.IP),
 		)
 
-		return LoginUserResponse{}, ErrLoginFailed
+		return LoginUserResponse{}, ErrLoginUserFailed
 	}
 
 	// The session is not valid until the end of the controller.

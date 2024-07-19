@@ -20,7 +20,6 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/web"
 	"github.com/go-arrower/arrower/contexts/auth/internal/views"
-	"github.com/go-arrower/arrower/mw"
 	"github.com/go-arrower/arrower/setting"
 )
 
@@ -116,29 +115,12 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 				nil,
 				application.NewNewUserCommandHandler(repo, registrator),
 			)),
-		VerifyUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger, application.NewVerifyUserCommandHandler(repo)),
+		VerifyUser:  app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger, application.NewVerifyUserCommandHandler(repo)),
+		BlockUser:   app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger, application.NewBlockUserRequestHandler(repo)),
+		UnblockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger, application.NewUnblockUserRequestHandler(repo)),
 	}
 
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)
-	userController.Queries = queries
-	userController.CmdBlockUser = mw.Traced(di.TraceProvider,
-		mw.Metric(di.MeterProvider,
-			mw.Logged(logger,
-				mw.Validate(nil,
-					application.BlockUser(repo),
-				),
-			),
-		),
-	)
-	userController.CmdUnBlockUser = mw.Traced(di.TraceProvider,
-		mw.Metric(di.MeterProvider,
-			mw.Logged(logger,
-				mw.Validate(nil,
-					application.UnblockUser(repo),
-				),
-			),
-		),
-	)
 
 	authContext := AuthContext{
 		settingsController: web.NewSettingsController(queries),

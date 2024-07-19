@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -42,15 +41,9 @@ func NewUserController(app application.UserApplication, routes *echo.Group, secr
 }
 
 type UserController struct {
-	r *echo.Group
-
+	r       *echo.Group
+	app     application.UserApplication
 	Queries *models.Queries
-
-	CmdNewUser     func(context.Context, application.NewUserCommand) error
-	CmdBlockUser   func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
-	CmdUnBlockUser func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
-
-	app application.UserApplication
 
 	knownDeviceKeyPairs []securecookie.Codec
 }
@@ -392,7 +385,7 @@ func (uc UserController) Store() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err := uc.CmdNewUser(c.Request().Context(), newUser)
+		err := uc.app.NewUser.H(c.Request().Context(), newUser)
 		if err != nil {
 			valErrs := make(map[string]string)
 
@@ -419,7 +412,7 @@ func (uc UserController) Store() func(echo.Context) error {
 
 func (uc UserController) BlockUser() {
 	uc.r.POST("/:userID/block", func(c echo.Context) error {
-		res, err := uc.CmdBlockUser(c.Request().Context(), application.BlockUserRequest{
+		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
 			UserID: domain.ID(c.Param("userID")),
 		})
 		if err != nil {
@@ -435,7 +428,7 @@ func (uc UserController) BlockUser() {
 
 func (uc UserController) UnBlockUser() {
 	uc.r.POST("/:userID/unblock", func(c echo.Context) error {
-		res, err := uc.CmdUnBlockUser(c.Request().Context(), application.BlockUserRequest{
+		res, err := uc.app.UnblockUser.H(c.Request().Context(), application.UnblockUserRequest{
 			UserID: domain.ID(c.Param("userID")),
 		})
 		if err != nil {

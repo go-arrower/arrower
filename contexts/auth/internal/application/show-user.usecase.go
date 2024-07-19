@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 var ErrShowUserFailed = errors.New("show user failed")
@@ -35,7 +34,7 @@ type (
 
 func (h *showUserQueryHandler) H(ctx context.Context, query ShowUserQuery) (ShowUserResponse, error) {
 	if query.UserID == "" {
-		return ShowUserResponse{}, ErrInvalidInput
+		return ShowUserResponse{}, fmt.Errorf("%w: invalid inout", ErrShowUserFailed)
 	}
 
 	usr, err := h.repo.FindByID(ctx, query.UserID)
