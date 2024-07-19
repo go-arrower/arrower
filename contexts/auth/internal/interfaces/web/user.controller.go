@@ -47,7 +47,6 @@ type UserController struct {
 	Queries *models.Queries
 
 	CmdNewUser     func(context.Context, application.NewUserCommand) error
-	CmdVerifyUser  func(context.Context, application.VerifyUserRequest) error
 	CmdBlockUser   func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
 	CmdUnBlockUser func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
 
@@ -337,7 +336,7 @@ func (uc UserController) Verify() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err = uc.CmdVerifyUser(c.Request().Context(), application.VerifyUserRequest{
+		err = uc.app.VerifyUser.H(c.Request().Context(), application.VerifyUserCommand{
 			Token:  token,
 			UserID: domain.ID(userID),
 		})

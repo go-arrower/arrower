@@ -383,17 +383,19 @@ func TestUserController_Verify(t *testing.T) {
 		c.SetParamNames("userID", "token")
 		c.SetParamValues(string(userID), validToken.String())
 
-		if assert.NoError(t, web.UserController{
-			CmdVerifyUser: func(ctx context.Context, in application.VerifyUserRequest) error {
+		controller := web.NewUserController(application.UserApplication{
+			VerifyUser: app.TestCommandHandler(func(_ context.Context, in application.VerifyUserCommand) error {
 				assert.Equal(t, validToken, in.Token)
 				assert.Equal(t, userID, in.UserID)
 
 				return nil
-			},
-		}.Verify()(c)) {
-			assert.Equal(t, http.StatusSeeOther, rec.Code)
-			assert.Equal(t, "/", rec.Header().Get(echo.HeaderLocation))
-		}
+			}),
+		}, nil, []byte(secret), nil)
+
+		err := controller.Verify()(c)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, "/", rec.Header().Get(echo.HeaderLocation))
 	})
 }
 
@@ -408,7 +410,7 @@ const (
 
 var validToken = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 
-type emptyRenderer struct{}
+type emptyRenderer struct{} // todo replace with renderer test helper
 
 func (t *emptyRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	_, _ = w.Write([]byte(name))

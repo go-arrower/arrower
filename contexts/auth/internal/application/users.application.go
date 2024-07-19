@@ -8,4 +8,5 @@ type UserApplication struct {
 	ListUsers    app.Query[ListUsersQuery, ListUsersResponse]
 	ShowUser     app.Query[ShowUserQuery, ShowUserResponse]
 	NewUser      app.Command[NewUserCommand]
+	VerifyUser   app.Command[VerifyUserCommand]
 }
