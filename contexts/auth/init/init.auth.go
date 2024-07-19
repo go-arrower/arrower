@@ -110,19 +110,11 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 				application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings)),
 			)),
 		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewListUsersQueryHandler(repo)),
+		ShowUser:  app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewShowUserQueryHandler(repo)),
 	}
 
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)
 	userController.Queries = queries
-	userController.CmdShowUserUser = mw.Traced(di.TraceProvider,
-		mw.Metric(di.MeterProvider,
-			mw.Logged(logger,
-				mw.Validate(nil,
-					application.ShowUser(repo),
-				),
-			),
-		),
-	)
 	userController.CmdNewUser = mw.TracedU(di.TraceProvider,
 		mw.MetricU(di.MeterProvider,
 			mw.LoggedU(logger,

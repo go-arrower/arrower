@@ -52,30 +52,6 @@ func VerifyUser(repo domain.Repository) func(context.Context, VerifyUserRequest)
 }
 
 type (
-	ShowUserRequest struct {
-		UserID domain.ID
-	}
-	ShowUserResponse struct {
-		User domain.User
-	}
-)
-
-func ShowUser(repo domain.Repository) func(context.Context, ShowUserRequest) (ShowUserResponse, error) {
-	return func(ctx context.Context, in ShowUserRequest) (ShowUserResponse, error) {
-		if in.UserID == "" {
-			return ShowUserResponse{}, ErrInvalidInput
-		}
-
-		usr, err := repo.FindByID(ctx, in.UserID)
-		if err != nil {
-			return ShowUserResponse{}, fmt.Errorf("could not get user: %w", err)
-		}
-
-		return ShowUserResponse{User: usr}, nil
-	}
-}
-
-type (
 	NewUserRequest struct {
 		Email       string `form:"email"       validate:"max=1024,required,email"`
 		FirstName   string `form:"firstName"   validate:"max=1024"`

@@ -37,38 +37,6 @@ func TestVerifyUser(t *testing.T) {
 	})
 }
 
-func TestShowUser(t *testing.T) {
-	t.Parallel()
-
-	t.Run("invalid userID", func(t *testing.T) {
-		t.Parallel()
-
-		repo := repository.NewMemoryRepository()
-
-		cmd := application.ShowUser(repo)
-		res, err := cmd(ctx, application.ShowUserRequest{})
-		assert.Error(t, err)
-		assert.Empty(t, res)
-	})
-
-	t.Run("show user", func(t *testing.T) {
-		t.Parallel()
-
-		repo := repository.NewMemoryRepository()
-		repo.Save(ctx, userVerified)
-
-		cmd := application.ShowUser(repo)
-		res, err := cmd(ctx, application.ShowUserRequest{
-			UserID: userIDZero,
-		})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, res)
-
-		assert.Equal(t, userIDZero, res.User.ID)
-		assert.Len(t, res.User.Sessions, 1)
-	})
-}
-
 func TestBlockUser(t *testing.T) {
 	t.Parallel()
 

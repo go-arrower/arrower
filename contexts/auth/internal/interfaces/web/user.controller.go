@@ -46,11 +46,10 @@ type UserController struct {
 
 	Queries *models.Queries
 
-	CmdShowUserUser func(context.Context, application.ShowUserRequest) (application.ShowUserResponse, error)
-	CmdNewUser      func(context.Context, application.NewUserRequest) error
-	CmdVerifyUser   func(context.Context, application.VerifyUserRequest) error
-	CmdBlockUser    func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
-	CmdUnBlockUser  func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
+	CmdNewUser     func(context.Context, application.NewUserRequest) error
+	CmdVerifyUser  func(context.Context, application.VerifyUserRequest) error
+	CmdBlockUser   func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
+	CmdUnBlockUser func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
 
 	app application.UserApplication
 
@@ -354,7 +353,7 @@ func (uc UserController) Show() func(echo.Context) error {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 
-		res, err := uc.CmdShowUserUser(c.Request().Context(), application.ShowUserRequest{UserID: domain.ID(userID)})
+		res, err := uc.app.ShowUser.H(c.Request().Context(), application.ShowUserQuery{UserID: domain.ID(userID)})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
