@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/setting"
-
 	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/setting"
 )
 
 var (
@@ -52,7 +51,7 @@ func (s *RegistrationService) RegisterNewUser(
 
 	usr, err := NewUser(registerEmail, password)
 	if err != nil {
-		return User{}, fmt.Errorf("%w: could not create new user", ErrRegistrationFailed)
+		return User{}, fmt.Errorf("%w: could not create new user: %w", ErrRegistrationFailed, err)
 	}
 
 	return usr, nil

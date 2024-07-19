@@ -52,38 +52,6 @@ func VerifyUser(repo domain.Repository) func(context.Context, VerifyUserRequest)
 }
 
 type (
-	NewUserRequest struct {
-		Email       string `form:"email"       validate:"max=1024,required,email"`
-		FirstName   string `form:"firstName"   validate:"max=1024"`
-		LastName    string `form:"lastName"    validate:"max=1024"`
-		DisplayName string `form:"displayName" validate:"max=1024"`
-		Superuser   bool   `form:"superuser"   validate:"boolean"`
-	}
-)
-
-func NewUser(repo domain.Repository, registrator *domain.RegistrationService) func(context.Context, NewUserRequest) error {
-	return func(ctx context.Context, in NewUserRequest) error {
-		usr, err := registrator.RegisterNewUser(ctx, in.Email, "RanDomS1cuP!") // todo set random pw
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		usr.Name = domain.NewName(in.FirstName, in.LastName, in.DisplayName)
-
-		if in.Superuser {
-			usr.SuperUser = domain.BoolFlag{}.SetTrue()
-		}
-
-		err = repo.Save(ctx, usr)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		return nil
-	}
-}
-
-type (
 	BlockUserRequest struct {
 		UserID domain.ID `validate:"required"`
 	}

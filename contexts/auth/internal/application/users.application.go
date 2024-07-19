@@ -7,4 +7,5 @@ type UserApplication struct {
 	LoginUser    app.Request[LoginUserRequest, LoginUserResponse]
 	ListUsers    app.Query[ListUsersQuery, ListUsersResponse]
 	ShowUser     app.Query[ShowUserQuery, ShowUserResponse]
+	NewUser      app.Command[NewUserCommand]
 }

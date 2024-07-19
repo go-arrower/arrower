@@ -100,30 +100,26 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	uc := application.UserApplication{
 		RegisterUser: app.NewInstrumentedRequest(
 			di.TraceProvider, di.MeterProvider, logger,
-			app.NewValidatedRequest(nil,
+			app.NewValidatedRequest(nil, // TODO move to req constructor
 				application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue),
 			)),
 		LoginUser: app.NewInstrumentedRequest(
 			di.TraceProvider, di.MeterProvider, logger,
-			app.NewValidatedRequest(
+			app.NewValidatedRequest( // TODO move to req constructor
 				nil,
 				application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings)),
 			)),
 		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewListUsersQueryHandler(repo)),
 		ShowUser:  app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewShowUserQueryHandler(repo)),
+		NewUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger,
+			app.NewValidatedCommand( // TODO move to cmd constructor
+				nil,
+				application.NewNewUserCommandHandler(repo, registrator),
+			)),
 	}
 
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)
 	userController.Queries = queries
-	userController.CmdNewUser = mw.TracedU(di.TraceProvider,
-		mw.MetricU(di.MeterProvider,
-			mw.LoggedU(logger,
-				mw.ValidateU(nil,
-					application.NewUser(repo, registrator),
-				),
-			),
-		),
-	)
 	userController.CmdVerifyUser = mw.TracedU(di.TraceProvider,
 		mw.MetricU(di.MeterProvider,
 			mw.LoggedU(logger,

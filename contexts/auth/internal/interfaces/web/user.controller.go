@@ -46,7 +46,7 @@ type UserController struct {
 
 	Queries *models.Queries
 
-	CmdNewUser     func(context.Context, application.NewUserRequest) error
+	CmdNewUser     func(context.Context, application.NewUserCommand) error
 	CmdVerifyUser  func(context.Context, application.VerifyUserRequest) error
 	CmdBlockUser   func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
 	CmdUnBlockUser func(context.Context, application.BlockUserRequest) (application.BlockUserResponse, error)
@@ -387,7 +387,7 @@ func (uc UserController) New() func(echo.Context) error {
 
 func (uc UserController) Store() func(echo.Context) error {
 	return func(c echo.Context) error {
-		newUser := application.NewUserRequest{}
+		newUser := application.NewUserCommand{}
 
 		if err := c.Bind(&newUser); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
