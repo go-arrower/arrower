@@ -98,22 +98,15 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 
 	uc := application.UserApplication{
 		RegisterUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
-			application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue),
-		),
+			application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue)),
 		LoginUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
-			app.NewValidatedRequest( // TODO move to req constructor
-				nil,
-				application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings)),
-			)),
+			application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings))),
 		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,
 			application.NewListUsersQueryHandler(repo)),
 		ShowUser: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,
 			application.NewShowUserQueryHandler(repo)),
 		NewUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger,
-			app.NewValidatedCommand( // TODO move to cmd constructor
-				nil,
-				application.NewNewUserCommandHandler(repo, registrator),
-			)),
+			application.NewNewUserCommandHandler(repo, registrator)),
 		VerifyUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger,
 			application.NewVerifyUserCommandHandler(repo)),
 		BlockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,

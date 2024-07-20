@@ -16,10 +16,10 @@ func NewNewUserCommandHandler(
 	repo domain.Repository,
 	registrator *domain.RegistrationService,
 ) app.Command[NewUserCommand] {
-	return &newUserCommandHandler{
+	return app.NewValidatedCommand[NewUserCommand](nil, &newUserCommandHandler{
 		repo:        repo,
 		registrator: registrator,
-	}
+	})
 }
 
 type newUserCommandHandler struct {

@@ -25,13 +25,13 @@ func NewLoginUserRequestHandler(
 	queue jobs.Enqueuer,
 	authenticator *domain.AuthenticationService,
 ) app.Request[LoginUserRequest, LoginUserResponse] {
-	return &loginUserRequestHandler{
+	return app.NewValidatedRequest[LoginUserRequest, LoginUserResponse](nil, &loginUserRequestHandler{
 		logger:        logger,
 		repo:          repo,
 		queue:         queue,
 		authenticator: authenticator,
 		ip:            infrastructure.NewIP2LocationService(""),
-	}
+	})
 }
 
 type loginUserRequestHandler struct {
@@ -48,7 +48,7 @@ type (
 		Password   string `form:"password" validate:"max=1024,min=8"`
 
 		IsNewDevice bool
-		UserAgent   string
+		UserAgent   string `validate:"max=2048"`
 		IP          string `validate:"ip"`
 		SessionKey  string
 	}
