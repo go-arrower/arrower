@@ -4,6 +4,10 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/go-echarts/go-echarts/v2/types"
+
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/labstack/echo/v4"
 )
 
@@ -67,4 +71,33 @@ func registerAdminRoutes(di *AdminContext) {
 		jobs.GET("/finished/total", di.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
 		jobs.GET("/job/:job_id", di.jobsController.ShowJob()).Name = "admin.jobs.job"
 	}
+
+	di.globalContainer.AdminRouter.GET("/charts/users", func(c echo.Context) error {
+		chart := charts.NewGauge()
+		chart.SetGlobalOptions(
+			charts.WithTooltipOpts(opts.Tooltip{Formatter: "{b}: {c}"}),
+			charts.WithInitializationOpts(opts.Initialization{
+				AssetsHost: "https://go-echarts.github.io/go-echarts-assets/assets/", // todo
+				PageTitle:  "User Count - Arrower",
+				Theme:      types.ThemeWalden,
+				//Theme:      types.ThemeWesteros,
+				//Theme:      types.ThemeMacarons,
+				Width: "500px",
+				//Height: "333px",
+			}),
+		)
+
+		ani := true
+		value := 40.0
+
+		chart.AddSeries("",
+			[]opts.GaugeData{{Name: "Users", Value: value}},
+			[]charts.SeriesOpts{charts.WithSeriesOpts(func(s *charts.SingleSeries) {
+				s.Progress = &opts.Progress{Show: &ani}
+				s.Detail = &opts.Detail{Formatter: "{value}"}
+				s.Max = int(value * 1.6)
+			})}...)
+
+		return chart.Render(c.Response().Writer)
+	})
 }

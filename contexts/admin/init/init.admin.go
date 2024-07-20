@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"os"
 
 	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/alog"
@@ -114,9 +115,10 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 	{ // add context-specific web views.
 		var views fs.FS = views.AdminViews
-		// if di.Config.Debug { // TODO fix when running debug from other repo than arrower
-		//	views = os.DirFS("contexts/admin/internal/views")
-		// }
+		if di.Config.Debug {
+			// ../arrower/ is to access the views from the skeleton project for local development
+			views = os.DirFS("../arrower/contexts/admin/internal/views")
+		}
 
 		err := di.WebRenderer.AddContext(contextName, views)
 		if err != nil {

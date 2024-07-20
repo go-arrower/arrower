@@ -3,6 +3,7 @@ package init
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"strings"
@@ -40,17 +41,18 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	_ = meter
 	_ = tracer
 
+	var views fs.FS = views.AuthViews
 	if di.Config.Debug {
 		// ../arrower/ is to access the views from the skeleton project for local development
-		_ = di.WebRenderer.AddContext(contextName, os.DirFS("../arrower/contexts/auth/internal/views"))
-	} else {
-		err := di.WebRenderer.AddContext(contextName, views.AuthViews)
-		if err != nil {
-			return nil, fmt.Errorf("could not load auth views: %w", err)
-		}
+		views = os.DirFS("../arrower/contexts/auth/internal/views")
 	}
 
-	err := di.WebRenderer.AddLayoutData(contextName, "default", func(ctx context.Context) (map[string]any, error) {
+	err := di.WebRenderer.AddContext(contextName, views)
+	if err != nil {
+		return nil, fmt.Errorf("could not load auth views: %w", err)
+	}
+
+	err = di.WebRenderer.AddLayoutData(contextName, "default", func(ctx context.Context) (map[string]any, error) {
 		return map[string]any{
 			"Title": strings.Title(contextName),
 		}, nil
