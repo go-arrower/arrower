@@ -22,13 +22,13 @@ func NewRegisterUserRequestHandler(
 	registrator *domain.RegistrationService,
 	queue jobs.Enqueuer,
 ) app.Request[RegisterUserRequest, RegisterUserResponse] {
-	return &registerUserRequestHandler{
+	return app.NewValidatedRequest[RegisterUserRequest, RegisterUserResponse](nil, &registerUserRequestHandler{
 		logger:      logger,
 		repo:        repo,
 		registrator: registrator,
 		queue:       queue,
 		ip:          infrastructure.NewIP2LocationService(""),
-	}
+	})
 }
 
 type registerUserRequestHandler struct {
@@ -44,9 +44,9 @@ type (
 		RegisterEmail          string `form:"login" validate:"max=1024,required,email"`
 		Password               string `form:"password" validate:"max=1024,min=8"`
 		PasswordConfirmation   string `form:"password_confirmation" validate:"max=1024,eqfield=Password"`
-		AcceptedTermsOfService bool   `form:"tos" validate:"boolean,required"`
+		AcceptedTermsOfService bool   `form:"tos" validate:"required"`
 
-		UserAgent  string
+		UserAgent  string `validate:"max=2048"`
 		IP         string `validate:"ip"`
 		SessionKey string
 	}

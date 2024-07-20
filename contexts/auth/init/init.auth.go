@@ -97,27 +97,29 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	adminRouter := di.AdminRouter.Group(fmt.Sprintf("/%s", contextName))
 
 	uc := application.UserApplication{
-		RegisterUser: app.NewInstrumentedRequest(
-			di.TraceProvider, di.MeterProvider, logger,
-			app.NewValidatedRequest(nil, // TODO move to req constructor
-				application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue),
-			)),
-		LoginUser: app.NewInstrumentedRequest(
-			di.TraceProvider, di.MeterProvider, logger,
+		RegisterUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
+			application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue),
+		),
+		LoginUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
 			app.NewValidatedRequest( // TODO move to req constructor
 				nil,
 				application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings)),
 			)),
-		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewListUsersQueryHandler(repo)),
-		ShowUser:  app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger, application.NewShowUserQueryHandler(repo)),
+		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,
+			application.NewListUsersQueryHandler(repo)),
+		ShowUser: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,
+			application.NewShowUserQueryHandler(repo)),
 		NewUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger,
 			app.NewValidatedCommand( // TODO move to cmd constructor
 				nil,
 				application.NewNewUserCommandHandler(repo, registrator),
 			)),
-		VerifyUser:  app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger, application.NewVerifyUserCommandHandler(repo)),
-		BlockUser:   app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger, application.NewBlockUserRequestHandler(repo)),
-		UnblockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger, application.NewUnblockUserRequestHandler(repo)),
+		VerifyUser: app.NewInstrumentedCommand(di.TraceProvider, di.MeterProvider, logger,
+			application.NewVerifyUserCommandHandler(repo)),
+		BlockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
+			application.NewBlockUserRequestHandler(repo)),
+		UnblockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
+			application.NewUnblockUserRequestHandler(repo)),
 	}
 
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)

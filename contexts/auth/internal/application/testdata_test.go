@@ -2,10 +2,16 @@ package application_test
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"reflect"
+	"strings"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
+
 	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/setting"
 )
@@ -80,4 +86,65 @@ func authentificator() *domain.AuthenticationService {
 	settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(true))
 
 	return domain.NewAuthenticationService(settings)
+}
+
+func empty(field string) func(req *application.RegisterUserRequest) {
+	return func(req *application.RegisterUserRequest) {
+		e := reflect.TypeOf(*req)
+		for i := range e.NumField() {
+			if e.Field(i).Name == strings.TrimSpace(field) {
+				reflect.ValueOf(req).Elem().Field(i).SetZero()
+				return
+			}
+
+			if strings.ToLower(e.Field(i).Name) == strings.ToLower(strings.TrimSpace(field)) ||
+				strings.Contains(strings.ToLower(e.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
+				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(e.Field(i).Name)) {
+				fmt.Printf("field with similar name found, did you mean: `%s`?\n", e.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
+				continue
+			}
+		}
+
+		panic("no field `" + field + "` found in struct `" + e.Name() + "`")
+	}
+}
+
+func with(field string, value string) func(req *application.RegisterUserRequest) {
+	return func(req *application.RegisterUserRequest) {
+		e := reflect.TypeOf(*req)
+		for i := range e.NumField() {
+			if e.Field(i).Name == strings.TrimSpace(field) {
+				reflect.ValueOf(req).Elem().FieldByName(field).SetString(value)
+				return
+			}
+
+			if strings.ToLower(e.Field(i).Name) == strings.ToLower(strings.TrimSpace(field)) ||
+				strings.Contains(strings.ToLower(e.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
+				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(e.Field(i).Name)) {
+				fmt.Printf("field with similar name found, did you mean: `%s`?\n", e.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
+				continue
+			}
+		}
+
+		panic("no field `" + field + "` found in struct `" + e.Name() + "`")
+	}
+}
+
+func registerUserRequest(opts ...func(res *application.RegisterUserRequest)) application.RegisterUserRequest {
+	password := gofakeit.Password(true, true, true, true, false, 12)
+	req := application.RegisterUserRequest{
+		RegisterEmail:          gofakeit.Email(),
+		Password:               password,
+		PasswordConfirmation:   password,
+		AcceptedTermsOfService: true,
+		UserAgent:              gofakeit.UserAgent(),
+		IP:                     gofakeit.IPv4Address(),
+		SessionKey:             gofakeit.UUID(),
+	}
+
+	for _, opt := range opts {
+		opt(&req)
+	}
+
+	return req
 }

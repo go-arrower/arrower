@@ -16,6 +16,34 @@ import (
 func TestRegisterUserRequestHandler_H(t *testing.T) {
 	t.Parallel()
 
+	t.Run("validate inputs", func(t *testing.T) {
+		t.Parallel()
+
+		tests := map[string]struct {
+			in application.RegisterUserRequest
+		}{
+			"empty":               {application.RegisterUserRequest{}},
+			"missing email":       {registerUserRequest(empty("RegisterEmail"))},
+			"missing password":    {registerUserRequest(empty("Password"))},
+			"passwords not equal": {registerUserRequest(with("PasswordConfirmation", "123456789"))},
+			"missing tos":         {registerUserRequest(empty("AcceptedTermsOfService"))},
+			"missing ip":          {registerUserRequest(empty("IP"))},
+			"invalid ip":          {registerUserRequest(with("IP", "invalid-ip-format"))},
+		}
+
+		handler := application.NewRegisterUserRequestHandler(nil, nil, nil, nil)
+
+		for name, tc := range tests {
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+
+				_, err := handler.H(ctx, tc.in)
+				assert.Error(t, err)
+				t.Log(name, err)
+			})
+		}
+	})
+
 	t.Run("login already in use", func(t *testing.T) {
 		t.Parallel()
 
