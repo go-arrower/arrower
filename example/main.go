@@ -19,7 +19,6 @@ import (
 	admin_init "github.com/go-arrower/arrower/contexts/admin/init"
 	"github.com/go-arrower/arrower/contexts/auth"
 	auth_init "github.com/go-arrower/arrower/contexts/auth/init"
-	"github.com/go-arrower/arrower/mw"
 )
 
 func main() {
@@ -110,20 +109,18 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 	)
 
 	_ = di.DefaultQueue.RegisterJobFunc(
-		mw.TracedU(di.TraceProvider, mw.MetricU(di.MeterProvider, mw.LoggedU(di.Logger.(*slog.Logger),
-			func(ctx context.Context, job SomeJob) error {
-				di.Logger.InfoContext(ctx, "LOG ASYNC SIMPLE JOB")
-				//panic("SOME JOB PANICS")
+		func(ctx context.Context, job SomeJob) error {
+			di.Logger.InfoContext(ctx, "LOG ASYNC SIMPLE JOB")
+			//panic("SOME JOB PANICS")
 
-				time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,gomnd,lll // weak numbers are ok, it is wait time
+			time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,gomnd,lll // weak numbers are ok, it is wait time
 
-				if rand.Intn(100) > 30 { //nolint:gosec,gomndworkers,gomnd
-					return errors.New("some error") //nolint:goerr113
-				}
+			if rand.Intn(100) > 30 { //nolint:gosec,gomndworkers,gomnd
+				return errors.New("some error") //nolint:goerr113
+			}
 
-				return nil
-			},
-		))),
+			return nil
+		},
 	)
 
 	_ = di.DefaultQueue.RegisterJobFunc(
@@ -131,17 +128,15 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 	)
 
 	_ = di.DefaultQueue.RegisterJobFunc(
-		mw.TracedU(di.TraceProvider, mw.MetricU(di.MeterProvider, mw.LoggedU(di.Logger.(*slog.Logger),
-			func(ctx context.Context, job LongRunningJob) error {
-				time.Sleep(time.Duration(rand.Intn(5)) * time.Minute) //nolint:gosec,gomnd // weak numbers are ok, it is wait time
+		func(ctx context.Context, job LongRunningJob) error {
+			time.Sleep(time.Duration(rand.Intn(5)) * time.Minute) //nolint:gosec,gomnd // weak numbers are ok, it is wait time
 
-				if rand.Intn(100) > 95 { //nolint:gosec,gomnd
-					return errors.New("some error") //nolint:goerr113
-				}
+			if rand.Intn(100) > 95 { //nolint:gosec,gomnd
+				return errors.New("some error") //nolint:goerr113
+			}
 
-				return nil
-			},
-		))),
+			return nil
+		},
 	)
 
 	go func() {
