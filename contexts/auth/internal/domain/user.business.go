@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"regexp"
 	"strings"
 	"time"
@@ -24,6 +25,10 @@ func NewUser(registerEmail string, password string) (User, error) {
 		return User{}, fmt.Errorf("%w: missing login", ErrInvalidUserDetails)
 	}
 
+	if _, err := mail.ParseAddress(registerEmail); err != nil {
+		return User{}, fmt.Errorf("%w: invalid email address: %v", ErrInvalidUserDetails, err) //nolint:errorlint,lll // prevent err in api
+	}
+
 	pwHash, err := NewStrongPasswordHash(password)
 	if err != nil {
 		return User{}, err
@@ -33,9 +38,25 @@ func NewUser(registerEmail string, password string) (User, error) {
 		ID:           NewID(),
 		Login:        Login(registerEmail),
 		PasswordHash: pwHash,
-		Verified:     FALSE(),
-		Blocked:      FALSE(),
-		Superuser:    FALSE(),
+		RegisteredAt: time.Now().UTC(),
+		Name: Name{
+			firstName:   "",
+			lastName:    "",
+			displayName: "",
+		},
+		Birthday: Birthday{
+			day:   0,
+			month: 0,
+			year:  0,
+		},
+		Locale:            Locale{},
+		TimeZone:          "",
+		ProfilePictureURL: "",
+		Profile:           map[string]string{},
+		Verified:          FALSE(),
+		Blocked:           FALSE(),
+		Superuser:         FALSE(),
+		Sessions:          []Session{},
 	}, nil
 }
 
@@ -46,7 +67,6 @@ type (
 		Login        Login // UserName / email, or phone, or nickname, or whatever the developer wants to have as a login
 		PasswordHash PasswordHash
 		RegisteredAt time.Time
-		T            Tenant
 
 		Name              Name
 		Birthday          Birthday
@@ -161,7 +181,7 @@ func isWeakPassword(password string) bool {
 	return false
 }
 
-type PasswordHash string // todo make VO that can not be changed??
+type PasswordHash string
 
 func (pw PasswordHash) Matches(checkPW string) bool {
 	if err := bcrypt.CompareHashAndPassword([]byte(pw), []byte(checkPW)); err == nil {
@@ -280,7 +300,7 @@ type Locale language.Tag
 
 type TimeZone string
 
-func NewURL(url string) (URL, error) { return "", nil }
+func NewURL(_ string) (URL, error) { return "", nil }
 
 type URL string
 

@@ -14,7 +14,6 @@ var (
 
 type Repository interface {
 	All(ctx context.Context, filter Filter) ([]User, error)
-	AllByIDs(ctx context.Context, ids []ID) ([]User, error) // todo remove, as it is not called
 
 	FindByID(ctx context.Context, id ID) (User, error)
 	FindByLogin(ctx context.Context, login Login) (User, error)
@@ -29,7 +28,6 @@ type Repository interface {
 	DeleteByIDs(ctx context.Context, ids []ID) error
 	DeleteAll(ctx context.Context) error
 
-	// todo investigate if this is good or token should have its own repo or whatever the heck an aggregate is
 	CreateVerificationToken(ctx context.Context, token VerificationToken) error
 	VerificationTokenByToken(ctx context.Context, token uuid.UUID) (VerificationToken, error)
 }

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
+
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 var ErrInvalidSessionValue = errors.New("invalid session value")

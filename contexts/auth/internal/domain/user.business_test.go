@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
@@ -12,30 +13,29 @@ import (
 func TestNewUser(t *testing.T) {
 	t.Parallel()
 
-	// todo test that register email is a valid syntax? (already done by app, but do it anyway?
-
 	t.Run("missing user details", func(t *testing.T) {
 		t.Parallel()
 
-		tests := []struct {
-			testName      string
+		tests := map[string]struct {
 			registerEmail string
 			password      string
 		}{
-			{
-				"no register email",
+			"no register email": {
 				"",
 				string(strongPasswordHash),
 			},
-			{
-				"weak pw",
+			"weak pw": {
 				"",
 				"123",
 			},
+			"invalid email": {
+				"invalid-email",
+				gofakeit.Password(true, true, true, true, false, 8),
+			},
 		}
 
-		for _, tt := range tests {
-			t.Run(tt.testName, func(t *testing.T) {
+		for name, tt := range tests {
+			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 
 				usr, err := domain.NewUser(tt.registerEmail, tt.password)
@@ -61,25 +61,22 @@ func TestNewUser(t *testing.T) {
 func TestUser_IsVerified(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
+	tests := map[string]struct {
 		user     domain.User
 		expected bool
 	}{
-		{
-			"empty time",
+		"empty time": {
 			domain.User{Verified: domain.BoolFlag{}},
 			false,
 		},
-		{
-			"user",
+		"user": {
 			domain.User{Verified: domain.BoolFlag(time.Now().UTC())},
 			true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, tt.expected, tt.user.IsVerified())
@@ -90,25 +87,22 @@ func TestUser_IsVerified(t *testing.T) {
 func TestUser_IsBlocked(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
+	tests := map[string]struct {
 		user     domain.User
 		expected bool
 	}{
-		{
-			"empty time",
+		"empty time": {
 			domain.User{Blocked: domain.BoolFlag{}},
 			false,
 		},
-		{
-			"user",
+		"user": {
 			domain.User{Blocked: domain.BoolFlag(time.Now().UTC())},
 			true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, tt.expected, tt.user.IsBlocked())
@@ -148,25 +142,22 @@ func TestUser_Unblock(t *testing.T) {
 func TestUser_IsSuperuser(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
+	tests := map[string]struct {
 		user     domain.User
 		expected bool
 	}{
-		{
-			"empty time",
+		"empty time": {
 			domain.User{Superuser: domain.BoolFlag{}},
 			false,
 		},
-		{
-			"superuser",
+		"superuser": {
 			domain.User{Superuser: domain.BoolFlag(time.Now().UTC())},
 			true,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, tt.expected, tt.user.IsSuperuser())
@@ -177,25 +168,22 @@ func TestUser_IsSuperuser(t *testing.T) {
 func TestNewPasswordHash(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
-		pw       string
-		err      error
+	tests := map[string]struct {
+		pw  string
+		err error
 	}{
-		{
-			"empty pw",
+		"empty pw": {
 			"",
 			nil,
 		},
-		{
-			"pw",
+		"pw": {
 			"some-pw",
 			nil,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			_, err := domain.NewPasswordHash(tt.pw)
@@ -207,34 +195,28 @@ func TestNewPasswordHash(t *testing.T) {
 func TestNewStrongPasswordHash(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
+	tests := map[string]struct {
 		password string
 	}{
-		{
-			"too short",
+		"too short": {
 			"123456",
 		},
-		{
-			"missing lower case letter",
+		"missing lower case letter": {
 			"1234567890",
 		},
-		{
-			"missing upper case letter",
+		"missing upper case letter": {
 			"123456abc",
 		},
-		{
-			"missing number",
+		"missing number": {
 			"abcdefghi",
 		},
-		{
-			"missing special character",
+		"missing special character": {
 			"123456abCD",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			_, err := domain.NewStrongPasswordHash(tt.password)
@@ -247,17 +229,15 @@ func TestNewStrongPasswordHash(t *testing.T) {
 func TestName(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
-		fn       string
-		ln       string
-		dn       string
-		expFN    string
-		expLN    string
-		expDN    string
+	tests := map[string]struct {
+		fn    string
+		ln    string
+		dn    string
+		expFN string
+		expLN string
+		expDN string
 	}{
-		{
-			"empty name",
+		"empty name": {
 			"",
 			"",
 			"",
@@ -265,8 +245,7 @@ func TestName(t *testing.T) {
 			"",
 			"",
 		},
-		{
-			"full name",
+		"full name": {
 			"Arrower",
 			"Project",
 			"Arrower Project",
@@ -274,8 +253,7 @@ func TestName(t *testing.T) {
 			"Project",
 			"Arrower Project",
 		},
-		{
-			"sanitise name",
+		"sanitise name": {
 			" Arrower",
 			"Project ",
 			" Arrower Project ",
@@ -283,8 +261,7 @@ func TestName(t *testing.T) {
 			"Project",
 			"Arrower Project",
 		},
-		{
-			"automatic capitalise",
+		"automatic capitalise": {
 			"arrower",
 			"project",
 			"arrower project",
@@ -292,8 +269,7 @@ func TestName(t *testing.T) {
 			"Project",
 			"Arrower Project",
 		},
-		{
-			"build display name",
+		"build display name": {
 			"arrower",
 			"project",
 			"",
@@ -303,8 +279,8 @@ func TestName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			name := domain.NewName(tt.fn, tt.ln, tt.dn)
@@ -318,71 +294,61 @@ func TestName(t *testing.T) {
 func TestNewBirthday(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName string
+	tests := map[string]struct {
 		day      domain.Day
 		month    domain.Month
 		year     domain.Year
 		expected error
 	}{
-		{
-			"",
+		"valid": {
 			1,
 			1,
 			2000,
 			nil,
 		},
-		{
-			"invalid day",
+		"invalid day zero": {
 			0,
 			1,
 			2000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"invalid month",
+		"invalid month zero": {
 			1,
 			0,
 			2000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"too old",
+		"too old": {
 			1,
 			1,
 			1000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"invalid day",
+		"invalid day": {
 			32,
 			1,
 			2000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"invalid month",
+		"invalid month": {
 			1,
 			13,
 			2000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"in the future",
+		"in the future": {
 			1,
 			1,
 			3000,
 			domain.ErrInvalidBirthday,
 		},
-		{
-			"",
+		"valid februrary": {
 			29,
 			2,
 			2020,
 			nil,
 		},
-		{
-			"invalid date",
+		"invalid date": {
 			31,
 			4,
 			2020,
@@ -390,8 +356,8 @@ func TestNewBirthday(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			_, got := domain.NewBirthday(tt.day, tt.month, tt.year)
@@ -403,22 +369,19 @@ func TestNewBirthday(t *testing.T) {
 func TestDevice(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		testName       string
+	tests := map[string]struct {
 		userAgent      string
 		expectedName   string
 		expectedOS     string
 		expectedString string
 	}{
-		{
-			"empty",
+		"empty": {
 			"",
 			"",
 			"",
 			"",
 		},
-		{
-			"",
+		"valid": {
 			"Mozilla/5.0 (Linux; Android 4.3; GT-I9300 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36",
 			"Chrome v59.0.3071.125",
 			"Android v4.3",
@@ -426,8 +389,8 @@ func TestDevice(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, tt.expectedName, domain.NewDevice(tt.userAgent).Name())

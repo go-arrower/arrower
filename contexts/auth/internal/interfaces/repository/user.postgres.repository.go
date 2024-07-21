@@ -47,25 +47,6 @@ func (repo *PostgresRepository) All(ctx context.Context, filter domain.Filter) (
 	return usersFromModel(ctx, repo.db.Conn(), dbUser)
 }
 
-func (repo *PostgresRepository) AllByIDs(ctx context.Context, ids []domain.ID) ([]domain.User, error) {
-	dbIDs := make([]uuid.UUID, len(ids))
-
-	var err error
-	for i, id := range ids {
-		dbIDs[i], err = uuid.Parse(string(id))
-		if err != nil {
-			return nil, fmt.Errorf("%w: could not parse as uuid: %s: %w", domain.ErrNotFound, id, err)
-		}
-	}
-
-	dbUser, err := repo.db.Conn().AllUsersByIDs(ctx, dbIDs)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", domain.ErrNotFound, err)
-	}
-
-	return usersFromModel(ctx, repo.db.Conn(), dbUser)
-}
-
 func (repo *PostgresRepository) FindByID(ctx context.Context, id domain.ID) (domain.User, error) {
 	dbID, err := uuid.Parse(string(id))
 	if err != nil {

@@ -82,36 +82,6 @@ func TestPostgresRepository_All(t *testing.T) {
 	})
 }
 
-func TestPostgresRepository_AllByIDs(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid ids", func(t *testing.T) {
-		t.Parallel()
-
-		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewUserPostgresRepository(pg)
-
-		all, err := repo.AllByIDs(ctx, nil)
-		assert.NoError(t, err)
-		assert.Empty(t, all)
-
-		all, err = repo.AllByIDs(ctx, []domain.ID{testdata.UserIDZero, testdata.UserIDOne})
-		assert.NoError(t, err)
-		assert.Len(t, all, 2)
-		assert.Len(t, all[0].Sessions, 1, "user should have its value objects returned")
-	})
-
-	t.Run("invalid ids", func(t *testing.T) {
-		t.Parallel()
-
-		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewUserPostgresRepository(pg)
-
-		_, err := repo.AllByIDs(ctx, []domain.ID{"invalid-id"})
-		assert.ErrorIs(t, err, domain.ErrNotFound)
-	})
-}
-
 func TestPostgresRepository_FindByID(t *testing.T) {
 	t.Parallel()
 

@@ -115,7 +115,7 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 
 			time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,gomnd,lll // weak numbers are ok, it is wait time
 
-			if rand.Intn(100) > 30 { //nolint:gosec,gomndworkers,gomnd
+			if rand.Intn(100) > 30 { //nolint:gosec,gomnd
 				return errors.New("some error") //nolint:goerr113
 			}
 

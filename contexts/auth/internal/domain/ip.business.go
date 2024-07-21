@@ -7,9 +7,9 @@ type IPResolver interface {
 }
 
 type ResolvedIP struct {
-	IP          net.IP
 	Country     string
 	CountryCode string
 	Region      string
 	City        string
+	IP          net.IP
 }
