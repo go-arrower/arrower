@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
-	"github.com/go-arrower/arrower/tests"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/testdata"
+	"github.com/go-arrower/arrower/tests"
 )
 
 var (
@@ -37,7 +36,7 @@ func TestMain(m *testing.M) {
 func TestNewPostgresRepository(t *testing.T) {
 	t.Parallel()
 
-	_, err := repository.NewPostgresRepository(nil)
+	_, err := repository.NewUserPostgresRepository(nil)
 	assert.ErrorIs(t, err, repository.ErrMissingConnection)
 }
 
@@ -48,7 +47,7 @@ func TestPostgresRepository_All(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		all, err := repo.All(ctx, domain.Filter{})
 		assert.NoError(t, err)
@@ -60,7 +59,7 @@ func TestPostgresRepository_All(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		// first page
 		all, err := repo.All(ctx, domain.Filter{
@@ -90,7 +89,7 @@ func TestPostgresRepository_AllByIDs(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		all, err := repo.AllByIDs(ctx, nil)
 		assert.NoError(t, err)
@@ -106,7 +105,7 @@ func TestPostgresRepository_AllByIDs(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		_, err := repo.AllByIDs(ctx, []domain.ID{"invalid-id"})
 		assert.ErrorIs(t, err, domain.ErrNotFound)
@@ -120,7 +119,7 @@ func TestPostgresRepository_FindByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		u, err := repo.FindByID(ctx, testdata.UserIDOne)
 		assert.NoError(t, err)
@@ -131,7 +130,7 @@ func TestPostgresRepository_FindByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		_, err := repo.FindByID(ctx, testdata.UserIDNotValid)
 		assert.ErrorIs(t, err, domain.ErrNotFound)
@@ -145,7 +144,7 @@ func TestPostgresRepository_FindByLogin(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		u, err := repo.FindByLogin(ctx, testdata.ValidLogin)
 		assert.NoError(t, err)
@@ -156,7 +155,7 @@ func TestPostgresRepository_FindByLogin(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		_, err := repo.FindByLogin(ctx, testdata.NotExLogin)
 		assert.ErrorIs(t, err, domain.ErrNotFound)
@@ -170,7 +169,7 @@ func TestPostgresRepository_ExistsByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		ex, err := repo.ExistsByID(ctx, testdata.UserIDZero)
 		assert.NoError(t, err)
@@ -181,7 +180,7 @@ func TestPostgresRepository_ExistsByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		ex, err := repo.ExistsByID(ctx, testdata.UserIDNotExists)
 		assert.NoError(t, err)
@@ -192,7 +191,7 @@ func TestPostgresRepository_ExistsByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		_, err := repo.ExistsByID(ctx, testdata.UserIDNotValid)
 		assert.ErrorIs(t, err, domain.ErrNotFound)
@@ -206,7 +205,7 @@ func TestPostgresRepository_ExistsByLogin(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		ex, err := repo.ExistsByLogin(ctx, testdata.ValidLogin)
 		assert.NoError(t, err)
@@ -217,7 +216,7 @@ func TestPostgresRepository_ExistsByLogin(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		ex, err := repo.ExistsByLogin(ctx, testdata.NotExLogin)
 		assert.NoError(t, err)
@@ -229,7 +228,7 @@ func TestPostgresRepository_Count(t *testing.T) {
 	t.Parallel()
 
 	pg := pgHandler.NewTestDatabase()
-	repo, _ := repository.NewPostgresRepository(pg)
+	repo, _ := repository.NewUserPostgresRepository(pg)
 
 	c, err := repo.Count(ctx)
 	assert.NoError(t, err)
@@ -243,7 +242,7 @@ func TestPostgresRepository_Save(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.Save(ctx, domain.User{
 			ID: testdata.UserIDNew,
@@ -269,7 +268,7 @@ func TestPostgresRepository_Save(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		usr, _ := repo.FindByID(ctx, testdata.UserIDZero)
 		assert.Empty(t, usr.Name)
@@ -286,7 +285,7 @@ func TestPostgresRepository_Save(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.Save(ctx, domain.User{})
 		assert.ErrorIs(t, err, domain.ErrPersistenceFailed)
@@ -300,7 +299,7 @@ func TestPostgresRepository_SaveAll(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		newUser := domain.User{ID: testdata.UserIDNew}
 		updatedUser := testdata.UserZero
@@ -326,7 +325,7 @@ func TestPostgresRepository_Delete(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.Delete(ctx, testdata.UserZero)
 		assert.NoError(t, err)
@@ -343,7 +342,7 @@ func TestPostgresRepository_DeleteByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.DeleteByID(ctx, testdata.UserIDZero)
 		assert.NoError(t, err)
@@ -356,7 +355,7 @@ func TestPostgresRepository_DeleteByID(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.DeleteByID(ctx, testdata.UserIDNotValid)
 		assert.ErrorIs(t, err, domain.ErrPersistenceFailed)
@@ -370,7 +369,7 @@ func TestPostgresRepository_DeleteByIDs(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.DeleteByIDs(ctx, []domain.ID{
 			testdata.UserIDZero,
@@ -390,7 +389,7 @@ func TestPostgresRepository_DeleteAll(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.DeleteAll(ctx)
 		assert.NoError(t, err)
@@ -407,7 +406,7 @@ func TestPostgresRepository_CreateVerificationToken(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		repo, _ := repository.NewPostgresRepository(pg)
+		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.CreateVerificationToken(ctx, testdata.ValidToken)
 		assert.NoError(t, err)

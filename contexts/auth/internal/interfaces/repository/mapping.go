@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"golang.org/x/text/language"
 
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 )
 

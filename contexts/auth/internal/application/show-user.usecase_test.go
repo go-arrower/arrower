@@ -15,7 +15,7 @@ func TestShowUserQueryHandler_H(t *testing.T) {
 	t.Run("invalid userID", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 
 		handler := application.NewShowUserQueryHandler(repo)
 		res, err := handler.H(ctx, application.ShowUserQuery{})
@@ -26,7 +26,7 @@ func TestShowUserQueryHandler_H(t *testing.T) {
 	t.Run("show user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userVerified)
 
 		handler := application.NewShowUserQueryHandler(repo)

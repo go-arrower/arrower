@@ -19,7 +19,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 	t.Run("authentication fails", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 
 		buf := bytes.Buffer{}
@@ -43,7 +43,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 	t.Run("login succeeds", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.NewTestingJobs()
 
@@ -73,7 +73,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 	t.Run("unknown device - send email about login to user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.NewTestingJobs()
 

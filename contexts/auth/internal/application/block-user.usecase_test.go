@@ -15,7 +15,7 @@ func TestBlockUserRequestHandler_H(t *testing.T) {
 	t.Run("block user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userVerified)
 
 		handler := application.NewBlockUserRequestHandler(repo)

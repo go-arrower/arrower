@@ -17,7 +17,7 @@ func TestNewUserCommandHandler_H(t *testing.T) {
 	t.Run("success case", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		handler := application.NewNewUserCommandHandler(repo, registrator(repo))
 
 		err := handler.H(context.Background(), application.NewUserCommand{

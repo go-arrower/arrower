@@ -92,7 +92,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	}
 
 	queries := models.New(di.PGx)
-	repo, _ := repository.NewPostgresRepository(di.PGx)
+	repo, _ := repository.NewUserPostgresRepository(di.PGx)
 	registrator := domain.NewRegistrationService(di.Settings, repo)
 
 	webRoutes := di.WebRouter.Group(fmt.Sprintf("/%s", contextName))

@@ -21,7 +21,7 @@ func TestListUsersQueryHandler_H(t *testing.T) {
 	t.Run("no users", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		handler := application.NewListUsersQueryHandler(repo)
 
 		res, err := handler.H(ctx, application.ListUsersQuery{})
@@ -34,7 +34,7 @@ func TestListUsersQueryHandler_H(t *testing.T) {
 	t.Run("load all", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.SaveAll(ctx, users)
 		handler := application.NewListUsersQueryHandler(repo)
 
@@ -48,7 +48,7 @@ func TestListUsersQueryHandler_H(t *testing.T) {
 	t.Run("paginate", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.SaveAll(ctx, users)
 		handler := application.NewListUsersQueryHandler(repo)
 
@@ -64,7 +64,7 @@ func TestListUsersQueryHandler_H(t *testing.T) {
 
 		fUser, _ := domain.NewUser("search@email.com", "abcdefA0$")
 		fUser.Name = domain.NewName("first", "last", "display")
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.SaveAll(ctx, append(users, fUser))
 		handler := application.NewListUsersQueryHandler(repo)
 

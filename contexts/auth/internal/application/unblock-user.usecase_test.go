@@ -15,7 +15,7 @@ func TestUnblockUserRequestHandler_H(t *testing.T) {
 	t.Run("unblock user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userBlocked)
 
 		handler := application.NewUnblockUserRequestHandler(repo)

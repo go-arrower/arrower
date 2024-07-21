@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/go-arrower/arrower/repository"
+	"github.com/google/uuid"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
-	"github.com/google/uuid"
+	"github.com/go-arrower/arrower/repository"
 )
 
-func NewMemoryRepository() *MemoryRepository {
+func NewUserMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
 		MemoryRepository: repository.NewMemoryRepository[domain.User, domain.ID](),
 		tokens:           make(map[uuid.UUID]domain.VerificationToken),
@@ -39,20 +38,21 @@ func (repo *MemoryRepository) All(ctx context.Context, filter domain.Filter) ([]
 	limit := filter.Limit
 	found := false
 
-	for _, u := range all {
-		// skipp Logins before the offset
-		if !found && filter.Offset != "" && u.Login != filter.Offset {
+	for _, user := range all {
+		// skip Logins before the offset
+		if !found && filter.Offset != "" && user.Login != filter.Offset {
 			continue
 		}
 
 		// skip the found = same as offset
 		found = true
-		if filter.Offset == u.Login {
+
+		if filter.Offset == user.Login {
 			continue
 		}
 
 		// append up to the limit
-		users = append(users, u)
+		users = append(users, user)
 		limit--
 
 		if limit == 0 {
@@ -88,7 +88,7 @@ func (repo *MemoryRepository) ExistsByLogin(ctx context.Context, login domain.Lo
 }
 
 func (repo *MemoryRepository) CreateVerificationToken(
-	ctx context.Context,
+	_ context.Context,
 	token domain.VerificationToken,
 ) error {
 	if token.Token().String() == "" {
@@ -104,7 +104,7 @@ func (repo *MemoryRepository) CreateVerificationToken(
 }
 
 func (repo *MemoryRepository) VerificationTokenByToken(
-	ctx context.Context,
+	_ context.Context,
 	tokenID uuid.UUID,
 ) (domain.VerificationToken, error) {
 	for _, t := range repo.tokens {

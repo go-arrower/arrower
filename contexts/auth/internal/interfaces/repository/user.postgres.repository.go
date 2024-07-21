@@ -5,18 +5,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
+	"github.com/go-arrower/arrower/postgres"
 )
 
 var ErrMissingConnection = errors.New("missing db connection")
 
-func NewPostgresRepository(pg *pgxpool.Pool) (*PostgresRepository, error) {
+func NewUserPostgresRepository(pg *pgxpool.Pool) (*PostgresRepository, error) {
 	if pg == nil {
 		return nil, ErrMissingConnection
 	}
@@ -240,7 +240,7 @@ func (repo *PostgresRepository) CreateVerificationToken(
 		ValidUntilUtc: pgtype.Timestamptz{Time: token.ValidUntilUTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		return fmt.Errorf("%w: could not save new verification token: %v", domain.ErrPersistenceFailed, err)
+		return fmt.Errorf("%w: could not save new verification token: %v", domain.ErrPersistenceFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return nil
@@ -252,7 +252,7 @@ func (repo *PostgresRepository) VerificationTokenByToken(
 ) (domain.VerificationToken, error) {
 	token, err := repo.db.Conn().VerificationTokenByToken(ctx, tokenID)
 	if err != nil {
-		return domain.VerificationToken{}, fmt.Errorf("%w: could not get verification token: %v", domain.ErrNotFound, err)
+		return domain.VerificationToken{}, fmt.Errorf("%w: could not get verification token: %v", domain.ErrNotFound, err) //nolint:errorlint,lll // prevent err in api
 	}
 
 	return domain.NewVerificationToken(

@@ -18,7 +18,7 @@ func TestVerificationService_NewVerificationToken(t *testing.T) {
 		t.Parallel()
 
 		usr := newUser()
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, usr)
 
 		// action
@@ -44,7 +44,7 @@ func TestVerificationService_Verify(t *testing.T) {
 
 		// setup
 		usr := newUser()
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, usr)
 		verifier := domain.NewVerificationService(repo)
 		token, _ := verifier.NewVerificationToken(ctx, usr)
@@ -64,7 +64,7 @@ func TestVerificationService_Verify(t *testing.T) {
 
 		// setup
 		usr := newUser()
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, usr)
 		verifier := domain.NewVerificationService(
 			repo,
@@ -85,7 +85,7 @@ func TestVerificationService_Verify(t *testing.T) {
 		t.Parallel()
 
 		usr := newUser()
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, usr)
 		verifier := domain.NewVerificationService(repo)
 

@@ -29,7 +29,7 @@ func TestRegistrationService_RegisterNewUser(t *testing.T) {
 	t.Run("login already in use", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 
 		settings := setting.NewInMemorySettings()
@@ -44,7 +44,7 @@ func TestRegistrationService_RegisterNewUser(t *testing.T) {
 	t.Run("register new user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 
 		settings := setting.NewInMemorySettings()
 		settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(true))

@@ -17,7 +17,7 @@ func TestVerifyUserCommandHandler_H(t *testing.T) {
 		t.Parallel()
 
 		// setup
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userNotVerified)
 
 		usr, _ := repo.FindByID(ctx, userNotVerifiedUserID)

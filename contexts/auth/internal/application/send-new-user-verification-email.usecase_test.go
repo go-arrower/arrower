@@ -19,7 +19,7 @@ func TestSendNewUserVerificationEmailJobHandler_H(t *testing.T) {
 	t.Run("success case", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userNotVerified)
 
 		handler := application.NewSendNewUserVerificationEmailJobHandler(alog.NewTest(nil), repo)

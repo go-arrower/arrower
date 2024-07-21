@@ -47,7 +47,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 	t.Run("login already in use", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 
 		registrator := registrator(repo)
@@ -69,7 +69,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 	t.Run("register new user", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository()
+		repo := repository.NewUserMemoryRepository()
 		queue := jobs.NewTestingJobs()
 		registrator := registrator(repo)
 
