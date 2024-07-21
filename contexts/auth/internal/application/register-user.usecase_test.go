@@ -58,7 +58,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 
 		handler := application.NewRegisterUserRequestHandler(logger, repo, registrator, nil)
 
-		_, err := handler.H(ctx, application.RegisterUserRequest{RegisterEmail: user0Login})
+		_, err := handler.H(ctx, registerUserRequest(with("RegisterEmail", user0Login)))
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 
@@ -75,12 +75,10 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 
 		handler := application.NewRegisterUserRequestHandler(alog.NewNoopLogger(), repo, registrator, queue)
 
-		usr, err := handler.H(ctx, application.RegisterUserRequest{
-			RegisterEmail: newUserLogin,
-			Password:      strongPassword,
-			UserAgent:     userAgent,
-			IP:            ip,
-		})
+		usr, err := handler.H(ctx, registerUserRequest(
+			with("RegisterEmail", newUserLogin),
+			with("UserAgent", userAgent),
+			with("IP", ip)))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, usr.User.ID)
 

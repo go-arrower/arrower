@@ -58,7 +58,7 @@ func userFromModelWithSession(dbUser models.AuthUser, sessions []models.AuthSess
 		Profile:           profile,
 		Verified:          domain.BoolFlag(dbUser.VerifiedAtUtc.Time),
 		Blocked:           domain.BoolFlag(dbUser.BlockedAtUtc.Time),
-		SuperUser:         domain.BoolFlag(dbUser.SuperuserAtUtc.Time),
+		Superuser:         domain.BoolFlag(dbUser.SuperuserAtUtc.Time),
 		Sessions:          sessionsFromModel(sessions),
 	}
 }
@@ -93,8 +93,8 @@ func userToModel(user domain.User) models.UpsertUserParams {
 		blockedAt = pgtype.Timestamptz{} //nolint:exhaustruct
 	}
 
-	superUserAt := pgtype.Timestamptz{Time: user.SuperUser.At(), Valid: true, InfinityModifier: pgtype.Finite}
-	if user.SuperUser.At() == (time.Time{}) {
+	superUserAt := pgtype.Timestamptz{Time: user.Superuser.At(), Valid: true, InfinityModifier: pgtype.Finite}
+	if user.Superuser.At() == (time.Time{}) {
 		superUserAt = pgtype.Timestamptz{} //nolint:exhaustruct
 	}
 

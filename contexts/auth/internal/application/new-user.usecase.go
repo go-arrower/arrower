@@ -45,7 +45,7 @@ func (h *newUserCommandHandler) H(ctx context.Context, cmd NewUserCommand) error
 	usr.Name = domain.NewName(cmd.FirstName, cmd.LastName, cmd.DisplayName)
 
 	if cmd.Superuser {
-		usr.SuperUser = domain.BoolFlag{}.SetTrue()
+		usr.Superuser = domain.BoolFlag{}.SetTrue()
 	}
 
 	err = h.repo.Save(ctx, usr)

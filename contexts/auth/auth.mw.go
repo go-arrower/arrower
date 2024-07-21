@@ -194,7 +194,7 @@ func CurrentUserID(ctx context.Context) string {
 	return ""
 }
 
-func IsSuperUser(ctx context.Context) bool {
+func IsSuperuser(ctx context.Context) bool {
 	if v, ok := ctx.Value(CtxAuthIsSuperuser).(bool); ok {
 		return v
 	}

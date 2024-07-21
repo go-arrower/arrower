@@ -18,13 +18,11 @@ type Repository interface {
 
 	FindByID(ctx context.Context, id ID) (User, error)
 	FindByLogin(ctx context.Context, login Login) (User, error)
-	ExistsByID(ctx context.Context, id ID) (bool, error) // todo rm
 	ExistsByLogin(ctx context.Context, login Login) (bool, error)
 
 	Count(ctx context.Context) (int, error)
 
 	Save(ctx context.Context, user User) error
-	SaveAll(ctx context.Context, users []User) error // todo rm
 
 	Delete(ctx context.Context, user User) error
 	DeleteByID(ctx context.Context, id ID) error

@@ -33,9 +33,9 @@ func NewUser(registerEmail string, password string) (User, error) {
 		ID:           NewID(),
 		Login:        Login(registerEmail),
 		PasswordHash: pwHash,
-		Verified:     BoolFlag{}.SetFalse(),
-		Blocked:      BoolFlag{}.SetFalse(),
-		SuperUser:    BoolFlag{}.SetFalse(),
+		Verified:     FALSE(),
+		Blocked:      FALSE(),
+		Superuser:    FALSE(),
 	}, nil
 }
 
@@ -57,9 +57,9 @@ type (
 		Profile Profile // limit the length of keys & values // { plan: 'silver', team_id: 'a111' }
 		// email, phone???
 
-		Verified  BoolFlag // todo make all flags private, so they can not be manipulated outside of the business logic
+		Verified  BoolFlag
 		Blocked   BoolFlag
-		SuperUser BoolFlag // todo make it small Superuser, as it is one word/concept and not a composition
+		Superuser BoolFlag
 
 		Sessions []Session
 	}
@@ -101,7 +101,7 @@ func (u *User) Unblock() {
 }
 
 func (u *User) IsSuperuser() bool {
-	return u.SuperUser.IsTrue()
+	return u.Superuser.IsTrue()
 }
 
 // NewID generates a new ID for a User.
@@ -330,6 +330,14 @@ type Session struct {
 	Device    Device
 }
 
+func FALSE() BoolFlag {
+	return BoolFlag(time.Time{}.UTC()).SetFalse()
+}
+
+func TRUE() BoolFlag {
+	return BoolFlag(time.Time{}.UTC()).SetTrue()
+}
+
 type BoolFlag time.Time
 
 func (t BoolFlag) IsTrue() bool {
@@ -351,5 +359,5 @@ func (t BoolFlag) SetTrue() BoolFlag {
 }
 
 func (t BoolFlag) SetFalse() BoolFlag {
-	return BoolFlag(time.Time{})
+	return BoolFlag(time.Time{}.UTC())
 }

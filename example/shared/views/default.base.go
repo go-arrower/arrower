@@ -22,7 +22,7 @@ func NewDefaultBaseDataFunc(settings setting.Settings) func(_ context.Context) (
 			"ShowRegistrationBtn":      isRegisterActive.MustBool() && !auth.IsLoggedIn(ctx),
 			"ShowLoginBtn":             showLoginBtn,
 			"ShowLogoutBtn":            auth.IsLoggedIn(ctx),
-			"ShowAdminBtn":             auth.IsSuperUser(ctx),
+			"ShowAdminBtn":             auth.IsSuperuser(ctx),
 			"ShowLoggedInAsUserBanner": auth.IsLoggedInAsOtherUser(ctx),
 		}
 

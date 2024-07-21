@@ -9,7 +9,7 @@ import (
 // registerAdminRoutes initialises all admin routes of this Context. To access the user has to have admin permissions.
 // The admin routes work best in combination with the Admin Context initialised.
 func (c *AuthContext) registerAdminRoutes(router *echo.Group, di localDI) {
-	sCont := web.SuperUserController{Queries: di.queries}
+	sCont := web.SuperuserController{Queries: di.queries}
 
 	router.GET("/as_user/:userID", sCont.AdminLoginAsUser())
 	router.GET("/leave_user", sCont.AdminLeaveUser())

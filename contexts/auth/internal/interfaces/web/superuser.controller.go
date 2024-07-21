@@ -12,11 +12,11 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 )
 
-type SuperUserController struct {
+type SuperuserController struct {
 	Queries *models.Queries
 }
 
-func (cont SuperUserController) AdminLoginAsUser() echo.HandlerFunc {
+func (cont SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 
@@ -47,7 +47,7 @@ func (cont SuperUserController) AdminLoginAsUser() echo.HandlerFunc {
 	}
 }
 
-func (cont SuperUserController) AdminLeaveUser() echo.HandlerFunc {
+func (cont SuperuserController) AdminLeaveUser() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {

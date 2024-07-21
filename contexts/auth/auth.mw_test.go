@@ -54,7 +54,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 	})
 }
 
-func TestIsSuperUser(t *testing.T) {
+func TestIsSuperuser(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no session => redirect", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestIsSuperUser(t *testing.T) {
 		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c echo.Context) error {
 			ctx := c.Request().Context()
 			assert.False(t, auth.IsLoggedIn(ctx))
-			assert.False(t, auth.IsSuperUser(ctx))
+			assert.False(t, auth.IsSuperuser(ctx))
 			assert.Empty(t, auth.CurrentUserID(ctx))
 
 			return c.NoContent(http.StatusOK)
@@ -82,7 +82,7 @@ func TestIsSuperUser(t *testing.T) {
 		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
-			assert.True(t, auth.IsSuperUser(ctx))
+			assert.True(t, auth.IsSuperuser(ctx))
 			assert.Equal(t, "1337", auth.CurrentUserID(ctx))
 
 			return c.NoContent(http.StatusOK)
@@ -124,7 +124,7 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
 			assert.Equal(t, "1337", auth.CurrentUserID(ctx))
-			assert.True(t, auth.IsSuperUser(ctx))
+			assert.True(t, auth.IsSuperuser(ctx))
 
 			return c.NoContent(http.StatusOK)
 		})

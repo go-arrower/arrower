@@ -88,13 +88,13 @@ func (s *VerificationService) NewVerificationToken(ctx context.Context, user Use
 }
 
 // Verify verifies a User with the given Token. If it is valid, the user is updated and persisted.
-func (s *VerificationService) Verify(ctx context.Context, usr *User, rawToken uuid.UUID) error {
+func (s *VerificationService) Verify(ctx context.Context, user *User, rawToken uuid.UUID) error {
 	token, err := s.repo.VerificationTokenByToken(ctx, rawToken)
 	if err != nil {
 		return fmt.Errorf("%w: could not fetch verification token: %w", ErrVerificationFailed, err)
 	}
 
-	if token.UserID() != usr.ID {
+	if token.UserID() != user.ID {
 		return ErrVerificationFailed
 	}
 
@@ -102,9 +102,9 @@ func (s *VerificationService) Verify(ctx context.Context, usr *User, rawToken uu
 		return ErrVerificationFailed
 	}
 
-	usr.Verified = usr.Verified.SetTrue()
+	user.Verified = user.Verified.SetTrue()
 
-	err = s.repo.Save(ctx, *usr)
+	err = s.repo.Save(ctx, *user)
 	if err != nil {
 		return fmt.Errorf("%w: could not save user: %w", ErrVerificationFailed, err)
 	}

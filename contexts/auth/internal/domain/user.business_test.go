@@ -54,7 +54,7 @@ func TestNewUser(t *testing.T) {
 		assert.Equal(t, userLogin, string(usr.Login))
 		assert.True(t, usr.Verified.IsFalse())
 		assert.True(t, usr.Blocked.IsFalse())
-		assert.True(t, usr.SuperUser.IsFalse())
+		assert.True(t, usr.Superuser.IsFalse())
 	})
 }
 
@@ -155,12 +155,12 @@ func TestUser_IsSuperuser(t *testing.T) {
 	}{
 		{
 			"empty time",
-			domain.User{SuperUser: domain.BoolFlag{}},
+			domain.User{Superuser: domain.BoolFlag{}},
 			false,
 		},
 		{
 			"superuser",
-			domain.User{SuperUser: domain.BoolFlag(time.Now().UTC())},
+			domain.User{Superuser: domain.BoolFlag(time.Now().UTC())},
 			true,
 		},
 	}

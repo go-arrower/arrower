@@ -49,10 +49,10 @@ func (s *RegistrationService) RegisterNewUser(
 		return User{}, ErrUserAlreadyExists
 	}
 
-	usr, err := NewUser(registerEmail, password)
+	user, err := NewUser(registerEmail, password)
 	if err != nil {
 		return User{}, fmt.Errorf("%w: could not create new user: %w", ErrRegistrationFailed, err)
 	}
 
-	return usr, nil
+	return user, nil
 }

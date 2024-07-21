@@ -15,21 +15,21 @@ type AuthenticationService struct {
 	settingsService setting.Settings
 }
 
-func (s *AuthenticationService) Authenticate(ctx context.Context, usr User, password string) bool {
+func (s *AuthenticationService) Authenticate(ctx context.Context, user User, password string) bool {
 	isLoginActive, err := s.settingsService.Setting(ctx, auth.SettingAllowLogin)
 	if err != nil || !isLoginActive.MustBool() {
 		return false
 	}
 
-	if !usr.IsVerified() {
+	if !user.IsVerified() {
 		return false
 	}
 
-	if usr.IsBlocked() {
+	if user.IsBlocked() {
 		return false
 	}
 
-	if !usr.PasswordHash.Matches(password) {
+	if !user.PasswordHash.Matches(password) {
 		return false
 	}
 

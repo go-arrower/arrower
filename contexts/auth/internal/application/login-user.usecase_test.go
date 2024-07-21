@@ -31,6 +31,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_, err := handler.H(ctx, application.LoginUserRequest{
 			LoginEmail: user0Login,
 			Password:   "wrong-password",
+			IP:         ip,
 		})
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, application.ErrLoginUserFailed)
@@ -53,6 +54,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 			Password:   strongPassword,
 			UserAgent:  userAgent,
 			SessionKey: "new-session-key",
+			IP:         ip,
 		})
 
 		// assert return values
