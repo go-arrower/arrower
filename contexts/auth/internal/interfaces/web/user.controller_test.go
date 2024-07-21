@@ -321,7 +321,7 @@ func TestUserController_Register(t *testing.T) {
 		defer result.Body.Close()
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, rec.Body.String(), "auth.user.create")
+		assert.Contains(t, rec.Body.String(), "create")
 		assert.Len(t, result.Cookies(), 0, "failed registration should have no cookies")
 	})
 

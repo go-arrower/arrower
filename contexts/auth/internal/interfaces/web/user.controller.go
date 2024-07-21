@@ -60,7 +60,7 @@ func (uc UserController) Login() func(echo.Context) error {
 		}
 
 		if c.Request().Method == http.MethodGet {
-			return c.Render(http.StatusOK, "auth=>=>auth.login", nil)
+			return c.Render(http.StatusOK, "auth=>=>login", nil)
 		}
 
 		// POST: Login
@@ -96,7 +96,7 @@ func (uc UserController) Login() func(echo.Context) error {
 				valErrs[e.StructField()] = e.Translate(nil)
 			}
 
-			return c.Render(http.StatusOK, "auth=>=>auth.login", map[string]any{
+			return c.Render(http.StatusOK, "auth=>=>login", map[string]any{
 				"Errors":     valErrs,
 				"LoginEmail": loginUser.LoginEmail,
 			})
@@ -245,7 +245,7 @@ func (uc UserController) Create() func(echo.Context) error {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
 
-		return c.Render(http.StatusOK, "auth=>=>auth.user.create", nil)
+		return c.Render(http.StatusOK, "auth=>=>create", nil)
 	}
 }
 
@@ -284,7 +284,7 @@ func (uc UserController) Register() func(echo.Context) error {
 				valErrs[e.StructField()] = e.Translate(nil)
 			}
 
-			return c.Render(http.StatusOK, "auth=>=>auth.user.create", map[string]any{
+			return c.Render(http.StatusOK, "auth=>=>create", map[string]any{
 				"Title":         "Registrieren",
 				"Errors":        valErrs,
 				"RegisterEmail": newUser.RegisterEmail,
@@ -350,7 +350,7 @@ func (uc UserController) Show() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "auth.user.show", echo.Map{
+		return c.Render(http.StatusOK, "user.show", echo.Map{
 			"Title": "Nutzer Profil",
 			"User":  res.User,
 		})
@@ -373,7 +373,7 @@ func (uc UserController) DestroySession(queries *models.Queries) func(echo.Conte
 
 func (uc UserController) New() func(echo.Context) error {
 	return func(c echo.Context) error {
-		return c.Render(http.StatusOK, "auth.user.new", nil)
+		return c.Render(http.StatusOK, "new", nil)
 	}
 }
 
@@ -400,7 +400,7 @@ func (uc UserController) Store() func(echo.Context) error {
 				}
 			}
 
-			return c.Render(http.StatusOK, "auth.user.new", map[string]any{
+			return c.Render(http.StatusOK, "new", map[string]any{
 				"Errors": valErrs,
 				"Email":  newUser.Email,
 			})

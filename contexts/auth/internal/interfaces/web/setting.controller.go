@@ -29,6 +29,6 @@ type SettingsController struct {
 
 func (sc SettingsController) List() func(echo.Context) error {
 	return func(c echo.Context) error {
-		return c.Render(http.StatusOK, "auth.settings", nil)
+		return c.Render(http.StatusOK, "settings", nil)
 	}
 }
