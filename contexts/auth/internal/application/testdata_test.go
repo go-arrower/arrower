@@ -90,43 +90,43 @@ func authentificator() *domain.AuthenticationService {
 
 func empty(field string) func(req *application.RegisterUserRequest) {
 	return func(req *application.RegisterUserRequest) {
-		e := reflect.TypeOf(*req)
-		for i := range e.NumField() {
-			if e.Field(i).Name == strings.TrimSpace(field) {
+		typeOf := reflect.TypeOf(*req)
+		for i := range typeOf.NumField() {
+			if typeOf.Field(i).Name == strings.TrimSpace(field) {
 				reflect.ValueOf(req).Elem().Field(i).SetZero()
 				return
 			}
 
-			if strings.ToLower(e.Field(i).Name) == strings.ToLower(strings.TrimSpace(field)) ||
-				strings.Contains(strings.ToLower(e.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
-				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(e.Field(i).Name)) {
-				fmt.Printf("field with similar name found, did you mean: `%s`?\n", e.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
+			if strings.EqualFold(typeOf.Field(i).Name, strings.TrimSpace(field)) ||
+				strings.Contains(strings.ToLower(typeOf.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
+				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(typeOf.Field(i).Name)) {
+				fmt.Printf("field with similar name found, did you mean: `%s`?\n", typeOf.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
 				continue
 			}
 		}
 
-		panic("no field `" + field + "` found in struct `" + e.Name() + "`")
+		panic("no field `" + field + "` found in struct `" + typeOf.Name() + "`")
 	}
 }
 
 func with(field string, value string) func(req *application.RegisterUserRequest) {
 	return func(req *application.RegisterUserRequest) {
-		e := reflect.TypeOf(*req)
-		for i := range e.NumField() {
-			if e.Field(i).Name == strings.TrimSpace(field) {
+		typeOf := reflect.TypeOf(*req)
+		for i := range typeOf.NumField() {
+			if typeOf.Field(i).Name == strings.TrimSpace(field) {
 				reflect.ValueOf(req).Elem().FieldByName(field).SetString(value)
 				return
 			}
 
-			if strings.ToLower(e.Field(i).Name) == strings.ToLower(strings.TrimSpace(field)) ||
-				strings.Contains(strings.ToLower(e.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
-				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(e.Field(i).Name)) {
-				fmt.Printf("field with similar name found, did you mean: `%s`?\n", e.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
+			if strings.EqualFold(typeOf.Field(i).Name, strings.TrimSpace(field)) ||
+				strings.Contains(strings.ToLower(typeOf.Field(i).Name), strings.ToLower(strings.TrimSpace(field))) ||
+				strings.Contains(strings.ToLower(strings.TrimSpace(field)), strings.ToLower(typeOf.Field(i).Name)) {
+				fmt.Printf("field with similar name found, did you mean: `%s`?\n", typeOf.Field(i).Name) //nolint:forbidigo // show useful debug information to developer
 				continue
 			}
 		}
 
-		panic("no field `" + field + "` found in struct `" + e.Name() + "`")
+		panic("no field `" + field + "` found in struct `" + typeOf.Name() + "`")
 	}
 }
 

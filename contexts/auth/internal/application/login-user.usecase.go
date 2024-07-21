@@ -7,14 +7,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
-
 	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/jobs"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
+	"github.com/go-arrower/arrower/jobs"
 )
 
 var ErrLoginUserFailed = errors.New("login user failed")
@@ -44,7 +41,7 @@ type loginUserRequestHandler struct {
 
 type (
 	LoginUserRequest struct { //nolint:govet // fieldalignment less important than grouping of params.
-		LoginEmail string `form:"login" validate:"max=1024,required,email"`
+		LoginEmail string `form:"login"    validate:"max=1024,required,email"`
 		Password   string `form:"password" validate:"max=1024,min=8"`
 
 		IsNewDevice bool

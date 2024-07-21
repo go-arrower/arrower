@@ -3,10 +3,9 @@ package domain_test
 import (
 	"context"
 
-	"github.com/go-arrower/arrower/setting"
-
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/setting"
 )
 
 var (
@@ -23,23 +22,21 @@ func newUser() domain.User {
 	}
 }
 
-// used by RegistrationService
+// used by RegistrationService.
 const (
 	userID    = domain.ID("00000000-0000-0000-0000-000000000000")
 	userLogin = "0@test.com"
 )
 
-var (
-	userVerified = domain.User{
-		ID:           userID,
-		Login:        userLogin,
-		PasswordHash: strongPasswordHash,
-		Verified:     domain.BoolFlag{}.SetTrue(),
-	}
-)
+var userVerified = domain.User{
+	ID:           userID,
+	Login:        userLogin,
+	PasswordHash: strongPasswordHash,
+	Verified:     domain.BoolFlag{}.SetTrue(),
+}
 
-// used by AuthenticationService
-func settingsService(active bool) setting.Settings {
+// used by AuthenticationService.
+func settingsService(active bool) *setting.InMemorySettings {
 	settings := setting.NewInMemorySettings()
 	settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(active))
 

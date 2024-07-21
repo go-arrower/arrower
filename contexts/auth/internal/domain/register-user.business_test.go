@@ -3,12 +3,12 @@ package domain_test
 import (
 	"testing"
 
-	"github.com/go-arrower/arrower/setting"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
+	"github.com/go-arrower/arrower/setting"
 )
 
 func TestRegistrationService_RegisterNewUser(t *testing.T) {

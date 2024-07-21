@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 var ErrNewUserFailed = errors.New("new user failed")

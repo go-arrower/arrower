@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 func NewListUsersQueryHandler(repo domain.Repository) app.Query[ListUsersQuery, ListUsersResponse] {
@@ -63,14 +62,14 @@ func searchUsersEXPENSIVE(usrs []domain.User, query string) []domain.User {
 
 	query = strings.TrimSpace(strings.ToLower(query))
 
-	for _, u := range usrs {
-		searchNameConcat := strings.ToLower(u.Name.FirstName()) +
-			strings.ToLower(u.Name.LastName()) +
-			strings.ToLower(u.Name.DisplayName())
+	for _, user := range usrs {
+		searchNameConcat := strings.ToLower(user.Name.FirstName()) +
+			strings.ToLower(user.Name.LastName()) +
+			strings.ToLower(user.Name.DisplayName())
 
-		matchesSearch := strings.Contains(string(u.Login), query) || strings.Contains(searchNameConcat, query)
+		matchesSearch := strings.Contains(string(user.Login), query) || strings.Contains(searchNameConcat, query)
 		if matchesSearch {
-			users = append(users, u)
+			users = append(users, user)
 		}
 	}
 

@@ -5,14 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 )
 
 func TestSendNewUserVerificationEmailJobHandler_H(t *testing.T) {

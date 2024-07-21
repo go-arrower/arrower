@@ -24,8 +24,8 @@ type (
 		UserID domain.ID `validate:"required"`
 	}
 	BlockUserResponse struct {
-		UserID  domain.ID
 		Blocked domain.BoolFlag
+		UserID  domain.ID
 	}
 )
 

@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 var ErrUnblockUserFailed = errors.New("unblock user failed")
@@ -25,12 +24,12 @@ type (
 		UserID domain.ID `validate:"required"`
 	}
 	UnblockUserResponse struct {
-		UserID  domain.ID
 		Blocked domain.BoolFlag
+		UserID  domain.ID
 	}
 )
 
-// todo merge usecase with the block use case, IF possible
+// todo merge usecase with the block use case, IF possible.
 func (h *unblockUserRequestHandler) H(ctx context.Context, req UnblockUserRequest) (UnblockUserResponse, error) {
 	usr, err := h.repo.FindByID(ctx, req.UserID)
 	if err != nil {

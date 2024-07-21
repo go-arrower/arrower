@@ -3,9 +3,8 @@ package domain
 import (
 	"context"
 
-	"github.com/go-arrower/arrower/setting"
-
 	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/setting"
 )
 
 func NewAuthenticationService(settings setting.Settings) *AuthenticationService {
@@ -17,7 +16,8 @@ type AuthenticationService struct {
 }
 
 func (s *AuthenticationService) Authenticate(ctx context.Context, usr User, password string) bool {
-	if isLoginActive, err := s.settingsService.Setting(ctx, auth.SettingAllowLogin); !isLoginActive.MustBool() || err != nil {
+	isLoginActive, err := s.settingsService.Setting(ctx, auth.SettingAllowLogin)
+	if err != nil || !isLoginActive.MustBool() {
 		return false
 	}
 

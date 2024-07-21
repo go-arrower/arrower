@@ -1,22 +1,18 @@
 package application_test
 
 import (
-	"context"
 	"testing"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 )
 
 func TestListUsersQueryHandler_H(t *testing.T) {
 	t.Parallel()
-
-	ctx := context.Background()
 
 	u0, _ := domain.NewUser(gofakeit.Email(), "abcdefA0$")
 	u1, _ := domain.NewUser(gofakeit.Email(), "abcdefA0$")

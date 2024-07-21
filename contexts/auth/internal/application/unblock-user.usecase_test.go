@@ -3,11 +3,10 @@ package application_test
 import (
 	"testing"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 )
 
 func TestUnblockUserRequestHandler_H(t *testing.T) {
@@ -26,6 +25,6 @@ func TestUnblockUserRequestHandler_H(t *testing.T) {
 		// verify
 		usr, err := repo.FindByID(ctx, userBlockedUserID)
 		assert.NoError(t, err)
-		assert.True(t, !usr.IsBlocked())
+		assert.False(t, usr.IsBlocked())
 	})
 }

@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"github.com/go-arrower/arrower/alog"
-
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 var ErrSendNewUserVerificationEmailFailed = errors.New("send new user verification email failed")

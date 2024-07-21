@@ -13,30 +13,30 @@ var (
 )
 
 type Repository interface {
-	All(context.Context, Filter) ([]User, error)
-	AllByIDs(context.Context, []ID) ([]User, error) // todo remove, as it is not called
+	All(ctx context.Context, filter Filter) ([]User, error)
+	AllByIDs(ctx context.Context, ids []ID) ([]User, error) // todo remove, as it is not called
 
-	FindByID(context.Context, ID) (User, error)
-	FindByLogin(context.Context, Login) (User, error)
-	ExistsByID(context.Context, ID) (bool, error) // todo rm
-	ExistsByLogin(context.Context, Login) (bool, error)
+	FindByID(ctx context.Context, id ID) (User, error)
+	FindByLogin(ctx context.Context, login Login) (User, error)
+	ExistsByID(ctx context.Context, id ID) (bool, error) // todo rm
+	ExistsByLogin(ctx context.Context, login Login) (bool, error)
 
-	Count(context.Context) (int, error)
+	Count(ctx context.Context) (int, error)
 
-	Save(context.Context, User) error
-	SaveAll(context.Context, []User) error // todo rm
+	Save(ctx context.Context, user User) error
+	SaveAll(ctx context.Context, users []User) error // todo rm
 
-	Delete(context.Context, User) error
-	DeleteByID(context.Context, ID) error
-	DeleteByIDs(context.Context, []ID) error
-	DeleteAll(context.Context) error
+	Delete(ctx context.Context, user User) error
+	DeleteByID(ctx context.Context, id ID) error
+	DeleteByIDs(ctx context.Context, ids []ID) error
+	DeleteAll(ctx context.Context) error
 
 	// todo investigate if this is good or token should have its own repo or whatever the heck an aggregate is
-	CreateVerificationToken(context.Context, VerificationToken) error
-	VerificationTokenByToken(context.Context, uuid.UUID) (VerificationToken, error)
+	CreateVerificationToken(ctx context.Context, token VerificationToken) error
+	VerificationTokenByToken(ctx context.Context, token uuid.UUID) (VerificationToken, error)
 }
 
 type Filter struct {
-	Limit  uint
 	Offset Login
+	Limit  uint
 }

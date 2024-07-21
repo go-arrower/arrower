@@ -3,12 +3,11 @@ package application_test
 import (
 	"testing"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 )
 
 func TestVerifyUserCommandHandler_H(t *testing.T) {

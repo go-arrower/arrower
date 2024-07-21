@@ -33,7 +33,7 @@ func (s *RegistrationService) RegisterNewUser(
 ) (User, error) {
 	isRegistrationActive, err := s.settings.Setting(ctx, auth.SettingAllowRegistration)
 	if err != nil {
-		return User{}, fmt.Errorf("%w: could not load settings: %v", ErrRegistrationFailed, err)
+		return User{}, fmt.Errorf("%w: could not load settings: %w", ErrRegistrationFailed, err)
 	}
 
 	if !isRegistrationActive.MustBool() {
