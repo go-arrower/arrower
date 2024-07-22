@@ -21,7 +21,7 @@ func Test(
 	viewFS fs.FS,
 	funcMap template.FuncMap,
 ) (*TestRenderer, error) {
-	r, err := New(alog.NewNoopLogger(), noop.NewTracerProvider(), viewFS, funcMap, false)
+	r, err := New(alog.NewNoop(), noop.NewTracerProvider(), viewFS, funcMap, false)
 	if err != nil {
 		return &TestRenderer{}, fmt.Errorf("could not create test renderer: %w", err)
 	}

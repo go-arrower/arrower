@@ -33,7 +33,7 @@ func (j jobWithJobType) JobType() string {
 }
 
 func (j jobWithSameNameAsSimpleJob) JobType() string {
-	return "github.com/go-arrower/arrower/jobs_test.simpleJob"
+	return "jobs_test.simpleJob"
 }
 
 type gueJobHistory struct {

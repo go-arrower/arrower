@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
@@ -18,32 +17,30 @@ func TestRequestLoggingDecorator_H(t *testing.T) {
 	t.Run("successful request", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedRequest(logger, app.TestSuccessRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.NoError(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing request"`)
-		assert.Contains(t, buf.String(), `command=app_test.request`)
-		assert.Contains(t, buf.String(), `msg="request executed successfully"`)
+		logger.Contains(`msg="executing request"`)
+		logger.Contains(`command=app_test.request`)
+		logger.Contains(`msg="request executed successfully"`)
 	})
 
 	t.Run("failed request", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedRequest(logger, app.TestFailureRequestHandler[request, response]())
 
 		_, err := handler.H(context.Background(), request{})
 		assert.Error(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing request"`)
-		assert.Contains(t, buf.String(), `command=app_test.request`)
-		assert.Contains(t, buf.String(), `msg="failed to execute request"`)
-		assert.Contains(t, buf.String(), `error="usecase failed"`)
+		logger.Contains(`msg="executing request"`)
+		logger.Contains(`command=app_test.request`)
+		logger.Contains(`msg="failed to execute request"`)
+		logger.Contains(`error="usecase failed"`)
 	})
 }
 
@@ -53,32 +50,30 @@ func TestCommandLoggingDecorator_H(t *testing.T) {
 	t.Run("successful command", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedCommand(logger, app.TestSuccessCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.NoError(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing command"`)
-		assert.Contains(t, buf.String(), `command=app_test.command`)
-		assert.Contains(t, buf.String(), `msg="command executed successfully"`)
+		logger.Contains(`msg="executing command"`)
+		logger.Contains(`command=app_test.command`)
+		logger.Contains(`msg="command executed successfully"`)
 	})
 
 	t.Run("failed command", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedCommand(logger, app.TestFailureCommandHandler[command]())
 
 		err := handler.H(context.Background(), command{})
 		assert.Error(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing command"`)
-		assert.Contains(t, buf.String(), `command=app_test.command`)
-		assert.Contains(t, buf.String(), `msg="failed to execute command"`)
-		assert.Contains(t, buf.String(), `error="usecase failed"`)
+		logger.Contains(`msg="executing command"`)
+		logger.Contains(`command=app_test.command`)
+		logger.Contains(`msg="failed to execute command"`)
+		logger.Contains(`error="usecase failed"`)
 	})
 }
 
@@ -89,32 +84,30 @@ func TestQueryLoggingDecorator_H(t *testing.T) {
 	t.Run("successful query", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedQuery(logger, app.TestSuccessQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.NoError(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing query"`)
-		assert.Contains(t, buf.String(), `command=app_test.query`)
-		assert.Contains(t, buf.String(), `msg="query executed successfully"`)
+		logger.Contains(`msg="executing query"`)
+		logger.Contains(`command=app_test.query`)
+		logger.Contains(`msg="query executed successfully"`)
 	})
 
 	t.Run("failed query", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedQuery(logger, app.TestFailureQueryHandler[query, response]())
 
 		_, err := handler.H(context.Background(), query{})
 		assert.Error(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing query"`)
-		assert.Contains(t, buf.String(), `command=app_test.query`)
-		assert.Contains(t, buf.String(), `msg="failed to execute query"`)
-		assert.Contains(t, buf.String(), `error="usecase failed"`)
+		logger.Contains(`msg="executing query"`)
+		logger.Contains(`command=app_test.query`)
+		logger.Contains(`msg="failed to execute query"`)
+		logger.Contains(`error="usecase failed"`)
 	})
 }
 
@@ -124,32 +117,30 @@ func TestJobLoggingDecorator_H(t *testing.T) {
 	t.Run("successful job", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedJob(logger, app.TestSuccessJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.NoError(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing job"`)
-		assert.Contains(t, buf.String(), `command=app_test.job`)
-		assert.Contains(t, buf.String(), `msg="job executed successfully"`)
+		logger.Contains(`msg="executing job"`)
+		logger.Contains(`command=app_test.job`)
+		logger.Contains(`msg="job executed successfully"`)
 	})
 
 	t.Run("failed job", func(t *testing.T) {
 		t.Parallel()
 
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
+		logger := alog.Test(t)
 		handler := app.NewLoggedJob(logger, app.TestFailureJobHandler[job]())
 
 		err := handler.H(context.Background(), job{})
 		assert.Error(t, err)
 
-		assert.Contains(t, buf.String(), `msg="executing job"`)
-		assert.Contains(t, buf.String(), `command=app_test.job`)
-		assert.Contains(t, buf.String(), `msg="failed to execute job"`)
-		assert.Contains(t, buf.String(), `error="usecase failed"`)
+		logger.Contains(`msg="executing job"`)
+		logger.Contains(`command=app_test.job`)
+		logger.Contains(`msg="failed to execute job"`)
+		logger.Contains(`error="usecase failed"`)
 	})
 }
 

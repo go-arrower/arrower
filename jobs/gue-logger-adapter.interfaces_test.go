@@ -4,10 +4,8 @@
 package jobs
 
 import (
-	"bytes"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/vgarvardt/gue/v5/adapter"
 
 	"github.com/go-arrower/arrower/alog"
@@ -19,36 +17,31 @@ func TestGueLogAdapter_Debug(t *testing.T) {
 	t.Run("Debug() does not contain bad key", func(t *testing.T) {
 		t.Parallel()
 
-		buf, l := setupTestLogger()
+		logger := alog.Test(t)
+		alog.Unwrap(logger).SetLevel(alog.LevelDebug)
+		l := gueLogAdapter{
+			l: logger.WithGroup("group"),
+		}
 		l.Debug("hello", adapter.F("some", "attr"))
 
-		assert.NotEmpty(t, buf.String())
-		assert.NotContains(t, buf.String(), "!BADKEY", "mapping of extra fields/attributes should not result in bad key")
-		assert.Contains(t, buf.String(), "group.some=attr")
+		logger.NotEmpty()
+		logger.NotContains("!BADKEY", "mapping of extra fields/attributes should not result in bad key")
+		logger.Contains("group.some=attr")
 	})
 
 	t.Run("With() does not contain bad key", func(t *testing.T) {
 		t.Parallel()
 
-		buf, l := setupTestLogger()
+		logger := alog.Test(t)
+		alog.Unwrap(logger).SetLevel(alog.LevelDebug)
+		l := gueLogAdapter{
+			l: logger.WithGroup("group"),
+		}
+
 		l2 := l.With(adapter.F("some", "attr"))
 		l2.Debug("hello")
 
-		assert.NotContains(t, buf.String(), "!BADKEY", "mapping of extra fields/attributes should not result in bad key")
-		assert.Contains(t, buf.String(), "group.some=attr")
+		logger.NotContains("!BADKEY", "mapping of extra fields/attributes should not result in bad key")
+		logger.Contains("group.some=attr")
 	})
-}
-
-func setupTestLogger() (*bytes.Buffer, gueLogAdapter) {
-	buf := &bytes.Buffer{}
-	logger := alog.NewTest(buf)
-	alog.Unwrap(logger).SetLevel(alog.LevelDebug)
-
-	logger = logger.WithGroup("group")
-
-	l := gueLogAdapter{
-		l: logger,
-	}
-
-	return buf, l
 }

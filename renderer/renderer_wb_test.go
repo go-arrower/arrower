@@ -26,7 +26,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("initialise new", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := New(alog.NewTest(nil), noop.NewTracerProvider(), testdata.FilesSharedViews(), template.FuncMap{}, false)
+		renderer, err := New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesSharedViews(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
@@ -49,7 +49,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("fs with no files", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := New(alog.NewTest(nil), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
+		renderer, err := New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
@@ -99,7 +99,7 @@ func TestRenderer_Layout(t *testing.T) {
 	t.Run("no default layout present", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := New(alog.NewTest(nil), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
+		renderer, err := New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
@@ -109,7 +109,7 @@ func TestRenderer_Layout(t *testing.T) {
 	t.Run("layout ex, but not the default one", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := New(alog.NewTest(nil), noop.NewTracerProvider(), testdata.SingleNonDefaultLayout, template.FuncMap{}, false)
+		renderer, err := New(alog.NewNoop(), noop.NewTracerProvider(), testdata.SingleNonDefaultLayout, template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
@@ -119,7 +119,7 @@ func TestRenderer_Layout(t *testing.T) {
 	t.Run("multiple layouts but with default", func(t *testing.T) {
 		t.Parallel()
 
-		renderer, err := New(alog.NewTest(nil), noop.NewTracerProvider(), testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
+		renderer, err := New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 

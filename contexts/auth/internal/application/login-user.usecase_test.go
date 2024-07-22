@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,8 +21,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
 
-		buf := bytes.Buffer{}
-		logger := alog.NewTest(&buf)
+		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
 		handler := application.NewLoginUserRequestHandler(logger, repo, nil, authentificator())
@@ -37,7 +35,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		assert.ErrorIs(t, err, application.ErrLoginUserFailed)
 
 		// assert failed attempt is logged, e.g. for monitoring or fail2ban etc.
-		assert.Contains(t, buf.String(), "login failed")
+		logger.Contains("login failed")
 	})
 
 	t.Run("login succeeds", func(t *testing.T) {
@@ -47,7 +45,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.NewTestingJobs()
 
-		handler := application.NewLoginUserRequestHandler(alog.NewTest(nil), repo, queue, authentificator()) // todo logger
+		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 
 		res, err := handler.H(ctx, application.LoginUserRequest{
 			LoginEmail: validUserLogin,
@@ -77,7 +75,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.NewTestingJobs()
 
-		handler := application.NewLoginUserRequestHandler(alog.NewTest(nil), repo, queue, authentificator()) // todo logger
+		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 
 		_, err := handler.H(ctx, application.LoginUserRequest{
 			LoginEmail:  validUserLogin,

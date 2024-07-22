@@ -330,6 +330,7 @@ func TestInMemoryAssertions_Empty(t *testing.T) {
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
+
 		pass := jassert.Empty()
 		assert.False(t, pass)
 	})
@@ -355,6 +356,7 @@ func TestInMemoryAssertions_NotEmpty(t *testing.T) {
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
+
 		pass := jassert.NotEmpty()
 		assert.True(t, pass)
 	})
@@ -394,6 +396,7 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
+
 		pass := jassert.Queued(simpleJob{}, 1337)
 		assert.False(t, pass)
 	})
@@ -409,6 +412,7 @@ func TestInMemoryAssertions_QueuedTotal(t *testing.T) {
 	assert.True(t, pass)
 
 	_ = jq.Enqueue(ctx, simpleJob{})
+
 	pass = jassert.QueuedTotal(0, "not empty queue - fails")
 	assert.False(t, pass)
 	pass = jassert.QueuedTotal(1, "not empty queue - succeeds")

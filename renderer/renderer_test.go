@@ -36,7 +36,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("nil trace provider", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoopLogger(), nil, testdata.FilesEmpty, template.FuncMap{}, false)
+		r, err := renderer.New(alog.NewNoop(), nil, testdata.FilesEmpty, template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 	})
@@ -44,7 +44,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("nil fs", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoopLogger(), noop.NewTracerProvider(), nil, template.FuncMap{}, false)
+		r, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), nil, template.FuncMap{}, false)
 		assert.ErrorIs(t, err, renderer.ErrCreateRendererFailed)
 		assert.Nil(t, r)
 	})
@@ -52,7 +52,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("empty fs", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoopLogger(), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
+		r, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 	})
@@ -60,7 +60,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("nil func map", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoopLogger(), noop.NewTracerProvider(), testdata.FilesEmpty, nil, false)
+		r, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesEmpty, nil, false)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 	})
@@ -68,7 +68,7 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("custom func map", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoopLogger(), noop.NewTracerProvider(), testdata.FilesSharedViewsWithCustomFuncs(), template.FuncMap{
+		r, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesSharedViewsWithCustomFuncs(), template.FuncMap{
 			"customFunc": func() string { return "hello custom func" },
 		}, false)
 		assert.NoError(t, err)

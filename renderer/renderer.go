@@ -58,7 +58,7 @@ func New(
 	hotReload bool,
 ) (*Renderer, error) {
 	if logger == nil {
-		logger = alog.NewNoopLogger()
+		logger = alog.NewNoop()
 	}
 
 	if traceProvider == nil {

@@ -39,31 +39,6 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestNewTest(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil doe snot panic", func(t *testing.T) {
-		t.Parallel()
-
-		logger := alog.NewTest(nil)
-
-		assert.NotPanics(t, func() {
-			logger.Info(applicationMsg)
-		})
-	})
-
-	t.Run("default level is debug", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		logger := alog.NewTest(buf)
-
-		logger.Debug("debug msg")
-
-		assert.Contains(t, buf.String(), "debug msg")
-	})
-}
-
 func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,wsl // concurrent access to os.Stderr will lead to race condition.
 	// The default loggers constructed with NewArrowerHandler, NewDevelopment, New
 	// log to os.Stderr. This is a good default, but for testing the HandlerOptions,
@@ -377,24 +352,21 @@ func TestArrowerLogger_Handle(t *testing.T) {
 		t.Run("add trace and span IDs", func(t *testing.T) {
 			t.Parallel()
 
-			buf := &bytes.Buffer{}
-			logger := alog.NewTest(buf)
+			logger := alog.Test(t)
 			ctx := trace.ContextWithSpan(context.Background(), &fakeSpan{t: t, ID: 1})
 
 			logger.Info(applicationMsg)
-			assert.NotContains(t, buf.String(), "traceID")
+			logger.NotContains("traceID")
 
-			buf.Reset()
 			logger.InfoContext(ctx, applicationMsg)
-			assert.Contains(t, buf.String(), "traceID=")
-			assert.Contains(t, buf.String(), "spanID=")
+			logger.Contains("traceID=")
+			logger.Contains("spanID=")
 		})
 
 		t.Run("add logs to span as event", func(t *testing.T) {
 			t.Parallel()
 
-			buf := &bytes.Buffer{}
-			logger := alog.NewTest(buf)
+			logger := alog.Test(t)
 
 			span := fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), &span)
@@ -414,7 +386,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			// the assertion is in fakeTracer.Start() as a hack
 			// the assertion is only run, if the tracer is called from within Handle, so it is somewhat of a circular case.
 
-			logger := alog.NewTest(nil)
+			logger := alog.Test(t)
 
 			span := &fakeSpan{t: t, ID: 1}
 			ctx := trace.ContextWithSpan(context.Background(), span)
@@ -540,7 +512,6 @@ func TestLogHandlerFromLogger(t *testing.T) {
 		logger := slog.Default()
 
 		h := alog.Unwrap(logger)
-		assert.IsType(t, &alog.ArrowerLogger{}, h)
 		assert.Nil(t, h)
 	})
 }

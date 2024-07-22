@@ -22,7 +22,7 @@ func TestSendNewUserVerificationEmailJobHandler_H(t *testing.T) {
 		repo := repository.NewUserMemoryRepository()
 		repo.Save(ctx, userNotVerified)
 
-		handler := application.NewSendNewUserVerificationEmailJobHandler(alog.NewTest(nil), repo)
+		handler := application.NewSendNewUserVerificationEmailJobHandler(alog.NewNoop(), repo)
 
 		err := handler.H(context.Background(), application.NewUserVerificationEmail{
 			UserID:     userNotVerifiedUserID,

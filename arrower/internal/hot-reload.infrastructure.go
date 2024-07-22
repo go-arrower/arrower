@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -35,12 +36,16 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 	router := echo.New()
 	router.Logger.SetOutput(io.Discard)
 
-	// todo right path
+	logger := alog.New(
+		alog.WithLevel(alog.LevelDebug),
+		alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: alog.MapLogLevelsToName})),
+	)
+
 	renderer, err := renderer.NewEchoRenderer(
-		alog.NewTest(os.Stdout),
+		logger,
 		noop.NewTracerProvider(),
 		router,
-		os.DirFS("/home/tsd/Projekte/go-arrower/arrower/arrower/internal/views"),
+		os.DirFS("/home/tsd/Projekte/go-arrower/arrower/arrower/internal/views"), // todo right path
 		true,
 	)
 	if err != nil {

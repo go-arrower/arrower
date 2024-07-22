@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,8 +51,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 
 		registrator := registrator(repo)
 
-		buf := bytes.Buffer{}
-		logger := alog.NewTest(&buf)
+		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
 		handler := application.NewRegisterUserRequestHandler(logger, repo, registrator, nil)
@@ -63,7 +61,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 
 		// assert failed attempt is logged, e.g. for monitoring or fail2ban etc.
-		assert.Contains(t, buf.String(), "register new user failed")
+		logger.Contains("register new user failed")
 	})
 
 	t.Run("register new user", func(t *testing.T) {
@@ -73,7 +71,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		queue := jobs.NewTestingJobs()
 		registrator := registrator(repo)
 
-		handler := application.NewRegisterUserRequestHandler(alog.NewNoopLogger(), repo, registrator, queue)
+		handler := application.NewRegisterUserRequestHandler(alog.NewNoop(), repo, registrator, queue)
 
 		usr, err := handler.H(ctx, registerUserRequest(
 			with("RegisterEmail", newUserLogin),

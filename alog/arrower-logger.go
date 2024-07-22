@@ -3,7 +3,6 @@ package alog
 import (
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"slices"
@@ -68,20 +67,8 @@ func NewDevelopment(pgx *pgxpool.Pool, settings setting.Settings) *slog.Logger {
 	)
 }
 
-// NewTest returns a logger suited for test cases. It writes to the given io.Writer.
-func NewTest(w io.Writer) *slog.Logger {
-	if w == nil {
-		w = io.Discard
-	}
-
-	return slog.New(NewArrowerHandler(
-		WithLevel(LevelDebug),
-		WithHandler(slog.NewTextHandler(w, getDebugHandlerOptions())),
-	))
-}
-
-// NewNoopLogger returns an implementation of Logger that performs no operations.
-func NewNoopLogger() *slog.Logger {
+// NewNoop returns an implementation of Logger that performs no operations.
+func NewNoop() *slog.Logger {
 	return slog.New(noopHandler{})
 }
 
@@ -353,12 +340,25 @@ func (l *tracedLogger) WithGroup(name string) slog.Handler {
 
 // Unwrap unwraps the given logger and returns a ArrowerLogger.
 // In case of an invalid implementation of logger, it returns nil instead of an empty ArrowerLogger.
-func Unwrap(logger Logger) *ArrowerLogger {
+func Unwrap(logger Logger) arrowerLogger { //nolint:ireturn // required to return a TestLogger and ArrowerLogger
+	if l, ok := logger.(*TestLogger); ok {
+		return l
+	}
+
 	if l, ok := logger.(*slog.Logger).Handler().(*ArrowerLogger); ok {
 		return l
 	}
 
 	return nil
+}
+
+// arrowerLogger is an internal interface, with the purpose of ArrowerLogger
+// and TestLogger sharing functions like Unwrap.
+type arrowerLogger interface {
+	SetLevel(level slog.Level)
+	// UsesSettings
+	// NumHandlers
+	// Level
 }
 
 func getDefaultHandlerOptions() *slog.HandlerOptions {
