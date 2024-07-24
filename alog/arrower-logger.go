@@ -25,7 +25,8 @@ var (
 // LoggerOpt allows to initialise a logger with custom options.
 type LoggerOpt func(logger *arrowerHandler)
 
-// WithHandler adds a slog.Handler to be logged to. You can set as many as you want.
+// WithHandler adds a slog.Handler to be logged to.
+// You can set as many as you want.
 func WithHandler(h slog.Handler) LoggerOpt {
 	return func(l *arrowerHandler) {
 		l.handlers = append(l.handlers, h)
@@ -33,13 +34,17 @@ func WithHandler(h slog.Handler) LoggerOpt {
 }
 
 // WithLevel initialises the logger with a starting level.
-// To change the level at runtime use *arrowerHandler.SetLevel.
+// To change the level at runtime use ArrowerLogger.SetLevel:
+// Unwrap(logger).SetLevel(LevelInfo).
 func WithLevel(level slog.Level) LoggerOpt {
 	return func(l *arrowerHandler) {
 		l.level = &level
 	}
 }
 
+// WithSettings initialises the logger to use the settings.
+// Via the settings the logger's level and other properties
+// are controlled dynamically at run time.
 func WithSettings(settings setting.Settings) LoggerOpt {
 	return func(l *arrowerHandler) {
 		l.settings = settings
@@ -49,7 +54,8 @@ func WithSettings(settings setting.Settings) LoggerOpt {
 // New returns a production ready logger.
 //
 // If no options are given it creates a default handler, logging JSON to Stderr.
-// Otherwise, use WithHandler to set your own loggers. For an example, see NewDevelopment.
+// Otherwise, use WithHandler to set your own loggers.
+// For an example, see NewDevelopment.
 func New(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(newArrowerHandler(opts...))
 }
@@ -68,6 +74,7 @@ func NewDevelopment(pgx *pgxpool.Pool) *slog.Logger {
 }
 
 // NewNoop returns an implementation of Logger that performs no operations.
+// Ideal as dependency in tests.
 func NewNoop() *slog.Logger {
 	return slog.New(noopHandler{})
 }
@@ -75,8 +82,6 @@ func NewNoop() *slog.Logger {
 // newArrowerHandler implements the main arrower specific logging logic and features.
 // It does not output anything directly and relies on other slog.Handlers to do so.
 // If no Handlers are provided via WithHandler, a default JSON handler logs to os.Stderr.
-//
-// For the options, see New.
 func newArrowerHandler(opts ...LoggerOpt) *arrowerHandler {
 	var (
 		defaultLevel    = slog.LevelInfo
@@ -101,9 +106,6 @@ func newArrowerHandler(opts ...LoggerOpt) *arrowerHandler {
 	return logger
 }
 
-// Ensure arrowerHandler implements slog.Handler.
-var _ slog.Handler = (*arrowerHandler)(nil)
-
 // arrowerHandler is the main handler of arrower, offering to log to multiple handlers,
 // filtering of users.
 // It's also doing all the lifting for observability, see #adl.
@@ -113,12 +115,17 @@ type arrowerHandler struct {
 
 var _ ArrowerLogger = (*arrowerHandler)(nil)
 
+var _ slog.Handler = (*arrowerHandler)(nil)
+
 func (l *arrowerHandler) Enabled(_ context.Context, level slog.Level) bool {
 	if l.tracedHandler.UsesSettings() {
-		return true // the check is done in Handle, so that the actual Enabled and Handle calls are in the same span.
+		// the check is done in Handle,
+		// so that the actual Enabled and Handle calls are in the same span.
+		return true
 	}
 
-	// if no Settings are used, return early, so the record might not be created if not required anyway.
+	// if no settings are used, return early,
+	// so the record might not be created if not required anyway.
 	return level >= *l.level
 }
 
@@ -222,26 +229,6 @@ type tracedHandler struct {
 	handlers []slog.Handler
 }
 
-func (l *tracedHandler) UsesSettings() bool {
-	return l.settings != nil
-}
-
-// SetLevel changes the level for all loggers set with WithHandler().
-// Even the ones "copied" via any WithX method.
-// All groups will have the same level.
-func (l *tracedHandler) SetLevel(level slog.Level) {
-	*l.level = level
-}
-
-func (l *tracedHandler) NumHandlers() int {
-	return len(l.handlers)
-}
-
-// Level returns the log level of the handler.
-func (l *tracedHandler) Level() slog.Level {
-	return l.level.Level()
-}
-
 func (l *tracedHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	span := trace.SpanFromContext(ctx)
 
@@ -340,6 +327,27 @@ func (l *tracedHandler) WithGroup(name string) slog.Handler {
 	}}
 }
 
+// SetLevel changes the level for all loggers set with WithHandler().
+// Even the ones "copied" via any WithX method.
+// All groups will have the same level.
+func (l *tracedHandler) SetLevel(level slog.Level) {
+	*l.level = level
+}
+
+// Level returns the log level of the handler.
+func (l *tracedHandler) Level() slog.Level {
+	return l.level.Level()
+}
+
+// UsesSettings returns whether this logger is initialised to use settings.
+func (l *tracedHandler) UsesSettings() bool {
+	return l.settings != nil
+}
+
+func (l *tracedHandler) NumHandlers() int {
+	return len(l.handlers)
+}
+
 // ArrowerLogger is an extension to Logger and slog.Logger and offers
 // additional control over the logger at run time.
 // Unwrap a logger to get access to this features.
@@ -350,9 +358,10 @@ type ArrowerLogger interface {
 	// NumHandlers
 }
 
-// Unwrap unwraps the given logger and returns a arrowerHandler.
-// In case of an invalid implementation of logger, it returns nil instead of an empty arrowerHandler.
-func Unwrap(logger Logger) ArrowerLogger { //nolint:ireturn // required to return a TestLogger and arrowerHandler
+// Unwrap unwraps the given logger and returns a ArrowerLogger.
+// In case of an invalid implementation of logger,
+// it returns nil.
+func Unwrap(logger Logger) ArrowerLogger { //nolint:ireturn,lll // interface required to return a TestLogger and arrowerHandler
 	if l, ok := logger.(*TestLogger); ok {
 		return l
 	}

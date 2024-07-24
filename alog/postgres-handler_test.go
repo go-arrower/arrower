@@ -18,9 +18,7 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var (
-	pgHandler *tests.PostgresDocker
-)
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
 	pgHandler = tests.GetPostgresDockerForIntegrationTestingInstance()

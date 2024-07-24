@@ -37,9 +37,55 @@ func TestNew(t *testing.T) {
 		logger.Info("application info msg")
 		assert.Contains(t, buf.String(), `msg="application info msg"`)
 	})
+
+	t.Run("info is default level", func(t *testing.T) {
+		t.Parallel()
+
+		logger := alog.New()
+		assert.Equal(t, slog.LevelInfo, alog.Unwrap(logger).Level())
+	})
+
+	t.Run("set level", func(t *testing.T) {
+		t.Parallel()
+
+		logger := alog.New(alog.WithLevel(slog.LevelDebug))
+		assert.Equal(t, slog.LevelDebug, alog.Unwrap(logger).Level())
+
+		logger = alog.New(alog.WithLevel(alog.LevelDebug))
+		assert.Equal(t, alog.LevelDebug, alog.Unwrap(logger).Level())
+	})
+
+	t.Run("explicit handler replaces default handler", func(t *testing.T) {
+		t.Parallel()
+
+		buf := bytes.Buffer{}
+		h := slog.NewTextHandler(&buf, nil)
+
+		logger := alog.New(alog.WithHandler(h))
+		logger.Info(applicationMsg)
+
+		assert.NotContains(t, buf.String(), "{", "text handler should replace the default json handler")
+	})
+
+	t.Run("set multiple handlers", func(t *testing.T) {
+		t.Parallel()
+
+		buf := bytes.Buffer{}
+		h0 := slog.NewTextHandler(&buf, nil)
+		h1 := slog.NewJSONHandler(&buf, nil)
+
+		logger := alog.New(
+			alog.WithHandler(h0),
+			alog.WithHandler(h1),
+		)
+		logger.Info(applicationMsg)
+
+		assert.Contains(t, buf.String(), `msg="application message"`)
+		assert.Contains(t, buf.String(), `"msg":"application message"`)
+	})
 }
 
-func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,wsl // concurrent access to os.Stderr will lead to race condition.
+func TestDefaultHandlerAndOutputFormat(t *testing.T) { //nolint:paralleltest,wsl // concurrent access to os.Stderr will lead to race condition.
 	// The default loggers constructed with newArrowerHandler, NewDevelopment, New
 	// log to os.Stderr. This is a good default, but for testing the HandlerOptions,
 	// I need to inspect the output.
@@ -73,58 +119,6 @@ func TestDefaultOutputFormat(t *testing.T) { //nolint:paralleltest,wsl // concur
 	assert.Contains(t, buf.String(), `"line":`)
 	assert.Contains(t, buf.String(), `"level":"ARROWER:DEBUG"`)
 }
-
-//func TestNewArrowerHandler(t *testing.T) {
-//	t.Parallel()
-//
-//	t.Run("default handler exists", func(t *testing.T) {
-//		t.Parallel()
-//
-//		h := alog.newArrowerHandler()
-//
-//		assert.Equal(t, 1, h.NumHandlers())
-//	})
-//
-//	t.Run("explicit handler replaces default handler", func(t *testing.T) {
-//		t.Parallel()
-//
-//		h0 := slog.NewTextHandler(os.Stderr, nil)
-//
-//		h := alog.newArrowerHandler(alog.WithHandler(h0))
-//		assert.Equal(t, 1, h.NumHandlers())
-//	})
-//
-//	t.Run("set multiple handlers", func(t *testing.T) {
-//		t.Parallel()
-//
-//		h0 := slog.NewTextHandler(os.Stderr, nil)
-//		h1 := slog.NewJSONHandler(os.Stderr, nil)
-//
-//		handler := alog.newArrowerHandler(
-//			alog.WithHandler(h0),
-//			alog.WithHandler(h1),
-//		)
-//
-//		assert.Equal(t, 2, handler.NumHandlers())
-//	})
-//
-//	t.Run("info is default level", func(t *testing.T) {
-//		t.Parallel()
-//
-//		h := alog.newArrowerHandler()
-//		assert.Equal(t, slog.LevelInfo, h.Level())
-//	})
-//
-//	t.Run("set level", func(t *testing.T) {
-//		t.Parallel()
-//
-//		h := alog.newArrowerHandler(alog.WithLevel(slog.LevelDebug))
-//		assert.Equal(t, slog.LevelDebug, h.Level())
-//
-//		h = alog.newArrowerHandler(alog.WithLevel(alog.LevelDebug))
-//		assert.Equal(t, alog.LevelDebug, h.Level())
-//	})
-//}
 
 func TestArrowerLogger_SetLevel(t *testing.T) {
 	t.Parallel()
@@ -288,7 +282,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 	})
 }
 
-func TestArrowerLogger_Enabled(t *testing.T) {
+func TestArrowerHandler_Enabled(t *testing.T) {
 	t.Parallel()
 
 	t.Run("return early if no settings", func(t *testing.T) {
@@ -300,14 +294,14 @@ func TestArrowerLogger_Enabled(t *testing.T) {
 		// fakeNoSettingsSpan will panic if TracerProvider() is called and fail this test.
 		// The meaning is: this logger should return early in Enabled() and never call Handle().
 		// If Handle() is not called, the overhead if creating the record is saved.
-		ctx := trace.ContextWithSpan(ctx, fakeNoSettingsSpan{})
+		ctx := trace.ContextWithSpan(ctx, fakeNoSettingsSpan{}) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		logger.DebugContext(ctx, applicationMsg)
 		assert.NotContains(t, buf0.String(), applicationMsg)
 	})
 }
 
-func TestArrowerLogger_Handle(t *testing.T) {
+func TestArrowerHandler_Handle(t *testing.T) {
 	t.Parallel()
 
 	t.Run("call each handler", func(t *testing.T) {
@@ -350,7 +344,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			t.Parallel()
 
 			logger := alog.Test(t)
-			ctx := trace.ContextWithSpan(ctx, &fakeSpan{t: t, ID: 1})
+			ctx := trace.ContextWithSpan(ctx, &fakeSpan{t: t, ID: 1}) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger.Info(applicationMsg)
 			logger.NotContains("traceID")
@@ -366,7 +360,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, &span)
+			ctx := trace.ContextWithSpan(ctx, &span) //nolint:govet // shadow ctx to not overwrite it for other tests
 			logger.ErrorContext(ctx, applicationMsg)
 
 			assert.Equal(t, "log", span.eventName)
@@ -386,7 +380,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := &fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, span)
+			ctx := trace.ContextWithSpan(ctx, span) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger.InfoContext(ctx, applicationMsg)
 		})
@@ -433,7 +427,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 			logger := alog.New(alog.WithHandler(h))
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, &span)
+			ctx := trace.ContextWithSpan(ctx, &span) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoContext(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)
@@ -445,7 +439,7 @@ func TestArrowerLogger_Handle(t *testing.T) {
 	})
 }
 
-func TestArrowerLogger_WithAttrs(t *testing.T) {
+func TestArrowerHandler_WithAttrs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("set attrs for all handlers", func(t *testing.T) {
@@ -469,7 +463,7 @@ func TestArrowerLogger_WithAttrs(t *testing.T) {
 	})
 }
 
-func TestArrowerLogger_WithGroup(t *testing.T) {
+func TestArrowerHandler_WithGroup(t *testing.T) {
 	t.Parallel()
 
 	t.Run("", func(t *testing.T) {
@@ -491,7 +485,7 @@ func TestArrowerLogger_WithGroup(t *testing.T) {
 	})
 }
 
-func TestLogHandlerFromLogger(t *testing.T) {
+func TestUnwrap(t *testing.T) {
 	t.Parallel()
 
 	t.Run("arrower logger", func(t *testing.T) {

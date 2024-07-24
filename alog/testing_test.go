@@ -59,6 +59,18 @@ func simulateComponentWorkingWithLogger(logger alog.Logger) {
 	logger.DebugContext(context.Background(), "msg group", "some", "key")
 }
 
+func TestTestLogger_Lines(t *testing.T) {
+	t.Parallel()
+
+	logger := alog.Test(t)
+	logger.DebugContext(ctx, "line 0")
+	logger.DebugContext(ctx, "line 1")
+
+	assert.Len(t, logger.Lines(), 2)
+	assert.Contains(t, logger.Lines()[0], `level=DEBUG msg="line 0"`)
+	assert.Contains(t, logger.Lines()[1], `level=DEBUG msg="line 1"`)
+}
+
 func TestTestLogger_Empty(t *testing.T) {
 	t.Parallel()
 

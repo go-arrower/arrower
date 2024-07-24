@@ -51,6 +51,8 @@ type TestLogger struct {
 	buf *testBuffer
 }
 
+var _ Logger = (*TestLogger)(nil)
+
 var _ ArrowerLogger = (*TestLogger)(nil)
 
 func (l *TestLogger) SetLevel(level slog.Level) {
@@ -74,6 +76,16 @@ func (l *TestLogger) String() string {
 	}
 
 	return out
+}
+
+func (l *TestLogger) Lines() []string {
+	lines := []string{}
+
+	for _, line := range l.buf.lines {
+		lines = append(lines, line.String())
+	}
+
+	return lines
 }
 
 // Empty asserts that the logger has not lines logged.
@@ -145,10 +157,3 @@ func (a *testBuffer) Write(p []byte) (int, error) {
 
 	return n, fmt.Errorf("%w", err)
 }
-
-/*
-Rest() to clear log output for testing?
-Lines() []string
-Count | Total
-CountOf(level, n) | TotalOf(level, n)
-*/

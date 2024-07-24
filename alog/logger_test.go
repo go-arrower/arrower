@@ -1,7 +1,6 @@
 package alog_test
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 
@@ -16,7 +15,7 @@ func TestAddAttr(t *testing.T) {
 	t.Run("add first attribute", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(context.Background(), slog.String("some", "attr"))
+		ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
@@ -26,7 +25,7 @@ func TestAddAttr(t *testing.T) {
 	t.Run("add additional attribute", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(context.Background(), slog.String("initial", "attr"))
+		ctx := alog.AddAttr(ctx, slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		ctx = alog.AddAttr(ctx, slog.String("some", "attr"))
 
@@ -42,7 +41,7 @@ func TestAddAttrs(t *testing.T) {
 	t.Run("add first attributes", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttrs(context.Background(), slog.String("some", "attr"), slog.String("other", "attr"))
+		ctx := alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		attr, ok := alog.FromContext(ctx)
 		assert.True(t, ok)
@@ -52,7 +51,7 @@ func TestAddAttrs(t *testing.T) {
 	t.Run("add additional attributes ", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(context.Background(), slog.String("initial", "attr"))
+		ctx := alog.AddAttr(ctx, slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		ctx = alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr"))
 
@@ -65,7 +64,7 @@ func TestAddAttrs(t *testing.T) {
 func TestResetAttrs(t *testing.T) {
 	t.Parallel()
 
-	ctx := alog.AddAttr(context.Background(), slog.String("some", "attr"))
+	ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 	ctx = alog.ResetAttrs(ctx)
 
@@ -80,7 +79,7 @@ func TestFromContext(t *testing.T) {
 	t.Run("ensure empty ctx has no attr", func(t *testing.T) {
 		t.Parallel()
 
-		attr, ok := alog.FromContext(context.Background())
+		attr, ok := alog.FromContext(ctx)
 		assert.False(t, ok)
 		assert.Empty(t, attr)
 	})
