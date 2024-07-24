@@ -26,7 +26,7 @@ func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 	// generate json log by writing to local buffer with slog default json
 	buf := &bytes.Buffer{}
 	renderer := slog.NewJSONHandler(buf, &slog.HandlerOptions{
-		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
+		Level:       LevelDebug, // allow all messages, as the level gets controlled by the arrowerHandler instead.
 		AddSource:   false,
 		ReplaceAttr: MapLogLevelsToName,
 	})

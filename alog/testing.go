@@ -27,7 +27,7 @@ func Test(t *testing.T) *TestLogger { //nolint:paralleltest // false positive, s
 		lines: []*bytes.Buffer{},
 	}
 
-	logger := slog.New(NewArrowerHandler(
+	logger := slog.New(newArrowerHandler(
 		WithLevel(LevelDebug),
 		WithHandler(slog.NewTextHandler(buf, getDebugHandlerOptions())),
 	))
@@ -51,8 +51,18 @@ type TestLogger struct {
 	buf *testBuffer
 }
 
+var _ ArrowerLogger = (*TestLogger)(nil)
+
 func (l *TestLogger) SetLevel(level slog.Level) {
 	Unwrap(l.Logger).SetLevel(level)
+}
+
+func (l *TestLogger) Level() slog.Level {
+	return Unwrap(l.Logger).Level()
+}
+
+func (l *TestLogger) UsesSettings() bool {
+	return Unwrap(l.Logger).UsesSettings()
 }
 
 // String return the complete log output of ech line logged to TestLogger.

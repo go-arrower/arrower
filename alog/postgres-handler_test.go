@@ -3,7 +3,6 @@
 package alog_test
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"math/rand"
@@ -20,7 +19,6 @@ import (
 )
 
 var (
-	ctx       = context.Background()
 	pgHandler *tests.PostgresDocker
 )
 

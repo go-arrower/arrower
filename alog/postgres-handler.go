@@ -25,7 +25,7 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 	// generate json log by writing to local buffer with slog default json
 	buf := &bytes.Buffer{} // protect by a mutex?
 	jsonLog := slog.HandlerOptions{
-		Level:       LevelDebug, // allow all messages, as the level gets controlled by the ArrowerLogger instead.
+		Level:       LevelDebug, // allow all messages, as the level gets controlled by the arrowerHandler instead.
 		AddSource:   false,
 		ReplaceAttr: MapLogLevelsToName,
 	}

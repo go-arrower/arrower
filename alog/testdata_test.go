@@ -13,6 +13,8 @@ import (
 	"go.opentelemetry.io/otel/trace/embedded"
 )
 
+var ctx = context.Background()
+
 const (
 	applicationMsg = "application message"
 )
@@ -89,7 +91,7 @@ type fakeTracer struct {
 }
 
 func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
-	// Ensures Start() is called from within *ArrowerLogger.Handle.
+	// Ensures Start() is called from within *arrowerHandler.Handle.
 	// If not equal the nil will make the test panic, without t present
 	// Used in "record a span for the handle method itself"
 	assert.Equal(f.t, "log", spanName)
