@@ -1,0 +1,13 @@
+arrower.log:
+  - time: RAW=NOW()
+    user_id: 00000000-0000-0000-0000-000000000000
+    log:
+      - "log msg"
+  - time: RAW=(NOW() - INTERVAL '30 days')
+    user_id: 00000000-0000-0000-0000-000000000000
+    log:
+      - "log msg"
+  - time: "2006-01-02 15:04:05.000000+00"
+    user_id: 00000000-0000-0000-0000-000000000000
+    log:
+      - "log msg"

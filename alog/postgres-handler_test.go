@@ -31,6 +31,27 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestNewPostgresHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing pgx", func(t *testing.T) {
+		t.Parallel()
+
+		h := alog.NewPostgresHandler(nil, nil)
+		assert.Nil(t, h)
+	})
+
+	t.Run("remove old logs", func(t *testing.T) {
+		t.Parallel()
+
+		pgx := pgHandler.NewTestDatabase("testdata/fixtures/old_logs.yaml")
+
+		_ = alog.NewPostgresHandler(pgx, nil)
+
+		ensureLogTableRows(t, pgx, 1)
+	})
+}
+
 func TestPostgresHandler_Handle(t *testing.T) {
 	t.Parallel()
 

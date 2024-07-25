@@ -20,8 +20,16 @@ import (
 
 var ErrLogFailed = errors.New("could not save log")
 
-// NewPostgresHandler use this handler in low traffic situations to inspect logs via the arrower admin Context.
+// NewPostgresHandler use this handler in low traffic situations
+// to inspect logs via the arrower admin Context.
+// All logs older than 30 days are deleted when this handler is constructed,
+// so the database stays pruned.
+// In case pgx is nil the handler returns nil.
 func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *PostgresHandler {
+	if pgx == nil {
+		return nil
+	}
+
 	// generate json log by writing to local buffer with slog default json
 	buf := &bytes.Buffer{} // protect by a mutex?
 	jsonLog := slog.HandlerOptions{
@@ -32,6 +40,13 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 
 	renderer := slog.NewJSONHandler(buf, &jsonLog)
 	queries := models.New(pgx)
+
+	const duration = -time.Hour * 24 * 30
+
+	_, err := pgx.Exec(context.Background(), `DELETE FROM arrower.log WHERE time < $1`, time.Now().UTC().Add(duration))
+	if err != nil {
+		panic("could not prune logs from postgres: " + err.Error())
+	}
 
 	var isAsync bool
 
