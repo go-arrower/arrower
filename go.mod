@@ -30,7 +30,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rjeczalik/notify v0.9.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/vgarvardt/gue/v5 v5.6.2
 	github.com/vgarvardt/gueron/v2 v2.2.1
