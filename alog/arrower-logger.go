@@ -55,21 +55,31 @@ func WithSettings(settings setting.Settings) LoggerOpt {
 //
 // If no options are given it creates a default handler, logging JSON to Stderr.
 // Otherwise, use WithHandler to set your own loggers.
-// For an example, see NewDevelopment.
+// For an example of options at work, see NewDevelopment.
 func New(opts ...LoggerOpt) *slog.Logger {
 	return slog.New(newArrowerHandler(opts...))
 }
 
 // NewDevelopment returns a logger ready for local development purposes.
+// If pgx is nil the returned logger is not initialised to use
+// any of the database related features of alog.
 func NewDevelopment(pgx *pgxpool.Pool) *slog.Logger {
 	const batchSize = 10
 
-	return New(
+	config := []LoggerOpt{
 		WithLevel(slog.LevelDebug),
 		WithHandler(slog.NewTextHandler(os.Stderr, getDebugHandlerOptions())),
 		WithHandler(NewLokiHandler(nil)),
-		WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: batchSize, MaxTimeout: time.Second})),
-		WithSettings(setting.NewPostgresSettings(pgx)),
+	}
+
+	if pgx != nil {
+		config = append(config,
+			WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: batchSize, MaxTimeout: time.Second})),
+			WithSettings(setting.NewPostgresSettings(pgx)))
+	}
+
+	return New(
+		config...,
 	)
 }
 
