@@ -26,5 +26,5 @@ func TestMain(m *testing.M) {
 func TestPostgresSettings(t *testing.T) {
 	t.Parallel()
 
-	setting.TestSettings(t, func() setting.Settings { return setting.NewPostgresSettings(pgHandler.NewTestDatabase()) })
+	setting.TestSuite(t, func() setting.Settings { return setting.NewPostgresSettings(pgHandler.NewTestDatabase()) })
 }

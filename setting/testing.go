@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSettings(t *testing.T, newSettings func() Settings) { //nolint:tparallel // t.Parallel can only be called ones! The caller decides
+func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel // t.Parallel can only be called ones! The caller decides
 	t.Helper()
 
 	if newSettings == nil {

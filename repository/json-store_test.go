@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/repository/testdata"
 )
 
 func TestJSONStore_Store(t *testing.T) {
@@ -18,7 +19,7 @@ func TestJSONStore_Store(t *testing.T) {
 	dir := t.TempDir()
 	store := repository.NewJSONStore(dir)
 
-	data := map[EntityID]Entity{}
+	data := map[testdata.EntityID]testdata.Entity{}
 
 	t.Run("empty file name", func(t *testing.T) {
 		t.Parallel()
@@ -52,7 +53,7 @@ func TestJSONStore_Load(t *testing.T) {
 	t.Run("file does not exist", func(t *testing.T) {
 		t.Parallel()
 
-		err := store.Load("file-not-exists", map[EntityID]Entity{})
+		err := store.Load("file-not-exists", map[testdata.EntityID]testdata.Entity{})
 		assert.ErrorIs(t, err, repository.ErrLoad)
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
@@ -60,7 +61,7 @@ func TestJSONStore_Load(t *testing.T) {
 	t.Run("empty filename", func(t *testing.T) {
 		t.Parallel()
 
-		err := store.Load("", map[EntityID]Entity{})
+		err := store.Load("", map[testdata.EntityID]testdata.Entity{})
 		assert.ErrorIs(t, err, repository.ErrLoad)
 	})
 }

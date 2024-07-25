@@ -9,5 +9,5 @@ import (
 func TestInMemorySettings(t *testing.T) {
 	t.Parallel()
 
-	setting.TestSettings(t, func() setting.Settings { return setting.NewInMemorySettings() })
+	setting.TestSuite(t, func() setting.Settings { return setting.NewInMemorySettings() })
 }

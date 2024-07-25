@@ -10,22 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/repository/testdata"
 )
 
 var errStoreFailed = errors.New("store failed")
 
 var (
-	ctx           = context.Background()
-	defaultEntity = testEntity()
+	ctx = context.Background()
+
 	defaultTenant = testTenant()
 )
-
-func testEntity() Entity {
-	return Entity{
-		ID:   EntityID(uuid.New().String()),
-		Name: gofakeit.Name(),
-	}
-}
 
 func testTenant() Tenant {
 	return Tenant{
@@ -35,12 +29,6 @@ func testTenant() Tenant {
 }
 
 type (
-	EntityID string
-	Entity   struct {
-		ID   EntityID
-		Name string
-	}
-
 	TenantID string
 	Tenant   struct {
 		ID   TenantID
@@ -48,18 +36,14 @@ type (
 	}
 )
 
-type EntityWithoutID struct {
-	Name string
-}
-
 func testEntityMemoryRepository(s repository.Store) *entityMemoryRepository {
 	return &entityMemoryRepository{
-		MemoryRepository: repository.NewMemoryRepository[Entity, EntityID](repository.WithStore(s)),
+		MemoryRepository: repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(s)),
 	}
 }
 
 type entityMemoryRepository struct {
-	*repository.MemoryRepository[Entity, EntityID]
+	*repository.MemoryRepository[testdata.Entity, testdata.EntityID]
 }
 
 type testStore struct {

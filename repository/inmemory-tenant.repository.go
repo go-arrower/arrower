@@ -66,7 +66,7 @@ type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfa
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case.
 func NewMemoryTenantRepository[T any, tID id, E any, eID id](
-	opts ...repositoryOption,
+	opts ...Option,
 ) *MemoryTenantRepository[T, tID, E, eID] {
 	repo := &MemoryTenantRepository[T, tID, E, eID]{
 		Mutex: &sync.Mutex{},

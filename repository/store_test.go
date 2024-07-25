@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/repository/testdata"
 )
 
 //nolint:paralleltest // subtests need to execute in order
@@ -30,7 +31,7 @@ func TestStore(t *testing.T) {
 	t.Run("store", func(t *testing.T) {
 		repo := testEntityMemoryRepository(store)
 
-		err := repo.Save(ctx, defaultEntity)
+		err := repo.Save(ctx, testdata.DefaultEntity)
 		assert.NoError(t, err)
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
 	})
@@ -42,17 +43,17 @@ func TestStore(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, count)
 
-		e, err := repo.FindByID(ctx, defaultEntity.ID)
+		e, err := repo.FindByID(ctx, testdata.DefaultEntity.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, defaultEntity, e)
+		assert.Equal(t, testdata.DefaultEntity, e)
 	})
 
 	t.Run("second entity, different file, some store", func(t *testing.T) {
-		repo := repository.NewMemoryRepository[Entity, string](
+		repo := repository.NewMemoryRepository[testdata.Entity, string](
 			repository.WithStore(store),
 			repository.WithStoreFilename("Entity2.json"),
 		)
-		err := repo.Save(ctx, defaultEntity)
+		err := repo.Save(ctx, testdata.DefaultEntity)
 		assert.NoError(t, err)
 
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
@@ -70,7 +71,7 @@ func TestStore(t *testing.T) {
 
 		for range routines {
 			go func() {
-				err := repo.Save(ctx, defaultEntity)
+				err := repo.Save(ctx, testdata.DefaultEntity)
 				assert.NoError(t, err)
 
 				wg.Done()
