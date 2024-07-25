@@ -61,12 +61,12 @@ func TestAddAttrs(t *testing.T) {
 	})
 }
 
-func TestResetAttrs(t *testing.T) {
+func TestClearAttrs(t *testing.T) {
 	t.Parallel()
 
 	ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
-	ctx = alog.ResetAttrs(ctx)
+	ctx = alog.ClearAttrs(ctx)
 
 	attr, ok := alog.FromContext(ctx)
 	assert.False(t, ok)

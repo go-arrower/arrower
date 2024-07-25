@@ -81,8 +81,8 @@ func AddAttrs(ctx context.Context, newAttrs ...slog.Attr) context.Context {
 	return context.WithValue(ctx, CtxAttr, newAttrs)
 }
 
-// ResetAttrs does remove all attributes from CtxAttr.
-func ResetAttrs(ctx context.Context) context.Context {
+// ClearAttrs does remove all attributes from CtxAttr.
+func ClearAttrs(ctx context.Context) context.Context {
 	return context.WithValue(ctx, CtxAttr, nil)
 }
 
