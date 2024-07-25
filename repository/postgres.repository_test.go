@@ -42,8 +42,6 @@ func TestPostgresRepository(t *testing.T) {
 			return repository.NewPostgresRepository[testdata.EntityWithoutID, testdata.EntityID](pgHandler.NewTestDatabase(), opts...)
 		},
 	)
-
-	// if the TestSuite is run again with a store, does this cover all cases and this test files does not have to do many store related tests?
 }
 
 func TestPostgresRepositoryWithIDField(t *testing.T) {

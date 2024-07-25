@@ -19,7 +19,7 @@ var (
 
 // WithIDField set's the name of the field that is used as an id or primary key.
 // If not set, it is assumed that the entity struct has a field with the name "ID".
-func WithIDField(idFieldName string) Option { //nolint:revive // unexported-return is OK for this option
+func WithIDField(idFieldName string) Option {
 	return func(config *repoConfig) {
 		config.idFieldName = idFieldName
 	}
@@ -52,11 +52,15 @@ type repoConfig struct {
 	filename    string
 }
 
-// NewMemoryRepository returns an implementation of MemoryRepository for the given entity E.
+// NewMemoryRepository returns an implementation of Repository for the given entity E.
 // It is expected that E has a field called `ID`, that is used as the primary key and can
 // be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case. See the examples in the test files.
+//
+// Warning: the consistency of MemoryRepository is not on paar with ACID guarantees of a RDBMS.
+// Certain steps are taken to have a minimum of consistency, but be aware that this
+// it not a design goal.
 func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:        &sync.Mutex{},
@@ -180,6 +184,7 @@ func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		delete(repo.Data, id)
 		return fmt.Errorf("could not save: %w", err)
 	}
 
@@ -203,10 +208,12 @@ func (repo *MemoryRepository[E, ID]) Update(_ context.Context, entity E) error {
 		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
 	}
 
+	oldEntity := repo.Data[id]
 	repo.Data[id] = entity
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		repo.Data[id] = oldEntity
 		return fmt.Errorf("could not save: %w", err)
 	}
 
@@ -217,10 +224,14 @@ func (repo *MemoryRepository[E, ID]) Delete(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
-	delete(repo.Data, repo.getID(entity))
+	id := repo.getID(entity)
+	oldEntity := repo.Data[id]
+
+	delete(repo.Data, id)
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		repo.Data[id] = oldEntity
 		return fmt.Errorf("could not save: %w", err)
 	}
 
@@ -345,6 +356,7 @@ func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		delete(repo.Data, id)
 		return fmt.Errorf("could not save: %w", err)
 	}
 
@@ -361,12 +373,19 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 		}
 	}
 
+	oldEntities := []E{}
+
 	for _, e := range entities {
+		oldEntities = append(oldEntities, repo.Data[repo.getID(e)])
 		repo.Data[repo.getID(e)] = e
 	}
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		for _, e := range oldEntities {
+			repo.Data[repo.getID(e)] = e
+		}
+
 		return fmt.Errorf("could not save: %w", err)
 	}
 
@@ -417,17 +436,24 @@ func (repo *MemoryRepository[E, ID]) DeleteByID(ctx context.Context, id ID) erro
 	return repo.DeleteByIDs(ctx, []ID{id})
 }
 
-func (repo *MemoryRepository[E, ID]) DeleteByIDs(_ context.Context, ids []ID) error {
+func (repo *MemoryRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) error {
 	repo.Lock()
 	defer repo.Unlock()
 
+	oldEntities := []E{}
+
 	for _, id := range ids {
+		oldEntities = append(oldEntities, repo.Data[id])
 		delete(repo.Data, id)
 	}
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
-		return fmt.Errorf("could not save: %w", err)
+		for _, e := range oldEntities {
+			repo.Data[repo.getID(e)] = e
+		}
+
+		return fmt.Errorf("could not delete: %w", err)
 	}
 
 	return nil
@@ -437,10 +463,19 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 	repo.Lock()
 	defer repo.Unlock()
 
+	oldEntities := make(map[ID]E)
+	for k, v := range repo.Data {
+		oldEntities[k] = v
+	}
+
 	clear(repo.Data)
 
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
+		for _, e := range oldEntities {
+			repo.Data[repo.getID(e)] = e
+		}
+
 		return fmt.Errorf("could not save: %w", err)
 	}
 

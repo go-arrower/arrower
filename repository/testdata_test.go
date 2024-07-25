@@ -70,29 +70,39 @@ func testStoreLoadFails() testStore {
 	}
 }
 
-func testStoreStoreFails() testStore {
+// testStoreStoreFails fails the call to store method,
+// if it is called more than successCallsBeforeFailure times.
+func testStoreStoreFails(successCallsBeforeFailure int) testStore {
+	called := 0
+
 	return testStore{
 		load: func(_ string, _ any) error {
 			return nil
 		},
 		store: func(_ string, _ any) error {
-			return errStoreFailed
+			if called >= successCallsBeforeFailure {
+				return errStoreFailed
+			}
+
+			called++
+
+			return nil
 		},
 	}
 }
 
-func testStoreSuccessEntity(t *testing.T) testStore {
+func testStoreSuccessEntity(t *testing.T, file string) testStore {
 	t.Helper()
 
 	return testStore{
 		load: func(filename string, data any) error {
-			assert.Equal(t, "Entity.json", filename)
+			assert.Equal(t, file, filename)
 			assert.NotNil(t, data)
 
 			return nil
 		},
 		store: func(filename string, data any) error {
-			assert.Equal(t, "Entity.json", filename)
+			assert.Equal(t, file, filename)
 			assert.NotNil(t, data)
 
 			return nil
