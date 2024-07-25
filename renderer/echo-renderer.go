@@ -1,16 +1,16 @@
 package renderer
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
 	"strings"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/labstack/echo/v4"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/go-arrower/arrower/alog"
 )
 
 func NewEchoRenderer(
@@ -20,20 +20,22 @@ func NewEchoRenderer(
 	viewFS fs.FS,
 	hotReload bool,
 ) (*EchoRenderer, error) {
-	r, err := New(logger, traceProvider, viewFS, template.FuncMap{
-		"route": echo.Reverse, // todo test case for reverse func
+	renderer, err := New(logger, traceProvider, viewFS, template.FuncMap{
+		"route": echo.Reverse,
 	}, hotReload)
 	if err != nil {
-		return &EchoRenderer{}, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("could not create echo renderer: %w", err)
 	}
 
-	return &EchoRenderer{Renderer: r}, nil
+	return &EchoRenderer{Renderer: renderer}, nil
 }
 
 // EchoRenderer is a wrapper that makes the Renderer available for the echo router: https://echo.labstack.com/
 type EchoRenderer struct {
 	*Renderer
 }
+
+var _ echo.Renderer = (*EchoRenderer)(nil)
 
 func (r *EchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
 	_, _, context := r.isRegisteredContext(c) // todo test how it is split
@@ -115,37 +117,4 @@ func rawTemplateNames(pages map[string]string) []string {
 	}
 
 	return names
-}
-
-// dumpAllNamedTemplatesRenderedWithData pretty prints all templates
-// within the given *template.Template. Use it for convenient debugging.
-// todo move to _test file
-//
-//nolint:forbidigo,lll // this is a debug helper, so the use of fmt is the feature.
-func dumpAllNamedTemplatesRenderedWithData(templ *template.Template, data interface{}) {
-	templ, err := templ.Clone() // ones ExecuteTemplate is called the template cannot be pared any more and could fail calling code.
-	if err != nil {
-		fmt.Println("CAN NOT DUMP TEMPLATE: ", err)
-
-		return
-	}
-
-	fmt.Println()
-	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
-	fmt.Println("--- --- ---   Render all templates:", strings.TrimPrefix(templ.DefinedTemplates(), "; defined templates are: "))
-	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
-
-	buf := &bytes.Buffer{}
-
-	for _, t := range templ.Templates() {
-		fmt.Printf("--- --- ---   %s:\n", t.Name())
-
-		_ = templ.ExecuteTemplate(buf, t.Name(), data)
-
-		fmt.Println(buf.String())
-		buf.Reset()
-	}
-
-	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
-	fmt.Println()
 }

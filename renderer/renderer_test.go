@@ -9,10 +9,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/renderer"
 	"github.com/go-arrower/arrower/renderer/testdata"
 )
@@ -68,11 +68,11 @@ func TestNewRenderer(t *testing.T) {
 	t.Run("custom func map", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesSharedViewsWithCustomFuncs(), template.FuncMap{
+		render, err := renderer.New(alog.NewNoop(), noop.NewTracerProvider(), testdata.FilesSharedViewsWithCustomFuncs(), template.FuncMap{
 			"customFunc": func() string { return "hello custom func" },
 		}, false)
 		assert.NoError(t, err)
-		assert.NotNil(t, r)
+		assert.NotNil(t, render)
 
 		// Don't execute the following two tests in parallel.
 		// Their order prevents a regression bug where they either pass or fail:
@@ -85,7 +85,7 @@ func TestNewRenderer(t *testing.T) {
 
 		t.Run("in component", func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "#use-func-map", nil)
+			err = render.Render(ctx, buf, renderer.SharedViews, "#use-func-map", nil)
 
 			assert.NoError(t, err)
 			assert.Equal(t, "hello custom func", buf.String())
@@ -93,7 +93,7 @@ func TestNewRenderer(t *testing.T) {
 
 		t.Run("in page", func(t *testing.T) {
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "use-func-map", nil)
+			err = render.Render(ctx, buf, renderer.SharedViews, "use-func-map", nil)
 
 			assert.NoError(t, err)
 			assert.Contains(t, buf.String(), "hello custom func")
@@ -571,17 +571,17 @@ func TestRenderer_AddBaseData(t *testing.T) {
 	t.Run("add base data", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
+		render, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 
-		err = r.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"baseTitle": "baseTitle",
 			}, nil
 		})
 		assert.NoError(t, err)
 
-		err = r.AddBaseData("", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("", func(_ context.Context) (map[string]any, error) {
 			return renderer.Map{
 				"BaseHeader": "baseHeader",
 			}, nil
@@ -589,7 +589,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = r.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+		err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
 		assert.NoError(t, err)
 
 		assert.Contains(t, buf.String(), "baseTitle")
@@ -600,16 +600,16 @@ func TestRenderer_AddBaseData(t *testing.T) {
 	t.Run("overwrite base data", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
+		render, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 
-		err = r.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"baseTitle": "baseTitle 0",
 			}, nil
 		})
 		assert.NoError(t, err)
-		err = r.AddBaseData("", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("", func(_ context.Context) (map[string]any, error) {
 			return renderer.Map{
 				"baseTitle": "baseTitle 1",
 			}, nil
@@ -620,7 +620,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "baseTitle 1")
@@ -631,7 +631,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "p0", map[string]any{
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0", map[string]any{
 				"baseTitle": "baseTitle 2",
 			})
 			assert.NoError(t, err)
@@ -645,7 +645,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "p0", map[string]string{
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0", map[string]string{
 				"baseTitle": "baseTitle 2",
 			})
 			assert.NoError(t, err)
@@ -663,7 +663,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "p0", someType{Name: "someName"})
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0", someType{Name: "someName"})
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "someName")
@@ -675,7 +675,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err = r.Render(ctx, buf, renderer.SharedViews, "p0", []someType{{Name: "someName"}})
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0", []someType{{Name: "someName"}})
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "<li>someName</li>")
@@ -687,16 +687,16 @@ func TestRenderer_AddBaseData(t *testing.T) {
 	t.Run("data func fails", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
+		render, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 
-		err = r.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("default", func(_ context.Context) (map[string]any, error) {
 			return nil, errSomeError
 		})
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = r.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+		err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 		assert.Empty(t, buf.String())
@@ -705,10 +705,10 @@ func TestRenderer_AddBaseData(t *testing.T) {
 	t.Run("base not exists", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
+		render, err := renderer.New(nil, nil, testdata.FilesAddBaseData(), template.FuncMap{}, false)
 		assert.NoError(t, err)
 
-		err = r.AddBaseData("non-existing", func(_ context.Context) (map[string]any, error) {
+		err = render.AddBaseData("non-existing", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{}, nil
 		})
 		assert.Error(t, err)
@@ -719,18 +719,31 @@ func TestRenderer_AddBaseData(t *testing.T) {
 func TestRenderer_AddLayoutData(t *testing.T) {
 	t.Parallel()
 
-	t.Run("layout data", func(t *testing.T) {
+	t.Run("prevent to add to shared", func(t *testing.T) {
 		t.Parallel()
 
 		r := testRendererReadyForLayoutData(t)
 
-		err := r.AddLayoutData(testdata.ExampleContext, "default", func(_ context.Context) (map[string]any, error) {
+		err := r.AddLayoutData(renderer.SharedViews, "default", func(_ context.Context) (map[string]any, error) {
+			return map[string]any{
+				"layoutTitle": "layoutTitle",
+			}, nil
+		})
+		assert.Error(t, err)
+	})
+
+	t.Run("layout data", func(t *testing.T) {
+		t.Parallel()
+
+		render := testRendererReadyForLayoutData(t)
+
+		err := render.AddLayoutData(testdata.ExampleContext, "default", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"layoutTitle": "layoutTitle",
 			}, nil
 		})
 		assert.NoError(t, err)
-		err = r.AddLayoutData(testdata.ExampleContext, "", func(_ context.Context) (map[string]any, error) {
+		err = render.AddLayoutData(testdata.ExampleContext, "", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"LayoutHeader": "layoutHeader",
 			}, nil
@@ -753,7 +766,7 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 				t.Parallel()
 				buf := &bytes.Buffer{}
 
-				err = r.Render(ctx, buf, testdata.ExampleContext, tt.templateName, map[string]any{
+				err = render.Render(ctx, buf, testdata.ExampleContext, tt.templateName, map[string]any{
 					"baseTitle": "baseTitle 2",
 				})
 				assert.NoError(t, err)
@@ -792,15 +805,15 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 	t.Run("data func fails", func(t *testing.T) {
 		t.Parallel()
 
-		r := testRendererReadyForLayoutData(t)
+		render := testRendererReadyForLayoutData(t)
 
-		err := r.AddLayoutData(testdata.ExampleContext, "default", func(_ context.Context) (map[string]any, error) {
+		err := render.AddLayoutData(testdata.ExampleContext, "default", func(_ context.Context) (map[string]any, error) {
 			return nil, errSomeError
 		})
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = r.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+		err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 		assert.Empty(t, buf.String())

@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
+
+	"github.com/go-arrower/arrower/alog"
 )
 
 func Test(

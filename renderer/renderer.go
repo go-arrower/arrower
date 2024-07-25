@@ -19,11 +19,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Masterminds/sprig/v3"
+	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/go-arrower/arrower/alog"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -134,13 +134,13 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 	defer innerSpan.End()
 
 	if r.hotReload {
-		r.mu.Lock() // todo is this lock still reqired, as the cache is delted via range now. Instead of = sync.Map{} of previous implementation => for the r.views
-
 		// delete all keys
 		r.cache.Range(func(key interface{}, _ interface{}) bool {
 			r.cache.Delete(key)
 			return true
 		})
+
+		r.mu.Lock()
 
 		for k, v := range r.views {
 			isCont, _, _ := isContext(k)
@@ -638,7 +638,9 @@ func (r *Renderer) AddBaseData(baseName string, dataFunc DataFunc) error {
 }
 
 func (r *Renderer) AddLayoutData(context string, layoutName string, dataFunc DataFunc) error {
-	// todo if context == Shared => return error (or add as base instead)
+	if context == SharedViews {
+		return fmt.Errorf("%w: can not add layout data to shared context", ErrCreateRendererFailed)
+	}
 
 	if layoutName == "" {
 		layoutName = "default"

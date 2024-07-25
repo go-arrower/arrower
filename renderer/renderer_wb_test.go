@@ -8,10 +8,10 @@ import (
 	"html/template"
 	"testing"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/renderer/testdata"
 )
 

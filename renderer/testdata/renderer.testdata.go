@@ -1,10 +1,13 @@
 package testdata
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -232,4 +235,36 @@ func randomString(n int) string {
 	}
 
 	return string(b)
+}
+
+// DumpAllNamedTemplatesRenderedWithData pretty prints all templates
+// within the given *template.Template. Use it for convenient debugging.
+//
+//nolint:forbidigo,lll // this is a debug helper, so the use of fmt is the feature.
+func DumpAllNamedTemplatesRenderedWithData(templ *template.Template, data interface{}) {
+	templ, err := templ.Clone() // ones ExecuteTemplate is called the template cannot be pared any more and could fail calling code.
+	if err != nil {
+		fmt.Println("CAN NOT DUMP TEMPLATE: ", err)
+
+		return
+	}
+
+	fmt.Println()
+	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
+	fmt.Println("--- --- ---   Render all templates:", strings.TrimPrefix(templ.DefinedTemplates(), "; defined templates are: "))
+	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
+
+	buf := &bytes.Buffer{}
+
+	for _, t := range templ.Templates() {
+		fmt.Printf("--- --- ---   %s:\n", t.Name())
+
+		_ = templ.ExecuteTemplate(buf, t.Name(), data)
+
+		fmt.Println(buf.String())
+		buf.Reset()
+	}
+
+	fmt.Println("--- --- ---   --- --- ---   --- --- ---")
+	fmt.Println()
 }
