@@ -393,7 +393,41 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 }
 
 func (repo *MemoryRepository[E, ID]) UpdateAll(ctx context.Context, entities []E) error {
-	return repo.SaveAll(ctx, entities)
+	repo.Lock()
+	defer repo.Unlock()
+
+	for _, e := range entities {
+		if repo.getID(e) == *new(ID) {
+			return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+		}
+	}
+
+	oldEntities := []E{}
+	updatedEntities := []E{}
+
+	for _, e := range entities {
+		if _, found := repo.Data[repo.getID(e)]; !found {
+			return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
+		}
+
+		oldEntities = append(oldEntities, repo.Data[repo.getID(e)])
+		updatedEntities = append(updatedEntities, e)
+	}
+
+	for _, e := range updatedEntities {
+		repo.Data[repo.getID(e)] = e
+	}
+
+	err := repo.store.Store(repo.filename, repo.Data)
+	if err != nil {
+		for _, e := range oldEntities {
+			repo.Data[repo.getID(e)] = e
+		}
+
+		return fmt.Errorf("could not save: %w", err)
+	}
+
+	return nil
 }
 
 func (repo *MemoryRepository[E, ID]) Add(ctx context.Context, entity E) error {

@@ -26,9 +26,9 @@ type (
 	}
 )
 
-var DefaultEntity = TestEntity()
+var DefaultEntity = RandomEntity()
 
-func TestEntity() Entity {
+func RandomEntity() Entity {
 	return Entity{
 		ID:   EntityID(uuid.New().String()),
 		Name: gofakeit.Name(),
