@@ -47,10 +47,6 @@ type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfa
 	CountOfTenant(ctx context.Context, tenantID tID) (int, error)
 	Length(ctx context.Context) (int, error)
 	LengthOfTenant(ctx context.Context, tenantID tID) (int, error)
-	Empty(ctx context.Context) (bool, error)
-	EmptyTenant(ctx context.Context, tenantID tID) (bool, error)
-	IsEmpty(ctx context.Context) (bool, error)
-	IsEmptyTenant(ctx context.Context, tenantID tID) (bool, error)
 
 	DeleteByID(ctx context.Context, tenantID tID, id eID) error
 	DeleteByIDs(ctx context.Context, tenantID tID, ids []eID) error
@@ -435,26 +431,6 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Length(ctx context.Context) 
 
 func (repo *MemoryTenantRepository[T, tID, E, eID]) LengthOfTenant(ctx context.Context, tenantID tID) (int, error) {
 	return repo.CountOfTenant(ctx, tenantID)
-}
-
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Empty(ctx context.Context) (bool, error) {
-	return repo.IsEmpty(ctx)
-}
-
-func (repo *MemoryTenantRepository[T, tID, E, eID]) EmptyTenant(ctx context.Context, tenantID tID) (bool, error) {
-	return repo.IsEmptyTenant(ctx, tenantID)
-}
-
-func (repo *MemoryTenantRepository[T, tID, E, eID]) IsEmpty(ctx context.Context) (bool, error) {
-	c, err := repo.Count(ctx)
-
-	return c == 0, err
-}
-
-func (repo *MemoryTenantRepository[T, tID, E, eID]) IsEmptyTenant(ctx context.Context, tenantID tID) (bool, error) {
-	c, err := repo.CountOfTenant(ctx, tenantID)
-
-	return c == 0, err
 }
 
 func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByID(ctx context.Context, tenantID tID, id eID) error {

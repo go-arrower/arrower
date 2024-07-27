@@ -456,16 +456,6 @@ func (repo *MemoryRepository[E, ID]) Length(ctx context.Context) (int, error) {
 	return repo.Count(ctx)
 }
 
-func (repo *MemoryRepository[E, ID]) Empty(ctx context.Context) (bool, error) {
-	return repo.IsEmpty(ctx)
-}
-
-func (repo *MemoryRepository[E, ID]) IsEmpty(ctx context.Context) (bool, error) {
-	c, err := repo.Count(ctx)
-
-	return c == 0, err
-}
-
 func (repo *MemoryRepository[E, ID]) DeleteByID(ctx context.Context, id ID) error {
 	return repo.DeleteByIDs(ctx, []ID{id})
 }

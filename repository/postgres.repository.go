@@ -176,14 +176,6 @@ func (repo *PostgresRepository[E, ID]) Length(ctx context.Context) (int, error) 
 	return 0, nil
 }
 
-func (repo *PostgresRepository[E, ID]) Empty(ctx context.Context) (bool, error) {
-	return false, nil
-}
-
-func (repo *PostgresRepository[E, ID]) IsEmpty(ctx context.Context) (bool, error) {
-	return false, nil
-}
-
 func (repo *PostgresRepository[E, ID]) DeleteByID(ctx context.Context, id ID) error {
 	return nil
 }

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"reflect"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -12,6 +13,72 @@ import (
 
 	"github.com/go-arrower/arrower/repository/testdata"
 )
+
+var ctx = context.Background()
+
+// Test returns a Repository tuned for unit testing.
+// It exposes a lot of specific assertions for the use in tests.
+// The interface follows stretchr/testify as close as possible.
+//
+//   - Every assert func returns a bool indicating whether the assertion was successful or not,
+//     this is useful for if you want to go on making further assertions under certain conditions.
+func Test[E any, ID id](t *testing.T, opts ...Option) *TestRepository[E, ID] {
+	repo := NewMemoryRepository[E, ID](opts...)
+
+	return &TestRepository[E, ID]{
+		Repository:     repo,
+		TestAssertions: TestAssert[E, ID](t, repo),
+	}
+}
+
+// TestRepository is a special repository for unit testing.
+// It exposes all methods of Repository and can be injected as a dependency.
+//
+// Additionally, TestRepository exposes a set of assertions on all
+// the entities stored in the repo.
+type TestRepository[E any, ID id] struct {
+	Repository[E, ID]
+	*TestAssertions[E, ID]
+}
+
+// TestAssert returns a helper tuned for unit testing a Repository.
+// It exposes a lot of specific assertions for the use in tests.
+// The interface follows stretchr/testify as close as possible.
+//
+//   - Every assert func returns a bool indicating whether the assertion was successful or not,
+//     this is useful for if you want to go on making further assertions under certain conditions.
+func TestAssert[E any, ID id](t *testing.T, repo Repository[E, ID]) *TestAssertions[E, ID] {
+	return &TestAssertions[E, ID]{
+		repo: repo,
+		t:    t,
+	}
+}
+
+type TestAssertions[E any, ID id] struct {
+	repo Repository[E, ID]
+	t    *testing.T
+}
+
+// Empty asserts that the repository has no entities stored.
+func (a *TestAssertions[E, ID]) Empty(msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	if c, _ := a.repo.Count(ctx); c != 0 {
+		return assert.Fail(a.t, "repository is not empty, has "+strconv.Itoa(c)+" entities", msgAndArgs...)
+	}
+
+	return true
+}
+
+func (a *TestAssertions[E, ID]) NotEmpty(msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	if c, _ := a.repo.Count(ctx); c == 0 {
+		return assert.Fail(a.t, "repository is empty, should not be ", msgAndArgs...)
+	}
+
+	return true
+}
 
 // TestSuite is a suite that ensures a Repository implementation
 // adheres to the intended behaviour.
@@ -589,9 +656,9 @@ func TestSuite(
 			err = repo.DeleteByID(ctx, testdata.DefaultEntity.ID)
 			assert.NoError(t, err)
 
-			empty, err := repo.Empty(ctx)
+			c, err := repo.Count(ctx)
 			assert.NoError(t, err)
-			assert.True(t, empty)
+			assert.Equal(t, 0, c)
 		})
 
 		t.Run("delete multiple times", func(t *testing.T) {

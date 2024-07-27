@@ -88,7 +88,7 @@ func (l *TestLogger) Lines() []string {
 	return lines
 }
 
-// Empty asserts that the logger has not lines logged.
+// Empty asserts that the logger has no lines logged.
 func (l *TestLogger) Empty(msgAndArgs ...any) bool {
 	l.t.Helper()
 

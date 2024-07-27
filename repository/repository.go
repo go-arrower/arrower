@@ -43,8 +43,6 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 
 	Count(ctx context.Context) (int, error)
 	Length(ctx context.Context) (int, error)
-	Empty(ctx context.Context) (bool, error)   // todo assertion?
-	IsEmpty(ctx context.Context) (bool, error) // todo assertion?
 
 	DeleteByID(ctx context.Context, id ID) error
 	DeleteByIDs(ctx context.Context, ids []ID) error
