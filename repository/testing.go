@@ -31,29 +31,35 @@ func Test[E any, ID id](t *testing.T, opts ...Option) *TestRepository[E, ID] {
 	}
 }
 
-// TestRepository is a special repository for unit testing.
-// It exposes all methods of Repository and can be injected as a dependency.
-//
-// Additionally, TestRepository exposes a set of assertions on all
-// the entities stored in the repo.
+// TestRepository is a special Repository for unit testing.
+// It exposes all methods of Repository and can be injected as a dependency
+// in any application.
+// Additionally, TestRepository exposes a set of assertions TestAssertions
+// on all the entities stored in the repo.
 type TestRepository[E any, ID id] struct {
 	Repository[E, ID]
 	*TestAssertions[E, ID]
 }
 
-// TestAssert returns a helper tuned for unit testing a Repository.
+// TestAssert returns a Repository and TestAssertions tuned for unit testing.
 // It exposes a lot of specific assertions for the use in tests.
 // The interface follows stretchr/testify as close as possible.
 //
 //   - Every assert func returns a bool indicating whether the assertion was successful or not,
 //     this is useful for if you want to go on making further assertions under certain conditions.
 func TestAssert[E any, ID id](t *testing.T, repo Repository[E, ID]) *TestAssertions[E, ID] {
+	if t == nil {
+		panic("t is nil")
+	}
+
 	return &TestAssertions[E, ID]{
 		repo: repo,
 		t:    t,
 	}
 }
 
+// TestAssertions are assertions that work on a Repository, to make
+// testing easier and convenient.
 type TestAssertions[E any, ID id] struct {
 	repo Repository[E, ID]
 	t    *testing.T

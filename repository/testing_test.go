@@ -20,14 +20,11 @@ func TestTest(t *testing.T) {
 		repo.Empty()
 	})
 
-	t.Run("nil does not panic", func(t *testing.T) {
+	t.Run("nil does panic", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.Test[testdata.Entity, testdata.EntityID](nil)
-
-		assert.NotPanics(t, func() {
-			//repo.NotEmpty() // FIXME and change it to Empty() // NotEmpty just to see the error message on nil t
-			_ = repo
+		assert.Panics(t, func() {
+			repository.Test[testdata.Entity, testdata.EntityID](nil)
 		})
 	})
 }

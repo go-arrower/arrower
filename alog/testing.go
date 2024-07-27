@@ -19,7 +19,7 @@ import (
 //     this is useful for if you want to go on making further assertions under certain conditions.
 func Test(t *testing.T) *TestLogger { //nolint:paralleltest // false positive, see: https://github.com/kunwardeep/paralleltest/issues/36
 	if t == nil {
-		t = new(testing.T)
+		panic("t is nil")
 	}
 
 	buf := &testBuffer{

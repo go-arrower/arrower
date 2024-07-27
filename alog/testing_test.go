@@ -19,14 +19,11 @@ func TestTest(t *testing.T) {
 		assert.NotEmpty(t, buf)
 	})
 
-	t.Run("nil does not panic", func(t *testing.T) {
+	t.Run("nil does panic", func(t *testing.T) {
 		t.Parallel()
 
-		logger := alog.Test(nil)
-
-		assert.NotPanics(t, func() {
-			logger.Info(applicationMsg)
-			logger.NotEmpty()
+		assert.Panics(t, func() {
+			alog.Test(nil)
 		})
 	})
 
