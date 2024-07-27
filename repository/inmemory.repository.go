@@ -493,3 +493,23 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 func (repo *MemoryRepository[E, ID]) Clear(ctx context.Context) error {
 	return repo.DeleteAll(ctx)
 }
+
+func (repo *MemoryRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, ID] {
+	return MemoryIterator[E, ID]{
+		repo: repo,
+	}
+}
+
+type MemoryIterator[E any, ID id] struct {
+	repo *MemoryRepository[E, ID]
+}
+
+func (i MemoryIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
+	return func(yield func(e E, err error) bool) {
+		for _, e := range i.repo.Data {
+			if !yield(e, nil) {
+				return
+			}
+		}
+	}
+}
