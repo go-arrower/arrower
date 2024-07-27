@@ -16,7 +16,7 @@ import (
 
 var ctx = context.Background()
 
-// Test returns a Repository tuned for unit testing.
+// Test returns a MemoryRepository tuned for unit testing.
 // It exposes a lot of specific assertions for the use in tests.
 // The interface follows stretchr/testify as close as possible.
 //

@@ -12,9 +12,11 @@ import (
 
 var _ Store = (*JSONStore)(nil)
 
-// JSONStore is a naive implementation of a Store. It persists the data as a human-readable JSON file on disc.
-// JSONStore is not schema aware and uses the standard go marshalling. Be aware if you change your structs,
-// this can lead to data loss!
+// JSONStore is a naive implementation of a Store.
+// It persists the data as a human-readable JSON file on disc.
+// JSONStore is not schema aware and uses the standard go marshalling.
+// CAUTION: Be aware if you change your structs, this can lead to data loss!
+// CAUTION: This is only intended for local development and prototyping.
 type JSONStore struct {
 	dir string
 

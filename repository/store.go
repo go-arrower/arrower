@@ -7,8 +7,8 @@ var (
 	ErrLoad  = errors.New("could not load repository data")
 )
 
-// Store is an interface to access the data of a repository as a whole,
-// so it can be used in memory.
+// Store is an interface to access the data of a MemoryRepository as a whole,
+// so it can be persisted easily.
 type Store interface {
 	Store(fileName string, data any) error
 	Load(fileName string, data any) error

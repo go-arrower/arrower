@@ -17,14 +17,6 @@ var (
 	ErrAlreadyExists = errors.New("exists already")
 )
 
-// WithIDField set's the name of the field that is used as an id or primary key.
-// If not set, it is assumed that the entity struct has a field with the name "ID".
-func WithIDField(idFieldName string) Option {
-	return func(config *repoConfig) {
-		config.idFieldName = idFieldName
-	}
-}
-
 // WithStore sets a Store used to persist the Repository.
 // ONLY applies to the in memory implementations.
 //
@@ -42,14 +34,6 @@ func WithStoreFilename(name string) Option { //nolint:revive // unexported-retur
 	return func(config *repoConfig) {
 		config.filename = name
 	}
-}
-
-type Option func(*repoConfig)
-
-type repoConfig struct {
-	idFieldName string
-	store       Store
-	filename    string
 }
 
 // NewMemoryRepository returns an implementation of Repository for the given entity E.

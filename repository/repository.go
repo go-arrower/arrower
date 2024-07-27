@@ -9,6 +9,22 @@ type id interface {
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
 }
 
+// WithIDField set's the name of the field that is used as an id or primary key.
+// If not set, it is assumed that the entity struct has a field with the name "ID".
+func WithIDField(idFieldName string) Option {
+	return func(config *repoConfig) {
+		config.idFieldName = idFieldName
+	}
+}
+
+type Option func(*repoConfig)
+
+type repoConfig struct {
+	idFieldName string
+	store       Store
+	filename    string
+}
+
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
 // ID is the primary key and needs to be of one of the underlying types.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
