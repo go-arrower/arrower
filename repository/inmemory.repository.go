@@ -495,9 +495,10 @@ func (repo *MemoryRepository[E, ID]) Clear(ctx context.Context) error {
 }
 
 func (repo *MemoryRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, ID] {
-	return MemoryIterator[E, ID]{
-		repo: repo,
-	}
+	return MemoryIterator[E, ID]{repo: repo}
+}
+func (repo *MemoryRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
+	return MemoryIterator[E, ID]{repo: repo}
 }
 
 type MemoryIterator[E any, ID id] struct {

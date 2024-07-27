@@ -66,6 +66,7 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Clear(ctx context.Context) error
 
 	AllIter(ctx context.Context) Iterator[E, ID]
+	FindAllIter(ctx context.Context) Iterator[E, ID]
 }
 
 type Iterator[E any, ID id] interface {
