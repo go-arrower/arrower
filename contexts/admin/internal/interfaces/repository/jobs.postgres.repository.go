@@ -241,6 +241,25 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	return workers
 }
 
+func (repo *PostgresJobsRepository) Schdules(ctx context.Context) ([]jobs.Schedule, error) {
+	dbSchedules, err := repo.Conn().GetSchedules(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not get schdules: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
+	}
+
+	schedules := make([]jobs.Schedule, len(dbSchedules))
+	for i, s := range dbSchedules {
+		schedules[i] = jobs.Schedule{
+			Queue:   jobs.QueueName(s.Queue),
+			Spec:    s.Spec,
+			JobType: jobs.JobType(s.JobType),
+			Args:    string(s.Args),
+		}
+	}
+
+	return schedules, nil
+}
+
 func (repo *PostgresJobsRepository) FinishedJobs(ctx context.Context, filter jobs.Filter) ([]jobs.Job, error) {
 	queue := queueNameFromDomain(filter.Queue)
 

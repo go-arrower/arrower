@@ -22,7 +22,8 @@ type getWorkersQueryHandler struct {
 type (
 	GetWorkersQuery    struct{}
 	GetWorkersResponse struct {
-		Pool []jobs.WorkerPool
+		Pool      []jobs.WorkerPool
+		Schedules []jobs.Schedule
 	}
 )
 
@@ -32,5 +33,13 @@ func (h *getWorkersQueryHandler) H(ctx context.Context, _ GetWorkersQuery) (GetW
 		return GetWorkersResponse{}, fmt.Errorf("%w: %w", ErrGetWorkersFailed, err)
 	}
 
-	return GetWorkersResponse{Pool: wp}, nil
+	s, err := h.repo.Schdules(ctx)
+	if err != nil {
+		return GetWorkersResponse{}, fmt.Errorf("%w: %w", ErrGetWorkersFailed, err)
+	}
+
+	return GetWorkersResponse{
+		Pool:      wp,
+		Schedules: s,
+	}, nil
 }

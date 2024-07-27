@@ -189,8 +189,9 @@ func (jc *JobsController) ListWorkers() func(c echo.Context) error {
 		}
 
 		return c.Render(http.StatusOK, "jobs.workers", echo.Map{
-			"Title":   "Workers",
-			"workers": pages.PresentWorkers(res.Pool),
+			"Title":     "Workers",
+			"workers":   pages.PresentWorkers(res.Pool),
+			"schedules": res.Schedules,
 		})
 	}
 }

@@ -154,6 +154,11 @@ VALUES ($1, $2, $3, STATEMENT_TIMESTAMP(), $4)
 ON CONFLICT (id, queue) DO UPDATE SET updated_at = STATEMENT_TIMESTAMP(),
                                       workers    = $3;
 
+-- name: GetSchedules :many
+SELECT * FROM arrower.gue_jobs_schedule
+WHERE updated_at > NOW() - INTERVAL '2 minutes'
+ORDER BY queue, spec, job_type, args;
+
 -- name: TotalFinishedJobs :one
 SELECT COUNT(DISTINCT (job_id))
 FROM arrower.gue_jobs_history

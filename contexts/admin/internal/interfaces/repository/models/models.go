@@ -37,6 +37,15 @@ type ArrowerGueJobsHistory struct {
 	PrunedAt   pgtype.Timestamptz
 }
 
+type ArrowerGueJobsSchedule struct {
+	Queue     string
+	Spec      string
+	JobType   string
+	Args      []byte
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type ArrowerGueJobsWorkerPool struct {
 	ID        string
 	Queue     string

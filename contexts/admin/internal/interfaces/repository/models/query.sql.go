@@ -267,6 +267,39 @@ func (q *Queries) GetQueues(ctx context.Context) ([]string, error) {
 	return items, nil
 }
 
+const getSchedules = `-- name: GetSchedules :many
+SELECT queue, spec, job_type, args, created_at, updated_at FROM arrower.gue_jobs_schedule
+WHERE updated_at > NOW() - INTERVAL '2 minutes'
+ORDER BY queue, spec, job_type, args
+`
+
+func (q *Queries) GetSchedules(ctx context.Context) ([]ArrowerGueJobsSchedule, error) {
+	rows, err := q.db.Query(ctx, getSchedules)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ArrowerGueJobsSchedule
+	for rows.Next() {
+		var i ArrowerGueJobsSchedule
+		if err := rows.Scan(
+			&i.Queue,
+			&i.Spec,
+			&i.JobType,
+			&i.Args,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getWorkerPools = `-- name: GetWorkerPools :many
 SELECT id, queue, workers, git_hash, job_types, created_at, updated_at
 FROM arrower.gue_jobs_worker_pool

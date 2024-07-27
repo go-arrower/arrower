@@ -13,6 +13,7 @@ type Repository interface {
 	Delete(ctx context.Context, jobID string) error
 	RunJobAt(ctx context.Context, jobID string, runAt time.Time) error
 	WorkerPools(ctx context.Context) ([]WorkerPool, error)
+	Schdules(ctx context.Context) ([]Schedule, error)
 	FinishedJobs(ctx context.Context, f Filter) ([]Job, error)
 	FinishedJobsTotal(ctx context.Context, f Filter) (int64, error)
 }

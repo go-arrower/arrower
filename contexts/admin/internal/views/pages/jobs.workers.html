@@ -1,6 +1,5 @@
 {{ define "admin.title" }}Worker Pools{{ end }}
 
-
 <div class="w-full max-w-5xl overflow-x-auto">
   <table
     class="table"
@@ -21,52 +20,84 @@
     </thead>
     <tbody id="worker-list">
       {{ range .workers }}
-        <tr data-js-worker-jobTypes data-worker="{{ .ID }}{{ .Queue }}">
-          <td>{{ .ID }}</td>
-          <!--rowspan="2"-->
-          <td>
-            <a class="text-secondary" href="/admin/jobs/{{ .Queue }}"
-              >{{ .Queue }}</a
-            >
-          </td>
-          <td>{{ .Workers }}</td>
-          <td
-            class="{{ if .LastSeenAtColourSuccess }}
+      <tr data-js-worker-jobTypes data-worker="{{ .ID }}{{ .Queue }}">
+        <td>{{ .ID }}</td>
+        <!--rowspan="2"-->
+        <td>
+          <a class="text-secondary" href="/admin/jobs/{{ .Queue }}"
+            >{{ .Queue }}</a
+          >
+        </td>
+        <td>{{ .Workers }}</td>
+        <td
+          class="{{ if .LastSeenAtColourSuccess }}
               text-success
             {{ else }}
               text-warning
             {{ end }}"
-          >
-            {{ .NotSeenSince }}
-          </td>
-        </tr>
-        <tr class="hidden border-none text-xs">
-          <td></td>
-          <td class="align-top font-extrabold">Version</td>
-          <td colspan="2">{{ .Version }}</td>
-        </tr>
-        <tr class="hidden border-none text-xs">
-          <td></td>
-          <td class="align-top font-extrabold">Job Types</td>
-          <td colspan="2" class="space-y-1.5">
-            {{ range .JobTypes }}
-              {{ . }}<br />
-            {{ end }}
-          </td>
-        </tr>
-        <tr class="hidden">
-          <td>&nbsp;</td>
-        </tr>
-        <!-- this is a spacer row -->
+        >
+          {{ .NotSeenSince }}
+        </td>
+      </tr>
+      <tr class="hidden border-none text-xs">
+        <td></td>
+        <td class="align-top font-extrabold">Version</td>
+        <td colspan="2">{{ .Version }}</td>
+      </tr>
+      <tr class="hidden border-none text-xs">
+        <td></td>
+        <td class="align-top font-extrabold">Job Types</td>
+        <td colspan="2" class="space-y-1.5">
+          {{ range .JobTypes }} {{ . }}<br />
+          {{ end }}
+        </td>
+      </tr>
+      <tr class="hidden">
+        <td>&nbsp;</td>
+      </tr>
+      <!-- this is a spacer row -->
       {{ else }}
-        <tr class="border-none">
-          <td colspan="4" class="text-center">No workers registered</td>
-        </tr>
+      <tr class="border-none">
+        <td colspan="4" class="text-center">No workers registered</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-16 w-full max-w-5xl overflow-x-auto">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Queue</th>
+        <th>Schedule</th>
+        <th>Job Type</th>
+        <th>Args</th>
+      </tr>
+    </thead>
+    <tbody id="schedule-list">
+      {{ range .schedules }}
+      <tr>
+        <td>
+          <a class="text-secondary" href="/admin/jobs/{{ .Queue }}"
+            >{{ .Queue }}</a
+          >
+        </td>
+        <td>{{ .Spec }}</td>
+        <td>{{ .JobType }}</td>
+        <td>
+          <pre
+            class="whitespace-pre-wrap rounded p-1 hover:bg-neutral hover:text-neutral-content"
+          >
+{{ .Args }}</pre
+          >
+        </td>
+      </tr>
       {{ end }}
     </tbody>
   </table>
 </div>
 
 {{ define "page.js" }}
-  <script src="/js/behaviors/worker-jobTypes.js"></script>
+<script src="/js/behaviors/worker-jobTypes.js"></script>
 {{ end }}

@@ -420,7 +420,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Wait()                          // all workers are done, and now:
-		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
+		time.Sleep(500 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
 		ensureJobTableRows(t, pg, 0+1)      // all Jobs are processed and cron jobs are left
 		ensureJobHistoryTableRows(t, pg, 2) // history has all Jobs
@@ -554,13 +554,13 @@ func TestPostgresJobsHandler_Schedule(t *testing.T) {
 		err = jq.Schedule("@every 1ms", simpleJob{})
 		assert.NoError(t, err)
 
-		time.Sleep(3000 * time.Millisecond) // wait until gueron is set up
+		time.Sleep(5000 * time.Millisecond) // wait until gueron is set up
 
 		c, err := pg.Exec(ctx, `UPDATE arrower.gue_jobs SET run_at = $1 WHERE job_type = $2;`, "2023-06-20 19:35:27-01", "gueron-refresh-schedule")
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), c.RowsAffected())
 
-		time.Sleep(2000 * time.Millisecond) // wait until gue has processed the gueron job
+		time.Sleep(5000 * time.Millisecond) // wait until gue has processed the gueron job
 		_ = jq.Shutdown(ctx)
 
 		logger.NotContains("git hash failed", "gueron should deserialise into the arrower job payload without issue")

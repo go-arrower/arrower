@@ -106,6 +106,31 @@ func (q *Queries) UpdateHistory(ctx context.Context, arg UpdateHistoryParams) er
 	return err
 }
 
+const upsertSchedule = `-- name: UpsertSchedule :exec
+INSERT INTO arrower.gue_jobs_schedule (queue, spec, job_type, args, created_at, updated_at)
+VALUES($1, $2, $3, $4, NOW(), $5)
+ON CONFLICT (queue, spec, job_type, args) DO UPDATE SET updated_at = NOW()
+`
+
+type UpsertScheduleParams struct {
+	Queue     string
+	Spec      string
+	JobType   string
+	Args      []byte
+	UpdatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) UpsertSchedule(ctx context.Context, arg UpsertScheduleParams) error {
+	_, err := q.db.Exec(ctx, upsertSchedule,
+		arg.Queue,
+		arg.Spec,
+		arg.JobType,
+		arg.Args,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const upsertWorkerToPool = `-- name: UpsertWorkerToPool :exec
 INSERT INTO arrower.gue_jobs_worker_pool (id, queue, workers, git_hash, job_types, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, NOW(), $6)

@@ -84,6 +84,7 @@ func NewPostgresJobs(
 		shutdownWorkerPool: nil,
 		groupWorkerPool:    nil,
 		mu:                 sync.Mutex{},
+		schedules:          []schedule{},
 		hasStarted:         false,
 		isStartInProgress:  false,
 		startTimer:         nil,
@@ -144,9 +145,16 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 	groupWorkerPool    *errgroup.Group
 
 	mu                sync.Mutex
+	schedules         []schedule
 	startTimer        *time.Timer
 	isStartInProgress bool
 	hasStarted        bool
+}
+
+type schedule struct {
+	spec    string
+	jobType string
+	args    any
 }
 
 func gitHash() string {
@@ -227,6 +235,15 @@ func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
 	if err != nil {
 		return fmt.Errorf("%w: could not marshal cron: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
 	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.schedules = append(h.schedules, schedule{
+		spec:    spec,
+		jobType: jobType,
+		args:    job,
+	})
 
 	_, err = h.scheduler.Add(spec, jobType, args)
 	if err != nil {
@@ -610,7 +627,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 
 	// start scheduler in goroutine
 	group.Go(func() error {
-		err := h.scheduler.Run(context.Background(), h.gueWorkMap, 0) // zero => use pool of queue above instead
+		err := h.scheduler.Run(gctx, h.gueWorkMap, 0) // zero => use pool of queue above instead
 		if err != nil {
 			return fmt.Errorf("gueron worker failed: %w", err)
 		}
@@ -652,6 +669,28 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 		h.logger.InfoContext(ctx, "could not save starting worker pool to the database", slog.Any("err", err))
 	}
 
+	h.mu.Lock()
+
+	for _, s := range h.schedules {
+		b, err := json.Marshal(s.args)
+		if err != nil {
+			h.logger.InfoContext(ctx, "could not marshal schedule payload", slog.Any("err", err))
+		}
+
+		err = connOrTX(ctx, h.queries).UpsertSchedule(ctx, models.UpsertScheduleParams{
+			Queue:     h.queue,
+			Spec:      s.spec,
+			JobType:   s.jobType,
+			Args:      b,
+			UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
+		})
+		if err != nil {
+			h.logger.InfoContext(ctx, "could not save schedule to the database", slog.Any("err", err))
+		}
+	}
+
+	h.mu.Unlock()
+
 	for {
 		select {
 		case <-time.NewTicker(refreshDuration).C:
@@ -666,6 +705,28 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 			if err != nil {
 				h.logger.InfoContext(ctx, "could not save worker pool life probe to the database", slog.Any("err", err))
 			}
+
+			h.mu.Lock()
+
+			for _, s := range h.schedules {
+				b, err := json.Marshal(s.args)
+				if err != nil {
+					h.logger.InfoContext(ctx, "could not marshal schedule payload", slog.Any("err", err))
+				}
+
+				err = connOrTX(ctx, h.queries).UpsertSchedule(ctx, models.UpsertScheduleParams{
+					Queue:     h.queue,
+					Spec:      s.spec,
+					JobType:   s.jobType,
+					Args:      b,
+					UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
+				})
+				if err != nil {
+					h.logger.InfoContext(ctx, "could not save schedule to the database", slog.Any("err", err))
+				}
+			}
+
+			h.mu.Unlock()
 		case <-ctx.Done():
 			return
 		}

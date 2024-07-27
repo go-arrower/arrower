@@ -12,6 +12,11 @@ ON CONFLICT (id, queue) DO UPDATE SET updated_at = NOW(),
                                       git_hash   = $4,
                                       job_types  = $5;
 
+-- name: UpsertSchedule :exec
+INSERT INTO arrower.gue_jobs_schedule (queue, spec, job_type, args, created_at, updated_at)
+VALUES($1, $2, $3, $4, NOW(), $5)
+ON CONFLICT (queue, spec, job_type, args) DO UPDATE SET updated_at = NOW();
+
 -- name: InsertHistory :exec
 INSERT INTO arrower.gue_jobs_history (job_id, priority, run_at, job_type, args, run_count, run_error, queue, created_at,
                                       updated_at, success, finished_at)

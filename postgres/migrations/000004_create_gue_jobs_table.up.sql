@@ -59,16 +59,15 @@ CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
 SELECT enable_automatic_updated_at('arrower.gue_jobs_history');
 
 
---
-CREATE UNLOGGED TABLE arrower.gue_jobs_worker_pool
+CREATE UNLOGGED TABLE IF NOT EXISTS arrower.gue_jobs_worker_pool
 (
     id         TEXT        NOT NULL,
     queue      TEXT        NOT NULL,
-    workers    SMALLINT    NOT NULL DEFAULT 0,
-    git_hash   TEXT        NOT NULL DEFAULT '',
-    job_types  TEXT[]      NOT NULL DEFAULT '{}',
-    created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL,
+    workers    SMALLINT    NOT NULL          DEFAULT 0,
+    git_hash   TEXT        NOT NULL          DEFAULT '',
+    job_types  TEXT[]      NOT NULL          DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),
     UNIQUE (id, queue)
 );
 
@@ -76,6 +75,19 @@ SELECT enable_automatic_updated_at('arrower.gue_jobs_worker_pool');
 
 SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *',
                      $$DELETE FROM arrower.gue_jobs_worker_pool WHERE updated_at < now() - interval '1 week'$$);
+
+CREATE UNLOGGED TABLE IF NOT EXISTS arrower.gue_jobs_schedule
+(
+    queue      TEXT        NOT NULL,
+    spec       TEXT        NOT NULL DEFAULT '',
+    job_type   TEXT        NOT NULL DEFAULT '',
+    args       JSONB       NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),
+    UNIQUE (queue, spec, job_type, args)
+);
+
+SELECT enable_automatic_updated_at('arrower.gue_jobs_schedule');
 
 
 -- reimplement the ulid generation of the underlying Go library, to manually create valid job ids.

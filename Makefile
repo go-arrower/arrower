@@ -7,7 +7,7 @@ help: ## Display this help screen
 
 .PHONY: static-check
 static-check: ## Run static code checks
-	golangci-lint run
+	GOEXPERIMENT=rangefunc golangci-lint run
 
 .PHONY: generate
 generate: ## Generate all code to run the service

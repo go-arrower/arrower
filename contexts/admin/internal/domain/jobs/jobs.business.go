@@ -61,4 +61,11 @@ type (
 		JobTypes []JobType
 		Workers  int
 	}
+
+	Schedule struct {
+		Queue   QueueName
+		Spec    string
+		JobType JobType
+		Args    any
+	}
 )
