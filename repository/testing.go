@@ -483,6 +483,51 @@ func TestSuite(
 		assert.False(t, ex, "should check for all IDs")
 	})
 
+	t.Run("CreateAll", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("add all", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			err := repo.CreateAll(ctx, []testdata.Entity{testdata.RandomEntity(), testdata.DefaultEntity, testdata.RandomEntity()})
+			assert.NoError(t, err)
+
+			c, err := repo.Count(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, 3, c)
+		})
+
+		t.Run("already exists", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+			err := repo.Save(ctx, testdata.DefaultEntity)
+			assert.NoError(t, err)
+
+			err = repo.CreateAll(ctx, []testdata.Entity{testdata.RandomEntity(), testdata.DefaultEntity, testdata.RandomEntity()})
+			assert.ErrorIs(t, err, ErrAlreadyExists)
+
+			c, err := repo.Count(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, c)
+		})
+
+		t.Run("missing id", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			err := repo.CreateAll(ctx, []testdata.Entity{testdata.DefaultEntity, testdata.Entity{}})
+			assert.ErrorIs(t, err, ErrSaveFailed)
+
+			c, err := repo.Count(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, 0, c)
+		})
+	})
+
 	t.Run("Save", func(t *testing.T) {
 		t.Parallel()
 
@@ -627,6 +672,19 @@ func TestSuite(
 			c, err := repo.Count(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, 1, c)
+		})
+
+		t.Run("missing id", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			err := repo.AddAll(ctx, []testdata.Entity{testdata.DefaultEntity, testdata.Entity{}})
+			assert.ErrorIs(t, err, ErrSaveFailed)
+
+			c, err := repo.Count(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, 0, c)
 		})
 	})
 

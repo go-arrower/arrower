@@ -51,6 +51,7 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	ContainsIDs(ctx context.Context, ids []ID) (bool, error)
 	ContainsAll(ctx context.Context, ids []ID) (bool, error)
 
+	CreateAll(ctx context.Context, entities []E) error
 	Save(ctx context.Context, entity E) error
 	SaveAll(ctx context.Context, entities []E) error
 	UpdateAll(ctx context.Context, entities []E) error

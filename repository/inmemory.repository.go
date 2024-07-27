@@ -327,6 +327,10 @@ func (repo *MemoryRepository[E, ID]) ContainsAll(ctx context.Context, ids []ID) 
 	return repo.ContainsIDs(ctx, ids)
 }
 
+func (repo *MemoryRepository[E, ID]) CreateAll(ctx context.Context, entities []E) error {
+	return repo.AddAll(ctx, entities)
+}
+
 func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
@@ -497,6 +501,7 @@ func (repo *MemoryRepository[E, ID]) Clear(ctx context.Context) error {
 func (repo *MemoryRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, ID] {
 	return MemoryIterator[E, ID]{repo: repo}
 }
+
 func (repo *MemoryRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
 	return MemoryIterator[E, ID]{repo: repo}
 }
