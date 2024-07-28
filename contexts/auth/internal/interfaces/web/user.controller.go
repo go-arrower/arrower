@@ -5,10 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
-	"github.com/go-arrower/arrower/setting"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
@@ -18,6 +14,7 @@ import (
 
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 )
 
@@ -32,12 +29,12 @@ Proposal for naming conventions:
 	- delete
 */
 
-func NewUserController(app application.UserApplication, routes *echo.Group, secret []byte, settings setting.Settings) UserController {
+func NewUserController(app application.UserApplication, routes *echo.Group, secret []byte) UserController {
 	return UserController{
 		r:                   routes,
 		knownDeviceKeyPairs: securecookie.CodecsFromPairs(secret),
 		app:                 app,
-	} //nolint:exhaustruct
+	}
 }
 
 type UserController struct {

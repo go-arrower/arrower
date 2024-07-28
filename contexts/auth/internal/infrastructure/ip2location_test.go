@@ -4,10 +4,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 )
 

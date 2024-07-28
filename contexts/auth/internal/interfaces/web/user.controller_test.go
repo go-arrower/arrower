@@ -72,7 +72,7 @@ func TestUserController_Login(t *testing.T) {
 
 				return application.LoginUserResponse{}, nil
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/login", controller.Login())
@@ -104,7 +104,7 @@ func TestUserController_Login(t *testing.T) {
 
 				return application.LoginUserResponse{}, errUCFailed
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
@@ -131,13 +131,13 @@ func TestUserController_Login(t *testing.T) {
 
 				return application.LoginUserResponse{}, nil
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
 
-		result := rec.Result() //nolint:bodyclose // false positive, body gets closed with defer
+		result := rec.Result()
 		defer result.Body.Close()
 
 		assert.Equal(t, http.StatusSeeOther, rec.Code)
@@ -158,7 +158,7 @@ func TestUserController_Login(t *testing.T) {
 
 					return application.LoginUserResponse{}, nil
 				}),
-			}, nil, []byte(secret), nil)
+			}, nil, []byte(secret))
 
 			echoRouter.POST("/", controller.Login())
 			echoRouter.ServeHTTP(rec, req)
@@ -184,7 +184,7 @@ func TestUserController_Login(t *testing.T) {
 
 		controller := web.NewUserController(application.UserApplication{
 			LoginUser: app.TestSuccessRequestHandler[application.LoginUserRequest, application.LoginUserResponse](),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Login())
@@ -231,7 +231,7 @@ func TestUserController_Logout(t *testing.T) {
 
 		controller := web.NewUserController(application.UserApplication{
 			LoginUser: app.TestSuccessRequestHandler[application.LoginUserRequest, application.LoginUserResponse](),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter.POST("/login", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
@@ -311,7 +311,7 @@ func TestUserController_Register(t *testing.T) {
 
 				return application.RegisterUserResponse{}, errUCFailed
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Register())
@@ -345,7 +345,7 @@ func TestUserController_Register(t *testing.T) {
 
 				return application.RegisterUserResponse{}, nil
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		echoRouter := newTestRouter()
 		echoRouter.POST("/", controller.Register())
@@ -390,7 +390,7 @@ func TestUserController_Verify(t *testing.T) {
 
 				return nil
 			}),
-		}, nil, []byte(secret), nil)
+		}, nil, []byte(secret))
 
 		err := controller.Verify()(c)
 		assert.NoError(t, err)

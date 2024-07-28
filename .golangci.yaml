@@ -243,11 +243,25 @@ linters:
 issues:
   exclude-rules:
     #
-    # Exclude lll issues for long lines with go:generate
+    # Exclude Arrower specific best practises
     #
-    - linters:
-        - lll
-      source: "^//go:generate "
+
+    # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
+    - path: "contexts/(.*)/init/(.*).go"
+      linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments"
+
+    # Allow setting keys to be global variables, so they can be setup by a context init and used everywhere
+    - path: "contexts/(.*).api.go"
+      linters:
+        - gochecknoglobals
+      text: "Setting" # If settings key is prefixed e.g. auth.SettingAllowRegistration
+
+    # Allow patterns that are considered best practices for Corba CLI applications
+    - path: arrower/cmd
+      linters:
+        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
 
     #
     # Exclude issues from test files
@@ -291,16 +305,14 @@ issues:
         - wsl
       text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together"
 
-    # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
-    - path: "contexts/(.*)/init/(.*).go"
-      linters:
-        - wsl
-      text: "assignments should only be cuddled with other assignments"
+    #
+    # General rules
+    #
 
-    # Allow patterns that are considered best practices for Corba CLI applications
-    - path: arrower/cmd
-      linters:
-        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
+    # Exclude lll issues for long lines with go:generate
+    - linters:
+        - lll
+      source: "^//go:generate "
 
     # Fix: paralleltest still reporting loop var sharing on Go 1.22, see: https://gist.github.com/kunwardeep/80c2e9f3d3256c894898bae82d9f75d0
     - linters:

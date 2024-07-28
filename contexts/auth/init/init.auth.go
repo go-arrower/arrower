@@ -35,6 +35,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 		return nil, fmt.Errorf("could not initialise auth context: %w", err)
 	}
 
+	ctx := context.Background()
 	logger := di.Logger.WithGroup(contextName)
 	meter := di.MeterProvider.Meter(fmt.Sprintf("%s/%s", di.Config.ApplicationName, contextName))
 	tracer := di.TraceProvider.Tracer(fmt.Sprintf("%s/%s", di.Config.ApplicationName, contextName))
@@ -52,7 +53,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 		return nil, fmt.Errorf("could not load auth views: %w", err)
 	}
 
-	err = di.WebRenderer.AddLayoutData(contextName, "default", func(ctx context.Context) (map[string]any, error) {
+	err = di.WebRenderer.AddLayoutData(contextName, "default", func(_ context.Context) (map[string]any, error) {
 		return map[string]any{
 			"Title": strings.Title(contextName),
 		}, nil
@@ -62,41 +63,16 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	}
 
 	{ // register default auth settings
-		_ = di.Settings.Save(context.Background(), auth.SettingAllowRegistration, setting.NewValue(true))
-		_ = di.Settings.Save(context.Background(), auth.SettingAllowLogin, setting.NewValue(true))
-
-		//_ = di.Settings.Add(context.Background(), admin.Setting{
-		//	Key:   admin.SettingAllowRegistration,
-		//	Value: admin.NewSettingValue(true),
-		//	UIOptions: admin.Options{
-		//		Type:         admin.Checkbox,
-		//		Label:        "Enable Registration",
-		//		Info:         "Allows new Users to register themselves",
-		//		DefaultValue: admin.NewSettingValue(true),
-		//		ReadOnly:     false,
-		//		Danger:       false,
-		//	},
-		//})
-		//di.Settings.Add(context.Background(), admin.Setting{
-		//	Key:   admin.SettingAllowLogin,
-		//	Value: admin.NewSettingValue(true),
-		//	UIOptions: admin.Options{
-		//		Type:         admin.Checkbox,
-		//		Label:        "Enable Login",
-		//		Info:         "Allows Users to login to the application",
-		//		DefaultValue: admin.NewSettingValue(true),
-		//		ReadOnly:     false,
-		//		Danger:       false,
-		//	},
-		//})
+		_ = di.Settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(true))
+		_ = di.Settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(true))
 	}
 
 	queries := models.New(di.PGx)
 	repo, _ := repository.NewUserPostgresRepository(di.PGx)
 	registrator := domain.NewRegistrationService(di.Settings, repo)
 
-	webRoutes := di.WebRouter.Group(fmt.Sprintf("/%s", contextName))
-	adminRouter := di.AdminRouter.Group(fmt.Sprintf("/%s", contextName))
+	webRoutes := di.WebRouter.Group("/" + contextName)
+	adminRouter := di.AdminRouter.Group("/" + contextName)
 
 	uc := application.UserApplication{
 		RegisterUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
@@ -117,7 +93,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 			application.NewUnblockUserRequestHandler(repo)),
 	}
 
-	userController := web.NewUserController(uc, webRoutes, []byte("secret"), di.Settings)
+	userController := web.NewUserController(uc, webRoutes, []byte("secret"))
 
 	authContext := AuthContext{
 		settingsController: web.NewSettingsController(queries),
@@ -149,7 +125,7 @@ type AuthContext struct {
 	repo          domain.Repository
 }
 
-func (c *AuthContext) Shutdown(ctx context.Context) error {
+func (c *AuthContext) Shutdown(_ context.Context) error {
 	return nil
 }
 

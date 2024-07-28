@@ -7,9 +7,9 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/ip2location/ip2location-go/v9"
+
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 var (
@@ -47,7 +47,7 @@ func (s *IP2Location) ResolveIP(ip string) (domain.ResolvedIP, error) {
 
 		db, err = ip2location.OpenDB(searchDir + "/" + s.dbPath)
 		if err != nil {
-			return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err)
+			return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err) //nolint:errorlint // prevent err in api
 		}
 	}
 
@@ -58,7 +58,7 @@ func (s *IP2Location) ResolveIP(ip string) (domain.ResolvedIP, error) {
 
 	results, err := db.Get_all(ipAddr.String())
 	if err != nil {
-		return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err)
+		return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err) //nolint:errorlint // prevent err in api
 	}
 
 	db.Close()

@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -35,7 +34,7 @@ func (cont SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 			sess.Values[auth.SessSuperuserOriginalUserID] = originalUserID
 
 			sess.Values[auth.SessKeyUserID] = user.ID.String()
-			sess.AddFlash(fmt.Sprintf("Angemeldet als Nutzer: %s", user.Login))
+			sess.AddFlash("Angemeldet als Nutzer: " + user.Login)
 
 			err = sess.Save(c.Request(), c.Response())
 			if err != nil {

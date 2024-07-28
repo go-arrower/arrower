@@ -18,7 +18,7 @@ func (c *AuthContext) registerWebRoutes(router *echo.Group) {
 	router.GET("/:userID/verify/:token", c.userController.Verify()).Name = auth.RouteVerifyUser
 
 	router.GET("/profile", c.userController.Profile(), auth.EnsureUserIsLoggedInMiddleware).Name = "auth.profile"
-	router.GET("/", nil, func(next echo.HandlerFunc) echo.HandlerFunc {
+	router.GET("/", nil, func(_ echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			return c.Render(http.StatusOK, "home", nil)
 		}
