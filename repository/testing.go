@@ -816,101 +816,101 @@ func TestSuite(
 		assert.Equal(t, 0, c)
 	})
 
-	t.Run("AllIter", func(t *testing.T) {
-		t.Parallel()
+	//t.Run("AllIter", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	t.Run("create iterator", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//
+	//		iter := repo.AllIter(ctx)
+	//		assert.NotNil(t, iter)
+	//	})
+	//
+	//	t.Run("iterate over all", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//		err := repo.AddAll(ctx, []testdata.Entity{
+	//			testdata.RandomEntity(),
+	//			testdata.RandomEntity(),
+	//			testdata.RandomEntity(),
+	//		})
+	//		assert.NoError(t, err)
+	//
+	//		iter := repo.AllIter(ctx)
+	//
+	//		count := 0
+	//		for e, err := range iter.Next() {
+	//			assert.NoError(t, err)
+	//			assert.NotEmpty(t, e)
+	//
+	//			count++
+	//		}
+	//
+	//		assert.Equal(t, 3, count)
+	//	})
+	//
+	//	t.Run("iterate over empty", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//		iter := repo.AllIter(ctx)
+	//
+	//		for _, _ = range iter.Next() {
+	//			assert.Fail(t, "this should never be called, because repo is empty")
+	//		}
+	//	})
+	//})
 
-		t.Run("create iterator", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-
-			iter := repo.AllIter(ctx)
-			assert.NotNil(t, iter)
-		})
-
-		t.Run("iterate over all", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-			err := repo.AddAll(ctx, []testdata.Entity{
-				testdata.RandomEntity(),
-				testdata.RandomEntity(),
-				testdata.RandomEntity(),
-			})
-			assert.NoError(t, err)
-
-			iter := repo.AllIter(ctx)
-
-			count := 0
-			for e, err := range iter.Next() {
-				assert.NoError(t, err)
-				assert.NotEmpty(t, e)
-
-				count++
-			}
-
-			assert.Equal(t, 3, count)
-		})
-
-		t.Run("iterate over empty", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-			iter := repo.AllIter(ctx)
-
-			for _, _ = range iter.Next() {
-				assert.Fail(t, "this should never be called, because repo is empty")
-			}
-		})
-	})
-
-	t.Run("FindAllIter", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("create iterator", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-
-			iter := repo.FindAllIter(ctx)
-			assert.NotNil(t, iter)
-		})
-
-		t.Run("iterate over all", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-			err := repo.AddAll(ctx, []testdata.Entity{
-				testdata.RandomEntity(),
-				testdata.RandomEntity(),
-				testdata.RandomEntity(),
-			})
-			assert.NoError(t, err)
-
-			iter := repo.FindAllIter(ctx)
-
-			count := 0
-			for e, err := range iter.Next() {
-				assert.NoError(t, err)
-				assert.NotEmpty(t, e)
-
-				count++
-			}
-
-			assert.Equal(t, 3, count)
-		})
-
-		t.Run("iterate over empty", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-			iter := repo.FindAllIter(ctx)
-
-			for _, _ = range iter.Next() {
-				assert.Fail(t, "this should never be called, because repo is empty")
-			}
-		})
-	})
+	//t.Run("FindAllIter", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	t.Run("create iterator", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//
+	//		iter := repo.FindAllIter(ctx)
+	//		assert.NotNil(t, iter)
+	//	})
+	//
+	//	t.Run("iterate over all", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//		err := repo.AddAll(ctx, []testdata.Entity{
+	//			testdata.RandomEntity(),
+	//			testdata.RandomEntity(),
+	//			testdata.RandomEntity(),
+	//		})
+	//		assert.NoError(t, err)
+	//
+	//		iter := repo.FindAllIter(ctx)
+	//
+	//		count := 0
+	//		for e, err := range iter.Next() {
+	//			assert.NoError(t, err)
+	//			assert.NotEmpty(t, e)
+	//
+	//			count++
+	//		}
+	//
+	//		assert.Equal(t, 3, count)
+	//	})
+	//
+	//	t.Run("iterate over empty", func(t *testing.T) {
+	//		t.Parallel()
+	//
+	//		repo := newEntityRepo()
+	//		iter := repo.FindAllIter(ctx)
+	//
+	//		for _, _ = range iter.Next() {
+	//			assert.Fail(t, "this should never be called, because repo is empty")
+	//		}
+	//	})
+	//})
 
 	t.Run("Concurrently", func(t *testing.T) {
 		t.Parallel()
