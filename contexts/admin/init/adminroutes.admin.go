@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/go-echarts/go-echarts/v2/components"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/labstack/echo/v4"
 )
 
@@ -98,6 +99,12 @@ func registerAdminRoutes(di *AdminContext) {
 				s.Max = int(value * 1.6)
 			})}...)
 
-		return chart.Render(c.Response().Writer)
+		page := components.NewPage()
+		page.AddCharts(chart)
+		page.SetPageTitle("Users Chart - Arrower")
+		page.SetLayout(components.PageNoneLayout)
+		//page.SetAssetsHost() //todo
+
+		return page.Render(c.Response().Writer)
 	})
 }
