@@ -80,7 +80,7 @@
               bg-warning text-warning-content
             {{ end }}"
           >
-            <a href="{{ route "admin.jobs.job" .ID }}">{{ .ID }}</a>
+            <a href="{{ route "admin.jobs.job.show" .ID }}">{{ .ID }}</a>
           </td>
           <td
             class="{{ if ge .ErrorCount 16 }}

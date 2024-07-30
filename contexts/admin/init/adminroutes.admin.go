@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/go-echarts/go-echarts/v2/components"
-
 	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/labstack/echo/v4"
@@ -50,11 +49,11 @@ func registerAdminRoutes(di *AdminContext) {
 
 	{
 		jobs := di.globalContainer.AdminRouter.Group("/jobs")
-		jobs.GET("", di.jobsController.ListQueues())
-		jobs.GET("/", di.jobsController.ListQueues())
+		jobs.GET("", di.jobsController.Index()).Name = "admin.jobs"
+		jobs.GET("/", di.jobsController.Index())
 		jobs.GET("/data/pending", di.jobsController.PendingJobsPieChartData())                // todo better htmx fruednly data URL
 		jobs.GET("/data/processed/:interval", di.jobsController.ProcessedJobsLineChartData()) // todo better htmx fruednly data URL
-		jobs.GET("/:queue", di.jobsController.ShowQueue()).Name = "admin.jobs.queue"          // todo move route(s) to /queue/:queue_name (or similar)
+		jobs.GET("/:queue", di.jobsController.ShowQueue()).Name = "admin.jobs.queue"
 		jobs.GET("/:queue/delete/:job_id", di.jobsController.DeleteJob())
 		jobs.GET("/:queue/reschedule/:job_id", di.jobsController.RescheduleJob())
 		jobs.GET("/schedule", di.jobsController.CreateJobs()).Name = "admin.jobs.schedule"
@@ -70,7 +69,7 @@ func registerAdminRoutes(di *AdminContext) {
 		jobs.GET("/history/payload/size/", di.jobsController.EstimateHistoryPayloadSize())
 		jobs.GET("/finished", di.jobsController.FinishedJobs()).Name = "admin.jobs.finished"
 		jobs.GET("/finished/total", di.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
-		jobs.GET("/job/:job_id", di.jobsController.ShowJob()).Name = "admin.jobs.job"
+		jobs.GET("/job/:job_id", di.jobsController.JobShow()).Name = "admin.jobs.job.show"
 	}
 
 	di.globalContainer.AdminRouter.GET("/charts/users", func(c echo.Context) error {

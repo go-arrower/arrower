@@ -8,7 +8,7 @@ import (
 
 type emptyRenderer struct{} // todo replace with new test renderer
 
-func (t *emptyRenderer) Render(_ io.Writer, _ string, _ interface{}, c echo.Context) error {
+func (t *emptyRenderer) Render(_ io.Writer, _ string, _ interface{}, _ echo.Context) error {
 	return nil
 }
 

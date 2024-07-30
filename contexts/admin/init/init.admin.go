@@ -99,12 +99,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 		jobRepository: jobRepository,
 
 		settingsController: web.NewSettingsController(di.AdminRouter),
-		jobsController: web.NewJobsController(
-			logger,
-			models.New(di.PGx),
-			jobRepository,
-			appDI,
-		),
+		jobsController:     web.NewJobsController(logger, appDI, jobRepository, models.New(di.PGx)),
 		logsController: web.NewLogsController(
 			logger,
 			di.Settings,

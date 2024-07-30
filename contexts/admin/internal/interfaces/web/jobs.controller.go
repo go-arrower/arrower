@@ -25,33 +25,41 @@ const (
 	htmlDatetimeLayout = "2006-01-02T15:04" // format used by the HTML datetime-local input element
 )
 
+const (
+	// timeDay is a helper to represent time.Day, which the std lib does not define
+	timeDay = time.Hour * 24
+)
+
 func NewJobsController(
 	logger alog.Logger,
-	queries *models.Queries,
-	repo jobs.Repository,
 	appDI application.App,
+	repo jobs.Repository,
+	queries *models.Queries,
 ) *JobsController {
 	return &JobsController{
 		logger:  logger,
-		queries: queries,
-		repo:    repo,
 		appDI:   appDI,
+		repo:    repo,
+		queries: queries,
 	}
 }
 
 type JobsController struct {
 	logger alog.Logger
 
-	queries *models.Queries
-	repo    jobs.Repository
 	appDI   application.App
+	repo    jobs.Repository
+	queries *models.Queries
 }
 
-func (jc *JobsController) ListQueues() func(c echo.Context) error {
+func (jc *JobsController) Index() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		res, err := jc.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not list all queues").
+				WithInternal(err)
 		}
 
 		return c.Render(http.StatusOK, "jobs.home", echo.Map{
@@ -70,7 +78,10 @@ func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 	return func(c echo.Context) error {
 		res, err := jc.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not list all queues").
+				WithInternal(err)
 		}
 
 		keys := []string{}
@@ -127,7 +138,7 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 				DateBin: pgtype.Interval{Valid: true, Days: 1},
 				FinishedAt: pgtype.Timestamptz{
 					Valid:            true,
-					Time:             time.Now().UTC().Add(-time.Hour * 24 * bucketsPerWeek),
+					Time:             time.Now().UTC().Add(-timeDay * bucketsPerWeek),
 					InfinityModifier: pgtype.Finite,
 				},
 				Limit: bucketsPerWeek,
@@ -135,7 +146,10 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 		}
 
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get pending jobs").
+				WithInternal(err)
 		}
 
 		var (
@@ -166,7 +180,10 @@ func (jc *JobsController) ShowQueue() func(c echo.Context) error {
 
 		res, err := jc.appDI.GetQueue.H(c.Request().Context(), application.GetQueueQuery{QueueName: jobs.QueueName(queue)})
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get queue").
+				WithInternal(err)
 		}
 
 		page := pages.BuildQueuePage(queue, res.Jobs, res.Kpis)
@@ -185,7 +202,10 @@ func (jc *JobsController) ListWorkers() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		res, err := jc.appDI.GetWorkers.H(c.Request().Context(), application.GetWorkersQuery{})
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get workers").
+				WithInternal(err)
 		}
 
 		return c.Render(http.StatusOK, "jobs.workers", echo.Map{
@@ -212,12 +232,18 @@ func (jc *JobsController) DeleteJob() func(c echo.Context) error {
 
 func (jc *JobsController) RescheduleJob() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		q := c.Param("queue")
+		queue := c.Param("queue")
 		jobID := c.Param("job_id")
 
-		_ = jc.repo.RunJobAt(c.Request().Context(), jobID, time.Now())
+		err := jc.repo.RunJobAt(c.Request().Context(), jobID, time.Now())
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not schedule job").
+				WithInternal(err)
+		}
 
-		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+q)
+		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+queue)
 	}
 }
 
@@ -299,8 +325,6 @@ func (jc *JobsController) DeleteHistory() func(echo.Context) error {
 }
 
 func (jc *JobsController) PruneHistory() func(echo.Context) error {
-	const timeDay = time.Hour * 24 // todo const is defined multiple times => make global
-
 	return func(c echo.Context) error {
 		days, _ := strconv.Atoi(c.FormValue("days"))
 		estimateBefore := time.Now().Add(-1 * time.Duration(days) * timeDay)
@@ -323,8 +347,6 @@ func (jc *JobsController) PruneHistory() func(echo.Context) error {
 }
 
 func (jc *JobsController) EstimateHistorySize() func(echo.Context) error {
-	const timeDay = time.Hour * 24
-
 	return func(c echo.Context) error {
 		days, _ := strconv.Atoi(c.QueryParam("days"))
 
@@ -342,8 +364,6 @@ func (jc *JobsController) EstimateHistorySize() func(echo.Context) error {
 }
 
 func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error {
-	const timeDay = time.Hour * 24
-
 	return func(c echo.Context) error {
 		queue := c.QueryParam("queue")
 		if queue == "Default" {
@@ -440,14 +460,20 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 
 		priority, err := strconv.Atoi(prio)
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusBadRequest,
+				"could not parse priority").
+				WithInternal(err)
 		}
 
 		priority *= -1
 
 		count, err := strconv.Atoi(num)
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusBadRequest,
+				"could not parse count").
+				WithInternal(err)
 		}
 
 		runAt, _ := time.Parse(htmlDatetimeLayout, runAtParam)
@@ -461,7 +487,10 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 			RunAt:    runAt.Add(-1 * time.Hour), // todo needs to apply read tz, to prevent dirty hack, to overcome client and server times
 		})
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not schedule job").
+				WithInternal(err)
 		}
 
 		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+queue)
@@ -478,7 +507,10 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 
 			jobTypes, err := jc.queries.JobTypes(c.Request().Context(), q)
 			if err != nil {
-				return fmt.Errorf("%w", err)
+				return echo.NewHTTPError(
+					http.StatusInternalServerError,
+					"could not get job types").
+					WithInternal(err)
 			}
 
 			return c.Render(http.StatusOK, "jobs.finished#known-job-types", echo.Map{
@@ -494,7 +526,10 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 
 		finishedJobs, err := jc.repo.FinishedJobs(c.Request().Context(), filter)
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get finished jobs").
+				WithInternal(err)
 		}
 
 		if filter != (jobs.Filter{}) {
@@ -505,7 +540,10 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 
 		queues, err := jc.repo.Queues(c.Request().Context())
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get queues").
+				WithInternal(err)
 		}
 
 		return c.Render(http.StatusOK, "jobs.finished", pages.NewFinishedJobs(finishedJobs, queues))
@@ -521,23 +559,29 @@ func (jc *JobsController) FinishedJobsTotal() func(ctx echo.Context) error {
 
 		total, err := jc.repo.FinishedJobsTotal(c.Request().Context(), filter)
 		if err != nil {
-			return fmt.Errorf("%w", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get finished jobs count").
+				WithInternal(err)
 		}
 
 		return c.String(http.StatusOK, strconv.FormatInt(total, 10))
 	}
 }
 
-func (jc *JobsController) ShowJob() func(ctx echo.Context) error {
+func (jc *JobsController) JobShow() func(ctx echo.Context) error {
 	return func(c echo.Context) error {
-		jobs, err := jc.queries.GetJobHistory(c.Request().Context(), c.Param("job_id"))
+		job, err := jc.queries.GetJobHistory(c.Request().Context(), c.Param("job_id"))
 		if err != nil {
-			return fmt.Errorf("%v", err)
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get job").
+				WithInternal(err)
 		}
 
 		return c.Render(http.StatusOK, "jobs.job", echo.Map{
 			"Title": "Job",
-			"Jobs":  pages.ConvertFinishedJobsForShow(jobs),
+			"Jobs":  pages.ConvertFinishedJobsForShow(job),
 		})
 	}
 }
