@@ -2,9 +2,7 @@
 package jobs_test
 
 import (
-	"bytes"
 	"context"
-	"sync"
 	"time"
 )
 
@@ -50,25 +48,4 @@ type gueJobHistory struct {
 	RunCount   int
 	Priority   int
 	Success    bool
-}
-
-// syncBuffer is a thread safe implementation of a bytes.Buffer. You can use it for a alog.Logger,
-// to write to it in parallel.
-type syncBuffer struct {
-	b bytes.Buffer
-	m sync.Mutex
-}
-
-func (b *syncBuffer) Write(p []byte) (int, error) {
-	b.m.Lock()
-	defer b.m.Unlock()
-
-	return b.b.Write(p) //nolint:wrapcheck // keep the original error unwrapped, as this is just a test helper.
-}
-
-func (b *syncBuffer) String() string {
-	b.m.Lock()
-	defer b.m.Unlock()
-
-	return b.b.String()
 }

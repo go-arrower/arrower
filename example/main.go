@@ -73,10 +73,6 @@ func main() {
 		}
 
 		return c.Render(http.StatusOK, "=>home", p)
-		//return c.Render(http.StatusOK, "=>home", echo.Map{
-		//	"Flashes": flashes,
-		//	"userID":  userID,
-		//})
 	})
 
 	arrower.ArrowerQueue.RegisterJobFunc(func(ctx context.Context, j ExampleCron) error {
@@ -141,6 +137,7 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
+
 		for {
 			select {
 			case <-ticker.C:

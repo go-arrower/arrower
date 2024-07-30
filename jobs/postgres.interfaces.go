@@ -152,9 +152,9 @@ type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the
 }
 
 type schedule struct {
+	args    any
 	spec    string
 	jobType string
-	args    any
 }
 
 func gitHash() string {
@@ -613,7 +613,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 	ctx, shutdown := context.WithCancel(context.Background())
 	group, gctx := errgroup.WithContext(ctx)
 
-	go h.continuouslyRegisterWorkerPool(gctx)
+	go h.continuouslyRegisterInstance(gctx)
 
 	// work jobs in goroutine
 	group.Go(func() error {
@@ -653,10 +653,27 @@ func pollStrategyToGue(s PollStrategy) gue.PollStrategy {
 	}
 }
 
-// continuouslyRegisterWorkerPool registers the worker pool regularly, so it stays "active" for monitoring.
-func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context) {
+// continuouslyRegisterInstance registers the worker pool and
+// the schedules regularly, so it stays "active" for monitoring in the
+// Arrower admin dashboard.
+func (h *PostgresJobsHandler) continuouslyRegisterInstance(ctx context.Context) {
 	const refreshDuration = 30 * time.Second
 
+	h.registerInstance(ctx)
+
+	for {
+		select {
+		case <-time.NewTicker(refreshDuration).C:
+			h.registerInstance(ctx)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// registerInstance writes a "life probe" to the database indicating this
+// instance is still active.
+func (h *PostgresJobsHandler) registerInstance(ctx context.Context) {
 	err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
 		ID:        h.poolName,
 		Queue:     h.queue,
@@ -666,69 +683,27 @@ func (h *PostgresJobsHandler) continuouslyRegisterWorkerPool(ctx context.Context
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		h.logger.InfoContext(ctx, "could not save starting worker pool to the database", slog.Any("err", err))
+		h.logger.InfoContext(ctx, "could not save worker pool life probe to the database", slog.Any("err", err))
 	}
 
 	h.mu.Lock()
+	defer h.mu.Unlock()
 
-	for _, s := range h.schedules {
-		b, err := json.Marshal(s.args)
+	for _, schedule := range h.schedules {
+		args, err := json.Marshal(schedule.args)
 		if err != nil {
 			h.logger.InfoContext(ctx, "could not marshal schedule payload", slog.Any("err", err))
 		}
 
 		err = connOrTX(ctx, h.queries).UpsertSchedule(ctx, models.UpsertScheduleParams{
 			Queue:     h.queue,
-			Spec:      s.spec,
-			JobType:   s.jobType,
-			Args:      b,
+			Spec:      schedule.spec,
+			JobType:   schedule.jobType,
+			Args:      args,
 			UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 		})
 		if err != nil {
-			h.logger.InfoContext(ctx, "could not save schedule to the database", slog.Any("err", err))
-		}
-	}
-
-	h.mu.Unlock()
-
-	for {
-		select {
-		case <-time.NewTicker(refreshDuration).C:
-			err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
-				ID:        h.poolName,
-				Queue:     h.queue,
-				GitHash:   h.gitHash,
-				JobTypes:  registeredJobTypes(h.gueWorkMap),
-				Workers:   int16(h.poolSize),
-				UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
-			})
-			if err != nil {
-				h.logger.InfoContext(ctx, "could not save worker pool life probe to the database", slog.Any("err", err))
-			}
-
-			h.mu.Lock()
-
-			for _, s := range h.schedules {
-				b, err := json.Marshal(s.args)
-				if err != nil {
-					h.logger.InfoContext(ctx, "could not marshal schedule payload", slog.Any("err", err))
-				}
-
-				err = connOrTX(ctx, h.queries).UpsertSchedule(ctx, models.UpsertScheduleParams{
-					Queue:     h.queue,
-					Spec:      s.spec,
-					JobType:   s.jobType,
-					Args:      b,
-					UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
-				})
-				if err != nil {
-					h.logger.InfoContext(ctx, "could not save schedule to the database", slog.Any("err", err))
-				}
-			}
-
-			h.mu.Unlock()
-		case <-ctx.Done():
-			return
+			h.logger.InfoContext(ctx, "could not save schedule life probe to the database", slog.Any("err", err))
 		}
 	}
 }

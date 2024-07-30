@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -25,6 +23,7 @@ import (
 	prometheus2 "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -35,6 +34,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/postgres"
 	"github.com/go-arrower/arrower/renderer"
@@ -68,6 +68,7 @@ type Container struct {
 }
 
 func New() (*Container, func(ctx context.Context) error, error) {
+	//nolint:gomnd // allow direct port definitions
 	return InitialiseDefaultArrowerDependencies(context.Background(),
 		&Config{
 			OrganisationName: "arrower",
@@ -153,7 +154,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 			}
 
 			container.TraceProvider = traceProvider
-			// otel.SetTracerProvider(traceProvider)
+			otel.SetTracerProvider(traceProvider)
 		}
 
 		{
@@ -168,7 +169,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 			)
 
 			container.MeterProvider = meterProvider
-			// otel.SetMeterProvider(meterProvider)
+			otel.SetMeterProvider(meterProvider)
 		}
 	}
 
@@ -193,19 +194,23 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 
 	container.Settings = setting.NewPostgresSettings(container.PGx)
 
-	logger := alog.New()
-	logger = logger.With(
-		slog.String("organisation_name", conf.OrganisationName),
-		slog.String("application_name", conf.ApplicationName),
-		slog.String("instance_name", conf.InstanceName),
-		slog.String("git_hash", gitHash()),
-		slog.Bool("debug", conf.Debug),
-	)
-	if conf.Debug {
-		logger = alog.NewDevelopment(container.PGx)
+	{ // logger
+		logger := alog.New()
+		logger = logger.With(
+			slog.String("organisation_name", conf.OrganisationName),
+			slog.String("application_name", conf.ApplicationName),
+			slog.String("instance_name", conf.InstanceName),
+			slog.String("git_hash", gitHash()),
+			slog.Bool("debug", conf.Debug),
+		)
+
+		if conf.Debug {
+			logger = alog.NewDevelopment(container.PGx)
+		}
+
+		container.Logger = logger
+		slog.SetDefault(container.Logger.(*slog.Logger))
 	}
-	container.Logger = logger
-	// slog.SetDefault(container.Logger.(*slog.Logger)) // todo test if this works even if the cast works
 
 	{ // echo router
 		// todo extract echo setup to main arrower repo, ones it is "ready" and can be abstracted for easier use, analog to postgres
@@ -219,10 +224,12 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		router.Use(middleware.Static("public")) // todo if prod use fs instead
 
 		hotReload := false
+
 		if conf.Debug {
 			router.Debug = true
-			router.Use(injectMW)
 			hotReload = true
+
+			router.Use(injectMW)
 		}
 
 		r, _ := renderer.NewEchoRenderer(container.Logger, container.TraceProvider, router, os.DirFS("shared/views"), hotReload) // todo: if prod load from embed
@@ -320,7 +327,7 @@ func serveMetrics(ctx context.Context, di *Container) {
 		},
 	))
 
-	http.HandleFunc(statusPath, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(statusPath, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // todo in case of error: 500 code
 		// TODO disable cache
