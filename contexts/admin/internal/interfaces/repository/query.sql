@@ -59,7 +59,8 @@ SELECT queue
 FROM arrower.gue_jobs
 UNION
 SELECT queue
-FROM arrower.gue_jobs_history;
+FROM arrower.gue_jobs_history
+ORDER BY queue;
 
 
 -- name: GetPendingJobs :many

@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS arrower.gue_jobs
     error_count INTEGER     NOT NULL DEFAULT 0,
     last_error  TEXT        NOT NULL DEFAULT '',
     queue       TEXT        NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL,
-    updated_at  TIMESTAMPTZ NOT NULL
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_gue_jobs_selector ON arrower.gue_jobs (queue, run_at, priority);
@@ -41,16 +41,16 @@ SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM arrower
 -- collect historic gue_jobs for analytics, as the workers remove them from gue_jobs table after success.
 CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
 (
-    job_id      TEXT        NOT NULL,           -- no primary key checks improve performance and job_id can be used multiple times, in case of job retry.
+    job_id      TEXT        NOT NULL,            -- no primary key checks improve performance and job_id can be used multiple times, in case of job retry.
     priority    SMALLINT    NOT NULL,
     run_at      TIMESTAMPTZ NOT NULL,
     job_type    TEXT        NOT NULL,
     args        BYTEA       NOT NULL,
     queue       TEXT        NOT NULL,
-    run_count   INTEGER     NOT NULL DEFAULT 0, -- how often the job was retried
-    run_error   TEXT        NOT NULL,           -- if the job failed, this is it's error
-    created_at  TIMESTAMPTZ NOT NULL,
-    updated_at  TIMESTAMPTZ NOT NULL,
+    run_count   INTEGER     NOT NULL DEFAULT 0,  -- how often the job was retried
+    run_error   TEXT        NOT NULL DEFAULT '', -- if the job failed, this is it's error
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     success     BOOLEAN     NOT NULL DEFAULT FALSE,
     finished_at TIMESTAMPTZ          DEFAULT NULL,
     pruned_at   TIMESTAMPTZ          DEFAULT NULL
@@ -79,8 +79,8 @@ SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *',
 CREATE UNLOGGED TABLE IF NOT EXISTS arrower.gue_jobs_schedule
 (
     queue      TEXT        NOT NULL,
-    spec       TEXT        NOT NULL DEFAULT '',
-    job_type   TEXT        NOT NULL DEFAULT '',
+    spec       TEXT        NOT NULL          DEFAULT '',
+    job_type   TEXT        NOT NULL          DEFAULT '',
     args       JSONB       NOT NULL,
     created_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL NOT NULL DEFAULT NOW(),

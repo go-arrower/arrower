@@ -7,7 +7,7 @@ import (
 
 // Repository manages the data access to the underlying jobs' implementation.
 type Repository interface {
-	Queues(ctx context.Context) (QueueNames, error) // todo QueueNames
+	FindAllQueueNames(ctx context.Context) (QueueNames, error)
 	PendingJobs(ctx context.Context, queue QueueName) ([]Job, error)
 	QueueKPIs(ctx context.Context, queue QueueName) (QueueKPIs, error)
 	DeleteByID(ctx context.Context, jobID string) error

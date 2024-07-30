@@ -28,7 +28,9 @@ type PostgresJobsRepository struct {
 
 var _ jobs.Repository = (*PostgresJobsRepository)(nil)
 
-func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames, error) {
+// todo remove the dependence on postgres.ErrQueryFailed
+
+func (repo *PostgresJobsRepository) FindAllQueueNames(ctx context.Context) (jobs.QueueNames, error) {
 	queues, err := repo.Conn().GetQueues(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not query queues: %w: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api
@@ -38,7 +40,8 @@ func (repo *PostgresJobsRepository) Queues(ctx context.Context) (jobs.QueueNames
 
 	for i, q := range queues {
 		if q == "" {
-			q = string(jobs.DefaultQueueName)
+			queueNames[i] = jobs.DefaultQueueName
+			continue
 		}
 
 		queueNames[i] = jobs.QueueName(q)

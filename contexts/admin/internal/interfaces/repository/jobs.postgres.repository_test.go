@@ -36,35 +36,54 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestPostgresGueRepository_Queues(t *testing.T) {
+func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 	t.Parallel()
 
-	t.Run("get all gue queues", func(t *testing.T) {
+	t.Run("find all gue queues", func(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
 
 		// Given a job queue
-		jq0, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
+		jq0, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond),
 		)
-		_ = jq0.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
-		_ = jq0.Enqueue(ctx, testdata.SimpleJob{})
+		assert.NoError(t, err)
+		err = jq0.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
+		assert.NoError(t, err)
+		err = jq0.Enqueue(ctx, testdata.SimpleJob{})
+		assert.NoError(t, err)
 
 		// And given a different job queue run in the future, meaning: this queue does not have a history yet
-		jq1, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
+		jq1, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond), ajobs.WithQueue("some_queue"),
 		)
-		_ = jq1.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
-		_ = jq1.Enqueue(ctx, testdata.SimpleJob{}, ajobs.WithRunAt(time.Now().Add(1*time.Hour)))
+		assert.NoError(t, err)
+		err = jq1.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
+		assert.NoError(t, err)
+		err = jq1.Enqueue(ctx, testdata.SimpleJob{}, ajobs.WithRunAt(time.Now().Add(1*time.Hour)))
+		assert.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond) // wait for job to finish
 
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		q, err := repo.Queues(ctx)
+		q, err := repo.FindAllQueueNames(ctx)
 		assert.NoError(t, err)
-		assert.Len(t, q, 2)
+		assert.Len(t, q, 2, "should have two different queues")
+		assert.Equal(t, jobs.DefaultQueueName, q[0])
+		assert.Equal(t, jobs.QueueName("some_queue"), q[1])
+	})
+
+	t.Run("deduplicate queues", func(t *testing.T) {
+		t.Parallel()
+
+		pg := pgHandler.NewTestDatabase("testdata/fixtures/findAllQueueNames.yaml")
+		repo := repository.NewPostgresJobsRepository(pg)
+
+		q, err := repo.FindAllQueueNames(ctx)
+		assert.NoError(t, err)
+		assert.EqualValues(t, jobs.QueueNames{"Default", "Q0", "Q1"}, q)
 	})
 }
 

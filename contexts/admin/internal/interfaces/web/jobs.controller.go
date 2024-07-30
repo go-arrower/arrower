@@ -389,7 +389,7 @@ func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error 
 
 func (jc *JobsController) CreateJobs() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		queues, _ := jc.repo.Queues(c.Request().Context())
+		queues, _ := jc.repo.FindAllQueueNames(c.Request().Context())
 
 		jobType, _ := jc.appDI.JobTypesForQueue.H(
 			c.Request().Context(),
@@ -538,7 +538,7 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 			return c.Render(http.StatusOK, "jobs.finished#jobs.list", pages.NewFinishedJobs(finishedJobs, nil))
 		}
 
-		queues, err := jc.repo.Queues(c.Request().Context())
+		queues, err := jc.repo.FindAllQueueNames(c.Request().Context())
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,

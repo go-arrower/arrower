@@ -245,6 +245,7 @@ FROM arrower.gue_jobs
 UNION
 SELECT queue
 FROM arrower.gue_jobs_history
+ORDER BY queue
 `
 
 func (q *Queries) GetQueues(ctx context.Context) ([]string, error) {

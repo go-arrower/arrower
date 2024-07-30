@@ -1,0 +1,51 @@
+arrower.gue_jobs:
+  - job_id: "0"
+    queue: ""
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "1"
+    queue: "Q0"
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "2"
+    queue: "Q0"
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "3"
+    queue: "Q1"
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+
+arrower.gue_jobs_history:
+  - job_id: "h0"
+    queue: ""
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "h1"
+    queue: ""
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "h2"
+    queue: "Q0"
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""
+  - job_id: "h3"
+    queue: "Q1"
+    job_type: "type_0"
+    priority: 0
+    run_at: "2006-01-02 15:04:05.000000+00"
+    args: ""

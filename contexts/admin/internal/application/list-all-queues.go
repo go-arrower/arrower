@@ -29,7 +29,7 @@ type (
 )
 
 func (h *listAllQueuesQueryHandler) H(ctx context.Context, _ ListAllQueuesQuery) (ListAllQueuesResponse, error) {
-	queues, err := h.repo.Queues(ctx)
+	queues, err := h.repo.FindAllQueueNames(ctx)
 	if err != nil {
 		return ListAllQueuesResponse{}, fmt.Errorf("%w: could not get queues: %w", ErrListAllQueuesFailed, err)
 	}
