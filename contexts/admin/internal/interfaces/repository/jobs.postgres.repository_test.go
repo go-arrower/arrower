@@ -131,57 +131,78 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 	})
 }
 
-func TestPostgresJobsRepository_Delete(t *testing.T) {
+func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 	t.Parallel()
 
-	t.Run("delete job", func(t *testing.T) {
+	t.Run("job", func(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
-
-		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
-
-		pending, _ := repo.PendingJobs(ctx, "")
-		assert.Len(t, pending, 1)
-
-		err := repo.Delete(ctx, pending[0].ID)
+		jq, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
 		assert.NoError(t, err)
 
-		pending, _ = repo.PendingJobs(ctx, "")
+		err = jq.Enqueue(ctx, testdata.SimpleJob{})
+		assert.NoError(t, err)
+
+		pending, err := repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
+		assert.Len(t, pending, 1, "a job should be enqueued")
+
+		err = repo.DeleteByID(ctx, pending[0].ID)
+		assert.NoError(t, err)
+
+		pending, err = repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
+		assert.Empty(t, pending, "should be empty")
+	})
+
+	t.Run("non-existing", func(t *testing.T) {
+		t.Parallel()
+
+		pg := pgHandler.NewTestDatabase()
+		repo := repository.NewPostgresJobsRepository(pg)
+
+		err := repo.DeleteByID(ctx, "non-existing-id")
+		assert.NoError(t, err)
+
+		pending, err := repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
 		assert.Empty(t, pending)
 	})
 
-	t.Run("delete already running job", func(t *testing.T) {
+	t.Run("already running job", func(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
+		assert.NoError(t, err)
 
-		_ = jq.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error {
+		err = jq.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error {
 			time.Sleep(1 * time.Minute) // simulate a long-running job
 			assert.Fail(t, "this should never be called, job continues to run but tests aborts")
 
 			return nil
 		})
-		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
+		assert.NoError(t, err)
+		err = jq.Enqueue(ctx, testdata.SimpleJob{})
+		assert.NoError(t, err)
 
-		pending, _ := repo.PendingJobs(ctx, "")
+		pending, err := repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
 		assert.Len(t, pending, 1)
 
 		time.Sleep(100 * time.Millisecond) // start the worker
 
-		err := repo.Delete(ctx, pending[0].ID)
+		err = repo.DeleteByID(ctx, pending[0].ID)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready)
+		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready, "started jobs can not be deleted")
 
-		pending, _ = repo.PendingJobs(ctx, "")
+		pending, err = repo.PendingJobs(ctx, "")
+		assert.NoError(t, err)
 		assert.Len(t, pending, 1+1, "delete should fail, as the job is currently processed and thus locked by the db") // +1 is gueron job
 	})
 }

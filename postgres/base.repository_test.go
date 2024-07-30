@@ -47,7 +47,7 @@ func TestBaseRepository(t *testing.T) {
 
 		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
 
-		res, err := repo.ConnOrTX(ctx).GetTrue(ctx)
+		res, err := repo.TxOrConn(ctx).GetTrue(ctx)
 		assert.NoError(t, err)
 		assert.True(t, res)
 	})

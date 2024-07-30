@@ -132,13 +132,13 @@ func (repo *PostgresRepository) SaveAll(ctx context.Context, users []domain.User
 
 // saveUser takes the user.User entity and persist it together with its user.Sessions.
 func (repo *PostgresRepository) saveUser(ctx context.Context, usr domain.User) error {
-	_, err := repo.db.ConnOrTX(ctx).UpsertUser(ctx, userToModel(usr))
+	_, err := repo.db.TxOrConn(ctx).UpsertUser(ctx, userToModel(usr))
 	if err != nil {
 		return fmt.Errorf("%w: could not save user: %s: %w", domain.ErrPersistenceFailed, usr.ID, err)
 	}
 
 	for _, sess := range usr.Sessions {
-		err = repo.db.ConnOrTX(ctx).UpsertNewSession(ctx, models.UpsertNewSessionParams{
+		err = repo.db.TxOrConn(ctx).UpsertNewSession(ctx, models.UpsertNewSessionParams{
 			Key:       []byte(sess.ID),
 			UserID:    uuid.NullUUID{UUID: uuid.MustParse(string(usr.ID)), Valid: true},
 			UserAgent: sess.Device.UserAgent(),
@@ -161,7 +161,7 @@ func (repo *PostgresRepository) Delete(ctx context.Context, usr domain.User) err
 		return fmt.Errorf("%w: could not parse as uuid: %s: %w", domain.ErrPersistenceFailed, id, err)
 	}
 
-	err = repo.db.ConnOrTX(ctx).DeleteUser(ctx, []uuid.UUID{id})
+	err = repo.db.TxOrConn(ctx).DeleteUser(ctx, []uuid.UUID{id})
 	if err != nil {
 		return fmt.Errorf("%w: could not delete user: %s: %w", domain.ErrPersistenceFailed, usr.ID, err)
 	}
@@ -175,7 +175,7 @@ func (repo *PostgresRepository) DeleteByID(ctx context.Context, userID domain.ID
 		return fmt.Errorf("%w: could not parse as uuid: %s: %w", domain.ErrPersistenceFailed, id, err)
 	}
 
-	err = repo.db.ConnOrTX(ctx).DeleteUser(ctx, []uuid.UUID{id})
+	err = repo.db.TxOrConn(ctx).DeleteUser(ctx, []uuid.UUID{id})
 	if err != nil {
 		return fmt.Errorf("%w: could not delete user: %s: %w", domain.ErrPersistenceFailed, userID, err)
 	}
@@ -194,7 +194,7 @@ func (repo *PostgresRepository) DeleteByIDs(ctx context.Context, ids []domain.ID
 		}
 	}
 
-	err = repo.db.ConnOrTX(ctx).DeleteUser(ctx, dbIDs)
+	err = repo.db.TxOrConn(ctx).DeleteUser(ctx, dbIDs)
 	if err != nil {
 		return fmt.Errorf("%w: could not delete users: %w", domain.ErrPersistenceFailed, err)
 	}
@@ -203,7 +203,7 @@ func (repo *PostgresRepository) DeleteByIDs(ctx context.Context, ids []domain.ID
 }
 
 func (repo *PostgresRepository) DeleteAll(ctx context.Context) error {
-	err := repo.db.ConnOrTX(ctx).DeleteAllUsers(ctx)
+	err := repo.db.TxOrConn(ctx).DeleteAllUsers(ctx)
 	if err != nil {
 		return fmt.Errorf("%w: could not delete all users: %w", domain.ErrPersistenceFailed, err)
 	}
@@ -215,7 +215,7 @@ func (repo *PostgresRepository) CreateVerificationToken(
 	ctx context.Context,
 	token domain.VerificationToken,
 ) error {
-	err := repo.db.ConnOrTX(ctx).CreateVerificationToken(ctx, models.CreateVerificationTokenParams{
+	err := repo.db.TxOrConn(ctx).CreateVerificationToken(ctx, models.CreateVerificationTokenParams{
 		Token:         token.Token(),
 		UserID:        uuid.MustParse(string(token.UserID())),
 		ValidUntilUtc: pgtype.Timestamptz{Time: token.ValidUntilUTC(), Valid: true, InfinityModifier: pgtype.Finite},

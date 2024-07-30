@@ -172,17 +172,19 @@ func pendingJobTypesToDomain(jobTypes []models.StatsPendingJobsPerTypeRow) map[s
 	return ret
 }
 
-// Delete attempts to delete a Job with the given jobID.
-// If a Job is currently processed by a worker, the row in the db gets locked until the worker succeeds or fails.
-// In this case the delete command would block until the lock is freed (which potentially could take a long time).
-//
-// Delete will time out after one second, assuming that if the database needs longer to execute the query, it means the
+// DeleteByID attempts to delete a Job with the given jobID.
+// If a Job is currently processed by a worker,
+// the row in the db is locked until the worker succeeds or fails.
+// In this case the delete command would block until the lock is freed
+// (which potentially could take a long time).
+// Because of that, delete will time out after,
+// assuming that if the database needs longer to execute the query, it means the
 // row is locked.
-func (repo *PostgresJobsRepository) Delete(ctx context.Context, jobID string) error {
+func (repo *PostgresJobsRepository) DeleteByID(ctx context.Context, jobID string) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	err := repo.ConnOrTX(ctx).DeleteJob(ctx, jobID)
+	err := repo.TxOrConn(ctx).DeleteJob(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("%w: could not delete: %v", jobs.ErrJobLockedAlready, err) //nolint:errorlint // prevent err in api
 	}
@@ -198,7 +200,7 @@ func (repo *PostgresJobsRepository) RunJobAt(ctx context.Context, jobID string, 
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	err := repo.ConnOrTX(ctx).UpdateRunAt(ctx, models.UpdateRunAtParams{
+	err := repo.TxOrConn(ctx).UpdateRunAt(ctx, models.UpdateRunAtParams{
 		JobID: jobID,
 		RunAt: pgtype.Timestamptz{Time: runAt, Valid: true, InfinityModifier: pgtype.Finite},
 	})
@@ -241,7 +243,7 @@ func workersToDomain(w []models.ArrowerGueJobsWorkerPool) []jobs.WorkerPool {
 	return workers
 }
 
-func (repo *PostgresJobsRepository) Schdules(ctx context.Context) ([]jobs.Schedule, error) {
+func (repo *PostgresJobsRepository) Schedules(ctx context.Context) ([]jobs.Schedule, error) {
 	dbSchedules, err := repo.Conn().GetSchedules(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get schdules: %v", postgres.ErrQueryFailed, err) //nolint:errorlint,lll // prevent err in api

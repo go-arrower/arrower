@@ -33,7 +33,7 @@ func (h *getWorkersQueryHandler) H(ctx context.Context, _ GetWorkersQuery) (GetW
 		return GetWorkersResponse{}, fmt.Errorf("%w: %w", ErrGetWorkersFailed, err)
 	}
 
-	s, err := h.repo.Schdules(ctx)
+	s, err := h.repo.Schedules(ctx)
 	if err != nil {
 		return GetWorkersResponse{}, fmt.Errorf("%w: %w", ErrGetWorkersFailed, err)
 	}

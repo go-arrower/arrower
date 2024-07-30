@@ -24,7 +24,7 @@ type DeleteJobCommand struct {
 }
 
 func (h *deleteJobCommandHandler) H(ctx context.Context, cmd DeleteJobCommand) error {
-	err := h.repo.Delete(ctx, cmd.JobID)
+	err := h.repo.DeleteByID(ctx, cmd.JobID)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrDeleteJobFailed, err)
 	}

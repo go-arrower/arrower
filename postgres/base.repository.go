@@ -22,9 +22,9 @@ func NewPostgresBaseRepository[T interface{ WithTx(tx pgx.Tx) T }](queries T) Ba
 	}
 }
 
-// ConnOrTX wraps the models.Queries into the transaction in ctx.
+// TxOrConn wraps the models.Queries into the transaction in ctx.
 // If no transaction is in the context, it falls back to the raw Queries struct.
-func (repo BaseRepository[T]) ConnOrTX(ctx context.Context) T { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
+func (repo BaseRepository[T]) TxOrConn(ctx context.Context) T { //nolint:ireturn,lll // fp, as it is not recognised even with "generic" setting
 	if tx, ok := ctx.Value(CtxTX).(pgx.Tx); ok {
 		return repo.queries.WithTx(tx)
 	}

@@ -27,7 +27,7 @@ type PostgresSettings struct {
 }
 
 func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error {
-	err := s.repo.ConnOrTX(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
+	err := s.repo.TxOrConn(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
 		Key:   key.Key(),
 		Value: value.Raw(),
 	})
@@ -39,7 +39,7 @@ func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error
 }
 
 func (s *PostgresSettings) Setting(ctx context.Context, key Key) (Value, error) {
-	value, err := s.repo.ConnOrTX(ctx).GetSetting(ctx, key.Key())
+	value, err := s.repo.TxOrConn(ctx).GetSetting(ctx, key.Key())
 	if err != nil {
 		return NewValue(nil), fmt.Errorf("%w: %v", ErrNotFound, err) //nolint:errorlint // prevent err in api
 	}
@@ -53,7 +53,7 @@ func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 		compositeKeys[i] = k.Key()
 	}
 
-	dbSettings, err := s.repo.ConnOrTX(ctx).GetSettings(ctx, compositeKeys)
+	dbSettings, err := s.repo.TxOrConn(ctx).GetSettings(ctx, compositeKeys)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
@@ -74,7 +74,7 @@ func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 }
 
 func (s *PostgresSettings) Delete(ctx context.Context, key Key) error {
-	err := s.repo.ConnOrTX(ctx).DeleteSetting(ctx, key.Key())
+	err := s.repo.TxOrConn(ctx).DeleteSetting(ctx, key.Key())
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
 	}
