@@ -15,8 +15,8 @@ func TestTest(t *testing.T) {
 	t.Run("test logger", func(t *testing.T) {
 		t.Parallel()
 
-		buf := alog.Test(t)
-		assert.NotEmpty(t, buf)
+		logger := alog.Test(t)
+		assert.NotEmpty(t, logger)
 	})
 
 	t.Run("nil does panic", func(t *testing.T) {
