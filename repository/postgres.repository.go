@@ -57,14 +57,14 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 
 	query, args, err := psql.Insert(repo.table).Columns(repo.columns...).Values(values...).ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
 	}
 
 	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "create entity", slog.String("query", query), slog.Any("args", args))
 
 	_, err = repo.pgx.Exec(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not insert entity: %v", ErrInvalidQuery, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: could not insert entity: %v", ErrInvalidQuery, err)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 func (repo *PostgresRepository[E, ID]) Read(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	query, args, err := psql.Select(repo.columns...).From(repo.table).Where(squirrel.Eq{repo.idFieldName: id}).ToSql()
 	if err != nil {
-		return *new(E), fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err) //nolint:errorlint,lll // prevent err in api
+		return *new(E), fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
 	}
 
 	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "read entity", slog.String("query", query), slog.Any("args", args))
@@ -82,7 +82,7 @@ func (repo *PostgresRepository[E, ID]) Read(ctx context.Context, id ID) (E, erro
 
 	err = pgxscan.Get(ctx, repo.pgx, &entity, query, args...)
 	if err != nil {
-		return *new(E), fmt.Errorf("%w: could not scan entity: %v", ErrInvalidQuery, err) //nolint:errorlint,lll // prevent err in api
+		return *new(E), fmt.Errorf("%w: could not scan entity: %v", ErrInvalidQuery, err)
 	}
 
 	return entity, nil

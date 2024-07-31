@@ -221,7 +221,7 @@ func (repo *PostgresRepository) CreateVerificationToken(
 		ValidUntilUtc: pgtype.Timestamptz{Time: token.ValidUntilUTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		return fmt.Errorf("%w: could not save new verification token: %v", domain.ErrPersistenceFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not save new verification token: %v", domain.ErrPersistenceFailed, err)
 	}
 
 	return nil
@@ -233,7 +233,7 @@ func (repo *PostgresRepository) VerificationTokenByToken(
 ) (domain.VerificationToken, error) {
 	token, err := repo.db.Conn().VerificationTokenByToken(ctx, tokenID)
 	if err != nil {
-		return domain.VerificationToken{}, fmt.Errorf("%w: could not get verification token: %v", domain.ErrNotFound, err) //nolint:errorlint,lll // prevent err in api
+		return domain.VerificationToken{}, fmt.Errorf("%w: could not get verification token: %v", domain.ErrNotFound, err)
 	}
 
 	return domain.NewVerificationToken(
