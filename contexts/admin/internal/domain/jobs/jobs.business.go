@@ -1,13 +1,8 @@
 package jobs
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/go-arrower/arrower/postgres"
 )
-
-var ErrJobLockedAlready = fmt.Errorf("%w: job might be processing already", postgres.ErrQueryFailed)
 
 const DefaultQueueName = QueueName("Default")
 
@@ -19,6 +14,7 @@ type (
 type (
 	JobType string
 
+	// Job could also have "runs" how many times it was executed with error etc.
 	Job struct {
 		ID         string
 		CreatedAt  time.Time
@@ -68,14 +64,16 @@ type (
 		AvailableWorkers   int
 		AverageTimePerJob  time.Duration
 	}
+)
 
+type (
 	WorkerPool struct {
-		ID       string
-		Version  string
-		Queue    QueueName
-		LastSeen time.Time
-		JobTypes []JobType
-		Workers  int
+		InstanceName string
+		Version      string
+		Queue        QueueName
+		LastSeenAt   time.Time
+		JobTypes     []JobType
+		Workers      int
 	}
 
 	Schedule struct {

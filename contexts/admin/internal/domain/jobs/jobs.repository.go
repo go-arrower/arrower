@@ -2,8 +2,13 @@ package jobs
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/go-arrower/arrower/postgres"
 )
+
+var ErrJobLockedAlready = fmt.Errorf("%w: job might be processing already", postgres.ErrQueryFailed)
 
 // Repository manages the data access to the underlying jobs' implementation.
 type Repository interface {

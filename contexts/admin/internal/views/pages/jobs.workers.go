@@ -9,7 +9,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 )
 
-type JobWorker struct {
+type JobWorker struct { // todo embed jobs.WorkerPool struct
 	ID                      string
 	Queue                   string
 	NotSeenSince            string
@@ -29,7 +29,7 @@ func PresentWorkers(pool []jobs.WorkerPool) []JobWorker {
 			jt = append(jt, string(t))
 		}
 
-		jobWorkers[i].ID = pool[i].ID
+		jobWorkers[i].ID = pool[i].InstanceName
 		jobWorkers[i].Queue = string(pool[i].Queue)
 		jobWorkers[i].Workers = pool[i].Workers
 		jobWorkers[i].Version = pool[i].Version
@@ -42,11 +42,11 @@ func PresentWorkers(pool []jobs.WorkerPool) []JobWorker {
 		var warningSecondsWorkerPoolNotSeenSince time.Duration = 30
 
 		jobWorkers[i].LastSeenAtColourSuccess = true
-		if time.Since(pool[i].LastSeen)/time.Second >= warningSecondsWorkerPoolNotSeenSince {
+		if time.Since(pool[i].LastSeenAt)/time.Second >= warningSecondsWorkerPoolNotSeenSince {
 			jobWorkers[i].LastSeenAtColourSuccess = false
 		}
 
-		jobWorkers[i].NotSeenSince = notSeenSinceTimeString(pool[i].LastSeen, warningSecondsWorkerPoolNotSeenSince)
+		jobWorkers[i].NotSeenSince = notSeenSinceTimeString(pool[i].LastSeenAt, warningSecondsWorkerPoolNotSeenSince)
 	}
 
 	sort.Slice(jobWorkers, func(i, j int) bool {
