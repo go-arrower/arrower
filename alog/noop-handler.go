@@ -5,6 +5,12 @@ import (
 	"log/slog"
 )
 
+// NewNoop returns an implementation of Logger that performs no operations.
+// Ideal as dependency in tests.
+func NewNoop() *slog.Logger {
+	return slog.New(noopHandler{})
+}
+
 type noopHandler struct{}
 
 func (n noopHandler) Enabled(_ context.Context, _ slog.Level) bool {

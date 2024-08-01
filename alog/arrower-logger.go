@@ -83,12 +83,6 @@ func NewDevelopment(pgx *pgxpool.Pool) *slog.Logger {
 	)
 }
 
-// NewNoop returns an implementation of Logger that performs no operations.
-// Ideal as dependency in tests.
-func NewNoop() *slog.Logger {
-	return slog.New(noopHandler{})
-}
-
 // newArrowerHandler implements the main arrower specific logging logic and features.
 // It does not output anything directly and relies on other slog.Handlers to do so.
 // If no Handlers are provided via WithHandler, a default JSON handler logs to os.Stderr.
