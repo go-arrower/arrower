@@ -61,7 +61,7 @@ func Example_postgresJobsHandler() {
 }
 
 func Example_inMemoryAssertionsForTesting() {
-	jq := jobs.NewTestingJobs()
+	jq := jobs.NewMemoryQueue()
 
 	// use jassert in your test cases to make assertions on the job queue.
 	jassert := jq.Assert(new(testing.T))

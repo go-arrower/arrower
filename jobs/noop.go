@@ -12,6 +12,8 @@ func NewNoop() *noopQueue { //nolint:revive // unexported struct is alright to u
 
 type noopQueue struct{}
 
+var _ Queue = (*noopQueue)(nil)
+
 func (n noopQueue) Enqueue(_ context.Context, _ Job, _ ...JobOption) error {
 	return nil
 }
@@ -27,5 +29,3 @@ func (n noopQueue) RegisterJobFunc(_ JobFunc) error {
 func (n noopQueue) Shutdown(_ context.Context) error {
 	return nil
 }
-
-var _ Queue = (*noopQueue)(nil)

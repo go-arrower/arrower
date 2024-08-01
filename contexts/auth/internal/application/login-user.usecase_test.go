@@ -9,7 +9,6 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
-	"github.com/go-arrower/arrower/jobs"
 )
 
 func TestLoginUserRequestHandler_H(t *testing.T) {
@@ -43,7 +42,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
-		queue := jobs.NewTestingJobs()
+		queue := jobs.newMemoryQueue()
 
 		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 
@@ -73,7 +72,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
-		queue := jobs.NewTestingJobs()
+		queue := jobs.newMemoryQueue()
 
 		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 

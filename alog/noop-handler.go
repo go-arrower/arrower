@@ -13,6 +13,8 @@ func NewNoop() *slog.Logger {
 
 type noopHandler struct{}
 
+var _ slog.Handler = (*noopHandler)(nil)
+
 func (n noopHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return false
 }
@@ -28,5 +30,3 @@ func (n noopHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 func (n noopHandler) WithGroup(_ string) slog.Handler {
 	return n
 }
-
-var _ slog.Handler = (*noopHandler)(nil)

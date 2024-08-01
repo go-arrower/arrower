@@ -270,6 +270,13 @@ issues:
         - errorlint
       text: "non-wrapping format verb for fmt.Errorf. Use `%w` to format errors"
 
+    # The function Test(t *testing.T) in testing.go is a constructor for test helpers, not a test itself
+    # Thus it is not treated as a normal test function and the caller decides if it is a parallel test or not
+    - path: testing.go
+      linters:
+        - paralleltest
+      text: "Function Test missing the call to method parallel"
+
     # Allow patterns that are considered best practices for Corba CLI applications
     - path: arrower/cmd
       linters:

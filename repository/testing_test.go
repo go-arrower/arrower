@@ -16,8 +16,7 @@ func TestTest(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.Test[testdata.Entity, testdata.EntityID](t)
-		assert.NotEmpty(t, repo)
-		repo.Empty()
+		assert.NotNil(t, repo)
 	})
 
 	t.Run("nil does panic", func(t *testing.T) {

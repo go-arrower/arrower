@@ -17,11 +17,6 @@ import (
 var ctx = context.Background()
 
 // Test returns a MemoryRepository tuned for unit testing.
-// It exposes a lot of specific assertions for the use in tests.
-// The interface follows stretchr/testify as close as possible.
-//
-//   - Every assert func returns a bool indicating whether the assertion was successful or not,
-//     this is useful for if you want to go on making further assertions under certain conditions.
 func Test[E any, ID id](t *testing.T, opts ...Option) *TestRepository[E, ID] {
 	repo := NewMemoryRepository[E, ID](opts...)
 
@@ -42,11 +37,6 @@ type TestRepository[E any, ID id] struct {
 }
 
 // TestAssert returns a Repository and TestAssertions tuned for unit testing.
-// It exposes a lot of specific assertions for the use in tests.
-// The interface follows stretchr/testify as close as possible.
-//
-//   - Every assert func returns a bool indicating whether the assertion was successful or not,
-//     this is useful for if you want to go on making further assertions under certain conditions.
 func TestAssert[E any, ID id](t *testing.T, repo Repository[E, ID]) *TestAssertions[E, ID] {
 	if t == nil {
 		panic("t is nil")
@@ -60,6 +50,10 @@ func TestAssert[E any, ID id](t *testing.T, repo Repository[E, ID]) *TestAsserti
 
 // TestAssertions are assertions that work on a Repository, to make
 // testing easier and convenient.
+// The interface follows stretchr/testify as close as possible.
+//
+//   - Every assert func returns a bool indicating whether the assertion was successful or not,
+//     this is useful for if you want to go on making further assertions under certain conditions.
 type TestAssertions[E any, ID id] struct {
 	repo Repository[E, ID]
 	t    *testing.T

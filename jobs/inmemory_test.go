@@ -18,7 +18,7 @@ func TestNewTestingJobs(t *testing.T) {
 	t.Run("initialise a new job queue for testing", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		assert.NotEmpty(t, jq)
 	})
 }
@@ -28,7 +28,7 @@ func TestNewInMemoryJobs(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	jq := jobs.NewInMemoryJobs()
+	jq := jobs.NewMemoryQueue()
 	err := jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
 		assert.Equal(t, argName, job.Name)
 		wg.Done()
@@ -55,7 +55,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	t.Run("invalid job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		err := jq.Enqueue(ctx, nil)
 		assert.Error(t, err)
@@ -65,7 +65,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	t.Run("simple job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(t)
 		jassert.Empty()
 
@@ -78,7 +78,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	t.Run("slice of same jobs", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(t)
 
 		_ = jq.Enqueue(ctx, []jobWithArgs{{Name: argName}, {Name: argName}})
@@ -91,7 +91,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 	t.Run("slice of different job types", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(t)
 
 		_ = jq.Enqueue(ctx, []any{jobWithArgs{Name: argName}, jobWithJobType{Name: argName}})
@@ -105,7 +105,7 @@ func TestInMemoryHandler_Enqueue(t *testing.T) {
 		var wg sync.WaitGroup
 		totalProducers := 1000
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		wg.Add(totalProducers)
 		for i := 0; i < totalProducers; i++ {
@@ -126,7 +126,7 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 	t.Run("invalid schedule", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		err := jq.Schedule("", simpleJob{})
 		assert.Error(t, err)
@@ -136,7 +136,7 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 	t.Run("invalid job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		err := jq.Schedule("@every 1ms", nil)
 		assert.Error(t, err)
@@ -150,7 +150,7 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 			counter int
 		)
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		err := jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
 			mu.Lock()
 			defer mu.Unlock()
@@ -182,7 +182,7 @@ func TestInMemoryHandler_Reset(t *testing.T) {
 	t.Run("reset empty queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		jq.Reset()
 		jq.Assert(t).QueuedTotal(0)
@@ -191,7 +191,7 @@ func TestInMemoryHandler_Reset(t *testing.T) {
 	t.Run("reset full queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(t)
 
 		_ = jq.Enqueue(ctx, simpleJob{})
@@ -210,7 +210,7 @@ func TestInMemoryHandler_GetFirst(t *testing.T) {
 	t.Run("no job as queue is empty", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		assert.Nil(t, jq.GetFirst())
 	})
@@ -218,7 +218,7 @@ func TestInMemoryHandler_GetFirst(t *testing.T) {
 	t.Run("get first job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
 
 		j := jq.GetFirst().(jobWithArgs)
@@ -232,7 +232,7 @@ func TestInMemoryHandler_Get(t *testing.T) {
 	t.Run("no job as queue is empty", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		assert.Nil(t, jq.Get(0))
 		assert.Nil(t, jq.Get(1))
@@ -241,7 +241,7 @@ func TestInMemoryHandler_Get(t *testing.T) {
 	t.Run("get second job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
 
 		j := jq.Get(2).(jobWithArgs)
@@ -255,7 +255,7 @@ func TestInMemoryHandler_GetFirstOf(t *testing.T) {
 	t.Run("no job as queue is empty", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		assert.Nil(t, jq.GetFirstOf(nil))
 		assert.Nil(t, jq.GetFirstOf(simpleJob{}))
@@ -264,7 +264,7 @@ func TestInMemoryHandler_GetFirstOf(t *testing.T) {
 	t.Run("get first job", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		_ = jq.Enqueue(ctx, []jobs.Job{simpleJob{}, jobWithArgs{Name: argName}})
 
 		j := jq.GetFirstOf(jobWithArgs{}).(jobWithArgs)
@@ -278,7 +278,7 @@ func TestInMemoryHandler_GetOf(t *testing.T) {
 	t.Run("no job as queue is empty", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 
 		assert.Nil(t, jq.GetOf(simpleJob{}, 0))
 		assert.Nil(t, jq.GetOf(simpleJob{}, 1))
@@ -287,7 +287,7 @@ func TestInMemoryHandler_GetOf(t *testing.T) {
 	t.Run("get second job of type", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		_ = jq.Enqueue(ctx, []jobs.Job{
 			simpleJob{},
 			simpleJob{},
@@ -304,7 +304,7 @@ func TestInMemoryHandler_GetOf(t *testing.T) {
 func TestInMemoryHandler_Assert(t *testing.T) {
 	t.Parallel()
 
-	jq := jobs.NewTestingJobs()
+	jq := jobs.NewMemoryQueue()
 
 	jassert := jq.Assert(t)
 	assert.NotEmpty(t, jassert)
@@ -316,7 +316,7 @@ func TestInMemoryAssertions_Empty(t *testing.T) {
 	t.Run("empty queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		pass := jassert.Empty()
@@ -326,7 +326,7 @@ func TestInMemoryAssertions_Empty(t *testing.T) {
 	t.Run("not empty queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
@@ -342,7 +342,7 @@ func TestInMemoryAssertions_NotEmpty(t *testing.T) {
 	t.Run("empty queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		pass := jassert.NotEmpty()
@@ -352,7 +352,7 @@ func TestInMemoryAssertions_NotEmpty(t *testing.T) {
 	t.Run("not empty queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
@@ -368,7 +368,7 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 	t.Run("no job of type queued", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		pass := jassert.Queued(simpleJob{}, 0)
@@ -378,7 +378,7 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 	t.Run("job of type queued", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, jobWithArgs{})
@@ -392,7 +392,7 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 	t.Run("different amount of jobs queued", func(t *testing.T) {
 		t.Parallel()
 
-		jq := jobs.NewTestingJobs()
+		jq := jobs.NewMemoryQueue()
 		jassert := jq.Assert(new(testing.T))
 
 		_ = jq.Enqueue(ctx, simpleJob{})
@@ -405,7 +405,7 @@ func TestInMemoryAssertions_Queued(t *testing.T) {
 func TestInMemoryAssertions_QueuedTotal(t *testing.T) {
 	t.Parallel()
 
-	jq := jobs.NewTestingJobs()
+	jq := jobs.NewMemoryQueue()
 	jassert := jq.Assert(new(testing.T))
 
 	pass := jassert.QueuedTotal(0, "empty queue")

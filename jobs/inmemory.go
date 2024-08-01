@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// NewTestingJobs is an im memory implementation of the Queue, specialised on unit testing.
+// newMemoryQueue is an im memory implementation of the Queue, specialised on unit testing.
 // Use the Assert() method in your testing.
-func NewTestingJobs() *InMemoryQueue {
-	return &InMemoryQueue{
+func newMemoryQueue() *MemoryQueue {
+	return &MemoryQueue{
 		modulePath: modulePath(),
 
 		mu:        sync.Mutex{},
@@ -30,16 +30,16 @@ func NewTestingJobs() *InMemoryQueue {
 	}
 }
 
-// NewInMemoryJobs is an in memory implementation of the Queue.
+// NewMemoryQueue is an in memory implementation of the Queue.
 // Use it for local development and demos only, as no Jobs are persisted.
-func NewInMemoryJobs() *InMemoryQueue {
-	q := NewTestingJobs()
+func NewMemoryQueue() *MemoryQueue {
+	q := newMemoryQueue()
 	q.Start(context.Background())
 
 	return q
 }
 
-type InMemoryQueue struct { //nolint:govet // alignment less important than grouping of mutex
+type MemoryQueue struct { //nolint:govet // alignment less important than grouping of mutex
 	modulePath string
 
 	mu        sync.Mutex
@@ -51,9 +51,9 @@ type InMemoryQueue struct { //nolint:govet // alignment less important than grou
 	cron *cron.Cron
 }
 
-var _ Queue = (*InMemoryQueue)(nil)
+var _ Queue = (*MemoryQueue)(nil)
 
-func (q *InMemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) error {
+func (q *MemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) error {
 	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (q *InMemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) erro
 	return nil
 }
 
-func (q *InMemoryQueue) Schedule(spec string, job Job) error {
+func (q *MemoryQueue) Schedule(spec string, job Job) error {
 	err := ensureValidJobTypeForEnqueue(job)
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (q *InMemoryQueue) Schedule(spec string, job Job) error {
 	return nil
 }
 
-func (q *InMemoryQueue) RegisterJobFunc(jf JobFunc) error {
+func (q *MemoryQueue) RegisterJobFunc(jf JobFunc) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -110,7 +110,7 @@ func (q *InMemoryQueue) RegisterJobFunc(jf JobFunc) error {
 	return nil
 }
 
-func (q *InMemoryQueue) Shutdown(_ context.Context) error {
+func (q *MemoryQueue) Shutdown(_ context.Context) error {
 	q.cancel()
 
 	wait := q.cron.Stop()
@@ -120,7 +120,7 @@ func (q *InMemoryQueue) Shutdown(_ context.Context) error {
 }
 
 // Reset resets the queue to be empty.
-func (q *InMemoryQueue) Reset() {
+func (q *MemoryQueue) Reset() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -129,13 +129,13 @@ func (q *InMemoryQueue) Reset() {
 
 // GetFirst returns the first Job in the queue or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *InMemoryQueue) GetFirst() Job { //nolint:ireturn // fp
+func (q *MemoryQueue) GetFirst() Job { //nolint:ireturn // fp
 	return q.Get(1)
 }
 
 // Get returns the pos'th Job in the queue or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *InMemoryQueue) Get(pos int) Job { //nolint:ireturn // fp
+func (q *MemoryQueue) Get(pos int) Job { //nolint:ireturn // fp
 	if len(q.jobs) == 0 || pos > len(q.jobs) {
 		return nil
 	}
@@ -151,13 +151,13 @@ func (q *InMemoryQueue) Get(pos int) Job { //nolint:ireturn // fp
 
 // GetFirstOf returns the first Job of the same type as the given job or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *InMemoryQueue) GetFirstOf(job Job) Job { //nolint:ireturn // fp
+func (q *MemoryQueue) GetFirstOf(job Job) Job { //nolint:ireturn // fp
 	return q.GetOf(job, 1)
 }
 
 // GetOf returns the pos'th Job of the same type as the given job or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *InMemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
+func (q *MemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
 	if len(q.jobs) == 0 {
 		return nil
 	}
@@ -188,7 +188,7 @@ func (q *InMemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
 }
 
 // Assert returns a new InMemoryAssertions for the specified testing.T for your convenience.
-func (q *InMemoryQueue) Assert(t *testing.T) *InMemoryAssertions {
+func (q *MemoryQueue) Assert(t *testing.T) *InMemoryAssertions {
 	t.Helper()
 
 	return &InMemoryAssertions{
@@ -199,7 +199,7 @@ func (q *InMemoryQueue) Assert(t *testing.T) *InMemoryAssertions {
 
 // Start processes the Jobs enqueued in this queue.
 // It has to be started explicitly, so no Jobs are processed while asserting for tests.
-func (q *InMemoryQueue) Start(ctx context.Context) {
+func (q *MemoryQueue) Start(ctx context.Context) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -210,7 +210,7 @@ func (q *InMemoryQueue) Start(ctx context.Context) {
 	go q.cron.Run()
 }
 
-func (q *InMemoryQueue) runWorkers(ctx context.Context) {
+func (q *MemoryQueue) runWorkers(ctx context.Context) {
 	const tickerDuration = 10 * time.Millisecond
 	interval := time.NewTicker(tickerDuration)
 
@@ -224,7 +224,7 @@ func (q *InMemoryQueue) runWorkers(ctx context.Context) {
 	}
 }
 
-func (q *InMemoryQueue) processFirstJob() {
+func (q *MemoryQueue) processFirstJob() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -263,7 +263,7 @@ func (q *InMemoryQueue) processFirstJob() {
 //   - Every assert func returns a bool indicating whether the assertion was successful or not,
 //     this is useful for if you want to go on making further assertions under certain conditions.
 type InMemoryAssertions struct {
-	q *InMemoryQueue
+	q *MemoryQueue
 	t *testing.T
 }
 

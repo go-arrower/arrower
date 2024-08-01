@@ -9,7 +9,6 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
-	"github.com/go-arrower/arrower/jobs"
 )
 
 func TestRegisterUserRequestHandler_H(t *testing.T) {
@@ -68,7 +67,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		queue := jobs.NewTestingJobs()
+		queue := jobs.newMemoryQueue()
 		registrator := registrator(repo)
 
 		handler := application.NewRegisterUserRequestHandler(alog.NewNoop(), repo, registrator, queue)
