@@ -1,11 +1,8 @@
-// Package jobs provides an easy way to run workload in the background.
+// Package jobs provides an easy way to run workloads in the background.
 //
 // To do so create a Queue and customise it with different QueueOptions.
 // Jobs can be any struct with arbitrary payload,
 // and they can be enqueued to run ones or scheduled to run repeatedly.
-//
-// To ensure your features are implemented correctly a InMemoryQueue is available
-// offering common test assertions.
 package jobs
 
 import (
