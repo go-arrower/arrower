@@ -258,6 +258,11 @@ issues:
         - gochecknoglobals
       text: "Setting" # If settings key is prefixed e.g. auth.SettingAllowRegistration
 
+    # Don't force package name_test for files dedicated to white-box testing by their file name
+    - path: _wb_test.go
+      linters:
+        - testpackage
+
     # Prevent external db errors to become part of the package API.
     # This is reported: https://github.com/polyfloyd/go-errorlint/issues/68
     - path: .repository.go

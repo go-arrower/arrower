@@ -9,8 +9,6 @@ import (
 	"github.com/go-arrower/arrower/alog"
 )
 
-var _ adapter.Logger = (*gueLogAdapter)(nil)
-
 // gueLogAdapter is a custom adapter.Logger for the gue library.
 // Its purpose is to redirect the gue logs to appropriate arrower log levels.
 // Gue is offering a slog adapter, but that does not adhere to the
@@ -47,3 +45,5 @@ func (l *gueLogAdapter) slogFields(fields []adapter.Field) []any {
 
 	return result
 }
+
+var _ adapter.Logger = (*gueLogAdapter)(nil)

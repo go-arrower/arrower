@@ -1,6 +1,3 @@
-// Use white box testing to ensure the gue log adapter is implemented properly
-//
-//nolint:testpackage
 package jobs
 
 import (

@@ -1,4 +1,3 @@
-//nolint:testpackage // white box test. if it fails, feel free to delete it.
 package jobs
 
 import (
