@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"github.com/stretchr/testify/assert"
 )
 
-// newMemoryQueue is an im memory implementation of the Queue, specialised on unit testing.
-// Use the Assert() method in your testing.
+// NewMemoryQueue is an in memory implementation of the Queue.
+// No Jobs are persisted! Recommended use for local development and demos only.
+func NewMemoryQueue() *MemoryQueue {
+	q := newMemoryQueue()
+	q.start(context.Background())
+
+	return q
+}
+
 func newMemoryQueue() *MemoryQueue {
 	return &MemoryQueue{
 		modulePath: modulePath(),
@@ -28,15 +33,6 @@ func newMemoryQueue() *MemoryQueue {
 			cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor),
 		)),
 	}
-}
-
-// NewMemoryQueue is an in memory implementation of the Queue.
-// Use it for local development and demos only, as no Jobs are persisted.
-func NewMemoryQueue() *MemoryQueue {
-	q := newMemoryQueue()
-	q.Start(context.Background())
-
-	return q
 }
 
 type MemoryQueue struct { //nolint:govet // alignment less important than grouping of mutex
@@ -119,87 +115,9 @@ func (q *MemoryQueue) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// Reset resets the queue to be empty.
-func (q *MemoryQueue) Reset() {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
-	q.jobs = []Job{}
-}
-
-// GetFirst returns the first Job in the queue or nil if the queue is empty.
-// The Job stays in the queue.
-func (q *MemoryQueue) GetFirst() Job { //nolint:ireturn // fp
-	return q.Get(1)
-}
-
-// Get returns the pos'th Job in the queue or nil if the queue is empty.
-// The Job stays in the queue.
-func (q *MemoryQueue) Get(pos int) Job { //nolint:ireturn // fp
-	if len(q.jobs) == 0 || pos > len(q.jobs) {
-		return nil
-	}
-
-	for i, j := range q.jobs {
-		if i+1 == pos {
-			return j
-		}
-	}
-
-	return nil
-}
-
-// GetFirstOf returns the first Job of the same type as the given job or nil if the queue is empty.
-// The Job stays in the queue.
-func (q *MemoryQueue) GetFirstOf(job Job) Job { //nolint:ireturn // fp
-	return q.GetOf(job, 1)
-}
-
-// GetOf returns the pos'th Job of the same type as the given job or nil if the queue is empty.
-// The Job stays in the queue.
-func (q *MemoryQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
-	if len(q.jobs) == 0 {
-		return nil
-	}
-
-	searchType, _, err := getJobTypeFromType(reflect.TypeOf(job), q.modulePath)
-	if err != nil {
-		return nil
-	}
-
-	matchPos := 1
-
-	for _, sJob := range q.jobs {
-		jobType, _, err := getJobTypeFromType(reflect.TypeOf(sJob), q.modulePath)
-		if err != nil {
-			return nil
-		}
-
-		if jobType == searchType {
-			if matchPos == pos {
-				return sJob
-			}
-
-			matchPos++
-		}
-	}
-
-	return nil
-}
-
-// Assert returns a new InMemoryAssertions for the specified testing.T for your convenience.
-func (q *MemoryQueue) Assert(t *testing.T) *InMemoryAssertions {
-	t.Helper()
-
-	return &InMemoryAssertions{
-		q: q,
-		t: t,
-	}
-}
-
-// Start processes the Jobs enqueued in this queue.
+// start processes the Jobs enqueued in this queue.
 // It has to be started explicitly, so no Jobs are processed while asserting for tests.
-func (q *MemoryQueue) Start(ctx context.Context) {
+func (q *MemoryQueue) start(ctx context.Context) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
@@ -257,80 +175,48 @@ func (q *MemoryQueue) processFirstJob() {
 	}
 }
 
-// InMemoryAssertions is a helper that exposes a lot of Queue-specific assertions for the use in tests.
-// The interface follows stretchr/testify as close as possible.
+//// Queued asserts that of a given JobType exactly as many jobs are queued as expected.
+//func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
+//	a.t.Helper()
 //
-//   - Every assert func returns a bool indicating whether the assertion was successful or not,
-//     this is useful for if you want to go on making further assertions under certain conditions.
-type InMemoryAssertions struct {
-	q *MemoryQueue
-	t *testing.T
-}
-
-// Empty asserts that the queue has no pending Jobs.
-func (a *InMemoryAssertions) Empty(msgAndArgs ...any) bool {
-	a.t.Helper()
-
-	if len(a.q.jobs) > 0 {
-		return assert.Fail(a.t, fmt.Sprintf("queue is not empty, it has: %d jobs", len(a.q.jobs)), msgAndArgs...)
-	}
-
-	return true
-}
-
-// NotEmpty asserts that the queue has at least one pending Job.
-func (a *InMemoryAssertions) NotEmpty(msgAndArgs ...any) bool {
-	a.t.Helper()
-
-	if len(a.q.jobs) == 0 {
-		return assert.Fail(a.t, "queue is empty, should not be", msgAndArgs...)
-	}
-
-	return true
-}
-
-// Queued asserts that of a given JobType exactly as many jobs are queued as expected.
-func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
-	a.t.Helper()
-
-	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
-	if err != nil {
-		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
-	}
-
-	jobsByType := map[string]int{}
-
-	for _, j := range a.q.jobs {
-		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
-		if err != nil {
-			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
-		}
-
-		jobsByType[jobType]++
-	}
-
-	if jobsByType[expType] != expCount {
-		return assert.Fail(
-			a.t,
-			fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]),
-			msgAndArgs...,
-		)
-	}
-
-	return true
-}
-
-// QueuedTotal asserts the total amount of Jobs in the queue, independent of their type.
-func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
-	a.t.Helper()
-
-	if len(a.q.jobs) != expCount {
-		return assert.Fail(
-			a.t,
-			fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)),
-			msgAndArgs...,
-		)
-	}
-
-	return true
-}
+//	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
+//	if err != nil {
+//		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
+//	}
+//
+//	jobsByType := map[string]int{}
+//
+//	for _, j := range a.q.jobs {
+//		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
+//		if err != nil {
+//			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
+//		}
+//
+//		jobsByType[jobType]++
+//	}
+//
+//	if jobsByType[expType] != expCount {
+//		return assert.Fail(
+//			a.t,
+//			fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]),
+//			msgAndArgs...,
+//		)
+//	}
+//
+//	return true
+//}
+//
+//// QueuedTotal asserts the total amount of Jobs in the queue, independent of their type.
+//func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
+//	a.t.Helper()
+//
+//	if len(a.q.jobs) != expCount {
+//		return assert.Fail(
+//			a.t,
+//			fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)),
+//			msgAndArgs...,
+//		)
+//	}
+//
+//	return true
+//}

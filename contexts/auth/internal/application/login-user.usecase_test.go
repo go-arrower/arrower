@@ -3,6 +3,8 @@ package application_test
 import (
 	"testing"
 
+	"github.com/go-arrower/arrower/jobs"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/alog"
@@ -42,7 +44,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
-		queue := jobs.newMemoryQueue()
+		queue := jobs.Test(t)
 
 		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 
@@ -64,7 +66,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		assert.Len(t, usr.Sessions, 2)
 		assert.Equal(t, domain.NewDevice(userAgent), usr.Sessions[1].Device)
 
-		queue.Assert(t).Queued(application.SendConfirmationNewDeviceLoggedIn{}, 0)
+		queue.Queued(application.SendConfirmationNewDeviceLoggedIn{}, 0)
 	})
 
 	t.Run("unknown device - send email about login to user", func(t *testing.T) {
@@ -72,7 +74,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		repo := repository.NewUserMemoryRepository()
 		_ = repo.Save(ctx, userVerified)
-		queue := jobs.newMemoryQueue()
+		queue := jobs.Test(t)
 
 		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
 
@@ -87,7 +89,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		// assert return values
 		assert.NoError(t, err)
-		queue.Assert(t).Queued(application.SendConfirmationNewDeviceLoggedIn{}, 1)
+		queue.Queued(application.SendConfirmationNewDeviceLoggedIn{}, 1)
 		job := queue.GetFirstOf(application.SendConfirmationNewDeviceLoggedIn{}).(application.SendConfirmationNewDeviceLoggedIn)
 		assert.NotEmpty(t, job.UserID)
 		assert.NotEmpty(t, job.OccurredAt)
