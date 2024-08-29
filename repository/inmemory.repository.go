@@ -510,12 +510,12 @@ type MemoryIterator[E any, ID id] struct {
 	repo *MemoryRepository[E, ID]
 }
 
-//func (i MemoryIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
-//return func(yield func(e E, err error) bool) {
-//	for _, e := range i.repo.Data {
-//		if !yield(e, nil) {
-//			return
-//		}
-//	}
-//}
-//}
+func (i MemoryIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
+	return func(yield func(e E, err error) bool) {
+		for _, e := range i.repo.Data {
+			if !yield(e, nil) {
+				return
+			}
+		}
+	}
+}

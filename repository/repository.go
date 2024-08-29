@@ -71,5 +71,5 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 }
 
 type Iterator[E any, ID id] interface {
-	//Next() func(yield func(e E, err error) bool)
+	Next() func(yield func(e E, err error) bool)
 }
