@@ -7,7 +7,7 @@ help: ## Display this help screen
 
 .PHONY: static-check
 static-check: ## Run static code checks
-	GOEXPERIMENT=rangefunc golangci-lint run
+	golangci-lint run
 
 .PHONY: generate
 generate: ## Generate all code to run the service
@@ -44,7 +44,7 @@ upgrade:
 
 .PHONY: install-tools
 install-tools: ## Initialise this machine with development dependencies
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.56.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.60.3
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
 	go install github.com/nikolaydubina/go-cover-treemap@latest
