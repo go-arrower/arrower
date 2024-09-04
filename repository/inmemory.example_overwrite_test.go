@@ -1,4 +1,3 @@
-//nolint:govet // allow shadow declaration of ctx (from the testdata) as this file is to showcase and should be clean.
 package repository_test
 
 import (

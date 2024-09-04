@@ -23,7 +23,7 @@ var (
 //
 // There are no transactions or any consistency guarantees at all! For example, if a store fails,
 // the collection is still changed in memory of the repository.
-func WithStore(store Store) Option { //nolint:revive // unexported-return is OK for this option
+func WithStore(store Store) Option {
 	return func(config *repoConfig) {
 		config.store = store
 	}
@@ -31,7 +31,7 @@ func WithStore(store Store) Option { //nolint:revive // unexported-return is OK 
 
 // WithStoreFilename overwrites the file name a Store should use to persist this Repository.
 // ONLY applies to the in memory implementations.
-func WithStoreFilename(name string) Option { //nolint:revive // unexported-return is OK for this option
+func WithStoreFilename(name string) Option {
 	return func(config *repoConfig) {
 		config.filename = name
 	}
@@ -449,7 +449,7 @@ func (repo *MemoryRepository[E, ID]) DeleteByID(ctx context.Context, id ID) erro
 	return repo.DeleteByIDs(ctx, []ID{id})
 }
 
-func (repo *MemoryRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) error {
+func (repo *MemoryRepository[E, ID]) DeleteByIDs(_ context.Context, ids []ID) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -499,11 +499,11 @@ func (repo *MemoryRepository[E, ID]) Clear(ctx context.Context) error {
 	return repo.DeleteAll(ctx)
 }
 
-func (repo *MemoryRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, ID] {
+func (repo *MemoryRepository[E, ID]) AllIter(_ context.Context) Iterator[E, ID] {
 	return MemoryIterator[E, ID]{repo: repo}
 }
 
-func (repo *MemoryRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
+func (repo *MemoryRepository[E, ID]) FindAllIter(_ context.Context) Iterator[E, ID] {
 	return MemoryIterator[E, ID]{repo: repo}
 }
 

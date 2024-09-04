@@ -51,7 +51,7 @@ type PostgresRepository[E any, ID id] struct {
 
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) //nolint:gochecknoglobals,lll // squirrel recommends this
 
-func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(t)
 
 	idField := val.FieldByName(repo.idFieldName)
@@ -283,11 +283,11 @@ func (repo *PostgresRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (b
 	return repo.Exists(ctx, id)
 }
 
-func (repo *PostgresRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
+func (repo *PostgresRepository[E, ID]) ExistByIDs(_ context.Context, ids []ID) (bool, error) {
 	panic("implement me")
 }
 
-func (repo *PostgresRepository[E, ID]) ExistAll(ctx context.Context, ids []ID) (bool, error) {
+func (repo *PostgresRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool, error) {
 	panic("implement me")
 }
 
@@ -402,14 +402,14 @@ func (repo *PostgresRepository[E, ID]) Add(ctx context.Context, entity E) error 
 func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E) error {
 	query := psql.Insert(repo.table).Columns(repo.columns...)
 
-	for _, e := range entities {
-		if reflect.DeepEqual(e, *new(E)) {
+	for _, entity := range entities {
+		if reflect.DeepEqual(entity, *new(E)) {
 			return fmt.Errorf("%w", ErrSaveFailed)
 		}
 
-		id, err := repo.getID(e)
+		id, err := repo.getID(entity)
 		if err != nil {
-			return fmt.Errorf("could not get id for entity %v: %w", e, err)
+			return fmt.Errorf("could not get id for entity %v: %w", entity, err)
 		}
 
 		exists, err := repo.Exists(ctx, id)
@@ -418,12 +418,12 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 		}
 
 		if exists {
-			return fmt.Errorf("%w: entity %v exists already", ErrAlreadyExists, e)
+			return fmt.Errorf("%w: entity %v exists already", ErrAlreadyExists, entity)
 		}
 
 		vals := []any{}
 
-		e := reflect.ValueOf(e)
+		e := reflect.ValueOf(entity)
 		for _, name := range repo.columns {
 			vals = append(vals, e.FieldByName(name).Interface())
 		}
@@ -504,6 +504,7 @@ func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, 
 	return PostgresIterator[E, ID]{
 		pgx:        repo.pgx,
 		ctx:        ctx,
+		tx:         nil,
 		table:      repo.table,
 		cursorOpen: false,
 	}
@@ -513,6 +514,7 @@ func (repo *PostgresRepository[E, ID]) FindAllIter(ctx context.Context) Iterator
 	return PostgresIterator[E, ID]{
 		pgx:        repo.pgx,
 		ctx:        ctx,
+		tx:         nil,
 		table:      repo.table,
 		cursorOpen: false,
 	}
@@ -528,14 +530,16 @@ type PostgresIterator[E any, ID id] struct {
 }
 
 func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
-	cursorName := "cursor_" + strconv.Itoa(rand.Int())
+	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
+	// todo check, if the cursor needs to be named different, if the transaction is already different
 
 	if !i.cursorOpen {
 		tx, _ := i.pgx.Begin(i.ctx)
 		i.tx = tx
 
-		_, err := i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR SELECT * FROM "+i.table+";")
-		fmt.Println("BEGIN ERR:", err, cursorName)
+		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR SELECT * FROM "+i.table+";")
+		// todo err check
+
 		i.cursorOpen = true
 	}
 

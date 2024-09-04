@@ -834,8 +834,8 @@ func TestSuite(
 			assert.NoError(t, err)
 
 			iter := repo.AllIter(ctx)
-
 			count := 0
+
 			for e, err := range iter.Next() {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, e)
@@ -884,8 +884,8 @@ func TestSuite(
 			assert.NoError(t, err)
 
 			iter := repo.FindAllIter(ctx)
-
 			count := 0
+
 			for e, err := range iter.Next() {
 				assert.NoError(t, err)
 				assert.NotEmpty(t, e)
@@ -917,7 +917,8 @@ func TestSuite(
 		repo := newEntityRepo()
 
 		wg.Add(workers)
-		for i := 0; i < workers; i++ {
+
+		for range workers {
 			go func() {
 				repo.Add(ctx, testdata.RandomEntity())
 				wg.Done()
@@ -925,7 +926,8 @@ func TestSuite(
 		}
 
 		wg.Add(workers)
-		for i := 0; i < workers; i++ {
+
+		for range workers {
 			go func() {
 				repo.Read(ctx, testdata.RandomEntity().ID)
 				wg.Done()

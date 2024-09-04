@@ -35,16 +35,19 @@ func TestPostgresRepository(t *testing.T) {
 		func(opts ...repository.Option) repository.Repository[testdata.Entity, testdata.EntityID] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
+
 			return repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
+
 			return repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithoutID, testdata.EntityID] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
+
 			return repository.NewPostgresRepository[testdata.EntityWithoutID, testdata.EntityID](pgx, opts...)
 		},
 	)
