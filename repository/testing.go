@@ -840,6 +840,8 @@ func TestSuite(
 				assert.NoError(t, err)
 				assert.NotEmpty(t, e)
 
+				t.Log("E:", e)
+
 				count++
 			}
 

@@ -13,8 +13,9 @@ import (
 
 var (
 	ErrNotFound      = errors.New("not found")
-	ErrSaveFailed    = errors.New("save failed")
+	ErrSaveFailed    = errors.New("save failed") // TODO separate into more preceise persitance errors (create, update general?)
 	ErrAlreadyExists = errors.New("exists already")
+	ErrDeleteFailed  = errors.New("delete failed")
 )
 
 // WithStore sets a Store used to persist the Repository.

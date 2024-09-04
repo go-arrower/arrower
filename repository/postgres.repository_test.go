@@ -33,16 +33,24 @@ func TestPostgresRepository(t *testing.T) {
 
 	repository.TestSuite(t,
 		func(opts ...repository.Option) repository.Repository[testdata.Entity, testdata.EntityID] {
-			return repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.NewTestDatabase(), opts...)
+			pgx := pgHandler.NewTestDatabase()
+			initTestSchema(t, pgx)
+			return repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
-			return repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgHandler.NewTestDatabase(), opts...)
+			pgx := pgHandler.NewTestDatabase()
+			initTestSchema(t, pgx)
+			return repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithoutID, testdata.EntityID] {
-			return repository.NewPostgresRepository[testdata.EntityWithoutID, testdata.EntityID](pgHandler.NewTestDatabase(), opts...)
+			pgx := pgHandler.NewTestDatabase()
+			initTestSchema(t, pgx)
+			return repository.NewPostgresRepository[testdata.EntityWithoutID, testdata.EntityID](pgx, opts...)
 		},
 	)
 }
+
+// todo test with and without tx
 
 func TestPostgresRepositoryWithIDField(t *testing.T) {
 	t.Parallel()
@@ -82,9 +90,12 @@ func TestPostgresRepository_Create(t *testing.T) {
 func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
-	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY , name TEXT);`)
+	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)
+	assert.NoError(t, err)
+
+	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uintid INTEGER, name TEXT);`)
 	assert.NoError(t, err)
 }

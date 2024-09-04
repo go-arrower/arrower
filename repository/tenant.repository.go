@@ -16,7 +16,7 @@ type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfa
 	Delete(ctx context.Context, tenantID tID, entity E) error
 
 	All(ctx context.Context) ([]E, error)
-	AllOfTenant(ctx context.Context, tenantID tID) ([]E, error)
+	AllOfTenant(ctx context.Context, tenantID tID) ([]E, error) // rename AllOf
 	AllByIDs(ctx context.Context, tenantID tID, ids []eID) ([]E, error)
 	FindAll(ctx context.Context) ([]E, error)
 	FindAllOfTenant(ctx context.Context, tenantID tID) ([]E, error)
