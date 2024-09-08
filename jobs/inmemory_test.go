@@ -242,20 +242,3 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 //		assert.False(t, pass)
 //	})
 //}
-
-//func TestInMemoryAssertions_QueuedTotal(t *testing.T) {
-//	t.Parallel()
-//
-//	jq := jobs.NewMemoryQueue()
-//	jassert := jq.Assert(new(testing.T))
-//
-//	pass := jassert.QueuedTotal(0, "empty queue")
-//	assert.True(t, pass)
-//
-//	_ = jq.Enqueue(ctx, simpleJob{})
-//
-//	pass = jassert.QueuedTotal(0, "not empty queue - fails")
-//	assert.False(t, pass)
-//	pass = jassert.QueuedTotal(1, "not empty queue - succeeds")
-//	assert.True(t, pass)
-//}

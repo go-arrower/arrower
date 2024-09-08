@@ -143,3 +143,14 @@ func (a *TestAssertions) NotEmpty(msgAndArgs ...any) bool {
 
 	return true
 }
+
+// Total asserts that the queue has exactly total number of jobs pending.
+func (a *TestAssertions) Total(total int, msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	if len(a.q.jobs) != total {
+		return assert.Fail(a.t, fmt.Sprintf("queue does not have %d jobs, it has: %d", total, len(a.q.jobs)), msgAndArgs...)
+	}
+
+	return true
+}

@@ -206,17 +206,3 @@ func (q *MemoryQueue) processFirstJob() {
 //	return true
 //}
 //
-//// QueuedTotal asserts the total amount of Jobs in the queue, independent of their type.
-//func (a *InMemoryAssertions) QueuedTotal(expCount int, msgAndArgs ...any) bool {
-//	a.t.Helper()
-//
-//	if len(a.q.jobs) != expCount {
-//		return assert.Fail(
-//			a.t,
-//			fmt.Sprintf("expected queue to have %d elements, but it has %d", expCount, len(a.q.jobs)),
-//			msgAndArgs...,
-//		)
-//	}
-//
-//	return true
-//}

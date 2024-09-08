@@ -182,3 +182,33 @@ func TestTestAssertions_NotEmpty(t *testing.T) {
 		assert.True(t, pass)
 	})
 }
+
+func TestTestAssertions_Total(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty queue", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.Test(new(testing.T))
+
+		pass := jq.Total(0, "empty queue -> passes")
+		assert.True(t, pass)
+
+		pass = jq.Total(1, "empty queue -> fails")
+		assert.False(t, pass)
+	})
+
+	t.Run("not empty queue", func(t *testing.T) {
+		t.Parallel()
+
+		jq := jobs.Test(new(testing.T))
+
+		_ = jq.Enqueue(ctx, simpleJob{})
+
+		pass := jq.Total(1, "not empty queue -> passes")
+		assert.True(t, pass)
+
+		pass = jq.Total(0, "not empty queue -> fails")
+		assert.False(t, pass)
+	})
+}
