@@ -66,7 +66,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		assert.Len(t, usr.Sessions, 2)
 		assert.Equal(t, domain.NewDevice(userAgent), usr.Sessions[1].Device)
 
-		queue.Queued(application.SendConfirmationNewDeviceLoggedIn{}, 0)
+		queue.NotContains(application.SendConfirmationNewDeviceLoggedIn{})
 	})
 
 	t.Run("unknown device - send email about login to user", func(t *testing.T) {
@@ -89,7 +89,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 
 		// assert return values
 		assert.NoError(t, err)
-		queue.Queued(application.SendConfirmationNewDeviceLoggedIn{}, 1)
+		queue.Contains(application.SendConfirmationNewDeviceLoggedIn{})
 		job := queue.GetFirstOf(application.SendConfirmationNewDeviceLoggedIn{}).(application.SendConfirmationNewDeviceLoggedIn)
 		assert.NotEmpty(t, job.UserID)
 		assert.NotEmpty(t, job.OccurredAt)

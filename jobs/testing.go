@@ -166,11 +166,11 @@ func (a *TestAssertions) Contains(job Job, msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(a.t, "queue does not contain job", msgAndArgs...)
+	return assert.Fail(a.t, "queue does not contain job of type: "+expType, msgAndArgs...)
 }
 
 // NotContains asserts that the queue does not contains any Job of the same type as job.
-func (a TestAssertions) NotContains(job Job, msgAndArgs ...any) bool {
+func (a *TestAssertions) NotContains(job Job, msgAndArgs ...any) bool {
 	a.t.Helper()
 
 	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)

@@ -3,6 +3,8 @@ package application_test
 import (
 	"testing"
 
+	"github.com/go-arrower/arrower/jobs"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/alog"
@@ -67,7 +69,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		queue := jobs.newMemoryQueue()
+		queue := jobs.Test(t)
 		registrator := registrator(repo)
 
 		handler := application.NewRegisterUserRequestHandler(alog.NewNoop(), repo, registrator, queue)
@@ -89,7 +91,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		assert.Len(t, dbUser.Sessions, 1)
 		assert.Equal(t, domain.NewDevice(userAgent), dbUser.Sessions[0].Device)
 
-		queue.Assert(t).Queued(application.NewUserVerificationEmail{}, 1)
+		queue.Contains(application.NewUserVerificationEmail{})
 		job := queue.GetFirstOf(application.NewUserVerificationEmail{}).(application.NewUserVerificationEmail)
 		assert.NotEmpty(t, job.UserID)
 		assert.NotEmpty(t, job.OccurredAt)
