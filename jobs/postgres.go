@@ -279,7 +279,7 @@ func (h *PostgresJobsHandler) gueJobsFromJob(
 		}
 	case reflect.Slice:
 		allJobs := reflect.ValueOf(job)
-		for i := 0; i < allJobs.Len(); i++ {
+		for i := range allJobs.Len() {
 			job := allJobs.Index(i)
 
 			jobType, fullPath, err := getJobTypeFromType(reflect.TypeOf(job.Interface()), h.modulePath)
@@ -366,7 +366,7 @@ func ensureValidJobTypeForEnqueue(job Job) error {
 		}
 
 		// don't allow slice of primitives like string or int are not allowed
-		for i := 0; i < jv.Len(); i++ {
+		for i := range jv.Len() {
 			var kind reflect.Kind
 
 			if jv.Index(i).Kind() == reflect.Interface { // slice of any => extract the underlying element first
@@ -452,7 +452,7 @@ func isValidJobFunc(f JobFunc) bool {
 	}
 
 	// ensure jobFunc has two parameters
-	if jobFunc.NumIn() != 2 { //nolint:gomnd
+	if jobFunc.NumIn() != 2 { //nolint:mnd
 		return false
 	}
 
@@ -679,7 +679,7 @@ func (h *PostgresJobsHandler) registerInstance(ctx context.Context) {
 		Queue:     h.queue,
 		GitHash:   h.gitHash,
 		JobTypes:  registeredJobTypes(h.gueWorkMap),
-		Workers:   int16(h.poolSize),
+		Workers:   int16(h.poolSize), //nolint:gosec
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {

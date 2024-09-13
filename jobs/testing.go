@@ -42,15 +42,6 @@ func (q *TestQueue) Jobs() []Job {
 	return q.jobs
 }
 
-// Clear resets the queue to be empty.
-// todo test case or remove
-func (q *TestQueue) Clear() {
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
-	q.jobs = []Job{}
-}
-
 // GetFirst returns the first Job in the queue or nil if the queue is empty.
 // The Job stays in the queue.
 func (q *TestQueue) GetFirst() Job { //nolint:ireturn // fp

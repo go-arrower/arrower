@@ -23,7 +23,7 @@ func TestNewMemoryQueue(t *testing.T) {
 	})
 }
 
-// todo extract this into a shared TestSuite for the queue
+// todo extract this into a shared TestSuite for the queue.
 func TestNewInMemoryJobs(t *testing.T) {
 	t.Parallel()
 
@@ -45,12 +45,10 @@ func TestNewInMemoryJobs(t *testing.T) {
 
 	wg.Wait()
 
-	//jq.Assert(t).Empty() // fixme
-
 	_ = jq.Shutdown(ctx)
 }
 
-//func TestInMemoryHandler_Enqueue(t *testing.T) {
+// func TestInMemoryHandler_Enqueue(t *testing.T) {
 //	t.Parallel()
 //
 //	t.Run("invalid job", func(t *testing.T) {
@@ -119,7 +117,7 @@ func TestNewInMemoryJobs(t *testing.T) {
 //		wg.Wait()
 //		jq.Assert(t).QueuedTotal(totalProducers)
 //	})
-//}
+// }
 
 func TestInMemoryQueue_Schedule(t *testing.T) {
 	t.Parallel()
@@ -174,71 +172,3 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 		assert.GreaterOrEqual(t, counter, 4)
 	})
 }
-
-//func TestInMemoryHandler_Reset(t *testing.T) {
-//	t.Parallel()
-//
-//	t.Run("reset empty queue", func(t *testing.T) {
-//		t.Parallel()
-//
-//		jq := jobs.NewMemoryQueue()
-//
-//		jq.Clear()
-//		jq.Assert(t).QueuedTotal(0)
-//	})
-//
-//	t.Run("reset full queue", func(t *testing.T) {
-//		t.Parallel()
-//
-//		jq := jobs.NewMemoryQueue()
-//		jassert := jq.Assert(t)
-//
-//		_ = jq.Enqueue(ctx, simpleJob{})
-//		_ = jq.Enqueue(ctx, simpleJob{})
-//		_ = jq.Enqueue(ctx, jobWithArgs{})
-//		jassert.QueuedTotal(3)
-//
-//		jq.Clear()
-//		jassert.QueuedTotal(0)
-//	})
-//}
-
-//func TestInMemoryAssertions_Queued(t *testing.T) {
-//	t.Parallel()
-//
-//	t.Run("no job of type queued", func(t *testing.T) {
-//		t.Parallel()
-//
-//		jq := jobs.NewMemoryQueue()
-//		jassert := jq.Assert(new(testing.T))
-//
-//		pass := jassert.Queued(simpleJob{}, 0)
-//		assert.True(t, pass)
-//	})
-//
-//	t.Run("job of type queued", func(t *testing.T) {
-//		t.Parallel()
-//
-//		jq := jobs.NewMemoryQueue()
-//		jassert := jq.Assert(new(testing.T))
-//
-//		_ = jq.Enqueue(ctx, jobWithArgs{})
-//		_ = jq.Enqueue(ctx, simpleJob{})
-//		_ = jq.Enqueue(ctx, simpleJob{})
-//
-//		pass := jassert.Queued(simpleJob{}, 2)
-//		assert.True(t, pass)
-//	})
-//
-//	t.Run("different amount of jobs queued", func(t *testing.T) {
-//		t.Parallel()
-//
-//		jq := jobs.NewMemoryQueue()
-//		jassert := jq.Assert(new(testing.T))
-//
-//		_ = jq.Enqueue(ctx, simpleJob{})
-//
-//		pass := jassert.Queued(simpleJob{}, 1337)
-//		assert.False(t, pass)
-//	})
-//}

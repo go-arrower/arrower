@@ -63,7 +63,7 @@ func (q *MemoryQueue) Enqueue(_ context.Context, job Job, _ ...JobOption) error 
 		q.jobs = append(q.jobs, job)
 	case reflect.Slice:
 		allJobs := reflect.ValueOf(job)
-		for i := 0; i < allJobs.Len(); i++ {
+		for i := range allJobs.Len() {
 			job := allJobs.Index(i)
 
 			q.jobs = append(q.jobs, job.Interface())
@@ -174,35 +174,3 @@ func (q *MemoryQueue) processFirstJob() {
 		}
 	}
 }
-
-//// Queued asserts that of a given JobType exactly as many jobs are queued as expected.
-//func (a *InMemoryAssertions) Queued(job Job, expCount int, msgAndArgs ...any) bool {
-//	a.t.Helper()
-//
-//	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
-//	if err != nil {
-//		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
-//	}
-//
-//	jobsByType := map[string]int{}
-//
-//	for _, j := range a.q.jobs {
-//		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
-//		if err != nil {
-//			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
-//		}
-//
-//		jobsByType[jobType]++
-//	}
-//
-//	if jobsByType[expType] != expCount {
-//		return assert.Fail(
-//			a.t,
-//			fmt.Sprintf("expected %d of type %s, got: %d", expCount, expType, jobsByType[expType]),
-//			msgAndArgs...,
-//		)
-//	}
-//
-//	return true
-//}
-//
