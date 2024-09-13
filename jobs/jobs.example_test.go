@@ -61,16 +61,13 @@ func Example_postgresJobsHandler() {
 }
 
 func Example_inMemoryAssertionsForTesting() {
-	jq := jobs.NewMemoryQueue()
-
-	// use jassert in your test cases to make assertions on the job queue.
-	jassert := jq.Assert(new(testing.T))
+	jq := jobs.Test(new(testing.T))
 
 	_ = jq.Enqueue(ctx, myJob{})
 
-	jassert.NotEmpty()
-	jassert.QueuedTotal(1, "queue should have one Job enqueued")
-	jassert.Queued(myJob{}, 1)
+	jq.NotEmpty()
+	jq.Total(1, "queue should have one Job enqueued")
+	jq.Contains(myJob{})
 
 	// Output:
 }

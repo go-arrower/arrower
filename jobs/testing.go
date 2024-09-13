@@ -154,3 +154,49 @@ func (a *TestAssertions) Total(total int, msgAndArgs ...any) bool {
 
 	return true
 }
+
+// Contains asserts that the queue contains at least one Job of the same type as job.
+func (a *TestAssertions) Contains(job Job, msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
+	if err != nil {
+		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
+	}
+
+	for _, j := range a.q.jobs {
+		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
+		if err != nil {
+			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
+		}
+
+		if jobType == expType {
+			return true
+		}
+	}
+
+	return assert.Fail(a.t, "queue does not contain job", msgAndArgs...)
+}
+
+// NotContains asserts that the queue does not contains any Job of the same type as job.
+func (a TestAssertions) NotContains(job Job, msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	expType, _, err := getJobTypeFromType(reflect.TypeOf(job), a.q.modulePath)
+	if err != nil {
+		return assert.Fail(a.t, "invalid jobType of given job: "+expType, msgAndArgs...)
+	}
+
+	for _, j := range a.q.jobs {
+		jobType, _, err := getJobTypeFromType(reflect.TypeOf(j), a.q.modulePath)
+		if err != nil {
+			return assert.Fail(a.t, "invalid jobType in queue: "+jobType, msgAndArgs...)
+		}
+
+		if jobType == expType {
+			return assert.Fail(a.t, fmt.Sprintf("queue could not contain job of type: %s, but does", expType), msgAndArgs...)
+		}
+	}
+
+	return true
+}
