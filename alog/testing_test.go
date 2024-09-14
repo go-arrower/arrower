@@ -167,3 +167,33 @@ func TestTestLogger_NotContains(t *testing.T) {
 		assert.False(t, pass)
 	})
 }
+
+func TestTestLogger_Total(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty logger", func(t *testing.T) {
+		t.Parallel()
+
+		logger := alog.Test(new(testing.T))
+
+		pass := logger.Total(0, "empty queue -> passes")
+		assert.True(t, pass)
+
+		pass = logger.Total(1, "empty queue -> fails")
+		assert.False(t, pass)
+	})
+
+	t.Run("not empty logger", func(t *testing.T) {
+		t.Parallel()
+
+		logger := alog.Test(new(testing.T))
+
+		logger.Debug("debug msg")
+
+		pass := logger.Total(1, "not empty queue -> passes")
+		assert.True(t, pass)
+
+		pass = logger.Total(0, "not empty queue -> fails")
+		assert.False(t, pass)
+	})
+}

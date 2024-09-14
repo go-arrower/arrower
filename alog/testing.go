@@ -141,6 +141,17 @@ func (l *TestLogger) NotContains(notContains string, msgAndArgs ...any) bool {
 	return true
 }
 
+// Total asserts that the logger has exactly total number of lines logged.
+func (l *TestLogger) Total(total int, msgAndArgs ...any) bool {
+	l.t.Helper()
+
+	if len(l.buf.lines) != total {
+		return assert.Fail(l.t, fmt.Sprintf("logger does not have %d lines, it has: %d", total, len(l.buf.lines)), msgAndArgs...)
+	}
+
+	return true
+}
+
 type testBuffer struct {
 	mu    sync.Mutex
 	lines []*bytes.Buffer
