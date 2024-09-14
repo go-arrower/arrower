@@ -203,7 +203,8 @@ func TestTestAssertions_Total(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		_ = jq.Enqueue(ctx, simpleJob{})
+		err := jq.Enqueue(ctx, simpleJob{})
+		assert.NoError(t, err)
 
 		pass := jq.Total(1, "not empty queue -> passes")
 		assert.True(t, pass)

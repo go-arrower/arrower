@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -70,11 +71,28 @@ func (a *TestAssertions[E, ID]) Empty(msgAndArgs ...any) bool {
 	return true
 }
 
+// NotEmpty asserts that the repository has at least one entity stored.
 func (a *TestAssertions[E, ID]) NotEmpty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
 	if c, _ := a.repo.Count(ctx); c == 0 {
 		return assert.Fail(a.t, "repository is empty, should not be ", msgAndArgs...)
+	}
+
+	return true
+}
+
+// Total asserts that the repository has exactly total number of entities.
+func (a *TestAssertions[E, ID]) Total(total int, msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	count, err := a.repo.Count(context.Background())
+	if err != nil {
+		return assert.Fail(a.t, "can not get count of repository: "+err.Error(), msgAndArgs...)
+	}
+
+	if count != total {
+		return assert.Fail(a.t, fmt.Sprintf("repository does not have %d entities, it has: %d", total, count), msgAndArgs...)
 	}
 
 	return true
@@ -673,7 +691,7 @@ func TestSuite(
 
 			repo := newEntityRepo()
 
-			err := repo.AddAll(ctx, []testdata.Entity{testdata.DefaultEntity, testdata.Entity{}})
+			err := repo.AddAll(ctx, []testdata.Entity{testdata.DefaultEntity, {}})
 			assert.ErrorIs(t, err, ErrSaveFailed)
 
 			c, err := repo.Count(ctx)
