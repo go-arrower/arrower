@@ -1,7 +1,5 @@
 // Use white box testing, to make it easier to assert on the inner workings of partially loaded and cached templates.
 // If a white box test case fails, consider just deleting it over fixing it to prevent coupling to the implementation.
-//
-//nolint:testpackage
 package renderer
 
 import (

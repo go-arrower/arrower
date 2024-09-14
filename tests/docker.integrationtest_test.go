@@ -116,7 +116,7 @@ var (
 				return err //nolint:wrapcheck
 			}
 
-			return conn.Ping(context.Background()) //nolint:wrapcheck
+			return conn.Ping(context.Background())
 		}
 	}
 )

@@ -103,7 +103,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 				return response{}, nil
 			}))
 
-			return innerHandler.H(ctx, req) //nolint:wrapcheck
+			return innerHandler.H(ctx, req)
 		}))
 
 		_, err = handler.H(ctx, request{})
@@ -221,7 +221,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 				return nil
 			}))
 
-			return innerHandler.H(ctx, cmd) //nolint:wrapcheck
+			return innerHandler.H(ctx, cmd)
 		}))
 
 		err = handler.H(ctx, command{})

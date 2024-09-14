@@ -513,7 +513,7 @@ func TestSuite(
 
 			repo := newEntityRepo()
 
-			err := repo.CreateAll(ctx, []testdata.Entity{testdata.DefaultEntity, testdata.Entity{}})
+			err := repo.CreateAll(ctx, []testdata.Entity{testdata.DefaultEntity, {}})
 			assert.ErrorIs(t, err, ErrSaveFailed)
 
 			c, err := repo.Count(ctx)

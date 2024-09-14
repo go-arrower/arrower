@@ -18,7 +18,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 
-		_, err := internal.BuildAndRunApp(nil, dir+"/example-cli", "") //nolint:goconst // fp
+		_, err := internal.BuildAndRunApp(nil, dir+"/example-cli", "")
 		assert.Error(t, err)
 	})
 

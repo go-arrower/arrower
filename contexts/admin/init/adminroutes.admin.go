@@ -80,10 +80,7 @@ func registerAdminRoutes(di *AdminContext) {
 				AssetsHost: "https://go-echarts.github.io/go-echarts-assets/assets/", // todo
 				PageTitle:  "User Count - Arrower",
 				Theme:      types.ThemeWalden,
-				//Theme:      types.ThemeWesteros,
-				//Theme:      types.ThemeMacarons,
-				Width: "500px",
-				//Height: "333px",
+				Width:      "500px",
 			}),
 		)
 

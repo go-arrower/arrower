@@ -17,7 +17,7 @@ import (
 //
 //   - Every assert func returns a bool indicating whether the assertion was successful or not,
 //     this is useful for if you want to go on making further assertions under certain conditions.
-func Test(t *testing.T) *TestLogger { //nolint:paralleltest // false positive, see: https://github.com/kunwardeep/paralleltest/issues/36
+func Test(t *testing.T) *TestLogger {
 	if t == nil {
 		panic("t is nil")
 	}

@@ -137,7 +137,6 @@ func TestParseArgs(t *testing.T) {
 	}
 }
 
-//nolint:goconst // use the testdata folder without const
 func TestGenerate(t *testing.T) {
 	t.Parallel()
 

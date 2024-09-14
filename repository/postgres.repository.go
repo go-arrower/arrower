@@ -87,13 +87,17 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var serial int64
-		_ = pgxscan.Get(ctx, repo.pgx, &serial, "SELECT nextval(pg_get_serial_sequence('"+repo.table+"', '"+strings.ToLower(repo.idFieldName)+"'))")
+		_ = pgxscan.Get(ctx, repo.pgx, &serial,
+			"SELECT nextval(pg_get_serial_sequence('"+repo.table+"', '"+strings.ToLower(repo.idFieldName)+"'))",
+		)
 		// todo err check
 
 		reflect.ValueOf(&id).Elem().SetInt(serial)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var serial int64
-		_ = pgxscan.Get(ctx, repo.pgx, &serial, "SELECT nextval(pg_get_serial_sequence('"+repo.table+"', '"+strings.ToLower(repo.idFieldName)+"'))")
+		_ = pgxscan.Get(ctx, repo.pgx, &serial,
+			"SELECT nextval(pg_get_serial_sequence('"+repo.table+"', '"+strings.ToLower(repo.idFieldName)+"'))",
+		)
 		// todo err check
 
 		reflect.ValueOf(&id).Elem().SetInt(serial)
@@ -283,11 +287,11 @@ func (repo *PostgresRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (b
 	return repo.Exists(ctx, id)
 }
 
-func (repo *PostgresRepository[E, ID]) ExistByIDs(_ context.Context, ids []ID) (bool, error) {
+func (repo *PostgresRepository[E, ID]) ExistByIDs(_ context.Context, _ []ID) (bool, error) {
 	panic("implement me")
 }
 
-func (repo *PostgresRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool, error) {
+func (repo *PostgresRepository[E, ID]) ExistAll(_ context.Context, _ []ID) (bool, error) {
 	panic("implement me")
 }
 
@@ -367,7 +371,6 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 	}
 
 	sql, args, err := query.ToSql()
-	//fmt.Println("SQL:", sql, args)
 	if err != nil {
 		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
 	}
@@ -548,14 +551,12 @@ func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
 
 		for {
 			err := pgxscan.Get(i.ctx, i.tx, &entity, "FETCH FORWARD 1 FROM "+cursorName+";")
-			fmt.Println("FETCH", cursorName, "ERR:", err)
 			if err != nil {
 				return
 			}
 
 			if !yield(entity, err) {
 				_, err = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
-				fmt.Println("CLOSE ERR:", err)
 
 				_ = i.tx.Commit(i.ctx)
 

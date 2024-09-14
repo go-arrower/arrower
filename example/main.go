@@ -109,7 +109,7 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 			di.Logger.InfoContext(ctx, "LOG ASYNC SIMPLE JOB")
 			//panic("SOME JOB PANICS")
 
-			time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,mnd,lll // weak numbers are ok, it is wait time
+			time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,mnd // weak numbers are ok, it is wait time
 
 			if rand.Intn(100) > 30 { //nolint:gosec,mnd
 				return errors.New("some error") //nolint:goerr113
