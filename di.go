@@ -68,7 +68,7 @@ type Container struct {
 }
 
 func New() (*Container, func(ctx context.Context) error, error) {
-	//nolint:gomnd // allow direct port definitions
+	//nolint:mnd  // allow direct port definitions etc.
 	return InitialiseDefaultArrowerDependencies(context.Background(),
 		&Config{
 			OrganisationName: "arrower",
@@ -80,9 +80,9 @@ func New() (*Container, func(ctx context.Context) error, error) {
 				Password: secret.New("secret"),
 				Database: "arrower",
 				Host:     "localhost",
-				Port:     5432, //nolint:gomnd
+				Port:     5432,
 				SSLMode:  "disable",
-				MaxConns: 100, //nolint:gomnd
+				MaxConns: 100,
 			},
 			Web: Web{
 				Secret:             secret.New("secret"),

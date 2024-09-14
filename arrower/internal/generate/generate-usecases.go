@@ -284,7 +284,7 @@ func camelName(arg []string) string {
 
 func saveFiles(templates map[string][]byte) error {
 	for path, templ := range templates {
-		err := os.WriteFile(path, templ, 0o644) //nolint:gosec,gomnd // same permissions as default desktop behaviour
+		err := os.WriteFile(path, templ, 0o644) //nolint:gosec,mnd // same permissions as default desktop behaviour
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}

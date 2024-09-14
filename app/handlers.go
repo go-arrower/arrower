@@ -93,10 +93,10 @@ func commandName(cmd any) string {
 	// take string after /contexts/ and then take string before /internal/
 	pkg0 := strings.Split(pkgPath, "/contexts/")
 
-	hasContext := len(pkg0) == 2 //nolint:gomnd
+	hasContext := len(pkg0) == 2 //nolint:mnd
 	if hasContext {
 		pkg1 := strings.Split(pkg0[1], "/internal/")
-		if len(pkg1) == 2 { //nolint:gomnd
+		if len(pkg1) == 2 { //nolint:mnd
 			context := pkg1[0]
 
 			return fmt.Sprintf("%s/%T", context, cmd)

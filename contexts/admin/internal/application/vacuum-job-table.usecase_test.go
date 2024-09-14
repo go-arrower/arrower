@@ -58,7 +58,6 @@ func TestVacuumJobTableRequestHandler_H(t *testing.T) {
 	}
 
 	for name, tc := range failingTests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 

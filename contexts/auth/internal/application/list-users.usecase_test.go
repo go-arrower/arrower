@@ -69,7 +69,6 @@ func TestListUsersQueryHandler_H(t *testing.T) {
 		handler := application.NewListUsersQueryHandler(repo)
 
 		for _, tt := range []string{"first", "Last", "display ", "search@"} {
-			tt := tt
 			t.Run(tt, func(t *testing.T) {
 				t.Parallel()
 

@@ -706,7 +706,7 @@ func (v Value) Time() (time.Time, error) {
 func isSerialisedTime(v string) bool {
 	tl := strings.Split(v, timeLocationSeparator)
 
-	return len(tl) == 2 //nolint:gomnd // 2 is just the count of time serialisation elements.
+	return len(tl) == 2 //nolint:mnd // 2 is just the count of time serialisation elements.
 }
 
 func (v Value) MustTime() time.Time {

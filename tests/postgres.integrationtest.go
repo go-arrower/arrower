@@ -63,7 +63,7 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 	}
 
 	options := defaultPGRunOptions
-	options.Name = fmt.Sprintf("arrower-testing-postgres-%d", rand.Intn(1000)) //nolint:gosec,gomnd,lll // no need for secure number, just prevent collisions
+	options.Name = fmt.Sprintf("arrower-testing-postgres-%d", rand.Intn(1000)) //nolint:gosec,mnd,lll // no need for secure number, just prevent collisions
 
 	cleanup, err := StartDockerContainer(options, retryFunc)
 	if err != nil {
@@ -122,8 +122,8 @@ var (
 		Password:   "secret",
 		Database:   "arrower_test",
 		Host:       "localhost",
-		Port:       5432, //nolint:gomnd
-		MaxConns:   10,   //nolint:gomnd
+		Port:       5432, //nolint:mnd
+		MaxConns:   10,   //nolint:mnd
 		Migrations: postgres.ArrowerDefaultMigrations,
 	}
 

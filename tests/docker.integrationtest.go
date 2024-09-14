@@ -97,7 +97,7 @@ func getRunningContainer(pool *dockertest.Pool, name string) (*dockertest.Resour
 	var resource *dockertest.Resource
 
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxInterval = time.Second * 5 //nolint:gomnd
+	bo.MaxInterval = time.Second * 5 //nolint:mnd
 	bo.MaxElapsedTime = dockerTimeout
 
 	if err := backoff.Retry(func() error {
