@@ -10,6 +10,8 @@ import (
 	"sync"
 
 	"github.com/fatih/color" //nolint:misspell
+
+	"github.com/go-arrower/arrower/arrower/hooks"
 )
 
 var ErrCommandFailed = errors.New("command failed")
@@ -19,6 +21,7 @@ func WatchBuildAndRunApp(
 	ctx context.Context,
 	w io.Writer,
 	path string,
+	hooks hooks.Hooks,
 	hotReload chan File,
 	openBrowser OpenBrowserFunc,
 ) error {
@@ -54,6 +57,8 @@ func WatchBuildAndRunApp(
 		select {
 		case file := <-filesChanged:
 			magenta(w, "changed:", filesRelativePath(file, path))
+
+			hooks.OnChanged(filesRelativePath(file, path))
 
 			if file.IsFrontendSource() {
 				hotReload <- file

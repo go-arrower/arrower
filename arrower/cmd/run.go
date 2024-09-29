@@ -12,6 +12,7 @@ import (
 	"github.com/fatih/color" //nolint:misspell
 	"github.com/spf13/cobra"
 
+	"github.com/go-arrower/arrower/arrower/hooks"
 	"github.com/go-arrower/arrower/arrower/internal"
 )
 
@@ -48,12 +49,29 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 
 			waitUntilShutdownFinished := make(chan struct{})
 
-			path := "."
-			blue(cmd.OutOrStdout(), "watching %s\n", path)
-			path, err := filepath.Abs(path)
+			config := &hooks.RunConfig{
+				Port:      3030,
+				WatchPath: ".",
+			}
+
+			hooks, err := hooks.Load(".config")
 			if err != nil {
 				panic(err)
 			}
+
+			if len(hooks) > 0 {
+				blue(cmd.OutOrStdout(), "hooks loaded: %s\n", hooks.NamesFmt())
+			}
+
+			hooks.OnConfigLoaded(config)
+
+			blue(cmd.OutOrStdout(), "watching %s\n", config.WatchPath)
+			path, err := filepath.Abs(config.WatchPath)
+			if err != nil {
+				panic(err)
+			}
+
+			hooks.OnStart()
 
 			hotReload := make(chan internal.File, 1)
 
@@ -63,7 +81,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 				// log.Debug().Str("path", path).Msg("start to watch file system")
 
 				//nolint:govet // shadowing err prevents a race condition
-				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hotReload, openBrowser)
+				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hooks, hotReload, openBrowser)
 				if err != nil {
 					panic(err)
 				}
@@ -80,7 +98,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			go func() {
 				// log.Debug().Msg("start hot reload server")
 
-				_ = hotReloadServer.Start(fmt.Sprintf(":%d", internal.HotReloadPort))
+				_ = hotReloadServer.Start(fmt.Sprintf(":%d", config.Port))
 
 				wg.Done()
 			}()
@@ -90,6 +108,8 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			go func() {
 				<-osSignal
 				// log.Debug().Msg("Shutdown signal received")
+
+				hooks.OnShutdown()
 
 				cancel()
 				err = hotReloadServer.Shutdown(context.Background())

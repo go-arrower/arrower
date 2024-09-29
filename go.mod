@@ -32,6 +32,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
+	github.com/traefik/yaegi v0.16.1
 	github.com/vgarvardt/gue/v5 v5.6.2
 	github.com/vgarvardt/gueron/v2 v2.2.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.51.0

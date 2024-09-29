@@ -59,4 +59,6 @@ func TestRunCmd(t *testing.T) {
 		assert.Contains(t, output, "unknown command")
 		assert.NotContains(t, output, "[flags]")
 	})
+
+	// todo test cases for hooks loaded
 }

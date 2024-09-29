@@ -23,9 +23,6 @@ import (
 var ErrConnectionFailed = errors.New("ws connection failed")
 
 const (
-	// HotReloadPort is the port on which arrower apps can listen for hot reload signals.
-	HotReloadPort = 3030
-
 	// ReloadCmd is the command send to the browser, to reload a tab.
 	ReloadCmd = "reload"
 	// RefreshCSSCmd is the command send to the browser, to reload and swap css files only.

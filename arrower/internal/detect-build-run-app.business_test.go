@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/arrower/hooks"
 	"github.com/go-arrower/arrower/arrower/internal"
 )
 
@@ -36,7 +37,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), func(_ string) error {
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), func(_ string) error {
 				browserStarted = true
 
 				return nil
@@ -71,7 +72,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, make(chan internal.File, 1), noBrowser)
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), noBrowser)
 			assert.NoError(t, err)
 			wg.Done()
 		}()
@@ -104,7 +105,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func() {
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hotReload, noBrowser)
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, hotReload, noBrowser)
 			assert.NoError(t, err)
 
 			wg.Done()
@@ -126,6 +127,8 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		cancel()
 		wg.Wait()
 	})
+
+	// todo test the execution of OnChanged plugins
 }
 
 func copyDir(t *testing.T, oldDir string, newDir string) {
