@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -15,6 +16,9 @@ func TestExecute(root *cobra.Command, args ...string) (string, error) {
 	root.SetArgs(args)
 
 	_, err := root.ExecuteC()
+
+	os.Stdout.Sync()
+	os.Stderr.Sync()
 
 	return buf.String(), err
 }
