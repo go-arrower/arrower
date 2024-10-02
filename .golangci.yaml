@@ -279,6 +279,9 @@ issues:
       text: "Function Test missing the call to method parallel"
 
     # Allow patterns that are considered best practices for Corba CLI applications
+    - path: cmd
+      linters:
+        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
     - path: arrower/cmd
       linters:
         - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers

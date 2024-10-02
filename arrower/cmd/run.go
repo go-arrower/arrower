@@ -6,8 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/fatih/color" //nolint:misspell
 	"github.com/spf13/cobra"
@@ -55,7 +57,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			}
 
 			hooks, err := hooks.Load(".config")
-			if err != nil {
+			if err != nil { // todo "no such file or directory" should continue without any issue
 				panic(err)
 			}
 
@@ -126,4 +128,44 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			blue(cmd.OutOrStdout(), "done\n")
 		},
 	}
+}
+
+// getVersionHashAndTimestamp returns the last git hash and commit timestamp.
+func getVersionHashAndTimestamp() (string, string) {
+	hash, timestamp, modified := readBuildInfo()
+
+	if modified || hash == "" {
+		return "@latest", time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	}
+
+	return hash, timestamp
+}
+
+// readBuildInfo returns the last commit hash, commit timestamp, and if the binary contains uncommitted code.
+// The information needs to be available to the `go build` command. `go run` and `go test` do not contain that info.
+func readBuildInfo() (string, string, bool) {
+	var (
+		commitHash  string
+		commitTS    string
+		vcsModified string
+	)
+
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings { // called from a Go test info.Settings is always empty: []
+			if setting.Key == "vcs.revision" {
+				commitHash = setting.Value
+			}
+
+			if setting.Key == "vcs.time" {
+				commitTS = setting.Value
+			}
+
+			// if true, the binary builds from uncommitted changes
+			if setting.Key == "vcs.modified" {
+				vcsModified = setting.Value
+			}
+		}
+	}
+
+	return commitHash, commitTS, vcsModified == "true"
 }

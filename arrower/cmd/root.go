@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-arrower/arrower/cmd"
+
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/internal"
@@ -26,7 +28,7 @@ Complete documentation is available at http://arrower.org`,
 // NewArrowerCLI initialises the complete arrower cli with its commands and returns the root command.
 func NewArrowerCLI(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) *cobra.Command {
 	rootCmd := newRootCmd()
-	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(cmd.Version("arrower"))
 	rootCmd.AddCommand(newRunCmd(osSignal, openBrowser))
 	rootCmd.AddCommand(newGenerateCmd())
 
