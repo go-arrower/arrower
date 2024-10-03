@@ -14,7 +14,7 @@ func TestVersion(t *testing.T) {
 	// Achieving a high test coverage without actually building the binary is difficult, as
 	// runtime/debug.ReadBuildInfo()'s info.Settings called from a Go test is always empty: []
 	// This could be improved by making this an integration test actually building
-	// a binary with different git states (commited & uncommited changes)
+	// a binary with different git states (committed & uncommitted changes)
 	// Left for the future => manually tested as of now
 
 	t.Run("show version", func(t *testing.T) {

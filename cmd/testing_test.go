@@ -55,4 +55,20 @@ func TestTestExecute(t *testing.T) {
 		assert.ErrorIs(t, err, errCmdFailed)
 		assert.Contains(t, output, errCmdFailed.Error())
 	})
+
+	t.Run("test command in parallel", func(t *testing.T) {
+		t.Parallel()
+
+		rootCmd := &cobra.Command{Run: func(cmd *cobra.Command, _ []string) {
+			fmt.Fprintln(cmd.OutOrStdout(), "Hello World")
+		}}
+
+		for range 10 {
+			go func() {
+				output, err := cmd.TestExecute(rootCmd)
+				assert.NoError(t, err)
+				assert.Contains(t, output, "Hello World")
+			}()
+		}
+	})
 }
