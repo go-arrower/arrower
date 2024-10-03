@@ -264,12 +264,12 @@ issues:
       linters:
         - testpackage
 
-    # Prevent external db errors to become part of the package API.
-    # This is reported: https://github.com/polyfloyd/go-errorlint/issues/68
-    - path: .repository.go
-      linters:
+    # Prevent external errors to become part of the package API
+    # At least one error needs to be wrapped, then other errors don't have to
+    # See: https://github.com/polyfloyd/go-errorlint/issues/68
+    - linters:
         - errorlint
-      text: "non-wrapping format verb for fmt.Errorf. Use `%w` to format errors"
+      source: ".*%w.*: %v"
 
     # The function Test(t *testing.T) in testing.go is a constructor for test helpers, not a test itself
     # Thus it is not treated as a normal test function and the caller decides if it is a parallel test or not
