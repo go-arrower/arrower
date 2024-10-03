@@ -110,7 +110,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 	{ // add context-specific web views.
 		var views fs.FS = views.AdminViews
-		if di.Config.Debug {
+		if di.Config.Environment == arrower.LocalEnv {
 			// ../arrower/ is to access the views from the skeleton project for local development
 			views = os.DirFS("../arrower/contexts/admin/internal/views")
 		}

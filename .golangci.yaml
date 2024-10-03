@@ -45,7 +45,8 @@ linters-settings:
     # ).
     # Run `go tool vet help` to see all analyzers.
     # Default: []
-    disable: []
+    disable:
+      - fieldalignment # Prefer easier readability to optimal memory layout
   misspell:
     locale: UK
   mnd:
@@ -297,10 +298,6 @@ issues:
         - lll # Mostly because of lengthy msgAndArgs params in assertions
         - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
         - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
-    - path: _test.go|testing.go # partly exclude false positives, but not all. Can not mix with complete exclusion above or "text" filter applies to all linters and e.g. doesn't catch funlen anymore
-      linters:
-        - govet
-      text: "fieldalignment" # Prefer easier readability to optimal memory layout for tests
 
     # Partly exclude wsl when testing, to keep tests easier to read.
     - path: _test.go|testing.go

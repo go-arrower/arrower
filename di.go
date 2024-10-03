@@ -74,7 +74,7 @@ func New() (*Container, func(ctx context.Context) error, error) {
 			OrganisationName: "arrower",
 			ApplicationName:  "",
 			InstanceName:     getOutboundIP(),
-			Debug:            true,
+			Environment:      LocalEnv,
 			Postgres: Postgres{
 				User:     "arrower",
 				Password: secret.New("secret"),
@@ -84,16 +84,16 @@ func New() (*Container, func(ctx context.Context) error, error) {
 				SSLMode:  "disable",
 				MaxConns: 100,
 			},
-			Web: Web{
-				Secret:             secret.New("secret"),
-				Port:               8080,
-				Hostname:           "www.servername.tld",
-				StatusEndpoint:     true,
-				StatusEndpointPort: 2223,
+			HTTP: HTTP{
+				CookieSecret:          secret.New("secret"),
+				Port:                  8080,
+				StatusEndpointEnabled: true,
+				StatusEndpointPort:    2223,
 			},
 			OTEL: OTEL{
-				Host: "localhost",
-				Port: 4317,
+				Host:     "localhost",
+				Port:     4317,
+				Hostname: "www.servername.tld",
 			},
 		})
 }
@@ -127,7 +127,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 			opts := []otlptracegrpc.Option{
 				otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", conf.OTEL.Host, conf.OTEL.Port)),
 			}
-			if conf.Debug {
+			if conf.Environment == LocalEnv {
 				opts = append(opts,
 					otlptracegrpc.WithInsecure(),
 					otlptracegrpc.WithDialOption(grpc.WithBlock()),
@@ -145,7 +145,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 				// set the sampling rate based on the parent span to 60%
 				trace.WithSampler(trace.ParentBased(trace.TraceIDRatioBased(0.6))),
 			)
-			if conf.Debug {
+			if conf.Environment == LocalEnv {
 				traceProvider = trace.NewTracerProvider(
 					trace.WithSyncer(traceExporter),
 					trace.WithResource(resource),
@@ -201,10 +201,10 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 			slog.String("application_name", conf.ApplicationName),
 			slog.String("instance_name", conf.InstanceName),
 			slog.String("git_hash", gitHash()),
-			slog.Bool("debug", conf.Debug),
+			slog.String("environment", string(conf.Environment)),
 		)
 
-		if conf.Debug {
+		if conf.Environment == LocalEnv {
 			logger = alog.NewDevelopment(container.PGx)
 		}
 
@@ -219,13 +219,13 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		router.Logger.SetOutput(io.Discard)
 		router.Validator = &CustomValidator{validator: validator.New()}
 		router.IPExtractor = echo.ExtractIPFromXFFHeader() // see: https://echo.labstack.com/docs/ip-address
-		router.Use(otelecho.Middleware(conf.Web.Hostname, otelecho.WithTracerProvider(container.TraceProvider)))
+		router.Use(otelecho.Middleware(conf.OTEL.Hostname, otelecho.WithTracerProvider(container.TraceProvider)))
 		router.Use(echoprometheus.NewMiddleware(conf.ApplicationName))
 		router.Use(middleware.Static("public")) // todo if prod use fs instead
 
 		hotReload := false
 
-		if conf.Debug {
+		if conf.Environment == LocalEnv {
 			router.Debug = true
 			hotReload = true
 
@@ -242,7 +242,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		container.WebRenderer = r
 
 		// router.Use(session.Middleware())
-		ss, _ := auth.NewPGSessionStore(container.PGx, []byte(conf.Web.Secret.Secret()))
+		ss, _ := auth.NewPGSessionStore(container.PGx, []byte(conf.HTTP.CookieSecret.Secret()))
 		container.WebRouter = router
 		container.WebRouter.Use(session.Middleware(ss))
 		// di.WebRouter.Use(middleware.CSRF())
@@ -280,7 +280,7 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 
 	//
 	// Start the prometheus HTTP server and pass the exporter Collector to it
-	if conf.Web.StatusEndpoint {
+	if conf.HTTP.StatusEndpointEnabled {
 		go serveMetrics(ctx, container)
 	}
 
@@ -311,7 +311,7 @@ func serveMetrics(ctx context.Context, di *Container) {
 
 	serverStartedAt := time.Now()
 
-	addr := fmt.Sprintf(":%d", di.Config.Web.StatusEndpointPort)
+	addr := fmt.Sprintf(":%d", di.Config.HTTP.StatusEndpointPort)
 
 	di.Logger.InfoContext(ctx, "serving status endpoint",
 		slog.String("addr", addr),

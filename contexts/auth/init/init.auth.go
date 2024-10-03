@@ -43,7 +43,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	_ = tracer
 
 	var views fs.FS = views.AuthViews
-	if di.Config.Debug {
+	if di.Config.Environment == arrower.LocalEnv {
 		// ../arrower/ is to access the views from the skeleton project for local development
 		views = os.DirFS("../arrower/contexts/auth/internal/views")
 	}

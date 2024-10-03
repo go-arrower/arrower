@@ -88,7 +88,7 @@ func main() {
 	//
 	// start app
 	// initRegularExampleQueueLoad(ctx, arrower)
-	arrower.WebRouter.Logger.Fatal(arrower.WebRouter.Start(fmt.Sprintf(":%d", arrower.Config.Web.Port)))
+	arrower.WebRouter.Logger.Fatal(arrower.WebRouter.Start(fmt.Sprintf(":%d", arrower.Config.HTTP.Port)))
 
 	//
 	// shutdown app

@@ -25,9 +25,9 @@ func getSystemStatus(di *Container, serverStartedAt time.Time) interface{} {
 		"organisationName": di.Config.OrganisationName,
 		"applicationName":  di.Config.ApplicationName,
 		"instanceName":     di.Config.InstanceName,
-		"debug":            di.Config.Debug,
+		"environment":      di.Config.Environment,
 
-		"web":      di.Config.Web,
+		"web":      di.Config.HTTP,
 		"database": dbStatus{Postgres: di.Config.Postgres, Status: dbOnline},
 		// s3
 		// REST API

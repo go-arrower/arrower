@@ -1,0 +1,3 @@
+environment: test
+http:
+  port: 0002
