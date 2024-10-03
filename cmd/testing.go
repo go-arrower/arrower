@@ -14,7 +14,7 @@ func TestExecute(root *cobra.Command, args ...string) (string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	buf := new(bytes.Buffer)
+	buf := new(syncBuffer)
 	root.SetOut(buf)
 	root.SetErr(buf)
 
@@ -23,4 +23,24 @@ func TestExecute(root *cobra.Command, args ...string) (string, error) {
 	_, err := root.ExecuteC()
 
 	return buf.String(), err
+}
+
+// syncBuffer is a helper implementing io.Writer, used for concurrency save testing.
+type syncBuffer struct {
+	b bytes.Buffer
+	m sync.Mutex
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.Write(p) //nolint:wrapcheck
+}
+
+func (b *syncBuffer) String() string {
+	b.m.Lock()
+	defer b.m.Unlock()
+
+	return b.b.String()
 }
