@@ -131,8 +131,16 @@ func InitialiseDefaultDependencies(ctx context.Context, conf *Config, publicAsse
 			opts := []otlptracegrpc.Option{
 				otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", conf.OTEL.Host, conf.OTEL.Port)),
 			}
+
 			if conf.Environment == LocalEnv {
 				opts = append(opts, otlptracegrpc.WithInsecure())
+			}
+
+			if conf.Environment == TestEnv {
+				// while unit testing no otel endpoint is running. This means some operations, e.g.
+				// traceprovider shutdown will block until the shutdown ctx expires,
+				// which is too long for testing.
+				opts = append(opts, otlptracegrpc.WithTimeout(10*time.Millisecond))
 			}
 
 			traceExporter, err := otlptracegrpc.New(ctx, opts...)
