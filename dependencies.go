@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -14,13 +15,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
+	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/jobs"
+	"github.com/go-arrower/arrower/postgres"
+	"github.com/go-arrower/arrower/renderer"
+	"github.com/go-arrower/arrower/secret"
+	"github.com/go-arrower/arrower/setting"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	prometheus2 "github.com/prometheus/client_golang/prometheus"
+	prometheusSDK "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
@@ -31,15 +40,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
-	"google.golang.org/grpc"
-
-	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/contexts/auth"
-	"github.com/go-arrower/arrower/jobs"
-	"github.com/go-arrower/arrower/postgres"
-	"github.com/go-arrower/arrower/renderer"
-	"github.com/go-arrower/arrower/secret"
-	"github.com/go-arrower/arrower/setting"
 )
 
 var ErrMissingDependency = errors.New("missing dependency")
@@ -54,48 +54,52 @@ type Container struct {
 
 	Config *Config
 	PGx    *pgxpool.Pool
-	db     *postgres.Handler
 
-	WebRenderer *renderer.EchoRenderer
 	WebRouter   *echo.Echo
 	APIRouter   *echo.Group
 	AdminRouter *echo.Group
+	WebRenderer *renderer.EchoRenderer
+
+	RootCmd *cobra.Command
 
 	ArrowerQueue jobs.Queue
 	DefaultQueue jobs.Queue
 
 	Settings setting.Settings
+
+	// auth & admin Contexts
+
+	metricsEndpoint *http.Server
 }
 
-func New() (*Container, func(ctx context.Context) error, error) {
+func New() (*Container, error) {
 	//nolint:mnd  // allow direct port definitions etc.
-	return InitialiseDefaultArrowerDependencies(context.Background(),
-		&Config{
-			OrganisationName: "arrower",
-			ApplicationName:  "",
-			InstanceName:     getOutboundIP(),
-			Environment:      LocalEnv,
-			Postgres: Postgres{
-				User:     "arrower",
-				Password: secret.New("secret"),
-				Database: "arrower",
-				Host:     "localhost",
-				Port:     5432,
-				SSLMode:  "disable",
-				MaxConns: 100,
-			},
-			HTTP: HTTP{
-				CookieSecret:          secret.New("secret"),
-				Port:                  8080,
-				StatusEndpointEnabled: true,
-				StatusEndpointPort:    2223,
-			},
-			OTEL: OTEL{
-				Host:     "localhost",
-				Port:     4317,
-				Hostname: "www.servername.tld",
-			},
-		})
+	return InitialiseDefaultDependencies(context.Background(), &Config{
+		OrganisationName: "arrower",
+		ApplicationName:  "",
+		InstanceName:     getOutboundIP(),
+		Environment:      LocalEnv,
+		Postgres: Postgres{
+			User:     "arrower",
+			Password: secret.New("secret"),
+			Database: "arrower",
+			Host:     "localhost",
+			Port:     5432,
+			SSLMode:  "disable",
+			MaxConns: 100,
+		},
+		HTTP: HTTP{
+			CookieSecret:          secret.New("secret"),
+			Port:                  8080,
+			StatusEndpointEnabled: true,
+			StatusEndpointPort:    2223,
+		},
+		OTEL: OTEL{
+			Host:     "localhost",
+			Port:     4317,
+			Hostname: "www.servername.tld",
+		},
+	}, nil, nil)
 }
 
 func (c *Container) EnsureAllDependenciesPresent() error {
@@ -106,8 +110,8 @@ func (c *Container) EnsureAllDependenciesPresent() error {
 	return nil
 }
 
-func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*Container, func(ctx context.Context) error, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
-	container := &Container{ //nolint:exhaustruct
+func InitialiseDefaultDependencies(ctx context.Context, conf *Config, publicAssets fs.FS, sharedViews fs.FS) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
+	dc := &Container{ //nolint:exhaustruct
 		Config: conf,
 	}
 
@@ -123,20 +127,17 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		)
 		// FIND OUT: CAN RESOURCES BE ADDED TO LOGGER SO ALL THREE HAVE THE SAME VALUES?
 
-		{
+		{ // traces
 			opts := []otlptracegrpc.Option{
 				otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", conf.OTEL.Host, conf.OTEL.Port)),
 			}
 			if conf.Environment == LocalEnv {
-				opts = append(opts,
-					otlptracegrpc.WithInsecure(),
-					otlptracegrpc.WithDialOption(grpc.WithBlock()),
-				)
+				opts = append(opts, otlptracegrpc.WithInsecure())
 			}
 
 			traceExporter, err := otlptracegrpc.New(ctx, opts...)
 			if err != nil {
-				return nil, nil, fmt.Errorf("could not connect to trace exporter: %w", err)
+				return nil, fmt.Errorf("could not connect to trace exporter: %w", err)
 			}
 
 			traceProvider := trace.NewTracerProvider(
@@ -147,20 +148,21 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 			)
 			if conf.Environment == LocalEnv {
 				traceProvider = trace.NewTracerProvider(
-					trace.WithSyncer(traceExporter),
+					//trace.WithSyncer(traceExporter), // if tempo is not running, this blocks each http request to the app
+					trace.WithBatcher(traceExporter, trace.WithBlocking()),
 					trace.WithResource(resource),
 					trace.WithSampler(trace.AlwaysSample()),
 				)
 			}
 
-			container.TraceProvider = traceProvider
+			dc.TraceProvider = traceProvider
 			otel.SetTracerProvider(traceProvider)
 		}
 
-		{
+		{ // metrics
 			exporter, err := prometheus.New()
 			if err != nil {
-				return nil, nil, fmt.Errorf("could not create to prometheus exporter: %w", err)
+				return nil, fmt.Errorf("could not create to prometheus exporter: %w", err)
 			}
 
 			meterProvider := metric.NewMeterProvider(
@@ -168,31 +170,32 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 				metric.WithReader(exporter),
 			)
 
-			container.MeterProvider = meterProvider
+			dc.MeterProvider = meterProvider
 			otel.SetMeterProvider(meterProvider)
 		}
 	}
 
 	{ // postgres
-		pg, err := postgres.ConnectAndMigrate(ctx, postgres.Config{
-			User:       conf.Postgres.User,
-			Password:   conf.Postgres.Password.Secret(),
-			Database:   conf.Postgres.Database,
-			Host:       conf.Postgres.Host,
-			Port:       conf.Postgres.Port,
-			SSLMode:    conf.Postgres.SSLMode,
-			MaxConns:   conf.Postgres.MaxConns,
-			Migrations: postgres.ArrowerDefaultMigrations,
-		}, container.TraceProvider)
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not connect to postgres: %w", err)
+		if conf.Postgres != (Postgres{}) {
+			pg, err := postgres.ConnectAndMigrate(ctx, postgres.Config{
+				User:       conf.Postgres.User,
+				Password:   conf.Postgres.Password.Secret(),
+				Database:   conf.Postgres.Database,
+				Host:       conf.Postgres.Host,
+				Port:       conf.Postgres.Port,
+				SSLMode:    conf.Postgres.SSLMode,
+				MaxConns:   conf.Postgres.MaxConns,
+				Migrations: postgres.ArrowerDefaultMigrations,
+			}, dc.TraceProvider)
+			if err != nil {
+				return nil, fmt.Errorf("could not connect to postgres: %w", err)
+			}
+
+			dc.PGx = pg.PGx
+
+			dc.Settings = setting.NewPostgresSettings(dc.PGx)
 		}
-
-		container.PGx = pg.PGx
-		container.db = pg
 	}
-
-	container.Settings = setting.NewPostgresSettings(container.PGx)
 
 	{ // logger
 		logger := alog.New()
@@ -205,105 +208,124 @@ func InitialiseDefaultArrowerDependencies(ctx context.Context, conf *Config) (*C
 		)
 
 		if conf.Environment == LocalEnv {
-			logger = alog.NewDevelopment(container.PGx)
+			logger = alog.NewDevelopment(dc.PGx) // todo work if loki is down
 		}
 
-		container.Logger = logger
-		slog.SetDefault(container.Logger.(*slog.Logger))
+		dc.Logger = logger
+		slog.SetDefault(dc.Logger.(*slog.Logger))
 	}
 
-	{ // echo router
-		// todo extract echo setup to main arrower repo, ones it is "ready" and can be abstracted for easier use, analog to postgres
+	{ // web routers
+		var (
+			r *renderer.EchoRenderer
+		)
+
 		router := echo.New()
 		router.HideBanner = true
 		router.Logger.SetOutput(io.Discard)
 		router.Validator = &CustomValidator{validator: validator.New()}
 		router.IPExtractor = echo.ExtractIPFromXFFHeader() // see: https://echo.labstack.com/docs/ip-address
-		router.Use(otelecho.Middleware(conf.OTEL.Hostname, otelecho.WithTracerProvider(container.TraceProvider)))
+		router.Use(otelecho.Middleware(conf.OTEL.Hostname, otelecho.WithTracerProvider(dc.TraceProvider)))
 		router.Use(echoprometheus.NewMiddleware(conf.ApplicationName))
-		router.Use(middleware.Static("public")) // todo if prod use fs instead
-
-		hotReload := false
 
 		if conf.Environment == LocalEnv {
 			router.Debug = true
-			hotReload = true
+			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), true)
+
+			router.StaticFS("/static/", os.DirFS("public"))
 
 			router.Use(injectMW)
-		}
+		} else {
+			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, sharedViews, false)
 
-		r, _ := renderer.NewEchoRenderer(container.Logger, container.TraceProvider, router, os.DirFS("shared/views"), hotReload) // todo: if prod load from embed
-		//err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(container.Settings))
+			router.StaticFS("/static/", publicAssets)
+		}
+		//err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
 		//if err != nil {
 		//	return nil, nil, fmt.Errorf("could not add default base data: %w", err) // todo return shutdown, as some services like postgres are already started
 		//}
 
 		router.Renderer = r
-		container.WebRenderer = r
+		dc.WebRenderer = r
 
 		// router.Use(session.Middleware())
-		ss, _ := auth.NewPGSessionStore(container.PGx, []byte(conf.HTTP.CookieSecret.Secret()))
-		container.WebRouter = router
-		container.WebRouter.Use(session.Middleware(ss))
-		// di.WebRouter.Use(middleware.CSRF())
-		container.WebRouter.Use(auth.EnrichCtxWithUserInfoMiddleware)
+		dc.WebRouter = router
+		if dc.PGx != nil {
+			ss, _ := auth.NewPGSessionStore(dc.PGx, []byte(conf.HTTP.CookieSecret.Secret()))
+			dc.WebRouter.Use(session.Middleware(ss))
+			// di.WebRouter.Use(middleware.CSRF())
+			dc.WebRouter.Use(auth.EnrichCtxWithUserInfoMiddleware)
+		}
 
-		container.AdminRouter = container.WebRouter.Group("/admin")
-		container.AdminRouter.Use(auth.EnsureUserIsSuperuserMiddleware)
+		dc.AdminRouter = dc.WebRouter.Group("/admin")
+		//dc.AdminRouter.Use(auth.EnsureUserIsSuperuserMiddleware) // todo enable adain. Is disabled because pgx could be null or session not present...
 
-		container.APIRouter = router.Group("/api") // todo add api middleware
+		dc.APIRouter = router.Group("/api") // todo add api middleware
 	}
 
 	{ // jobs
-		queue, err := jobs.NewPostgresJobs(container.Logger, container.MeterProvider, container.TraceProvider, container.PGx,
+		queue, err := jobs.NewPostgresJobs(dc.Logger, dc.MeterProvider, dc.TraceProvider, dc.PGx,
 			jobs.WithPoolName(conf.InstanceName),
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not start default job queue: %w", err)
+			return nil, fmt.Errorf("could not start default job queue: %w", err)
 		}
 
 		arrowerQueue, err := jobs.NewPostgresJobs(
-			container.Logger,
-			container.MeterProvider,
-			container.TraceProvider,
-			container.PGx,
+			dc.Logger,
+			dc.MeterProvider,
+			dc.TraceProvider,
+			dc.PGx,
 			jobs.WithQueue("Arrower"),
 			jobs.WithPoolName(conf.InstanceName),
 		)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not start arrower job queue: %w", err)
+			return nil, fmt.Errorf("could not start arrower job queue: %w", err)
 		}
 
-		container.DefaultQueue = queue
-		container.ArrowerQueue = arrowerQueue
+		dc.DefaultQueue = queue
+		dc.ArrowerQueue = arrowerQueue
 	}
 
-	//
-	// Start the prometheus HTTP server and pass the exporter Collector to it
-	if conf.HTTP.StatusEndpointEnabled {
-		go serveMetrics(ctx, container)
-	}
-
-	return container, shutdown(container), nil
+	return dc, nil
 }
 
-func shutdown(di *Container) func(ctx context.Context) error {
-	return func(ctx context.Context) error {
-		di.Logger.InfoContext(ctx, "shutdown...")
+func (c *Container) Start(ctx context.Context) error {
+	c.Logger.LogAttrs(ctx, alog.LevelInfo, "starting all servers")
 
-		_ = di.WebRouter.Shutdown(ctx)
-		_ = di.DefaultQueue.Shutdown(ctx)
-		_ = di.ArrowerQueue.Shutdown(ctx)
-		_ = di.TraceProvider.Shutdown(ctx)
-		_ = di.MeterProvider.Shutdown(ctx)
-		_ = di.db.Shutdown(ctx)
-		// todo shutdown meter/status endpoint
-
-		return nil // todo error handling
+	//Start the prometheus HTTP server and pass the exporter Collector to it
+	if c.Config.HTTP.StatusEndpointEnabled {
+		c.metricsEndpoint = serveMetrics(ctx, c)
 	}
+
+	go func() {
+		_ = c.WebRouter.Start(fmt.Sprintf(":%d", c.Config.HTTP.Port))
+	}()
+
+	return nil
 }
 
-func serveMetrics(ctx context.Context, di *Container) {
+func (c *Container) Shutdown(ctx context.Context) error { // todo error handling
+	c.Logger.LogAttrs(ctx, alog.LevelInfo, "shutting down all servers")
+
+	_ = c.WebRouter.Shutdown(ctx)
+
+	if c.Config.HTTP.StatusEndpointEnabled {
+		_ = c.metricsEndpoint.Shutdown(ctx)
+	}
+
+	_ = c.DefaultQueue.Shutdown(ctx)
+	_ = c.ArrowerQueue.Shutdown(ctx)
+	if c.PGx != nil {
+		c.PGx.Close()
+	}
+	_ = c.TraceProvider.Shutdown(ctx)
+	_ = c.MeterProvider.Shutdown(ctx)
+
+	return nil
+}
+
+func serveMetrics(ctx context.Context, di *Container) *http.Server {
 	const (
 		metricPath = "/metrics"
 		statusPath = "/status"
@@ -311,17 +333,17 @@ func serveMetrics(ctx context.Context, di *Container) {
 
 	serverStartedAt := time.Now()
 
-	addr := fmt.Sprintf(":%d", di.Config.HTTP.StatusEndpointPort)
+	srv := &http.Server{Addr: fmt.Sprintf(":%d", di.Config.HTTP.StatusEndpointPort)}
 
 	di.Logger.InfoContext(ctx, "serving status endpoint",
-		slog.String("addr", addr),
+		slog.String("addr", srv.Addr),
 		slog.String("metric_path", metricPath),
 		slog.String("status_path", statusPath),
 	)
 
 	// http.Handle("/metrics", promhttp.Handler())
 	http.Handle(metricPath, promhttp.HandlerFor(
-		prometheus2.DefaultGatherer,
+		prometheusSDK.DefaultGatherer,
 		promhttp.HandlerOpts{ //nolint:exhaustruct
 			EnableOpenMetrics: true, // to enable Examplars in the export format
 		},
@@ -337,12 +359,16 @@ func serveMetrics(ctx context.Context, di *Container) {
 		_ = json.NewEncoder(w).Encode(statusData)
 	})
 
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		di.Logger.DebugContext(ctx, "error serving http", slog.String("err", err.Error()))
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			di.Logger.DebugContext(ctx, "error serving http", slog.String("err", err.Error()))
 
-		return
-	}
+			return
+		}
+	}()
+
+	return srv
 }
 
 type CustomValidator struct {
@@ -390,8 +416,8 @@ const hotReloadJSCode = `<!-- Code injected by hot-reload middleware -->
 
 <script>
 	function refreshCSS() {
-		var sheets = [].slice.call(document.getElementsByTagName("link"));
 		var head = document.getElementsByTagName("head")[0];
+		var sheets = [].slice.call(document.getElementsByTagName("link"));
 		for (var i = 0; i < sheets.length; ++i) {
 			var elem = sheets[i];
 			head.removeChild(elem);

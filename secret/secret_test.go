@@ -47,7 +47,10 @@ func TestNewSecret(t *testing.T) {
 func TestSecret_Secret(t *testing.T) {
 	t.Parallel()
 
+	type s struct{ secret secret.Secret }
+
 	assert.Equal(t, secretPhrase, secret.New(secretPhrase).Secret())
+	assert.Equal(t, "", s{}.secret.Secret())
 }
 
 func TestSecret_String(t *testing.T) {

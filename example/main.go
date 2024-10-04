@@ -24,7 +24,7 @@ import (
 func main() {
 	ctx, _ := context.WithCancel(context.Background())
 
-	arrower, shutdown, err := arrower.New()
+	arrower, err := arrower.New()
 	if err != nil {
 		panic(err)
 	}

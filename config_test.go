@@ -49,7 +49,7 @@ func TestAllowedEnvironmentHookFunc(t *testing.T) {
 		t.Parallel()
 
 		vip := viper.New()
-		vip.SetConfigFile("./testdata/config/invalid-config.test.yaml")
+		vip.SetConfigFile("./testdata/config/invalid-config.yaml")
 		err := vip.ReadInConfig()
 		assert.NoError(t, err)
 
@@ -64,7 +64,7 @@ func TestAllowedEnvironmentHookFunc(t *testing.T) {
 		t.Parallel()
 
 		vip := viper.New()
-		vip.SetConfigFile("./testdata/config/config.test.yaml")
+		vip.SetConfigFile("./testdata/config/test-config.yaml")
 		err := vip.ReadInConfig()
 		assert.NoError(t, err)
 
