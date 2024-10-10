@@ -6,9 +6,8 @@ import "context"
 // which methods are available by the generic MemoryTenantRepository.
 // tID is the primary key for the tenant and eID of the entity and needs to be of one of the underlying types.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
-type TenantRepository[T any, tID id, E any, eID id] interface { //nolint:interfacebloat,lll // showcase of all methods that are possible
-	// NextTenantID(ctx context.Context) (tID, error)
-	// NextID(ctx context.Context, tenantID tID) (eID, error)
+type TenantRepository[tID id, E any, eID id] interface { //nolint:interfacebloat,lll // showcase of all methods that are possible
+	NextID(ctx context.Context) (eID, error)
 
 	Create(ctx context.Context, tenantID tID, entity E) error
 	Read(ctx context.Context, tenantID tID, id eID) (E, error)

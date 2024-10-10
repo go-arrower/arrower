@@ -7,17 +7,19 @@ import (
 	"os"
 	"reflect"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
-// NewMemoryTenantRepository returns an implementation of MemoryTenantRepository for the given tenant T and entity E.
-// It is expected that T and E have a field called `ID`, that is used as the primary key and can
-// be overwritten by WithTenantID and WithIDField.
+// NewMemoryTenantRepository returns an implementation of MemoryTenantRepository for the given entity E.
+// It is expected that E have a field called `ID`, that is used as the primary key and can
+// be overwritten by WithIDField.
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case.
-func NewMemoryTenantRepository[T any, tID id, E any, eID id](
+func NewMemoryTenantRepository[tID id, E any, eID id](
 	opts ...Option,
-) *MemoryTenantRepository[T, tID, E, eID] {
-	repo := &MemoryTenantRepository[T, tID, E, eID]{
+) *MemoryTenantRepository[tID, E, eID] {
+	repo := &MemoryTenantRepository[tID, E, eID]{
 		Mutex: &sync.Mutex{},
 		Data:  make(map[tID]map[eID]E),
 		repoConfig: repoConfig{
@@ -40,26 +42,27 @@ func NewMemoryTenantRepository[T any, tID id, E any, eID id](
 }
 
 // MemoryTenantRepository implements TenantRepository in a generic way. Use it to speed up your unit testing.
-type MemoryTenantRepository[T any, tID id, E any, eID id] struct {
+type MemoryTenantRepository[tID id, E any, eID id] struct {
 	// Mutex is embedded, so that repositories who extend MemoryTenantRepository can lock the same mutex as other methods.
 	*sync.Mutex
 
 	// Data is the repository's collection. It is exposed in case you're extending the repository.
 	// PREVENT using and accessing Data it directly, go through the repository methods.
 	// If you write to Data, USE the Mutex to lock first.
-	Data map[tID]map[eID]E
+	Data         map[tID]map[eID]E
+	currentIntID eID
 
 	repoConfig
 }
 
 // ensureTenantInitialised creates a tenant-specific map, as go does not initialise maps into an empty state by default.
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ensureTenantInitialised(id tID) {
+func (repo *MemoryTenantRepository[tID, E, eID]) ensureTenantInitialised(id tID) {
 	if repo.Data[id] == nil {
 		repo.Data[id] = make(map[eID]E)
 	}
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *MemoryTenantRepository[tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(e)
 
 	idField := val.FieldByName(repo.idFieldName)
@@ -83,7 +86,44 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) getID(e E) eID { //nolint:du
 	return id
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Create(_ context.Context, tenantID tID, entity E) error {
+func (repo *MemoryTenantRepository[tid, E, eID]) NextID(ctx context.Context) (eID, error) {
+	var id eID
+
+	switch reflect.TypeOf(id).Kind() {
+	case reflect.String:
+		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		repo.Mutex.Lock()
+		defer repo.Mutex.Unlock()
+
+		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Int()
+
+		// increment the ID: the value is stored in the repo, but it cannot be accessed because
+		// the generic does not know which type it is, so that is why reflection is used.
+		newID := currentIDValue + 1
+		reflect.ValueOf(&repo.currentIntID).Elem().SetInt(newID)
+
+		reflect.ValueOf(&id).Elem().SetInt(newID)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		repo.Mutex.Lock()
+		defer repo.Mutex.Unlock()
+
+		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Uint()
+
+		// increment the ID: the value is stored in the repo, but it cannot be accessed because
+		// the generic does not know which type it is, so that is why reflection is used.
+		newID := currentIDValue + 1
+		reflect.ValueOf(&repo.currentIntID).Elem().SetUint(newID)
+
+		reflect.ValueOf(&id).Elem().SetUint(newID)
+	default:
+		panic(panicIDNotSupported + reflect.TypeOf(id).Kind().String())
+	}
+
+	return id, nil
+}
+
+func (repo *MemoryTenantRepository[tID, E, eID]) Create(_ context.Context, tenantID tID, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -108,7 +148,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Create(_ context.Context, te
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Read(_ context.Context, tenantID tID, id eID) (E, error) { //nolint:ireturn,lll // valid use of generics
+func (repo *MemoryTenantRepository[tID, E, eID]) Read(_ context.Context, tenantID tID, id eID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -119,7 +159,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Read(_ context.Context, tena
 	return *new(E), ErrNotFound
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Update(_ context.Context, tenantID tID, entity E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) Update(_ context.Context, tenantID tID, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -142,7 +182,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Update(_ context.Context, te
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Delete(_ context.Context, tenantID tID, entity E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) Delete(_ context.Context, tenantID tID, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -156,7 +196,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Delete(_ context.Context, te
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) All(_ context.Context) ([]E, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) All(_ context.Context) ([]E, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -171,7 +211,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) All(_ context.Context) ([]E,
 	return result, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) AllOfTenant(_ context.Context, tenantID tID) ([]E, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) AllOfTenant(_ context.Context, tenantID tID) ([]E, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -184,7 +224,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) AllOfTenant(_ context.Contex
 	return result, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) AllByIDs(_ context.Context, tenantID tID, ids []eID) ([]E, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) AllByIDs(_ context.Context, tenantID tID, ids []eID) ([]E, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -205,19 +245,19 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) AllByIDs(_ context.Context, 
 	return result, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) FindAll(ctx context.Context) ([]E, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) FindAll(ctx context.Context) ([]E, error) {
 	return repo.All(ctx)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) FindAllOfTenant(ctx context.Context, tenantID tID) ([]E, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) FindAllOfTenant(ctx context.Context, tenantID tID) ([]E, error) {
 	return repo.AllOfTenant(ctx, tenantID)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) FindByID(ctx context.Context, tenantID tID, id eID) (E, error) { //nolint:ireturn,lll // valid use of generics
+func (repo *MemoryTenantRepository[tID, E, eID]) FindByID(ctx context.Context, tenantID tID, id eID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	return repo.Read(ctx, tenantID, id)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) FindByIDs(
+func (repo *MemoryTenantRepository[tID, E, eID]) FindByIDs(
 	ctx context.Context,
 	tenantID tID,
 	ids []eID,
@@ -225,7 +265,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) FindByIDs(
 	return repo.AllByIDs(ctx, tenantID, ids)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Exists(_ context.Context, tenantID tID, id eID) (bool, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) Exists(_ context.Context, tenantID tID, id eID) (bool, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -236,7 +276,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Exists(_ context.Context, te
 	return false, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistsByID(
+func (repo *MemoryTenantRepository[tID, E, eID]) ExistsByID(
 	ctx context.Context,
 	tenantID tID,
 	id eID,
@@ -244,7 +284,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistsByID(
 	return repo.Exists(ctx, tenantID, id)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistByIDs(
+func (repo *MemoryTenantRepository[tID, E, eID]) ExistByIDs(
 	ctx context.Context,
 	tenantID tID,
 	ids []eID,
@@ -252,7 +292,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistByIDs(
 	return repo.ExistAll(ctx, tenantID, ids)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistAll(_ context.Context, tenantID tID, ids []eID) (bool, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) ExistAll(_ context.Context, tenantID tID, ids []eID) (bool, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -269,11 +309,11 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ExistAll(_ context.Context, 
 	return true, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Contains(ctx context.Context, tenantID tID, id eID) (bool, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) Contains(ctx context.Context, tenantID tID, id eID) (bool, error) {
 	return repo.Exists(ctx, tenantID, id)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsID(
+func (repo *MemoryTenantRepository[tID, E, eID]) ContainsID(
 	ctx context.Context,
 	tenantID tID,
 	id eID,
@@ -281,7 +321,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsID(
 	return repo.ExistsByID(ctx, tenantID, id)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsIDs(
+func (repo *MemoryTenantRepository[tID, E, eID]) ContainsIDs(
 	ctx context.Context,
 	tenantID tID,
 	ids []eID,
@@ -289,7 +329,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsIDs(
 	return repo.ExistByIDs(ctx, tenantID, ids)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsAll(
+func (repo *MemoryTenantRepository[tID, E, eID]) ContainsAll(
 	ctx context.Context,
 	tenantID tID,
 	ids []eID,
@@ -297,7 +337,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) ContainsAll(
 	return repo.ExistAll(ctx, tenantID, ids)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Save(_ context.Context, tenantID tID, entity E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) Save(_ context.Context, tenantID tID, entity E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -318,7 +358,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Save(_ context.Context, tena
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) SaveAll(_ context.Context, tenantID tID, entities []E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) SaveAll(_ context.Context, tenantID tID, entities []E) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -342,15 +382,15 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) SaveAll(_ context.Context, t
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) UpdateAll(ctx context.Context, tenantID tID, entities []E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) UpdateAll(ctx context.Context, tenantID tID, entities []E) error {
 	return repo.SaveAll(ctx, tenantID, entities)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Add(ctx context.Context, tenantID tID, entity E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) Add(ctx context.Context, tenantID tID, entity E) error {
 	return repo.Create(ctx, tenantID, entity)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) AddAll(ctx context.Context, tenantID tID, entities []E) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) AddAll(ctx context.Context, tenantID tID, entities []E) error {
 	for _, e := range entities {
 		ex, _ := repo.Exists(ctx, tenantID, repo.getID(e))
 		if ex {
@@ -361,7 +401,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) AddAll(ctx context.Context, 
 	return repo.SaveAll(ctx, tenantID, entities)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Count(_ context.Context) (int, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) Count(_ context.Context) (int, error) {
 	count := 0
 
 	for _, t := range repo.Data {
@@ -371,26 +411,26 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) Count(_ context.Context) (in
 	return count, nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) CountOfTenant(_ context.Context, tenantID tID) (int, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) CountOfTenant(_ context.Context, tenantID tID) (int, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
 	return len(repo.Data[tenantID]), nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Length(ctx context.Context) (int, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) Length(ctx context.Context) (int, error) {
 	return repo.Count(ctx)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) LengthOfTenant(ctx context.Context, tenantID tID) (int, error) {
+func (repo *MemoryTenantRepository[tID, E, eID]) LengthOfTenant(ctx context.Context, tenantID tID) (int, error) {
 	return repo.CountOfTenant(ctx, tenantID)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByID(ctx context.Context, tenantID tID, id eID) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) DeleteByID(ctx context.Context, tenantID tID, id eID) error {
 	return repo.DeleteByIDs(ctx, tenantID, []eID{id})
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByIDs(_ context.Context, tenantID tID, ids []eID) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) DeleteByIDs(_ context.Context, tenantID tID, ids []eID) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -406,7 +446,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteByIDs(_ context.Contex
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAll(_ context.Context) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) DeleteAll(_ context.Context) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -420,7 +460,7 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAll(_ context.Context)
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAllOfTenant(_ context.Context, tenantID tID) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) DeleteAllOfTenant(_ context.Context, tenantID tID) error {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -434,10 +474,10 @@ func (repo *MemoryTenantRepository[T, tID, E, eID]) DeleteAllOfTenant(_ context.
 	return nil
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) Clear(ctx context.Context) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) Clear(ctx context.Context) error {
 	return repo.DeleteAll(ctx)
 }
 
-func (repo *MemoryTenantRepository[T, tID, E, eID]) ClearTenant(ctx context.Context, tenantID tID) error {
+func (repo *MemoryTenantRepository[tID, E, eID]) ClearTenant(ctx context.Context, tenantID tID) error {
 	return repo.DeleteAllOfTenant(ctx, tenantID)
 }
