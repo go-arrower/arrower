@@ -682,6 +682,16 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			assert.Contains(t, buf.String(), "baseTitle 1")
 			assert.NotContains(t, buf.String(), "baseTitle 0")
 		})
+
+		t.Run("fragment data not converted to map", func(t *testing.T) {
+			t.Parallel()
+
+			buf := &bytes.Buffer{}
+			err = render.Render(ctx, buf, renderer.SharedViews, "p0#f0", someType{Name: "someName"})
+			assert.NoError(t, err)
+
+			assert.Contains(t, buf.String(), "someName")
+		})
 	})
 
 	t.Run("data func fails", func(t *testing.T) {

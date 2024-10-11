@@ -193,9 +193,11 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 		return ErrNotExistsFragment
 	}
 
-	data, err = r.getMergedData(ctx, parsedTempl, data)
-	if err != nil {
-		return fmt.Errorf("%w: could not build data: %w", ErrRenderFailed, err)
+	if parsedTempl.fragment == "" {
+		data, err = r.getMergedData(ctx, parsedTempl, data)
+		if err != nil {
+			return fmt.Errorf("%w: could not build data: %w", ErrRenderFailed, err)
+		}
 	}
 
 	err = templ.ExecuteTemplate(w, parsedTempl.templateName(), data)
@@ -663,7 +665,7 @@ func (r *Renderer) AddLayoutData(context string, layoutName string, dataFunc Dat
 	return nil
 }
 
-func (r *Renderer) getMergedData(ctx context.Context, parsedTemplate parsedTemplate, pageData any) (Map, error) {
+func (r *Renderer) getMergedData(ctx context.Context, parsedTemplate parsedTemplate, pageData any) (any, error) {
 	data := Map{}
 
 	for _, df := range r.baseData[parsedTemplate.baseLayout] {

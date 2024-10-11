@@ -36,6 +36,11 @@ const (
 	RouteResetPW    = ""
 )
 
+const (
+	// TenantIDKey is set in echo.Context to hand over the id from a middleware to a controller.
+	TenantIDKey = "auth.tenant_id"
+)
+
 type User struct { //nolint:govet // fieldalignment less important than grouping of fields.
 	ID    string
 	Login string // UserName

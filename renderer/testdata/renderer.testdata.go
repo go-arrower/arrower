@@ -120,7 +120,11 @@ func FilesAddBaseData() fstest.MapFS {
 		"default.base.html": {Data: []byte(BaseLayoutContent + `
 	{{ .baseTitle }}
 	{{ .BaseHeader }}
+	
 	{{ .someType.Name }}
+	{{ block "f0" . }}
+		{{ .Name }}
+	{{ end }}
 
 	{{ range .someTypes }}
 		<li>{{ .Name }}</li>
