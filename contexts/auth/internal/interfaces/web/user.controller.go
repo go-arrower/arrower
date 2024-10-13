@@ -118,7 +118,7 @@ func (uc UserController) Login() func(echo.Context) error {
 			SameSite: http.SameSiteStrictMode,
 		}
 		sess.Values[auth.SessKeyLoggedIn] = true
-		sess.Values[auth.SessKeyUserID] = string(response.User.ID)
+		sess.Values[auth.SessKeyUserID] = auth.UserID(response.User.ID)
 		sess.Values[auth.SessKeyIsSuperuser] = response.User.IsSuperuser()
 
 		err = sess.Save(c.Request(), c.Response())

@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-arrower/arrower/contexts/auth"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,7 +29,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
-	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -311,7 +312,7 @@ func buildAndAppendGueJob(
 	opts ...JobOption,
 ) ([]*gue.Job, error) {
 	var userID string
-	userID, _ = ctx.Value(ctx2.CtxAuthUserID).(string)
+	userID, _ = ctx.Value(auth.CtxUserID).(string)
 
 	args, err := json.Marshal(PersistencePayload{
 		JobStructPath:    fullPath,
@@ -517,7 +518,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
 		if payload.Ctx.UserID != "" {
-			ctx = context.WithValue(ctx, ctx2.CtxAuthUserID, payload.Ctx.UserID)
+			ctx = context.WithValue(ctx, auth.CtxUserID, payload.Ctx.UserID)
 		}
 
 		_, err = txHandle.Exec(ctx, `SAVEPOINT before_worker;`)

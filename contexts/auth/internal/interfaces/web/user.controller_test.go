@@ -32,7 +32,7 @@ func TestUserController_Login(t *testing.T) {
 
 		echoRouter := newTestRouter()
 		c := echoRouter.NewContext(req, rec)
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxAuthLoggedIn, true)))
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
 		if assert.NoError(t, web.UserController{}.Login()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
@@ -214,7 +214,7 @@ func TestUserController_Logout(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		c := echoRouter.NewContext(req, rec)
-		// c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxAuthLoggedIn, false)))
+		// c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, false)))
 
 		if assert.NoError(t, web.UserController{}.Logout()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
@@ -269,7 +269,7 @@ func TestUserController_Create(t *testing.T) {
 
 		echoRouter := newTestRouter()
 		c := echoRouter.NewContext(req, rec)
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxAuthLoggedIn, true)))
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
 		if assert.NoError(t, web.UserController{}.Create()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
@@ -288,7 +288,7 @@ func TestUserController_Register(t *testing.T) {
 
 		echoRouter := newTestRouter()
 		c := echoRouter.NewContext(req, rec)
-		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxAuthLoggedIn, true)))
+		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
 		if assert.NoError(t, web.UserController{}.Register()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)

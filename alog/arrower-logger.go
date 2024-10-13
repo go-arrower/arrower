@@ -8,12 +8,13 @@ import (
 	"slices"
 	"time"
 
+	"github.com/go-arrower/arrower/contexts/auth"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
 	"github.com/go-arrower/arrower/setting"
 )
 
@@ -237,7 +238,7 @@ func (l *tracedHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	span := trace.SpanFromContext(ctx)
 
 	if l.UsesSettings() { //nolint:nestif // prefer all rules clearly visible at ones.
-		if userID, hasUser := ctx.Value(ctx2.CtxAuthUserID).(string); hasUser {
+		if userID, hasUser := ctx.Value(auth.CtxUserID).(string); hasUser {
 			val, err := l.settings.Setting(ctx, SettingLogUsers)
 			if err == nil {
 				var users []string

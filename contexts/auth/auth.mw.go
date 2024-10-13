@@ -15,10 +15,11 @@ import (
 var ErrInvalidSessionValue = errors.New("invalid session value")
 
 const (
-	CtxAuthLoggedIn                  ctx2.CTXKey = "auth.pass"
-	CtxAuthIsSuperuser               ctx2.CTXKey = "auth.superuser"
-	CtxAuthIsSuperuserLoggedInAsUser ctx2.CTXKey = "auth.superuser_logged_in_as_user"
-	// CtxAuthUserID                 arrower.CTXKey = "auth.user_id", see arrower/comtext.go.
+	CtxLoggedIn                  ctx2.CTXKey = "auth.pass"
+	CtxIsSuperuser               ctx2.CTXKey = "auth.superuser"
+	CtxIsSuperuserLoggedInAsUser ctx2.CTXKey = "auth.superuser_logged_in_as_user"
+	CtxUserID                    ctx2.CTXKey = "auth.user_id"
+	CtxUser                      ctx2.CTXKey = "auth.user"
 )
 
 const (
@@ -53,18 +54,18 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return fmt.Errorf("could not access user_logged_in: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthLoggedIn, lin)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxLoggedIn, lin)))
 
 			passed.loggedIn = lin
 		}
 
 		if sess.Values[SessKeyUserID] != nil {
-			uID, ok := sess.Values[SessKeyUserID].(string)
+			uID, ok := sess.Values[SessKeyUserID].(UserID)
 			if !ok {
 				return fmt.Errorf("could not access user_id: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), ctx2.CtxAuthUserID, uID)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxUserID, uID)))
 
 			passed.userID = true
 		}
@@ -98,18 +99,18 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return fmt.Errorf("could not access user_logged_in: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthLoggedIn, lin)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxLoggedIn, lin)))
 
 			passed.loggedIn = lin
 		}
 
 		if sess.Values[SessKeyUserID] != nil {
-			uID, ok := sess.Values[SessKeyUserID].(string)
+			uID, ok := sess.Values[SessKeyUserID].(UserID)
 			if !ok {
 				return fmt.Errorf("could not access user_id: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), ctx2.CtxAuthUserID, uID)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxUserID, uID)))
 
 			passed.userID = true
 		}
@@ -120,7 +121,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return fmt.Errorf("could not access user_is_superuser: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthIsSuperuser, su)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxIsSuperuser, su)))
 
 			passed.isSuperuser = su
 		}
@@ -149,28 +150,28 @@ func EnrichCtxWithUserInfoMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 				return fmt.Errorf("could not access user_logged_in: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthLoggedIn, lin)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxLoggedIn, lin)))
 		}
 
 		if sess.Values[SessKeyUserID] != nil {
-			uID, ok := sess.Values[SessKeyUserID].(string)
+			uID, ok := sess.Values[SessKeyUserID].(UserID)
 			if !ok {
 				return fmt.Errorf("could not access user_id: %w", ErrInvalidSessionValue)
 			}
 
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), ctx2.CtxAuthUserID, uID)))
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxUserID, uID)))
 		}
 
 		if sess.Values[SessKeyIsSuperuser] != nil {
 			su, ok := sess.Values[SessKeyIsSuperuser].(bool)
 			if ok {
-				c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthIsSuperuser, su)))
+				c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxIsSuperuser, su)))
 			}
 		}
 
 		if sess.Values[SessIsSuperuserLoggedInAsUser] != nil {
 			if _, ok := sess.Values[SessIsSuperuserLoggedInAsUser].(bool); ok {
-				c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxAuthIsSuperuserLoggedInAsUser, true)))
+				c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxIsSuperuserLoggedInAsUser, true)))
 			}
 		}
 
@@ -179,15 +180,23 @@ func EnrichCtxWithUserInfoMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func IsLoggedIn(ctx context.Context) bool {
-	if v, ok := ctx.Value(CtxAuthLoggedIn).(bool); ok {
+	if v, ok := ctx.Value(CtxLoggedIn).(bool); ok {
 		return v
 	}
 
 	return false
 }
 
-func CurrentUserID(ctx context.Context) string {
-	if v, ok := ctx.Value(ctx2.CtxAuthUserID).(string); ok {
+func CurrentUser(ctx context.Context) User {
+	if v, ok := ctx.Value(CtxUser).(User); ok {
+		return v
+	}
+
+	return User{}
+}
+
+func CurrentUserID(ctx context.Context) UserID {
+	if v, ok := ctx.Value(CtxUserID).(UserID); ok {
 		return v
 	}
 
@@ -195,7 +204,7 @@ func CurrentUserID(ctx context.Context) string {
 }
 
 func IsSuperuser(ctx context.Context) bool {
-	if v, ok := ctx.Value(CtxAuthIsSuperuser).(bool); ok {
+	if v, ok := ctx.Value(CtxIsSuperuser).(bool); ok {
 		return v
 	}
 
@@ -203,7 +212,7 @@ func IsSuperuser(ctx context.Context) bool {
 }
 
 func IsLoggedInAsOtherUser(ctx context.Context) bool {
-	if v, ok := ctx.Value(CtxAuthIsSuperuserLoggedInAsUser).(bool); ok {
+	if v, ok := ctx.Value(CtxIsSuperuserLoggedInAsUser).(bool); ok {
 		return v
 	}
 

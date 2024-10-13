@@ -98,6 +98,89 @@ func (a *TestAssertions[E, ID]) Total(total int, msgAndArgs ...any) bool {
 	return true
 }
 
+// TestTenant returns a MemoryTenantRepository tuned for unit testing.
+func TestTenant[tID id, E any, eID id](t *testing.T, repo TenantRepository[tID, E, eID]) *TestTenantRepository[tID, E, eID] {
+	if repo == nil {
+		repo = NewMemoryTenantRepository[tID, E, eID]()
+	}
+
+	return &TestTenantRepository[tID, E, eID]{
+		TenantRepository:     repo,
+		TestTenantAssertions: TestTenantAssert[tID, E, eID](t, repo),
+	}
+}
+
+// TestTenantRepository is a special TenantRepository for unit testing.
+// It exposes all methods of TenantRepository and can be injected as a dependency
+// in any application.
+// Additionally, TenantRepository exposes a set of assertions TestTenantAssertions
+// on all the entities stored in the repo.
+type TestTenantRepository[tID id, E any, eID id] struct {
+	TenantRepository[tID, E, eID]
+	*TestTenantAssertions[tID, E, eID]
+}
+
+// TestTenantAssert returns a Repository and TestTenantAssertions tuned for unit testing.
+func TestTenantAssert[tID id, E any, eID id](t *testing.T, repo TenantRepository[tID, E, eID]) *TestTenantAssertions[tID, E, eID] {
+	if t == nil {
+		panic("t is nil")
+	}
+
+	return &TestTenantAssertions[tID, E, eID]{
+		repo: repo,
+		t:    t,
+	}
+}
+
+// TestTenantAssertions are assertions that work on a TenantRepository, to make
+// testing easier and convenient.
+// The interface follows stretchr/testify as close as possible.
+//
+//   - Every assert func returns a bool indicating whether the assertion was successful or not,
+//     this is useful for if you want to go on making further assertions under certain conditions.
+type TestTenantAssertions[tID id, E any, eID id] struct {
+	repo TenantRepository[tID, E, eID]
+	t    *testing.T
+}
+
+// Empty asserts that the repository has no entities stored.
+func (a *TestTenantAssertions[tID, E, eID]) Empty(msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	if c, _ := a.repo.Count(ctx); c != 0 {
+		return assert.Fail(a.t, "repository is not empty, has "+strconv.Itoa(c)+" entities", msgAndArgs...)
+	}
+
+	return true
+}
+
+// NotEmpty asserts that the repository has at least one entity stored.
+func (a *TestTenantAssertions[tID, E, eID]) NotEmpty(msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	if c, _ := a.repo.Count(ctx); c == 0 {
+		return assert.Fail(a.t, "repository is empty, should not be ", msgAndArgs...)
+	}
+
+	return true
+}
+
+// Total asserts that the repository has exactly total number of entities.
+func (a *TestTenantAssertions[tID, E, eID]) Total(total int, msgAndArgs ...any) bool {
+	a.t.Helper()
+
+	count, err := a.repo.Count(context.Background())
+	if err != nil {
+		return assert.Fail(a.t, "can not get count of repository: "+err.Error(), msgAndArgs...)
+	}
+
+	if count != total {
+		return assert.Fail(a.t, fmt.Sprintf("repository does not have %d entities, it has: %d", total, count), msgAndArgs...)
+	}
+
+	return true
+}
+
 // TestSuite is a suite that ensures a Repository implementation
 // adheres to the intended behaviour.
 //

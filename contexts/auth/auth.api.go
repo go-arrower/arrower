@@ -39,10 +39,13 @@ const (
 const (
 	// TenantIDKey is set in echo.Context to hand over the id from a middleware to a controller.
 	TenantIDKey = "auth.tenant_id"
+	UserIDKey   = "auth.user_id"
 )
 
+type UserID string
+
 type User struct { //nolint:govet // fieldalignment less important than grouping of fields.
-	ID    string
+	ID    UserID
 	Login string // UserName
 
 	FirstName         string
@@ -64,8 +67,8 @@ type User struct { //nolint:govet // fieldalignment less important than grouping
 
 type APIKey struct{}
 
-// see CurrentUserID.
-func UserID(ctx context.Context) string { return "" } // or just ID()
+//see CurrentUserID.
+//func UserID(ctx context.Context) string { return "" } // or just ID()
 
 func UserFromContext(ctx context.Context) User { // or just User()
 	return User{}
