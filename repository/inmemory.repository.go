@@ -53,7 +53,7 @@ func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] 
 		currentIntID: *new(ID),
 		repoConfig: repoConfig{
 			idFieldName: "ID",
-			store:       noopStore{},
+			store:       NoopStore{},
 			filename:    defaultFileName(new(E)),
 		},
 	}

@@ -24,7 +24,7 @@ func NewMemoryTenantRepository[tID id, E any, eID id](
 		Data:  make(map[tID]map[eID]E),
 		repoConfig: repoConfig{
 			idFieldName: "ID",
-			store:       noopStore{},
+			store:       NoopStore{},
 			filename:    defaultFileName(new(E)),
 		},
 	}

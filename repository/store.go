@@ -14,14 +14,14 @@ type Store interface {
 	Load(fileName string, data any) error
 }
 
-var _ Store = (*noopStore)(nil)
+var _ Store = (*NoopStore)(nil)
 
-type noopStore struct{}
+type NoopStore struct{}
 
-func (n noopStore) Store(_ string, _ any) error {
+func (n NoopStore) Store(_ string, _ any) error {
 	return nil
 }
 
-func (n noopStore) Load(_ string, _ any) error {
+func (n NoopStore) Load(_ string, _ any) error {
 	return nil
 }
