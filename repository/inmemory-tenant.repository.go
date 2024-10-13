@@ -98,6 +98,15 @@ func (repo *MemoryTenantRepository[tid, E, eID]) NextID(ctx context.Context) (eI
 
 		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Int()
 
+		// if the value is zero it might be the first call to NextID().
+		// previous calls to other methods e.g. when seeding the repo with Create()
+		// do not increment the counter. In this case set it to the amount of entities.
+		if currentIDValue == 0 {
+			for _, tenant := range repo.Data {
+				currentIDValue += int64(len(tenant))
+			}
+		}
+
 		// increment the ID: the value is stored in the repo, but it cannot be accessed because
 		// the generic does not know which type it is, so that is why reflection is used.
 		newID := currentIDValue + 1
@@ -109,6 +118,15 @@ func (repo *MemoryTenantRepository[tid, E, eID]) NextID(ctx context.Context) (eI
 		defer repo.Mutex.Unlock()
 
 		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Uint()
+
+		// if the value is zero it might be the first call to NextID().
+		// previous calls to other methods e.g. when seeding the repo with Create()
+		// do not increment the counter. In this case set it to the amount of entities.
+		if currentIDValue == 0 {
+			for _, tenant := range repo.Data {
+				currentIDValue += uint64(len(tenant))
+			}
+		}
 
 		// increment the ID: the value is stored in the repo, but it cannot be accessed because
 		// the generic does not know which type it is, so that is why reflection is used.
