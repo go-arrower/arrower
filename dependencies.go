@@ -17,13 +17,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/go-arrower/arrower/alog"
-	"github.com/go-arrower/arrower/contexts/auth"
-	"github.com/go-arrower/arrower/jobs"
-	"github.com/go-arrower/arrower/postgres"
-	"github.com/go-arrower/arrower/renderer"
-	"github.com/go-arrower/arrower/secret"
-	"github.com/go-arrower/arrower/setting"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -40,6 +33,14 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+
+	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/jobs"
+	"github.com/go-arrower/arrower/postgres"
+	"github.com/go-arrower/arrower/renderer"
+	"github.com/go-arrower/arrower/secret"
+	"github.com/go-arrower/arrower/setting"
 )
 
 var ErrMissingDependency = errors.New("missing dependency")
@@ -68,6 +69,7 @@ type Container struct {
 	Settings setting.Settings
 
 	// auth & admin Contexts
+	AuthContext auth.API
 
 	metricsEndpoint *http.Server
 }
