@@ -9,7 +9,10 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
+	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,10 +33,24 @@ var (
 	singletonPostgres *PostgresDocker
 )
 
+// PostgresOpt allows to initialise a custom postgres connection.
+type PostgresOpt func(logger *postgres.Config)
+
+// WithMigrations applies all migrations in path.
+func WithMigrations(dir string) PostgresOpt {
+	if dir == "" {
+		dir = "shared/infrastructure/postgres" // arrower default location
+	}
+
+	return func(c *postgres.Config) {
+		c.Migrations = os.DirFS(path.Join(getProjectRoot(), dir))
+	}
+}
+
 // GetPostgresDockerForIntegrationTestingInstance returns a fully connected handler.
 // Subsequent calls return the same handler to prevent multiple docker containers to spin up,
 // if you have a lot of integration tests running in parallel.
-func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
+func GetPostgresDockerForIntegrationTestingInstance(opts ...PostgresOpt) *PostgresDocker {
 	var (
 		pgHandler *postgres.Handler
 
@@ -41,6 +58,10 @@ func GetPostgresDockerForIntegrationTestingInstance() *PostgresDocker {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 			conf := defaultPGConf
 			conf.Port = port
+
+			for _, opt := range opts {
+				opt(&conf)
+			}
 
 			return func() error {
 				handler, err := postgres.ConnectAndMigrate(context.Background(), conf, noop.NewTracerProvider())
@@ -184,6 +205,7 @@ func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
 // - All tables will be truncated
 // - All fixture files are allied
 // - If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
+// TODO: automatically search for files in two locations: given one and if not exist with auto prefix: testdata/fixtures/
 func (pd *PostgresDocker) PrepareDatabase(files ...string) {
 	{ // truncate all tables
 		c := pd.pg.Config
@@ -280,4 +302,18 @@ func randomDatabaseName() string {
 	}
 
 	return string(b) + "_test"
+}
+
+// Go tests are called from the path of the calling test's package.
+// This changes the current directory of each test and will
+// make it hard to find relative test data.
+// This helper will find the files independent of the caller's path,
+// starting from the project root.
+func getProjectRoot() string {
+	cmdOut, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.TrimSpace(string(cmdOut)) + "/"
 }
