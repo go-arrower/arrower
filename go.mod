@@ -13,7 +13,7 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.3
 	github.com/go-echarts/go-echarts/v2 v2.4.0
 	github.com/go-playground/validator/v10 v10.21.0
-	github.com/go-testfixtures/testfixtures/v3 v3.11.0
+	github.com/go-testfixtures/testfixtures/v3 v3.12.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/securecookie v1.1.2
@@ -56,7 +56,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/ClickHouse/ch-go v0.61.5 // indirect
-	github.com/ClickHouse/clickhouse-go/v2 v2.24.0 // indirect
+	github.com/ClickHouse/clickhouse-go/v2 v2.26.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
