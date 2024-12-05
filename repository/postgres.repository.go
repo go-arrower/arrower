@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -508,7 +509,7 @@ func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, 
 		pgx:        repo.pgx,
 		ctx:        ctx,
 		tx:         nil,
-		table:      repo.table,
+		sql:        "SELECT * FROM " + repo.table,
 		cursorOpen: false,
 	}
 }
@@ -518,7 +519,7 @@ func (repo *PostgresRepository[E, ID]) FindAllIter(ctx context.Context) Iterator
 		pgx:        repo.pgx,
 		ctx:        ctx,
 		tx:         nil,
-		table:      repo.table,
+		sql:        "SELECT * FROM " + repo.table,
 		cursorOpen: false,
 	}
 }
@@ -528,11 +529,15 @@ type PostgresIterator[E any, ID id] struct {
 	ctx context.Context
 	tx  pgx.Tx
 
-	table      string
+	sql        string
 	cursorOpen bool
 }
 
 func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
+	return i.nextBatchValue()
+}
+
+func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error) bool) {
 	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
 	// todo check, if the cursor needs to be named different, if the transaction is already different
 
@@ -540,7 +545,77 @@ func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
 		tx, _ := i.pgx.Begin(i.ctx)
 		i.tx = tx
 
-		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR SELECT * FROM "+i.table+";")
+		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
+		// todo err check
+
+		i.cursorOpen = true
+	}
+
+	quit := make(chan struct{}, 2) // cap 2, so regular and error branches can terminate the go routine without blocking
+
+	ch := make(chan E, 1000)
+	var fetchErr atomic.Value
+
+	go func() {
+		var entities = make([]E, 1000)
+
+		for {
+			select { // prevent go routine leak
+			case <-quit:
+				close(ch)
+				return
+			default:
+			}
+
+			err := pgxscan.Select(i.ctx, i.tx, &entities, "FETCH FORWARD 1000 FROM "+cursorName+";")
+			if err != nil {
+				fetchErr.Store(err)
+				break
+			}
+
+			if len(entities) == 0 {
+				break
+			}
+
+			for i := range entities {
+				ch <- entities[i]
+			}
+		}
+
+		close(ch)
+	}()
+
+	return func(yield func(e E, err error) bool) {
+		var err error
+		for e := range ch {
+			if fe := fetchErr.Load(); fe != nil {
+				err = fe.(error)
+			}
+
+			if !yield(e, err) {
+				quit <- struct{}{}
+
+				return
+			}
+		}
+
+		_, _ = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
+
+		_ = i.tx.Commit(i.ctx)
+
+		quit <- struct{}{}
+	}
+}
+
+func (i PostgresIterator[E, ID]) nextSingleValue() func(yield func(e E, err error) bool) {
+	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
+	// todo check, if the cursor needs to be named different, if the transaction is already different
+
+	if !i.cursorOpen {
+		tx, _ := i.pgx.Begin(i.ctx)
+		i.tx = tx
+
+		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
 		// todo err check
 
 		i.cursorOpen = true
