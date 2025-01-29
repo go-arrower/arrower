@@ -507,7 +507,7 @@ func TestRenderer_Render(t *testing.T) {
 		})
 	})
 
-	//t.Run("no base", func(t *testing.T) {
+	// t.Run("no base", func(t *testing.T) {
 	//	t.Parallel()
 	//
 	//	render, err := renderer.New(nil, nil, fstest.MapFS{
@@ -519,7 +519,7 @@ func TestRenderer_Render(t *testing.T) {
 	//	err = render.Render(ctx, buf, "", "p0", nil)
 	//	assert.NoError(t, err)
 	//	assert.Contains(t, buf.String(), "p0")
-	//})
+	// })
 }
 
 func TestRenderer_AddContext(t *testing.T) {
@@ -562,6 +562,22 @@ func TestRenderer_AddContext(t *testing.T) {
 
 		err := r.AddContext(testdata.ExampleContext, nil)
 		assert.ErrorIs(t, err, renderer.ErrContextNotAdded)
+	})
+
+	t.Run("custom context layout", func(t *testing.T) {
+		t.Parallel()
+
+		render, _ := renderer.New(nil, nil, testdata.SharedViews, template.FuncMap{}, false)
+
+		err := render.AddContext(testdata.ExampleContext, testdata.ContextViews)
+		assert.NoError(t, err)
+
+		buf := &bytes.Buffer{}
+		err = render.Render(ctx, buf, testdata.ExampleContext, "default=>other=>p0", nil)
+		assert.NoError(t, err)
+
+		assert.Contains(t, buf.String(), testdata.P0ContextContent)
+		assert.Contains(t, buf.String(), testdata.ContextLayoutContent)
 	})
 }
 
@@ -754,6 +770,19 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		err = render.AddLayoutData(testdata.ExampleContext, "", func(_ context.Context) (map[string]any, error) {
+			return map[string]any{
+				"LayoutHeader": "layoutHeader",
+			}, nil
+		})
+		assert.NoError(t, err)
+
+		err = render.AddLayoutData(testdata.ExampleContext, "other", func(_ context.Context) (map[string]any, error) {
+			return map[string]any{
+				"layoutTitle": "layoutTitle",
+			}, nil
+		})
+		assert.NoError(t, err)
+		err = render.AddLayoutData(testdata.ExampleContext, "other", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
 				"LayoutHeader": "layoutHeader",
 			}, nil

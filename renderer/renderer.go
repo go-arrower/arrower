@@ -238,7 +238,7 @@ func (r *Renderer) getParsedTemplate(context string, templateName string) (parse
 	parsedTempl.context = contextName
 	parsedTempl.renderAsAdminPage = isAdmin
 
-	if isContext {
+	if isContext && parsedTempl.contextLayout == "" {
 		parsedTempl.contextLayout = r.views[contextName].defaultLayout
 	}
 
@@ -383,7 +383,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 
 	logger.LogAttrs(context.TODO(), alog.LevelDebug,
 		"loaded pages",
-		//slog.Int("page_count", len(pageTemplates)),
+		// slog.Int("page_count", len(pageTemplates)),
 		slog.Int("page_count", len(rawPages)),
 		slog.Any("page_templates", rawTemplateNames(rawPages)),
 	)
