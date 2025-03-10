@@ -1,6 +1,7 @@
 package arrower
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -64,8 +65,9 @@ type (
 	}
 )
 
-// DefaultViper returns a new viper instance with all default values set.
-func DefaultViper() *viper.Viper {
+// DefaultViper returns a new viper instance with all default values
+// from Config set.
+func DefaultViper() *Viper {
 	vip := viper.New()
 
 	vip.SetDefault("organisation_name", "")
@@ -91,10 +93,77 @@ func DefaultViper() *viper.Viper {
 	vip.SetDefault("otel.port", 4317)
 	vip.SetDefault("otel.hostname", "")
 
-	return vip
+	return &Viper{Viper: vip}
 }
 
-func AllowedEnvironmentHookFunc() mapstructure.DecodeHookFuncType {
+var errConfigLoadFailed = errors.New("loading configuration failed")
+
+// Viper is a wrapper around viper.Viper for configuration loading.
+// The only purpose is to overwrite the Unmarshal method,
+// so that secret.Secret data type is automatically marshalled and the
+// developer does not have to think about it when using DefaultViper.
+type Viper struct {
+	*viper.Viper
+}
+
+func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error {
+	err := vip.Viper.Unmarshal(rawVal, viper.DecodeHook(allowedEnvironmentHookFunc()))
+	if err != nil {
+		return fmt.Errorf("%w: could not decode configuration into struct: %v", errConfigLoadFailed, err)
+	}
+
+	// Arrower config uses secret.Secret to mask information e.g. in logs.
+	// The data type has to be manually unmarshalled.
+	var (
+		isEmbeddedConfig bool
+		embeddedFieldNum int
+	)
+
+	config, ok := rawVal.(*Config)
+	if !ok {
+		f := reflect.Indirect(reflect.ValueOf(rawVal))
+
+		for i := range f.NumField() {
+			v := f.Field(i)
+
+			switch v.Kind() {
+			case reflect.Struct:
+				conf, ok := f.Field(i).Interface().(Config)
+				if !ok {
+					continue
+				}
+
+				config = &conf
+				isEmbeddedConfig = true
+				embeddedFieldNum = i
+			default:
+			}
+		}
+	}
+
+	if config == nil {
+		return fmt.Errorf("%w: could not cast to arrower.Config", errConfigLoadFailed)
+	}
+
+	err = vip.Viper.UnmarshalKey("http.cookie_secret", &config.HTTP.CookieSecret, viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()))
+	if err != nil {
+		return fmt.Errorf("%w: could not decode secret: %v", errConfigLoadFailed, err)
+	}
+
+	err = vip.Viper.UnmarshalKey("postgres.password", &config.Postgres.Password, viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()))
+	if err != nil {
+		return fmt.Errorf("%w: could not decode secret: %v", errConfigLoadFailed, err)
+	}
+
+	if isEmbeddedConfig {
+		f := reflect.Indirect(reflect.ValueOf(rawVal))
+		f.Field(embeddedFieldNum).Set(reflect.ValueOf(*config))
+	}
+
+	return nil
+}
+
+func allowedEnvironmentHookFunc() mapstructure.DecodeHookFuncType {
 	return func(_ reflect.Type, t reflect.Type, data any) (interface{}, error) {
 		if t != reflect.TypeOf(Environment("")) {
 			return data, nil

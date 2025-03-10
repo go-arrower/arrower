@@ -1,3 +1,6 @@
 environment: test
 http:
   port: 0002
+  cookie_secret: my-cookie-secret
+postgres:
+  password: my-db-secret

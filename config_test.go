@@ -3,13 +3,11 @@ package arrower_test
 import (
 	"testing"
 
-	"github.com/spf13/viper"
-
 	"github.com/go-arrower/arrower"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDefaultConfig(t *testing.T) {
+func TestDefaultViper(t *testing.T) {
 	t.Parallel()
 
 	vip := arrower.DefaultViper()
@@ -42,20 +40,20 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, "", vip.GetString("otel.hostname"))
 }
 
-func TestAllowedEnvironmentHookFunc(t *testing.T) {
+func TestDefaultViper_CustomTypes(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid environment", func(t *testing.T) {
 		t.Parallel()
 
-		vip := viper.New()
+		vip := arrower.DefaultViper()
 		vip.SetConfigFile("./testdata/config/invalid-config.yaml")
 		err := vip.ReadInConfig()
 		assert.NoError(t, err)
 
 		conf := arrower.Config{}
 
-		err = vip.Unmarshal(&conf, viper.DecodeHook(arrower.AllowedEnvironmentHookFunc()))
+		err = vip.Unmarshal(&conf)
 		assert.Error(t, err, "should fail when using unsupported enum values")
 		assert.Contains(t, err.Error(), "use one of: ", "error message should list out all accepted environments")
 	})
@@ -63,15 +61,52 @@ func TestAllowedEnvironmentHookFunc(t *testing.T) {
 	t.Run("valid environment", func(t *testing.T) {
 		t.Parallel()
 
-		vip := viper.New()
+		vip := arrower.DefaultViper()
 		vip.SetConfigFile("./testdata/config/test-config.yaml")
 		err := vip.ReadInConfig()
 		assert.NoError(t, err)
 
 		conf := arrower.Config{}
 
-		err = vip.Unmarshal(&conf, viper.DecodeHook(arrower.AllowedEnvironmentHookFunc()))
+		err = vip.Unmarshal(&conf)
 		assert.NoError(t, err)
 		assert.Equal(t, arrower.TestEnv, conf.Environment)
+	})
+
+	t.Run("unmarshal arrower secret", func(t *testing.T) {
+		t.Parallel()
+
+		vip := arrower.DefaultViper()
+		vip.SetConfigFile("./testdata/config/test-config.yaml")
+		err := vip.ReadInConfig()
+		assert.NoError(t, err)
+
+		conf := arrower.Config{}
+
+		err = vip.Unmarshal(&conf)
+		assert.NoError(t, err)
+		assert.Equal(t, "my-cookie-secret", conf.HTTP.CookieSecret.Secret())
+		assert.Equal(t, "my-db-secret", conf.Postgres.Password.Secret())
+	})
+
+	t.Run("custom config", func(t *testing.T) {
+		t.Parallel()
+
+		type MyConfig struct {
+			SomeStructField struct{ A string }
+			arrower.Config  `mapstructure:",squash"`
+		}
+
+		vip := arrower.DefaultViper()
+		vip.SetConfigFile("./testdata/config/test-config.yaml")
+		err := vip.ReadInConfig()
+		assert.NoError(t, err)
+
+		conf := MyConfig{}
+
+		err = vip.Unmarshal(&conf)
+		assert.NoError(t, err)
+		assert.Equal(t, "my-cookie-secret", conf.HTTP.CookieSecret.Secret())
+		assert.Equal(t, "my-db-secret", conf.Postgres.Password.Secret())
 	})
 }
