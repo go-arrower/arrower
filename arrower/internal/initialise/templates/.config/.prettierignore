@@ -1,0 +1,7 @@
+# arrower application files
+../public/*
+
+
+# Ignore artifacts:
+../build
+../coverage

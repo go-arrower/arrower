@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "{{ .Name }}",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "SSLMode": "prefer",
+      "Username": "{{ .NameSmall }}",
+      "PassFile": "/.pgpass",
+      "MaintenanceDB": "postgres"
+    }
+  }
+}

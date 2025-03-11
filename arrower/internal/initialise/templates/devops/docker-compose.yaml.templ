@@ -1,0 +1,109 @@
+name: {{ .NameSmall }}
+
+services:
+  # direct dependencies
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: {{ .NameSmall }}
+      POSTGRES_PASSWORD: secret
+      # set the locale, see: https://stackoverflow.com/a/28406007
+      LANG: en_US.UTF-8
+      LANGUAGE: en_US:en
+      LC_ALL: en_US.UTF-8
+      # set the timezone, see: https://stackoverflow.com/a/51697579
+      TZ: "UTC"
+      PGTZ: "UTC" # timezone to set (for the client) after connecting (to the server)
+
+  # observability
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--enable-feature=exemplar-storage" # to link from metrics to traces via OpenMetrics
+    # enable prometheus to access host, so it can scape locally running applications (your application)
+    # see: https://stackoverflow.com/a/68106309
+    extra_hosts:
+      host.docker.internal: host-gateway
+
+  tempo:
+    image: grafana/tempo:latest
+    ports:
+      - "4317:4317" # otlp grpc
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp
+    command:
+      - "-config.file=/etc/tempo.yaml"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: root@localhost.tld
+      GF_SECURITY_ADMIN_PASSWORD: secret
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+      - postgres
+
+  # development helper services
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "8081:80"
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json # load preconfigured server connection
+      - ./pgadmin/pgpass:/tmp/.pgpass
+      - pgadmin-data:/var/lib/pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@localhost.tld
+      PGADMIN_DEFAULT_PASSWORD: secret
+      PGADMIN_DISABLE_POSTFIX: false
+    # automatic login via pass-file, see: https://github.com/pgadmin-org/pgadmin4/issues/6741#issuecomment-1722212595
+    entrypoint: >
+      /bin/sh -c "
+      mkdir -p /var/lib/pgadmin/storage/root_localhost.tld/;
+      cp /tmp/.pgpass /var/lib/pgadmin/storage/root_localhost.tld/.pgpass;
+      chown pgadmin:root /var/lib/pgadmin/storage/root_localhost.tld/.pgpass;
+      chmod 600 /var/lib/pgadmin/storage/root_localhost.tld/.pgpass;
+      rm /tmp/.pgpass;
+      /entrypoint.sh
+      "
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-data:
+  pgadmin-data:
+  loki-data:
+  prometheus-data:
+  tempo-data:
+  grafana-data:

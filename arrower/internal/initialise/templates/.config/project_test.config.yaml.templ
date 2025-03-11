@@ -1,0 +1,24 @@
+organisation_name:
+application_name:
+instance_name:
+
+environment: test
+
+http:
+  port: 9191
+  cookie_secret: secret
+  status_endpoint_enabled: true
+  status_endpoint_port: 2224
+postgres:
+  user: {{ .NameSmall }}
+  password: secret
+  database: {{ .NameSmall }}_test
+  host: localhost
+  port: 5432
+  sslmode: disable
+  max_conns: 10
+
+otel:
+  host: localhost
+  port: 4318
+  hostname:

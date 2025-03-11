@@ -1,0 +1,363 @@
+run:
+  build-tags:
+    - integration
+
+linters-settings:
+  exhaustive:
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: true
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # The default order of sections is `standard > default > custom > blank > dot`,
+    # If `custom-order` is `true`, it follows the order of `sections` option.
+    # Default: ["standard", "default"]
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix({{ .ProjectPath }}) # Custom section: groups all imports with the specified Prefix.
+      - blank # Blank section: contains all blank imports. This section is not present unless explicitly enabled.
+      - dot # Dot section: contains all dot imports. This section is not present unless explicitly enabled.
+  gocognit:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 20
+  gocyclo:
+    # Minimal code complexity to report.
+    # Default: 30 (but we recommend 10-20)
+    min-complexity: 10
+  goimports:
+    # A comma-separated list of prefixes, which, if set, checks import paths
+    # with the given prefixes are grouped after 3rd-party packages.
+    # Default: ""
+    local-prefixes: {{ .ProjectPath }}
+  govet:
+    # Enable all analyzers.
+    # Default: false
+    enable-all: true
+    # Disable analyzers by name.
+    # (in addition to default
+    #   atomicalign, deepequalerrors, fieldalignment, findcall, nilness, reflectvaluecompare, shadow, sortslice,
+    #   timeformat, unusedwrite
+    # ).
+    # Run `go tool vet help` to see all analyzers.
+    # Default: []
+    disable:
+      - fieldalignment # Prefer easier readability to optimal memory layout
+  misspell:
+    locale: UK
+  mnd:
+    # List of file patterns to exclude from analysis.
+    # Values always ignored: `.+_test.go`
+    # Default: []
+    ignored-files:
+      - testing.go # ignore public test suites like for setting.Settings interface
+  nlreturn:
+    # Size of the block (including return statement that is still "OK")
+    # so no return split required.
+    # Default: 1
+    block-size: 2
+  testifylint:
+    # Enable all checkers (https://github.com/Antonboom/testifylint#checkers).
+    # Default: false
+    enable-all: true
+    # Disable checkers by name
+    # (in addition to default
+    #   suite-thelper
+    # ).
+    disable:
+      - require-error # the idea is great to prevent assertions to fail after an error is already asserted. I don't like the use of multiple keywords: assert and require at the same time and like to keep it simple and consistent => use assert
+  varnamelen:
+    # The longest distance, in source lines, that is being considered a "small scope".
+    # Variables used in at most this many lines will be ignored.
+    # Default: 5
+    max-distance: 6
+    # The minimum length of a variable's name that is considered "long".
+    # Variable names that are at least this long will be ignored.
+    # Default: 3
+    min-name-length: 2
+    # Optional list of variable declarations that should be ignored completely.
+    # Entries must be in one of the following forms (see below for examples):
+    # - for variables, parameters, named return values, method receivers, or type parameters:
+    #   <name> <type>  (<type> can also be a pointer/slice/map/chan/...)
+    # - for constants: const <name>
+    #
+    # Default: []
+    ignore-decls:
+      - c echo.Context
+      - w io.Writer
+      - i int
+  wrapcheck:
+    # An array of strings that specify substrings of signatures to ignore.
+    # If this set, it will override the default set of ignored signatures.
+    # See https://github.com/tomarrell/wrapcheck#configuration for more information.
+    # Default: [".Errorf(", "errors.New(", "errors.Unwrap(", "errors.Join(", ".Wrap(", ".Wrapf(", ".WithMessage(", ".WithMessagef(", ".WithStack("]
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+      - .NoContent( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .Redirect( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .Render( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .String( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+      - .JSON( # echo handlerFuncs are expected to return an error, ignore the linter to not interfere with fp in the recommended pattern
+
+linters:
+  # Disable all linters.
+  # Default: false
+  disable-all: true
+  # Explicitly enable a linter, to prevent new versions of golangci-lint to suddenly fail the build.
+  # To keep the maintenance of this list simple, it lists all linters in the same order as: https://golangci-lint.run/usage/linters/
+  # Disabled linters are commented out instead of removed, to aid that comparison.
+  # Last comparison with: 1.50.1
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    #- deadcode # deprecated
+    - decorder
+    #- depguard # linter provides no value to current state of the project
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - err113
+    - errchkjson
+    - errname
+    - errorlint
+    # - execinquery # deprecated / archived
+    - exhaustive
+    #- exhaustivestruct # deprecated
+    - exhaustruct
+    #- exportloopref # since Go1.22 (loopvar) this linter is no longer relevant
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    #- goerr113 # renamed to: err113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    #- golint # deprecated
+    #- gomnd # renamed & replaced by: mnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    #- ifshort # deprecated
+    - importas
+    - inamedparam
+    - interfacebloat
+    #- interfacer # deprecated
+    - intrange
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    #- maligned # deprecated
+    - mirror
+    - misspell
+    - mnd
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    #- nosnakecase # deprecated
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - revive
+    - rowserrcheck
+    #- scopelint # deprecated
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    #- structcheck # deprecated
+    - stylecheck
+    - tagalign
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - testifylint
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    #- varcheck # deprecated
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl
+    - zerologlint
+
+issues:
+  exclude-rules:
+    #
+    # Exclude Arrower specific best practises
+    #
+
+    # Allow for dependency setup to be less rigid, as code is expected to still be clear to read
+    - path: "contexts/(.*)/init/(.*).go|shared/init/(.*).go"
+      linters:
+        - funlen
+
+    # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
+    - path: "contexts/(.*)/init/(.*).go|shared/init/(.*).go"
+      linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments"
+
+    # Allow setting keys to be global variables, so they can be setup by a context init and used everywhere
+    - path: "contexts/(.*).api.go|shared/init/(.*).go"
+      linters:
+        - gochecknoglobals
+      text: "Setting" # If settings key is prefixed e.g. auth.SettingAllowRegistration
+
+    # Don't force package name_test for files dedicated to white-box testing by their file name
+    - path: _wb_test.go
+      linters:
+        - testpackage
+
+    # Prevent external errors to become part of the package API
+    # At least one error needs to be wrapped, then other errors don't have to
+    # See: https://github.com/polyfloyd/go-errorlint/issues/68
+    - linters:
+        - errorlint
+      source: ".*%w.*: %v"
+
+    # The function Test(t *testing.T) in testing.go is a constructor for test helpers, not a test itself
+    # Thus it is not treated as a normal test function and the caller decides if it is a parallel test or not
+    - path: testing.go
+      linters:
+        - paralleltest
+      text: "Function Test missing the call to method parallel"
+
+    # Allow patterns that are considered best practices for Corba CLI applications
+    - path: cmd
+      linters:
+        - gochecknoglobals # Allow globals, as cobra encourages their use in the official docs
+        - exhaustruct # Allow the command to not use all configurations options & hooks cobra offers
+        - forbidigo # Allow the use of fmt.Print* statements, as a cli outputs textual content
+        - testpackage # Allow white box testing for individual cobra commands, as they should not be public
+        - funlen # Allow a longer Run(), as they might contain verbose but harmless dependency setup
+
+    # Allow the use of zero structs. It is assumed that this is a conscious decision to do so
+    - linters:
+        - exhaustruct
+      source: "{}"
+
+    #
+    # Exclude issues from test files
+    #
+    - path: _test.go|testing.go
+      linters:
+        - gochecknoglobals # Allow globals so testdata & integration helpers can be made available in a convenient way
+        - funlen # Allow test functions of any length
+        - exhaustruct # Don't force complete struct initialisation to keep test cases simpler to read
+        - lll # Mostly because of lengthy msgAndArgs params in assertions
+        - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
+        - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
+
+    # Partly exclude wsl when testing, to keep tests easier to read.
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "expressions should not be cuddled with declarations or returns" # good for code; makes tests to convoluted, see: https://github.com/bombsimon/wsl/blob/master/doc/rules.md#expressions-should-not-be-cuddled-with-declarations-or-returns"
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "declarations should never be cuddled" # combining wait.Group calls to loop where they are used"
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "go statements can only invoke functions assigned on line above" # combining wait.Group calls to go routines where they are used"
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "for statements should only be cuddled with assignments used in the iteration" # combining wait.Group calls to loop where they are used"
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments" # makes setup of variables easier to group and see what belongs together"
+    - path: _test.go|testing.go
+      linters:
+        - wsl
+      text: "only cuddled expressions if assigning variable or using from line above" # makes setup and shutdown steps easier to group together"
+
+    #
+    # General rules
+    #
+
+    # Exclude lll issues for long lines with go:generate
+    - linters:
+        - lll
+      source: "^//go:generate "
+
+    # Fix: paralleltest still reporting loop var sharing on Go 1.22, see: https://gist.github.com/kunwardeep/80c2e9f3d3256c894898bae82d9f75d0
+    - linters:
+        - paralleltest
+      text: "does not reinitialise the variable"
+
+    # FP: slog.Leveler is how the standard library spells the interface.
+    - linters:
+        - misspell
+      text: "Leveler"
+
+  # Which files to exclude: they will be analyzed, but issues from them won't be reported.
+  # There is no need to include all autogenerated files,
+  # we confidently recognize autogenerated files.
+  # If it's not, please let us know.
+  # "/" will be replaced by current OS file path separator to properly work on Windows.
+  # Default: []
+  exclude-files: []

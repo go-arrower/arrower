@@ -101,7 +101,7 @@ func New() (*Container, error) {
 			Port:     4317,
 			Hostname: "www.servername.tld",
 		},
-	}, nil, nil)
+	}, nil, nil, nil)
 }
 
 func (c *Container) EnsureAllDependenciesPresent() error {
@@ -112,7 +112,7 @@ func (c *Container) EnsureAllDependenciesPresent() error {
 	return nil
 }
 
-func InitialiseDefaultDependencies(ctx context.Context, conf *Config, publicAssets fs.FS, sharedViews fs.FS) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
+func InitialiseDefaultDependencies(ctx context.Context, conf *Config, migrations fs.FS, publicAssets fs.FS, sharedViews fs.FS) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
 	dc := &Container{ //nolint:exhaustruct
 		Config: conf,
 	}
@@ -187,6 +187,11 @@ func InitialiseDefaultDependencies(ctx context.Context, conf *Config, publicAsse
 
 	{ // postgres
 		if conf.Postgres != (Postgres{}) {
+			mf := migrations
+			if mf == nil {
+				mf = postgres.ArrowerDefaultMigrations
+			}
+
 			pg, err := postgres.ConnectAndMigrate(ctx, postgres.Config{
 				User:       conf.Postgres.User,
 				Password:   conf.Postgres.Password.Secret(),
@@ -195,7 +200,7 @@ func InitialiseDefaultDependencies(ctx context.Context, conf *Config, publicAsse
 				Port:       conf.Postgres.Port,
 				SSLMode:    conf.Postgres.SSLMode,
 				MaxConns:   conf.Postgres.MaxConns,
-				Migrations: postgres.ArrowerDefaultMigrations,
+				Migrations: mf,
 			}, dc.TraceProvider)
 			if err != nil {
 				return nil, fmt.Errorf("could not connect to postgres: %w", err)

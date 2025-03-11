@@ -1,0 +1,56 @@
+package config
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/go-arrower/arrower"
+	"github.com/spf13/viper"
+)
+
+type Config struct {
+	arrower.Config `mapstructure:",squash"`
+}
+
+var errConfigLoadFailed = errors.New("loading configuration failed")
+
+// Load returns a fully initialised Config ready to use in the application.
+// The precedence order: defaults, config file, environment variables.
+// If no config file is given, it is search for in the directories: .config and .
+func Load(cfgFile string) (*Config, error) {
+	vip := arrower.DefaultViper()
+
+	// Priority 2: default values
+	vip.SetDefault("", nil)
+
+	// Priority 1: config file values
+	if cfgFile != "" {
+		vip.SetConfigFile(cfgFile) // use file from cli flag
+	} else { // search file
+		vip.AddConfigPath(".config")
+		vip.AddConfigPath(".")
+		vip.SetConfigName("{{ .NameSmall }}.config")
+	}
+
+	if err := vip.ReadInConfig(); err != nil {
+		if !errors.As(err, &viper.ConfigFileNotFoundError{}) {
+			return nil, fmt.Errorf("%w: could not read file: %v", errConfigLoadFailed, err)
+		}
+	}
+
+	// Priority 0: environment variables values
+	vip.SetEnvPrefix("{{ .NameCaps }}")
+	vip.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	vip.AllowEmptyEnv(true)
+	vip.AutomaticEnv()
+
+	config := Config{}
+
+	err := vip.Unmarshal(&config)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not decode configuration: %v", errConfigLoadFailed, err)
+	}
+
+	return &config, nil
+}

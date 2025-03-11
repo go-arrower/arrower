@@ -1,0 +1,23 @@
+package cmd
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/go-arrower/arrower/cmd"
+)
+
+var cfgFile string
+
+func Execute() {
+	ctx := context.Background()
+
+	rootCmd := {{ .NameSmall }}Cmd(ctx)
+	rootCmd.AddCommand(cmd.Version("{{ .Name }}"))
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}

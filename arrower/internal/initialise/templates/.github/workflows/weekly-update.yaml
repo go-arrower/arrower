@@ -1,0 +1,41 @@
+name: Weekly Dependency Update
+
+on:
+  schedule:
+    - cron: "0 17 * * 5" # every Friday afternoon # because * is a special character in YAML => quote schedule
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          check-latest: true
+      - run: go version
+      - run: node --version
+      - run: npm --version
+
+      - name: Update all dependencies
+        run: make dev-update
+
+      - name: Get week
+        id: week
+        run: echo "WEEK=$(date +%V)" >> "$GITHUB_OUTPUT"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ "{{" }} secrets.PAT {{ "}}" }}
+          commit-message: "chore: automatic weekly update: #${{ "{{" }} steps.week.outputs.WEEK {{ "}}" }}"
+          branch: chore/weekly-update-$\{\{ steps.week.outputs.WEEK \}\}
+          delete-branch: true
+          title: "Weekly update: #${{ "{{" }} steps.week.outputs.WEEK {{ "}}" }}"
+          body: |
+            An automatic update to keep your dependencies fresh:
+            - `make dev-update`
+            - Auto-generated

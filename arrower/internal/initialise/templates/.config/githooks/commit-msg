@@ -1,0 +1,23 @@
+#!/bin/bash
+
+
+### ### ###
+### Ensure the commit message follows the semantic commit pattern
+### ### ###
+
+# See: https://www.conventionalcommits.org/en/v1.0.0/
+# See: https://github.com/joaobsjunior/sh-conventional-commits
+
+valid_msg_regex="^((Merge[ a-z-]* branch.*)|(Revert*)|((build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.*\))?!?: .*))"
+
+file=$(cat "$1") # File containing the commit message
+
+
+if ! [[ $file =~ $valid_msg_regex ]]; then
+  echo "CONVENTION VIOLATION: Commit messages must adhere to semantic commits: \`<type>(<scope>): <subject>\`"
+  echo "Change your message and try again."
+  exit 1
+fi
+
+
+exit 0

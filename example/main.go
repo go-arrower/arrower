@@ -93,7 +93,6 @@ func main() {
 	//
 	// shutdown app
 	// todo implement graceful shutdown ect
-	_ = shutdown(ctx)
 	_ = authContext.Shutdown(ctx)
 	_ = adminContext.Shutdown(ctx)
 }

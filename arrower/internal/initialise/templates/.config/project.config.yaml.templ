@@ -1,0 +1,75 @@
+################################################################################
+# Main configuration file
+#
+# Comments:   Use '#' to comment single lines as well as inline
+# Line length: Limit lines to 80 characters to have them readable in a terminal
+#
+# Changes:    Customise the settings with the fitting credentials for your
+#             environment.
+#             The default values are set by arrower/viper
+#             Change credential before deployment!
+#
+# Structure:  Sections separate important groupings of configurations together
+################################################################################
+
+# Set the app name
+#             This is used in many areas of the application
+organisation_name:
+application_name:
+instance_name:
+
+# Set the app environment
+#             This will affect different behaviour of the app, like initialising
+#             dependencies depending on the environment.
+# Values:     [ local | dev | test | prod ]
+# Default:    local
+environment: local
+
+################################################################################
+# General dependencies shared by every context and managed by the central DI
+#
+################################################################################
+
+http:
+  # Set the HTTP port
+  #           Exposes all HTTP routes of all contexts
+  # Default:  8080
+  port: 8080
+  # Default   secret
+  cookie_secret: secret
+  # Enable the status endpoint
+  #           Exposes metrics and status information
+  # Default   true
+  status_endpoint_enabled: true
+  # Default   2223
+  status_endpoint_port: 2223
+
+# Connect to PostgreSQL database
+#             Stores the application data for each service
+postgres:
+  # Default   arrower
+  user: {{ .NameSmall }}
+  # Default   secret
+  password: secret
+  # Default   arrower
+  database: {{ .NameSmall }}
+  # Default   localhost
+  host: localhost
+  # Default   5432
+  port: 5432
+  # Values    [ disable | allow | prefer | require | verify-ca | verify-full ]
+  #           See: https://www.postgresql.org/docs/current/libpq-ssl.html
+  # Default   disable
+  sslmode: disable
+  # Default   10
+  max_conns: 10
+
+# Connect to open telemetry
+#             Ships traces to tempo
+otel:
+  # Default   localhost
+  host: localhost
+  # Default   4317
+  port: 4317
+  # Default   <empty>
+  hostname:

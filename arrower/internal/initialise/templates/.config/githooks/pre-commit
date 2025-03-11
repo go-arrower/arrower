@@ -1,0 +1,38 @@
+#!/bin/bash
+
+
+### ### ###
+### Ensure the branch name is allowed
+### ### ###
+
+# See: https://itnext.io/using-git-hooks-to-enforce-branch-naming-policy-ffd81fa01e5e
+
+valid_branch_regex="^(master)|((feat|fix|hotfix|chore|improvement|library|prerelease|release)\/[a-z0-9._-]+)$"
+
+local_branch="$(git rev-parse --abbrev-ref HEAD)"
+
+
+if ! [[ $local_branch =~ $valid_branch_regex ]]; then
+  echo "CONVENTION VIOLATION: Branch names must adhere to this contract: \`$valid_branch_regex\`"
+  echo "Rename your branch to a valid name and try again: \`git branch -m <newname>\`"
+  exit 1
+fi
+
+
+
+
+### ### ###
+### Ensure all public css assets are minified
+### ### ###
+
+for FILE in $(git diff --cached --name-only | grep -se public/css) ;  do
+  if [[ "$(grep -c -v awk "$FILE")" != "1" ]]; then
+    echo "WARNING: At least one css files looks like it is not minified yet"
+    echo "Run \`make generate\` or bypass this warning with \`git commit --no-verify\`"
+    echo "$FILE"
+    exit 1
+  fi
+done
+
+
+exit 0

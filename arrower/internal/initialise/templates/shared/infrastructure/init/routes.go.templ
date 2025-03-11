@@ -1,0 +1,7 @@
+package init
+
+func (c *Container) routes() {
+	router := c.WebRouter.Group("")
+
+	router.GET("/", c.{{ .NameSmall }}Controller.Index())
+}

@@ -1,0 +1,14 @@
+{
+  "plugins": ["prettier-plugin-go-template", "prettier-plugin-tailwindcss"],
+  "overrides": [
+    {
+      "files": ["*.js"]
+    },
+    {
+      "files": ["*.html"],
+      "options": {
+        "parser": "go-template"
+      }
+    }
+  ]
+}

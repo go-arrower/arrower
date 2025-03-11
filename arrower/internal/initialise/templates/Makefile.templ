@@ -1,0 +1,161 @@
+.PHONY: help
+help: ## Display this help screen
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+
+
+
+.PHONY: generate
+generate: ## Generate all code to run the application
+	go generate ./...
+	gofumpt -w -l .
+	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --write
+	npx tailwindcss -c .config/tailwind.config.js -i ./shared/views/input.css -o ./public/css/main.css --minify
+
+.PHONY: static-check
+# `make static-check` 		fast checks only
+# `make static-check all=`	all checks
+static-check: ## Run static code checks
+	go-cleanarch -ignore-tests
+	golangci-lint run -c .config/golangci.yaml --timeout 5m
+	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --check
+	npx eslint -c .config/eslint.config.js .
+	shellcheck .config/githooks/*
+	find . -type f -name "*.sh" -not -path "./node_modules/*" -exec "shellcheck" {} \;
+	@if [ "$(CI)" = "true" ] || [ "$(all)" != "disabled" ]; then\
+		govulncheck ./...;\
+		npm audit;\
+	fi
+
+.PHONY: test
+test: all=true
+test: generate static-check test-integration ## Run all tests
+	go tool cover -func out/cover.out | grep total:
+	@if [ "$(CI)" != "true" ]; then\
+		go tool cover -html=out/cover.out -o out/cover.html; xdg-open out/cover.html;\
+		go-cover-treemap -coverprofile out/cover.out > out/cover.svg; firefox out/cover.svg; #xdg-open out/cover.svg might start gimp or similar\
+	fi
+
+
+.PHONY: test-unit
+test-unit:
+	go test -race -v ./... -coverprofile out/cover.out
+
+.PHONY: test-integration
+test-integration:
+	go test -race --tags="integration" -v ./... -coverprofile out/cover.out
+
+.PHONY: test-e2e
+test-e2e: ## Run end to end tests
+	@#prepare dependencies
+	docker-compose -f devops/docker-compose.yaml up -d postgres
+	docker exec -ti {{ .NameSmall }}-postgres-1 psql -c "create database {{ .NameSmall }}_test;" -U {{ .NameSmall }} || true
+
+	@# start the server
+	@$$(E2E_TEST=TRUE go run main.go --config=.config/{{ .NameSmall }}_test.config.yaml > ./out/e2e-logs.txt 2>&1) &
+
+	@# waiting server to be ready to accept connections
+	@until curl --output /dev/null --silent --fail http://localhost:9191 ; do \
+  		echo "Wait until GO server started..." ;\
+        sleep 1 ; \
+	done
+
+	@# if case of a failure the make target continues to run and cleans up (kill server process)
+	@if npx cypress run --project tests/e2e --config baseUrl=http://localhost:9191 --env statusUrl=http://localhost:2224; then echo ""; fi
+
+	@# cleanup
+	@kill $$(ps -ef | grep "{{ .NameSmall }}_test.config.yaml" | grep -v grep | awk '{print $$2}')
+	@echo "View the application logs: cat out/e2e-logs.txt	"
+
+
+.PHONY: dev-tools
+dev-tools: ## Initialise this machine with development tools & dependencies
+	@mkdir -p out
+	@# install development dependencies
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	go install github.com/go-arrower/arrower/arrower@latest
+	go install github.com/nikolaydubina/go-cover-treemap@latest
+
+	go install mvdan.cc/gofumpt@latest
+	go install github.com/roblaszczak/go-cleanarch@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.60.3
+
+	@# download project dependencies
+	go mod download
+	npm ci
+	$(MAKE) dev-vendor-js
+
+	@# enable git hooks
+	git config --global core.hooksPath .config/githooks
+
+	@#install shellcheck, or give the developer a promt to install it manually
+	@if [ "$(CI)" = "true" ]; then\
+		sudo apt-get update && sudo apt-get install -y shellcheck;\
+	fi
+	@type shellcheck > /dev/null 2>&1 || (echo "Manually install shellcheck, see: https://github.com/koalaman/shellcheck?tab=readme-ov-file#installing"; exit 1)
+
+
+.PHONY: dev-update
+dev-update: ## Update all dependencies
+	go get -t -u ./...
+	go mod tidy
+
+	npm update
+	@# npm outdated
+	@# htmx.org released version 2.x but has the latest tag still on v1. Ones the tag is changed remove awk
+	@# https://stackoverflow.com/a/25374510
+	npm outdated | awk '$$2!=$$3'
+	$(MAKE) dev-vendor-js
+
+.PHONY: dev-vendor-js
+dev-vendor-js:
+	cp node_modules/htmx.org/dist/htmx.min.js public/js/modules/
+
+
+
+
+.PHONY: run
+run: ## Run the app locally
+	arrower run
+
+.PHONY: build
+build: generate
+	@# go build -ldflags="-help" ./main.go
+	@# -s disable symbol table
+	@# -w disable DWARF generation
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o out/{{ .NameSmall }}
+
+.PHONY: clean
+# `make clean` 		removes build artefacts
+# `make clean all=`	removes additional artefacts
+clean:
+	rm -rf out/
+	go clean -i
+	rm -rf tests/e2e/cypress/{screenshots,videos,downloads}
+	@if [ "$(all)" != "disabled" ]; then\
+		golangci-lint cache clean;\
+		go clean -cache -testcache -modcache -fuzzcache;\
+		rm -rf node_modules/;\
+		cypress cache clear;\
+		docker system prune;\
+		echo "All dependencies removed. Rebuild them.";\
+	fi
+
+.PHONY: dev-db
+dev-db: ## Connect to the local database inside the running docker container
+	PGPASSWORD=secret psql -U {{ .NameSmall }} -d {{ .NameSmall }} -h localhost
+
+
+
+
+# all is a variable indicating if really every steps of a target should be run.
+# Make does not support cli flags, to get as close to a cli flag as possible,
+# the following pattern is used:
+# The target can be called with any value:
+# - make clean all=
+# - make clean all=1
+# - make clean all=true
+# Instead of checking for a specific value the target checks that the variable
+# does not have a the default value `disabled` - which means it is enabled.
+all = disabled

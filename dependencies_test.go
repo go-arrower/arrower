@@ -17,7 +17,7 @@ func TestInitialiseDefaultDependencies(t *testing.T) {
 	t.Run("empty config", func(t *testing.T) {
 		t.Parallel()
 
-		app, err := arrower.InitialiseDefaultDependencies(ctx, &arrower.Config{}, nil, nil)
+		app, err := arrower.InitialiseDefaultDependencies(ctx, &arrower.Config{}, nil, nil, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, app)
 		assert.Nil(t, app.PGx)

@@ -1,0 +1,40 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - "dependabot/**" # dependabot creates a PR which runs the pipeline => prevent a second run on commit
+      - "chore/weekly-update-*" # weekly-update.yaml creates a PR which runs the pipeline => prevent a second run on commit
+
+jobs:
+  ci:
+    strategy:
+      matrix:
+        go: [1.23.x]
+        node: [22.x]
+    runs-on: ubuntu-latest
+    services:
+      dind:
+        image: docker:23.0-rc-dind-rootless
+        ports:
+          - 2375:2375
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ "{{" }} matrix.go {{ "}}" }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ "{{" }} matrix.node {{ "}}" }}
+      - run: go version
+      - run: node --version
+      - run: npm --version
+
+      - name: Install Dependencies & Tools
+        run: make dev-tools
+      - name: Lint & Test the Application
+        run: make test
+
+      - name: E2E Testing
+        run: make test-e2e

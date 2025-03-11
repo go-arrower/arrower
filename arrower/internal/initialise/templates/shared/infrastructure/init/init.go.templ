@@ -1,0 +1,49 @@
+package init
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/go-arrower/arrower"
+
+	"{{ .ProjectPath }}/public"
+	"{{ .ProjectPath }}/shared/infrastructure/config"
+	"{{ .ProjectPath }}/shared/infrastructure/postgres"
+	"{{ .ProjectPath }}/shared/interfaces/web"
+	"{{ .ProjectPath }}/shared/views"
+)
+
+// Container holds shared dependencies that can be used within each Context.
+// The Context can operate with the shared resources.
+// Otherwise, the Context is advised to initialise its own dependencies from its own configuration.
+type Container struct {
+	*arrower.Container
+
+	{{ .NameSmall }}Controller *web.{{ .Name }}Controller
+}
+
+func SharedDependencies(ctx context.Context, cfgFile string) (*Container, error) {
+	conf, err := config.Load(cfgFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not initialise dependencies: %w", err)
+	}
+
+	dc, err := arrower.InitialiseDefaultDependencies(
+		ctx, &conf.Config,
+		postgres.Migrations,
+		public.Assets,
+		views.SharedViews,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("could not initialise dependencies: %w", err)
+	}
+
+	container := &Container{
+		Container:          dc,
+		{{ .NameSmall }}Controller: web.New{{ .Name }}Controller(),
+	}
+
+	container.routes()
+
+	return container, nil
+}

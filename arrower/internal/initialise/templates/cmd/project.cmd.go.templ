@@ -1,0 +1,73 @@
+package cmd
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/spf13/cobra"
+
+	initShared "{{ .ProjectPath }}/shared/infrastructure/init"
+)
+
+func {{ .NameSmall }}Cmd(ctx context.Context) *cobra.Command {
+	signalsToListenTo := []os.Signal{
+		syscall.SIGINT,                   // Strg + c
+		syscall.SIGTERM, syscall.SIGQUIT, // terminate but finish/cleanup first, e.g. kill
+		os.Interrupt,
+	}
+
+	cmd := &cobra.Command{
+		Use: "{{ .NameSmall }}",
+		Run: func(cmd *cobra.Command, _ []string) {
+			ctx, cancel := signal.NotifyContext(ctx, signalsToListenTo...) //nolint:govet,lll // shadow is intended, so this ctx becomes the "main" ctx for the rest of the command
+
+			dc, err := initShared.SharedDependencies(ctx, cfgFile)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			dc.RootCmd = cmd
+
+			go func() {
+				dc.Logger.InfoContext(ctx, "Starting server", slog.Int("port", dc.Config.HTTP.Port))
+
+				if svrErr := dc.Start(ctx); svrErr != nil && !errors.Is(svrErr, http.ErrServerClosed) {
+					panic(svrErr)
+				}
+			}()
+
+			// wait until shutdown is called
+			<-ctx.Done()
+			cancel()
+
+			fmt.Fprint(cmd.OutOrStdout(), "\r") // prevent `^C` in output, aligns (structured log) lines in terminal.
+			dc.Logger.InfoContext(ctx, "Shutting down")
+
+			const shutdownTimeout = 5 * time.Second
+			timeoutCtx, cancel := noInheritTimeout(ctx, shutdownTimeout)
+			defer cancel()
+
+			err = dc.Shutdown(timeoutCtx)
+			if err != nil {
+				dc.Logger.InfoContext(ctx, "server shutdown exceeded timeout", slog.Duration("timeout", shutdownTimeout))
+			}
+		},
+	}
+
+	cmd.Flags().StringVarP(&cfgFile, "config", "c", "", "config file (default is .config/{{ .NameSmall }}.config.yaml")
+
+	return cmd
+}
+
+// recommended pattern, see: https://github.com/kkHAIKE/contextcheck/issues/2
+func noInheritTimeout(_ context.Context, duration time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), duration)
+}

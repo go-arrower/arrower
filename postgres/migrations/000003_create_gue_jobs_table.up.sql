@@ -35,9 +35,6 @@ CREATE TABLE IF NOT EXISTS arrower.gueron_meta
 SELECT enable_automatic_updated_at('arrower.gueron_meta');
 
 
-SELECT cron.schedule('arrower:jobs:nightly-vacuum', '0 1 * * *', 'VACUUM arrower.gue_jobs');
-
-
 -- collect historic gue_jobs for analytics, as the workers remove them from gue_jobs table after success.
 CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
 (
@@ -73,8 +70,6 @@ CREATE UNLOGGED TABLE IF NOT EXISTS arrower.gue_jobs_worker_pool
 
 SELECT enable_automatic_updated_at('arrower.gue_jobs_worker_pool');
 
-SELECT cron.schedule('arrower:jobs:nightly-worker-clean', '0 2 * * *',
-                     $$DELETE FROM arrower.gue_jobs_worker_pool WHERE updated_at < now() - interval '1 week'$$);
 
 CREATE UNLOGGED TABLE IF NOT EXISTS arrower.gue_jobs_schedule
 (
