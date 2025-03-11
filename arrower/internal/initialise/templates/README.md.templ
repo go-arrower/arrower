@@ -29,7 +29,7 @@ migrate -database ${POSTGRESQL_URL} -path shared/infrastructure/postgres/migrati
 
 ## E2E tests
 
-E2E tests are done with Cypress. To start the development environment run:
+E2E tests are done with Cypress. To start the development environment run:\
 `npx cypress open --e2e --browser /usr/bin/chromium --project tests/e2e`
 
 Use the target `make test-e2e` to execute the tests.
