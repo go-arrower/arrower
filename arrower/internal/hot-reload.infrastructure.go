@@ -34,7 +34,7 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 	router.Logger.SetOutput(io.Discard)
 
 	logger := alog.New(
-		//alog.WithLevel(alog.LevelDebug),
+		// alog.WithLevel(alog.LevelDebug),
 		alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: alog.MapLogLevelsToName})),
 	)
 

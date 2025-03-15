@@ -113,6 +113,7 @@ func newInitCommand() *cobra.Command {
 			copy("public/icons/favicon.ico")
 
 			addFile("public/manifest.json.templ", data)
+			copy("public/assets.go")
 
 			os.MkdirAll("shared/views/pages", 0o755)
 			addFile("shared/views/pages/home.html.templ", data)
@@ -211,5 +212,5 @@ func copy(src string) error {
 		return err
 	}
 
-	return os.WriteFile(path.Join(".", src), source, 0644)
+	return os.WriteFile(path.Join(".", src), source, 0o644)
 }
