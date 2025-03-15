@@ -16,7 +16,7 @@ generate: ## Generate all code to run the application
 # `make static-check` 		fast checks only
 # `make static-check all=`	all checks
 static-check: ## Run static code checks
-	go-cleanarch -ignore-tests
+	go-cleanarch -ignore-tests -ignore-package=github.com/go-arrower/arrower/app
 	golangci-lint run -c .config/golangci.yaml --timeout 5m
 	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --check
 	npx eslint -c .config/eslint.config.js .
