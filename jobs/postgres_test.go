@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,6 +21,7 @@ import (
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -382,7 +381,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Wait()                          // all workers are done, and now:
-		time.Sleep(100 * time.Millisecond) // wait until gue finishes with the underlying transaction
+		time.Sleep(200 * time.Millisecond) // wait until gue finishes with the underlying transaction
 
 		ensureJobTableRows(t, pg, 0+1)      // all Jobs are processed and cron jobs are left
 		ensureJobHistoryTableRows(t, pg, 4) // history has all Jobs

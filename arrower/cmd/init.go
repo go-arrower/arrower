@@ -95,6 +95,8 @@ func newInitCommand() *cobra.Command {
 			copy("shared/infrastructure/postgres/migrations/000003_create_gue_jobs_table.up.sql")
 			copy("shared/infrastructure/postgres/migrations/000004_create_log.down.sql")
 			copy("shared/infrastructure/postgres/migrations/000004_create_log.up.sql")
+			copy("shared/infrastructure/postgres/migrations/000005_create_setting.down.sql")
+			copy("shared/infrastructure/postgres/migrations/000005_create_setting.up.sql")
 
 			os.MkdirAll("shared/domain", 0o755)
 			os.MkdirAll("shared/application", 0o755)

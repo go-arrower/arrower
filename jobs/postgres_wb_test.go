@@ -21,13 +21,13 @@ func TestGetJobTypeFromType(t *testing.T) {
 		"normal base path": {
 			reflect.TypeOf(simpleJob{}),
 			"github.com/go-arrower/arrower",
-			"jobs.simpleJob",
+			"arrower/jobs.simpleJob",
 			"github.com/go-arrower/arrower/jobs.simpleJob",
 		},
 		"base path ending /": {
 			reflect.TypeOf(simpleJob{}),
 			"github.com/go-arrower/arrower/",
-			"jobs.simpleJob",
+			"arrower/jobs.simpleJob",
 			"github.com/go-arrower/arrower/jobs.simpleJob",
 		},
 		"job struct from other module": {
@@ -39,7 +39,7 @@ func TestGetJobTypeFromType(t *testing.T) {
 		"no base path": {
 			reflect.TypeOf(simpleJob{}),
 			"",
-			"github.com/go-arrower/arrower/jobs.simpleJob",
+			"arrower/jobs.simpleJob",
 			"github.com/go-arrower/arrower/jobs.simpleJob",
 		},
 		"custom overwrite": {

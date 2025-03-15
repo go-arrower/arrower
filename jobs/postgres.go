@@ -920,7 +920,7 @@ func connOrTX(ctx context.Context, queries *models.Queries) *models.Queries {
 // will become: auth/application.NewUserVerificationEmail.
 func getJobTypeFromType(job reflect.Type, basePath string) (string, string, error) {
 	fullPath := job.PkgPath() + "." + job.Name()
-	arrowerFreefullPath := strings.TrimPrefix(fullPath, "github.com/go-arrower/arrower/")
+	arrowerFreefullPath := strings.TrimPrefix(fullPath, "github.com/go-arrower/")
 
 	jobType := strings.TrimPrefix(arrowerFreefullPath, strings.TrimSuffix(basePath, "/")+"/")
 	jobType = strings.TrimPrefix(jobType, "contexts/")
