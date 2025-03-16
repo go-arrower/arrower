@@ -81,9 +81,9 @@ func newInitCommand() *cobra.Command {
 			os.MkdirAll("shared/infrastructure/config", 0o755)
 			addFile("shared/infrastructure/config/config.go.templ", data)
 
-			os.MkdirAll("shared/infrastructure/init", 0o755)
-			addFile("shared/infrastructure/init/init.go.templ", data)
-			addFile("shared/infrastructure/init/routes.go.templ", data)
+			os.MkdirAll("shared/init", 0o755)
+			addFile("shared/init/init.go.templ", data)
+			addFile("shared/init/routes.go.templ", data)
 
 			os.MkdirAll("shared/infrastructure/postgres/migrations", 0o755)
 			copy("shared/infrastructure/postgres/migrations.go")
