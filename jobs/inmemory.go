@@ -82,7 +82,6 @@ func (q *MemoryQueue) Schedule(spec string, job Job) error {
 	_, err = q.cron.AddFunc(spec, func() {
 		q.mu.Lock()
 		defer q.mu.Unlock()
-
 		q.jobs = append(q.jobs, job)
 	})
 	if err != nil {
@@ -129,13 +128,13 @@ func (q *MemoryQueue) start(ctx context.Context) {
 }
 
 func (q *MemoryQueue) runWorkers(ctx context.Context) {
-	const tickerDuration = 10 * time.Millisecond
+	const tickerDuration = 100 * time.Millisecond
 	interval := time.NewTicker(tickerDuration)
 
 	for {
 		select {
 		case <-interval.C:
-			q.processFirstJob()
+			go q.processFirstJob()
 		case <-ctx.Done(): // stop workers
 			return
 		}
@@ -160,6 +159,8 @@ func (q *MemoryQueue) processFirstJob() {
 		return
 	}
 
+	q.mu.Unlock() // free the queue while this jobs processes
+
 	// call the JobFunc
 	fn := reflect.ValueOf(workerFn)
 	vals := fn.Call([]reflect.Value{
@@ -169,6 +170,8 @@ func (q *MemoryQueue) processFirstJob() {
 
 	// if JobFunc returned an error, put the job back on the queue.
 	if len(vals) > 0 {
+		q.mu.Lock()
+
 		if jobErr, ok := vals[0].Interface().(error); ok && jobErr != nil {
 			q.jobs = append(q.jobs, job)
 		}

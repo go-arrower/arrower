@@ -11,9 +11,11 @@ func getSystemStatus(di *Container, serverStartedAt time.Time) interface{} {
 
 	dbOnline := "online"
 
-	err := di.PGx.Ping(context.Background())
-	if err != nil {
-		dbOnline = fmt.Errorf("err: %w", err).Error()
+	if di.PGx != nil {
+		err := di.PGx.Ping(context.Background())
+		if err != nil {
+			dbOnline = fmt.Errorf("err: %w", err).Error()
+		}
 	}
 
 	statusData := map[string]any{
