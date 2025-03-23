@@ -56,6 +56,14 @@ func NumFields(t *testing.T, expected int, object any, msgAndArgs ...any) bool {
 }
 
 func getNumFields(elem reflect.Value) int {
+	if elem.Kind() == reflect.Uint ||
+		elem.Kind() == reflect.Uint8 ||
+		elem.Kind() == reflect.Uint16 ||
+		elem.Kind() == reflect.Uint32 ||
+		elem.Kind() == reflect.Uint64 {
+		return 0
+	}
+
 	if elem.Kind() == reflect.Ptr {
 		if elem.Elem().Kind() != reflect.Struct {
 			return 0
@@ -84,8 +92,18 @@ func getNumFields(elem reflect.Value) int {
 				fields += getNumFields(v)
 			case reflect.Map:
 				m := reflect.MakeMapWithSize(field.Type(), 1)
-				m.SetMapIndex(reflect.ValueOf(0), reflect.New(field.Type().Elem()).Elem())
-				v := m.MapIndex(reflect.ValueOf(0))
+				v := reflect.Value{}
+
+				fmt.Println(field.Type().Elem().Kind())
+				if field.Type().Kind() == reflect.Map && field.Type().Elem().Kind() == reflect.String {
+					m.SetMapIndex(reflect.ValueOf(""), reflect.New(field.Type().Elem()).Elem())
+					v = m.MapIndex(reflect.ValueOf(""))
+
+					continue
+				} else {
+					m.SetMapIndex(reflect.ValueOf(0), reflect.New(field.Type().Elem()).Elem())
+					v = m.MapIndex(reflect.ValueOf(0))
+				}
 
 				fields += getNumFields(v)
 			default:

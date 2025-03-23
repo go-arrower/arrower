@@ -1,6 +1,7 @@
 package aassert_test
 
 import (
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,19 +17,21 @@ func TestNumFields(t *testing.T) {
 		n    int
 		pass bool
 	}{
-		"nil":             {nil, 0, false},
-		"bool":            {false, 0, false},
-		"int":             {0, 0, false},
-		"string":          {"", 0, false},
-		"slice":           {[]int{}, 0, false},
-		"map":             {[]map[int]int{}, 0, false},
-		"simple struct":   {StructA{}, 1, true},
-		"simple miscount": {StructA{}, 1337, false},
-		"ptr to struct":   {&StructA{}, 1, true},
-		"with slice":      {slice{}, 3, true},
-		"with map":        {dictionary{}, 3, true},
-		"complex struct":  {complexStruct{}, 13, true},
-		"complex nested":  {complexNested{}, 8, true},
+		"nil":                          {nil, 0, false},
+		"bool":                         {false, 0, false},
+		"int":                          {0, 0, false},
+		"string":                       {"", 0, false},
+		"slice":                        {[]int{}, 0, false},
+		"map":                          {[]map[int]int{}, 0, false},
+		"simple struct":                {StructA{}, 1, true},
+		"simple miscount":              {StructA{}, 1337, false},
+		"ptr to struct":                {&StructA{}, 1, true},
+		"with slice":                   {slice{}, 3, true},
+		"with map":                     {dictionary{}, 3, true},
+		"complex struct":               {complexStruct{}, 13, true},
+		"complex nested":               {complexNested{}, 8, true},
+		"regression map[string]string": {RegressionMapString{}, 1, true},
+		"regression net.IP":            {RegressionNetIP{}, 1, true},
 	}
 
 	for name, tt := range tests {
@@ -79,5 +82,11 @@ type (
 	StructA struct {
 		Str     string
 		private int //nolint:unused
+	}
+	RegressionMapString struct {
+		Data map[string]string
+	}
+	RegressionNetIP struct {
+		IP net.IP
 	}
 )
