@@ -5,7 +5,7 @@ services:
   postgres:
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -23,7 +23,7 @@ services:
   loki:
     image: grafana/loki:latest
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     volumes:
       - loki-data:/loki
     command:
@@ -32,7 +32,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
       - prometheus-data:/prometheus
@@ -51,7 +51,7 @@ services:
   tempo:
     image: grafana/tempo:latest
     ports:
-      - "4317:4317" # otlp grpc
+      - "127.0.0.1:4317:4317" # otlp grpc
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/tmp
@@ -61,7 +61,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./grafana/:/etc/grafana/provisioning/datasources
       - grafana-data:/var/lib/grafana
@@ -78,7 +78,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json # load preconfigured server connection
       - ./pgadmin/pgpass:/tmp/.pgpass
