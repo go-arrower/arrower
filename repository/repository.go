@@ -13,14 +13,14 @@ type id interface {
 // If not set, it is assumed that the entity struct has a field with the name "ID".
 func WithIDField(idFieldName string) Option {
 	return func(config *repoConfig) {
-		config.idFieldName = idFieldName
+		config.IDFieldName = idFieldName
 	}
 }
 
 type Option func(*repoConfig)
 
 type repoConfig struct {
-	idFieldName string
+	IDFieldName string
 	store       Store
 	filename    string
 }

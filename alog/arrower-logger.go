@@ -76,7 +76,7 @@ func NewDevelopment(pgx *pgxpool.Pool) *slog.Logger {
 	if pgx != nil {
 		config = append(config,
 			WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: batchSize, MaxTimeout: time.Second})),
-			//WithSettings(setting.NewPostgresSettings(pgx)) // FIXME with this active: jobs use the connection not tx: eventually this blocks (because connection limit reached?)
+			WithSettings(setting.NewPostgresSettings(pgx)),
 		)
 	}
 

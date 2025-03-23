@@ -37,7 +37,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
 	github.com/traefik/yaegi v0.16.1
-	github.com/vgarvardt/gue/v5 v5.7.1
+	github.com/vgarvardt/gue/v5 v5.6.2
 	github.com/vgarvardt/gueron/v2 v2.2.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.51.0
 	go.opentelemetry.io/otel v1.35.0

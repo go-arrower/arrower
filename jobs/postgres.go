@@ -618,7 +618,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 
 	// work jobs in goroutine
 	group.Go(func() error {
-		err := workers.Run(ctx)
+		err := workers.Run(gctx)
 		if err != nil {
 			return fmt.Errorf("gue worker failed: %w", err)
 		}
@@ -628,7 +628,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 
 	// start scheduler in goroutine
 	group.Go(func() error {
-		err := h.scheduler.Run(ctx, h.gueWorkMap, 0) // zero => use pool of queue above instead
+		err := h.scheduler.Run(gctx, h.gueWorkMap, 0) // zero => use pool of queue above instead
 		if err != nil {
 			return fmt.Errorf("gueron worker failed: %w", err)
 		}

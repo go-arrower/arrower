@@ -23,7 +23,7 @@ func NewMemoryTenantRepository[tID id, E any, eID id](
 		Mutex: &sync.Mutex{},
 		Data:  make(map[tID]map[eID]E),
 		repoConfig: repoConfig{
-			idFieldName: "ID",
+			IDFieldName: "ID",
 			store:       NoopStore{},
 			filename:    defaultFileName(new(E)),
 		},
@@ -65,9 +65,9 @@ func (repo *MemoryTenantRepository[tID, E, eID]) ensureTenantInitialised(id tID)
 func (repo *MemoryTenantRepository[tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(e)
 
-	idField := val.FieldByName(repo.idFieldName)
+	idField := val.FieldByName(repo.IDFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		panic("entity does not have the field with name: " + repo.idFieldName)
+		panic("entity does not have the field with name: " + repo.IDFieldName)
 	}
 
 	var id eID
