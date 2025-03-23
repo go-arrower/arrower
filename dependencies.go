@@ -132,10 +132,7 @@ func InitialiseDefaultDependencies(ctx context.Context, conf *Config, migrations
 		{ // traces
 			opts := []otlptracegrpc.Option{
 				otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%d", conf.OTEL.Host, conf.OTEL.Port)),
-			}
-
-			if conf.Environment == LocalEnv {
-				opts = append(opts, otlptracegrpc.WithInsecure())
+				otlptracegrpc.WithInsecure(),
 			}
 
 			if conf.Environment == TestEnv {
