@@ -19,7 +19,7 @@ func TestNewKey(t *testing.T) {
 		context string
 		group   string
 		setting string
-		expKey  string
+		expKey  setting.Key
 	}{
 		"empty": {
 			"",
@@ -81,7 +81,7 @@ func TestNewKey(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.expKey, setting.NewKey(tt.context, tt.group, tt.setting).Key())
+			assert.Equal(t, tt.expKey, setting.NewKey(tt.context, tt.group, tt.setting))
 		})
 	}
 }
@@ -576,8 +576,8 @@ func TestNewValue(t *testing.T) {
 			obj := someStruct{Field: "field"}
 			value := setting.NewValue(obj)
 
-			assert.Equal(t, `{"Field":"field"}`, value.MustString())
-			assert.Equal(t, []byte(`{"Field":"field"}`), value.MustByte())
+			assert.JSONEq(t, `{"Field":"field"}`, value.MustString())
+			assert.JSONEq(t, `{"Field":"field"}`, string(value.MustByte()))
 
 			assert.Panics(t, func() { value.MustBool() })
 
@@ -603,11 +603,11 @@ func TestNewValue(t *testing.T) {
 
 			var s string
 			value.MustUnmarshal(&s)
-			assert.Equal(t, `{"Field":"field"}`, s)
+			assert.JSONEq(t, `{"Field":"field"}`, s)
 
 			var buf bytes.Buffer
 			value.MustUnmarshal(&buf)
-			assert.Equal(t, `{"Field":"field"}`, s)
+			assert.JSONEq(t, `{"Field":"field"}`, s)
 
 			var o someStruct
 			value.MustUnmarshal(&o)
@@ -664,8 +664,8 @@ func TestNewValue(t *testing.T) {
 			}
 
 			value := setting.NewValue(mp)
-			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
-			assert.Equal(t, []byte(`{"key":{"0":{"Field":"field"}}}`), value.MustByte())
+			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, value.MustString())
+			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, string(value.MustByte()))
 
 			assert.Panics(t, func() { value.MustBool() })
 
@@ -691,7 +691,7 @@ func TestNewValue(t *testing.T) {
 
 			var s string
 			value.MustUnmarshal(&s)
-			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, s)
+			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, s)
 
 			var buf bytes.Buffer
 			value.MustUnmarshal(&buf)

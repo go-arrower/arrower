@@ -18,7 +18,7 @@ var (
 )
 
 type Settings interface {
-	Save(ctx context.Context, key Key, value Value) error
+	Save(ctx context.Context, key Key, value any) error
 
 	Setting(ctx context.Context, key Key) (Value, error)
 	// Settings returns a setting for each of the keys.
@@ -29,32 +29,24 @@ type Settings interface {
 }
 
 func NewKey(context string, group string, setting string) Key {
-	return Key{context: context, group: group, setting: setting}
-}
-
-type Key struct {
-	context string
-	group   string
-	setting string
-}
-
-func (k Key) Key() string {
 	parts := []string{"MISSING", "MISSING", "MISSING"}
 
-	if k.context != "" {
-		parts[0] = k.context
+	if context != "" {
+		parts[0] = context
 	}
 
-	if k.group != "" {
-		parts[1] = k.group
+	if group != "" {
+		parts[1] = group
 	}
 
-	if k.setting != "" {
-		parts[2] = k.setting
+	if setting != "" {
+		parts[2] = setting
 	}
 
-	return strings.Join(parts, ".")
+	return Key(strings.Join(parts, "."))
 }
+
+type Key string
 
 // NewValue returns a valid Value for val.
 func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
@@ -66,7 +58,7 @@ func NewValue(val any) Value { //nolint:gocyclo,cyclop,funlen,gocognit
 
 	switch r.Kind() {
 	case reflect.String:
-		if t, err := time.Parse(time.RFC3339Nano, val.(string)); err == nil {
+		if t, err := time.Parse(time.RFC3339Nano, val.(string)); err == nil { //nolint:forcetypeassert
 			return Value{
 				v:    fmt.Sprintf("%s%s%s", t.Format(time.RFC3339Nano), timeLocationSeparator, t.Location().String()),
 				kind: reflect.Struct,
@@ -282,7 +274,7 @@ func (v Value) Bool() (bool, error) {
 
 	b, err := strconv.ParseBool(v.v)
 	if err != nil {
-		return false, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return false, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return b, nil
@@ -308,7 +300,7 @@ func (v Value) Int() (int, error) {
 
 	i, err := strconv.Atoi(v.v)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return i, nil
@@ -334,7 +326,7 @@ func (v Value) Int8() (int8, error) {
 
 	i, err := strconv.ParseInt(v.v, 10, 8)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return int8(i), nil
@@ -360,7 +352,7 @@ func (v Value) Int16() (int16, error) {
 
 	i, err := strconv.ParseInt(v.v, 10, 16)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return int16(i), nil
@@ -386,7 +378,7 @@ func (v Value) Int32() (int32, error) {
 
 	i, err := strconv.ParseInt(v.v, 10, 32)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return int32(i), nil
@@ -412,7 +404,7 @@ func (v Value) Int64() (int64, error) {
 
 	i, err := strconv.Atoi(v.v)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return int64(i), nil
@@ -438,7 +430,7 @@ func (v Value) Uint() (uint, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 64)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return uint(i), nil
@@ -464,7 +456,7 @@ func (v Value) Uint8() (uint8, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 8)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return uint8(i), nil
@@ -490,7 +482,7 @@ func (v Value) Uint16() (uint16, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 16)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return uint16(i), nil
@@ -516,7 +508,7 @@ func (v Value) Uint32() (uint32, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 32)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return uint32(i), nil
@@ -542,7 +534,7 @@ func (v Value) Uint64() (uint64, error) {
 
 	i, err := strconv.ParseUint(v.v, base, 64)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return i, nil
@@ -568,7 +560,7 @@ func (v Value) Float32() (float32, error) {
 
 	i, err := strconv.ParseFloat(v.v, 32)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return float32(i), nil
@@ -594,7 +586,7 @@ func (v Value) Float64() (float64, error) {
 
 	i, err := strconv.ParseFloat(v.v, 64)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return 0, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return i, nil
@@ -662,7 +654,7 @@ func (v Value) Unmarshal(o any) error {
 		} else {
 			err := json.Unmarshal([]byte(v.v), o)
 			if err != nil {
-				return fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+				return fmt.Errorf("%w: %v", ErrInvalidValue, err)
 			}
 		}
 	default:
@@ -692,12 +684,12 @@ func (v Value) Time() (time.Time, error) {
 
 	loc, err := time.LoadLocation(tl[1])
 	if err != nil {
-		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	t, err := time.ParseInLocation(time.RFC3339Nano, tl[0], loc)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err) //nolint:errorlint // prevent err in api
+		return time.Time{}, fmt.Errorf("%w: %v", ErrInvalidValue, err)
 	}
 
 	return t, nil

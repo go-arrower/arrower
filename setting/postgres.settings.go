@@ -26,22 +26,30 @@ type PostgresSettings struct {
 	repo postgres.BaseRepository[*models.Queries]
 }
 
-func (s *PostgresSettings) Save(ctx context.Context, key Key, value Value) error {
+func (s *PostgresSettings) Save(ctx context.Context, key Key, value any) error {
+	var valParam string
+
+	if val, ok := value.(Value); ok {
+		valParam = val.Raw()
+	} else {
+		valParam = NewValue(value).Raw()
+	}
+
 	err := s.repo.TxOrConn(ctx).UpsertSetting(ctx, models.UpsertSettingParams{
-		Key:   key.Key(),
-		Value: value.Raw(),
+		Key:   string(key),
+		Value: valParam,
 	})
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrOperationFailed, err)
 	}
 
 	return nil
 }
 
 func (s *PostgresSettings) Setting(ctx context.Context, key Key) (Value, error) {
-	value, err := s.repo.TxOrConn(ctx).GetSetting(ctx, key.Key())
+	value, err := s.repo.TxOrConn(ctx).GetSetting(ctx, string(key))
 	if err != nil {
-		return NewValue(nil), fmt.Errorf("%w: %v", ErrNotFound, err) //nolint:errorlint // prevent err in api
+		return NewValue(nil), fmt.Errorf("%w: %v", ErrNotFound, err)
 	}
 
 	return NewValue(value), nil
@@ -50,12 +58,12 @@ func (s *PostgresSettings) Setting(ctx context.Context, key Key) (Value, error) 
 func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Value, error) {
 	compositeKeys := make([]string, len(keys)) // the database
 	for i, k := range keys {
-		compositeKeys[i] = k.Key()
+		compositeKeys[i] = string(k)
 	}
 
 	dbSettings, err := s.repo.TxOrConn(ctx).GetSettings(ctx, compositeKeys)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
+		return nil, fmt.Errorf("%w: %v", ErrOperationFailed, err)
 	}
 
 	settings := make(map[Key]Value)
@@ -74,9 +82,9 @@ func (s *PostgresSettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 }
 
 func (s *PostgresSettings) Delete(ctx context.Context, key Key) error {
-	err := s.repo.TxOrConn(ctx).DeleteSetting(ctx, key.Key())
+	err := s.repo.TxOrConn(ctx).DeleteSetting(ctx, string(key))
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrOperationFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrOperationFailed, err)
 	}
 
 	return nil

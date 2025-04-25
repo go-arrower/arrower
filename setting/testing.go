@@ -25,10 +25,10 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 	t.Run("Save", func(t *testing.T) {
 		t.Parallel()
 
-		settings := newSettings()
-
 		t.Run("save", func(t *testing.T) {
 			t.Parallel()
+
+			settings := newSettings()
 
 			err := settings.Save(ctx, key, value)
 			assert.NoError(t, err)
@@ -37,12 +37,14 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 		t.Run("update", func(t *testing.T) {
 			t.Parallel()
 
+			settings := newSettings()
+
 			err := settings.Save(ctx, key, value)
 			assert.NoError(t, err)
 
 			val, err := settings.Setting(ctx, key)
 			assert.NoError(t, err)
-			assert.Equal(t, "setting_value", val.MustString())
+			assert.Equal(t, value.MustString(), val.MustString())
 
 			err = settings.Save(ctx, key, NewValue("setting-update"))
 			assert.NoError(t, err)
@@ -50,6 +52,44 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 			val, err = settings.Setting(ctx, key)
 			assert.NoError(t, err)
 			assert.Equal(t, "setting-update", val.MustString())
+		})
+
+		t.Run("string key", func(t *testing.T) {
+			t.Parallel()
+
+			settings := newSettings()
+
+			err := settings.Save(ctx, "my_custom_key", value)
+			assert.NoError(t, err)
+
+			val, err := settings.Setting(ctx, "my_custom_key")
+			assert.NoError(t, err)
+			assert.Equal(t, value.MustString(), val.MustString())
+		})
+
+		t.Run("any value", func(t *testing.T) {
+			t.Parallel()
+
+			settings := newSettings()
+
+			err := settings.Save(ctx, key, "my-value")
+			assert.NoError(t, err)
+
+			val, err := settings.Setting(ctx, key)
+			assert.NoError(t, err)
+			assert.Equal(t, "my-value", val.MustString())
+
+			type someStruct struct {
+				Field string
+			}
+
+			err = settings.Save(ctx, key, someStruct{Field: "field"})
+			assert.NoError(t, err)
+
+			val, err = settings.Setting(ctx, key)
+			assert.NoError(t, err)
+			assert.JSONEq(t, `{"Field":"field"}`, val.MustString())
+			assert.JSONEq(t, `{"Field":"field"}`, string(val.MustByte()))
 		})
 	})
 
@@ -164,8 +204,8 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 
 			val, err := settings.Setting(ctx, key)
 			assert.NoError(t, err)
-			assert.Equal(t, `{"Field":"field"}`, val.MustString())
-			assert.Equal(t, []byte(`{"Field":"field"}`), val.MustByte())
+			assert.JSONEq(t, `{"Field":"field"}`, val.MustString())
+			assert.JSONEq(t, `{"Field":"field"}`, string(val.MustByte()))
 		})
 
 		t.Run("slice", func(t *testing.T) {
@@ -190,8 +230,8 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 
 			val, err := settings.Setting(ctx, key)
 			assert.NoError(t, err)
-			assert.Equal(t, `{"key":{"0":{"Field":"field"}}}`, val.MustString())
-			assert.Equal(t, []byte(`{"key":{"0":{"Field":"field"}}}`), val.MustByte())
+			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, val.MustString())
+			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, string(val.MustByte()))
 
 			var o map[string]map[int]someStruct
 			val.MustUnmarshal(&o) //nolint:contextcheck

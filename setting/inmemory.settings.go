@@ -8,7 +8,7 @@ import (
 
 func NewInMemorySettings() *InMemorySettings {
 	return &InMemorySettings{
-		repo: &inMemoryRepository{MemoryRepository: repository.NewMemoryRepository[Value, string]()},
+		repo: &inMemoryRepository{MemoryRepository: repository.NewMemoryRepository[Value, Key]()},
 	}
 }
 
@@ -18,12 +18,16 @@ type InMemorySettings struct {
 	repo *inMemoryRepository
 }
 
-func (s *InMemorySettings) Save(ctx context.Context, key Key, setting Value) error {
-	return s.repo.Save(ctx, key, setting)
+func (s *InMemorySettings) Save(ctx context.Context, key Key, value any) error {
+	if val, ok := value.(Value); ok {
+		return s.repo.Save(ctx, key, val)
+	}
+
+	return s.repo.Save(ctx, key, NewValue(value))
 }
 
 func (s *InMemorySettings) Setting(ctx context.Context, key Key) (Value, error) {
-	v, err := s.repo.FindByID(ctx, key.Key())
+	v, err := s.repo.FindByID(ctx, key)
 	if err != nil {
 		return Value{}, ErrNotFound
 	}
@@ -36,7 +40,7 @@ func (s *InMemorySettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 	hasNotFound := false
 
 	for _, key := range keys {
-		value, err := s.repo.FindByID(ctx, key.Key())
+		value, err := s.repo.FindByID(ctx, key)
 		if err != nil {
 			hasNotFound = true
 
@@ -54,18 +58,18 @@ func (s *InMemorySettings) Settings(ctx context.Context, keys []Key) (map[Key]Va
 }
 
 func (s *InMemorySettings) Delete(ctx context.Context, key Key) error {
-	return s.repo.DeleteByID(ctx, key.Key()) //nolint:wrapcheck
+	return s.repo.DeleteByID(ctx, key) //nolint:wrapcheck
 }
 
 type inMemoryRepository struct {
-	*repository.MemoryRepository[Value, string]
+	*repository.MemoryRepository[Value, Key]
 }
 
 func (repo *inMemoryRepository) Save(_ context.Context, key Key, value Value) error {
 	repo.Lock()
 	defer repo.Unlock()
 
-	repo.Data[key.Key()] = value
+	repo.Data[key] = value
 
 	return nil
 }
