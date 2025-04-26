@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel // t.Parallel can only be called ones! The caller decides
+// TestSuite ensures all setting implementations complete the same set of tests
+// and behave identical, so it is reliable to switch them out for each other.
+func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel,maintidx // t.Parallel can only be called ones! The caller decides
 	t.Helper()
 
 	if newSettings == nil {
@@ -19,8 +21,29 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 		ctx         = context.Background()
 		key         = NewKey("arrower", "test", "setting")
 		keyNotFound = NewKey("arrower", "test", "non-existing")
-		value       = NewValue("setting_value")
+		value       = NewValue("setting-value")
 	)
+
+	t.Run("Register", func(t *testing.T) {
+		t.Parallel()
+
+		settings := newSettings()
+
+		err := settings.Register(ctx, map[Key]any{
+			key:      value,
+			"my-key": "my-value",
+		})
+		assert.NoError(t, err)
+
+		err = settings.Register(ctx, map[Key]any{
+			key: "other-value",
+		})
+		assert.NoError(t, err)
+
+		val, err := settings.Setting(ctx, key)
+		assert.NoError(t, err)
+		assert.Equal(t, value.MustString(), val.MustString(), "second call to register should not change the value")
+	})
 
 	t.Run("Save", func(t *testing.T) {
 		t.Parallel()
@@ -106,7 +129,7 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel /
 
 			val, err := settings.Setting(ctx, key)
 			assert.NoError(t, err)
-			assert.Equal(t, "setting_value", val.MustString())
+			assert.Equal(t, "setting-value", val.MustString())
 		})
 
 		t.Run("not found", func(t *testing.T) {

@@ -187,7 +187,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
 	}
 	if err != nil {
-		return fmt.Errorf("%w: could not update entity with id: %v", ErrSaveFailed, id)
+		return fmt.Errorf("%w: could not update entity with id: %v: %v", ErrSaveFailed, id, err)
 	}
 
 	return nil

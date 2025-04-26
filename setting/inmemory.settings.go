@@ -18,6 +18,16 @@ type InMemorySettings struct {
 	repo *inMemoryRepository
 }
 
+func (s *InMemorySettings) Register(ctx context.Context, settings map[Key]any) error {
+	for k, v := range settings {
+		if exists, _ := s.repo.ExistsByID(ctx, k); !exists {
+			_ = s.Save(ctx, k, v)
+		}
+	}
+
+	return nil
+}
+
 func (s *InMemorySettings) Save(ctx context.Context, key Key, value any) error {
 	if val, ok := value.(Value); ok {
 		return s.repo.Save(ctx, key, val)

@@ -18,6 +18,13 @@ var (
 )
 
 type Settings interface {
+	// Register initialises the settings store. Only settings not yet
+	// in the store are saved with the given value as default.
+	// Existing settings are unchanged, as settings can be persisted through
+	// multiple application restarts.
+	// Existing settings are silently ignored.
+	// Use Save to create and change a setting.
+	Register(ctx context.Context, settings map[Key]any) error
 	Save(ctx context.Context, key Key, value any) error
 
 	Setting(ctx context.Context, key Key) (Value, error)
