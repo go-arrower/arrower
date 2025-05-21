@@ -2,6 +2,33 @@ package repository
 
 import "context"
 
+// Condition is an interface that filters can implement to influence the
+// selected entities that the Repository returns.
+type Condition[T any] interface {
+	Filter() T
+	OrderBy() string
+}
+
+func Filter[T any](m T) Condition[T] {
+	return filter[T]{model: m, orderBy: ""}
+}
+func OrderBy[T any](m string) Condition[T] {
+	return filter[T]{orderBy: m, model: *new(T)}
+}
+
+type filter[T any] struct {
+	model   T
+	orderBy string
+}
+
+func (f filter[T]) Filter() T { //nolint:ireturn // type param of OrderBy is any, but irrelevant
+	return f.model
+}
+
+func (f filter[T]) OrderBy() string {
+	return f.orderBy
+}
+
 // id are the types allowed as a primary key used in the generic Repository.
 type id interface {
 	~string |
@@ -38,8 +65,11 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Delete(ctx context.Context, entity E) error
 
 	All(ctx context.Context) ([]E, error)
+	// AllBy
 	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
 	FindAll(ctx context.Context) ([]E, error)
+	FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error)
+	// FindAllBy
 	FindByID(ctx context.Context, id ID) (E, error)
 	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
 	Exists(ctx context.Context, id ID) (bool, error)
@@ -61,12 +91,15 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Count(ctx context.Context) (int, error)
 	Length(ctx context.Context) (int, error)
 
+	// DeleteBy
 	DeleteByID(ctx context.Context, id ID) error
 	DeleteByIDs(ctx context.Context, ids []ID) error
 	DeleteAll(ctx context.Context) error
 	Clear(ctx context.Context) error
 
+	// AllByIter
 	AllIter(ctx context.Context) Iterator[E, ID]
+	// FindAllByIter
 	FindAllIter(ctx context.Context) Iterator[E, ID]
 }
 

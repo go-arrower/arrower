@@ -5,7 +5,9 @@
 package secret
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"errors"
 )
 
 func New(secret string) Secret {
@@ -58,4 +60,23 @@ func (s *Secret) UnmarshalText(data []byte) error {
 	s.secret = &text
 
 	return nil
+}
+
+func (s *Secret) Scan(value interface{}) error {
+	if value == nil {
+		*s.secret = ""
+		return nil
+	}
+
+	strValue, ok := value.(string)
+	if !ok {
+		return errors.New("failed to scan Secret: value is not a string")
+	}
+
+	s.secret = &strValue
+	return nil
+}
+
+func (s Secret) Value() (driver.Value, error) {
+	return s.secret, nil
 }

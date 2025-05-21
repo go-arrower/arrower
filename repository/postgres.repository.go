@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -139,7 +140,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 
 	e := reflect.ValueOf(entity)
 	for i, name := range repo.Columns {
-		values[i] = e.FieldByName(name).Interface()
+		values[i] = e.FieldByName(fieldByColumnName[E](name)).Interface()
 	}
 
 	sql, args, err := psql.Insert(repo.Table).Columns(repo.Columns...).Values(values...).ToSql()
@@ -174,7 +175,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 
 	e := reflect.ValueOf(entity)
 	for _, name := range repo.Columns {
-		query = query.Set(name, e.FieldByName(name).Interface())
+		query = query.Set(name, e.FieldByName(fieldByColumnName[E](name)).Interface())
 	}
 
 	sql, args, err := query.ToSql()
@@ -221,7 +222,58 @@ func (repo *PostgresRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) (
 }
 
 func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
-	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).ToSql()
+	query := psql.Select(repo.Columns...).From(repo.Table)
+
+	if slices.Contains(repo.Columns, "created_at") {
+		query = query.OrderBy("created_at ASC")
+	}
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+	}
+
+	entities := []E{}
+
+	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
+	}
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
+	}
+
+	return entities, nil
+}
+
+func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error) {
+	query := psql.Select(repo.Columns...).From(repo.Table)
+
+	for _, filter := range filters {
+		if filter == nil {
+			continue
+		}
+
+		fv := reflect.ValueOf(filter.Filter())
+		ft := fv.Type()
+
+		for i := range fv.NumField() {
+			field := fv.Field(i)
+			zeroValue := reflect.Zero(field.Type()).Interface()
+
+			if !reflect.DeepEqual(field.Interface(), zeroValue) {
+				query = query.Where(squirrel.Eq{
+					fieldColumnName[E](ft.Field(i)): fv.FieldByName(ft.Field(i).Name).Interface(),
+				})
+			}
+		}
+	}
+
+	if slices.Contains(repo.Columns, "created_at") {
+		query = query.OrderBy("created_at ASC")
+	}
+
+	sql, args, err := query.ToSql()
 	if err != nil {
 		return []E{}, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
 	}
@@ -367,7 +419,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 
 	e := reflect.ValueOf(entity)
 	for i, name := range repo.Columns {
-		values[i] = e.FieldByName(name).Interface()
+		values[i] = e.FieldByName(fieldByColumnName[E](name)).Interface()
 	}
 
 	query := psql.
@@ -382,7 +434,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 			expr = name + "= ?"
 		}
 
-		sql, args, err := squirrel.Expr(expr, e.FieldByName(name).Interface()).ToSql()
+		sql, args, err := squirrel.Expr(expr, e.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
 		if err != nil {
 			return fmt.Errorf("%w: could not build on conflict sub-query: %v", ErrInvalidQuery, err)
 		}
@@ -448,7 +500,7 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 
 		e := reflect.ValueOf(entity)
 		for _, name := range repo.Columns {
-			vals = append(vals, e.FieldByName(name).Interface())
+			vals = append(vals, e.FieldByName(fieldByColumnName[E](name)).Interface())
 		}
 
 		query = query.Values(vals...)
@@ -668,9 +720,69 @@ func columnNames[E any](entity E) []string {
 	columns := []string{}
 
 	e := reflect.TypeOf(entity)
+
 	for i := range e.NumField() {
-		columns = append(columns, e.Field(i).Name)
+		field := e.Field(i)
+
+		var colName string
+
+		if dbTag := field.Tag.Get("db"); dbTag != "" {
+			colName = dbTag
+			if strings.Contains(colName, ".") {
+				colName = fmt.Sprintf(`"%s"`, dbTag)
+			}
+		} else {
+			colName = field.Name
+		}
+
+		if field.Type.Kind() == reflect.Struct && field.Anonymous {
+			sc := columnNames(reflect.New(field.Type).Elem().Interface())
+			for _, c := range sc {
+				columns = append(columns, fmt.Sprintf(`"%s.%s"`, colName, c))
+			}
+		} else {
+			columns = append(columns, colName)
+		}
 	}
 
 	return columns
+}
+
+func fieldByColumnName[E any](name string) string {
+	name = strings.TrimPrefix(name, `"`)
+	name = strings.TrimSuffix(name, `"`)
+
+	t := reflect.TypeOf(*new(E))
+
+	for i := range t.NumField() {
+		field := t.Field(i)
+		dbTag := field.Tag.Get("db")
+
+		fmt.Println(name, ":", dbTag, field.Name)
+		if dbTag == name || field.Name == name {
+			return field.Name
+		}
+
+		if strings.Contains(name, ".") {
+			embeddedName := strings.Split(name, ".")[0]
+			if dbTag == embeddedName || field.Name == embeddedName {
+				return field.Name
+			}
+		}
+	}
+
+	return ""
+}
+
+func fieldColumnName[E any](field reflect.StructField) string {
+	if dbTag := field.Tag.Get("db"); dbTag != "" {
+		colName := dbTag
+		if strings.Contains(colName, ".") {
+			colName = fmt.Sprintf(`"%s"`, dbTag)
+		}
+
+		return colName
+	}
+
+	return field.Name
 }

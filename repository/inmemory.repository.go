@@ -244,6 +244,66 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 	return result, nil
 }
 
+func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error) {
+	if filters == nil || len(filters) == 0 {
+		return repo.All(ctx)
+	}
+
+	var filteredEntities []E
+
+	entities, _ := repo.All(ctx)
+	for _, entity := range entities {
+		var matchesSingleFilter []bool
+
+		for _, filter := range filters {
+			if filter == nil {
+				continue
+			}
+
+			fv := reflect.ValueOf(filter.Filter())
+			ft := fv.Type()
+
+			var matchFilterField []bool
+
+			for i := range fv.NumField() {
+				field := fv.Field(i)
+				zeroValue := reflect.Zero(field.Type()).Interface()
+
+				if !reflect.DeepEqual(field.Interface(), zeroValue) {
+					chVal := reflect.ValueOf(entity).FieldByName(ft.Field(i).Name).Interface()
+					fVal := field.Interface()
+
+					matchFilterField = append(matchFilterField, chVal == fVal)
+				}
+			}
+
+			matchAllFilterConditions := true
+
+			for _, match := range matchFilterField {
+				if !match {
+					matchAllFilterConditions = false
+				}
+			}
+
+			matchesSingleFilter = append(matchesSingleFilter, matchAllFilterConditions)
+		}
+
+		matchesAllFilters := true
+
+		for _, match := range matchesSingleFilter {
+			if !match {
+				matchesAllFilters = false
+			}
+		}
+
+		if matchesAllFilters {
+			filteredEntities = append(filteredEntities, entity)
+		}
+	}
+
+	return filteredEntities, nil
+}
+
 func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	repo.Lock()
 	defer repo.Unlock()

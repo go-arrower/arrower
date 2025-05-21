@@ -506,6 +506,44 @@ func TestSuite(
 		assert.Empty(t, all)
 	})
 
+	t.Run("FindBy", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("filter by field", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			id := testdata.EntityID(uuid.New().String())
+			name := gofakeit.Name()
+
+			_ = repo.Create(ctx, testdata.Entity{Name: name, ID: id})
+			_ = repo.Create(ctx, testdata.Entity{Name: name, ID: testdata.EntityID(uuid.New().String())})
+			_ = repo.Create(ctx, testdata.RandomEntity())
+			_ = repo.Create(ctx, testdata.RandomEntity())
+
+			all, err := repo.FindBy(ctx)
+			assert.NoError(t, err)
+			assert.Len(t, all, 4, "no filter returns all")
+
+			all, err = repo.FindBy(ctx, nil)
+			assert.NoError(t, err)
+			assert.Len(t, all, 4, "no filter returns all")
+
+			all, err = repo.FindBy(ctx, nil...)
+			assert.NoError(t, err)
+			assert.Len(t, all, 4, "no filter returns all")
+
+			all, err = repo.FindBy(ctx, Filter(testdata.Entity{Name: name}))
+			assert.NoError(t, err)
+			assert.Len(t, all, 2)
+
+			all, err = repo.FindBy(ctx, Filter(testdata.Entity{Name: name, ID: id}))
+			assert.NoError(t, err)
+			assert.Len(t, all, 1)
+		})
+	})
+
 	t.Run("FindByID", func(t *testing.T) {
 		t.Parallel()
 

@@ -91,6 +91,123 @@ func TestPostgresRepository_Create(t *testing.T) {
 	assert.Equal(t, testdata.DefaultEntity, got)
 }
 
+func TestPostgresRepository_DbTags(t *testing.T) {
+	t.Parallel()
+
+	t.Run("db tags", func(t *testing.T) {
+		t.Parallel()
+
+		type MyType struct {
+			ID     string `db:"id"`
+			MyName string `db:"name"`
+		}
+
+		pgx := pgHandler.NewTestDatabase()
+		initTestSchema(t, pgx)
+
+		repo := repository.NewPostgresRepository[MyType, string](pgx)
+		repo.Table = "entity"
+		assert.NotNil(t, repo)
+
+		id := "my-pk"
+		myType := MyType{ID: id, MyName: gofakeit.Name()}
+
+		err := repo.Create(ctx, myType)
+		assert.NoError(t, err)
+
+		entity, err := repo.FindByID(ctx, id)
+		assert.NoError(t, err)
+		assert.Equal(t, myType, entity)
+
+		entity.MyName = gofakeit.Name()
+		err = repo.Update(ctx, entity)
+		assert.NoError(t, err)
+
+		entity.MyName = gofakeit.Name()
+		err = repo.Save(ctx, entity)
+		assert.NoError(t, err)
+
+		err = repo.AddAll(ctx, []MyType{
+			{ID: gofakeit.UUID(), MyName: gofakeit.Name()},
+			{ID: gofakeit.UUID(), MyName: gofakeit.Name()},
+		})
+		assert.NoError(t, err)
+
+		all, err := repo.FindAll(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, all, 3)
+	})
+
+	t.Run("escaped tags", func(t *testing.T) {
+		t.Parallel()
+
+		type NestedStruct struct {
+			ID     string `db:"id"`
+			MyName string `db:"custom.name"`
+		}
+
+		pgx := pgHandler.NewTestDatabase()
+		initTestSchema(t, pgx)
+
+		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		assert.NotNil(t, repo)
+
+		id := "my-pk"
+		myType := NestedStruct{ID: id, MyName: gofakeit.Name()}
+
+		err := repo.Create(ctx, myType)
+		assert.NoError(t, err)
+	})
+
+	t.Run("nested tags", func(t *testing.T) {
+		t.Parallel()
+
+		type Name struct {
+			Name string `db:"name"`
+		}
+		type NestedStruct struct {
+			ID     string `db:"id"`
+			MyName Name   `db:"custom"`
+		}
+
+		pgx := pgHandler.NewTestDatabase()
+		initTestSchema(t, pgx)
+
+		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		assert.NotNil(t, repo)
+
+		id := "my-pk"
+		myType := NestedStruct{ID: id, MyName: Name{Name: gofakeit.Name()}}
+
+		err := repo.Create(ctx, myType)
+		assert.NoError(t, err)
+	})
+
+	t.Run("embedded tags", func(t *testing.T) {
+		t.Parallel()
+
+		type Name struct {
+			Name string `db:"name"`
+		}
+		type NestedStruct struct {
+			ID   string `db:"id"`
+			Name `db:"custom"`
+		}
+
+		pgx := pgHandler.NewTestDatabase()
+		initTestSchema(t, pgx)
+
+		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		assert.NotNil(t, repo)
+
+		id := "my-pk"
+		myType := NestedStruct{ID: id, Name: Name{Name: gofakeit.Name()}}
+
+		err := repo.Create(ctx, myType)
+		assert.NoError(t, err)
+	})
+}
+
 func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
@@ -101,6 +218,9 @@ func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uintid INTEGER, name TEXT);`)
+	assert.NoError(t, err)
+
+	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS nestedstruct(id TEXT PRIMARY KEY, "custom.name" TEXT);`)
 	assert.NoError(t, err)
 }
 
