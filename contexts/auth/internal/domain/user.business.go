@@ -126,7 +126,7 @@ func (u *User) IsSuperuser() bool {
 
 // NewID generates a new ID for a User.
 func NewID() ID {
-	return ID(uuid.NewString())
+	return ID(uuid.Must(uuid.NewV7()).String())
 }
 
 // ID is the primary identifier of a User.
