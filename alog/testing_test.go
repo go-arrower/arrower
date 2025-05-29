@@ -197,3 +197,21 @@ func TestTestLogger_Total(t *testing.T) {
 		assert.False(t, pass)
 	})
 }
+
+func TestTestLogger_Concurrent(t *testing.T) {
+	t.Parallel()
+
+	logger := alog.Test(t)
+
+	t.Run("concurrent", func(t *testing.T) {
+		t.Parallel()
+
+		logger.DebugContext(ctx, "debug msg")
+	})
+
+	t.Run("concurrent", func(t *testing.T) {
+		t.Parallel()
+
+		logger.NotContains("info")
+	})
+}

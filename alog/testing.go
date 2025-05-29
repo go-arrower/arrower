@@ -22,8 +22,10 @@ func Test(t *testing.T) *TestLogger {
 		panic("t is nil")
 	}
 
+	mu := &sync.Mutex{}
+
 	buf := &testBuffer{
-		mu:    sync.Mutex{},
+		mu:    mu,
 		lines: []*bytes.Buffer{},
 	}
 
@@ -33,8 +35,9 @@ func Test(t *testing.T) *TestLogger {
 	))
 
 	return &TestLogger{
-		t:      t,
 		Logger: logger,
+		mu:     mu,
+		t:      t,
 		buf:    buf,
 	}
 }
@@ -46,6 +49,8 @@ func Test(t *testing.T) *TestLogger {
 // logged with this logger.
 type TestLogger struct {
 	*slog.Logger
+
+	mu *sync.Mutex
 
 	t   *testing.T
 	buf *testBuffer
@@ -69,6 +74,9 @@ func (l *TestLogger) UsesSettings() bool {
 
 // String return the complete log output of ech line logged to TestLogger.
 func (l *TestLogger) String() string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	out := ""
 
 	for _, line := range l.buf.lines {
@@ -79,6 +87,9 @@ func (l *TestLogger) String() string {
 }
 
 func (l *TestLogger) Lines() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	lines := []string{}
 
 	for _, line := range l.buf.lines {
@@ -91,6 +102,9 @@ func (l *TestLogger) Lines() []string {
 // Empty asserts that the logger has no lines logged.
 func (l *TestLogger) Empty(msgAndArgs ...any) bool {
 	l.t.Helper()
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	if len(l.buf.lines) > 0 {
 		s := "it has 1 line"
@@ -108,6 +122,9 @@ func (l *TestLogger) Empty(msgAndArgs ...any) bool {
 func (l *TestLogger) NotEmpty(msgAndArgs ...any) bool {
 	l.t.Helper()
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if len(l.buf.lines) == 0 {
 		return assert.Fail(l.t, "logger is empty, should not be", msgAndArgs...)
 	}
@@ -118,6 +135,9 @@ func (l *TestLogger) NotEmpty(msgAndArgs ...any) bool {
 // Contains asserts that at least one line contains the given substring contains.
 func (l *TestLogger) Contains(contains string, msgAndArgs ...any) bool {
 	l.t.Helper()
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	for _, line := range l.buf.lines {
 		if strings.Contains(line.String(), contains) {
@@ -132,6 +152,9 @@ func (l *TestLogger) Contains(contains string, msgAndArgs ...any) bool {
 func (l *TestLogger) NotContains(notContains string, msgAndArgs ...any) bool {
 	l.t.Helper()
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	for _, line := range l.buf.lines {
 		if strings.Contains(line.String(), notContains) {
 			return assert.Fail(l.t, "log output contains: "+notContains+", should not be", msgAndArgs...)
@@ -145,6 +168,9 @@ func (l *TestLogger) NotContains(notContains string, msgAndArgs ...any) bool {
 func (l *TestLogger) Total(total int, msgAndArgs ...any) bool {
 	l.t.Helper()
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if len(l.buf.lines) != total {
 		return assert.Fail(l.t, fmt.Sprintf("logger does not have %d lines, it has: %d", total, len(l.buf.lines)), msgAndArgs...)
 	}
@@ -153,7 +179,7 @@ func (l *TestLogger) Total(total int, msgAndArgs ...any) bool {
 }
 
 type testBuffer struct {
-	mu    sync.Mutex
+	mu    *sync.Mutex
 	lines []*bytes.Buffer
 }
 
