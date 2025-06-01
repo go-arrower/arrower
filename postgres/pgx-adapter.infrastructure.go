@@ -31,22 +31,22 @@ func (p pgxTraceAdapter) TraceQueryStart(
 	conn *pgx.Conn,
 	data pgx.TraceQueryStartData,
 ) context.Context {
-	ctx, span := p.tracer.Start(ctx, "pgx", trace.WithAttributes(
-		attribute.String("db_host", conn.Config().Host),
-		attribute.Int("db_port", int(conn.Config().Port)),
-		attribute.String("db_database", conn.Config().Database),
-		attribute.String("db_user", conn.Config().User),
-		attribute.String("sql", data.SQL),
-		attribute.StringSlice("sql_args", anySliceToStrings(data.Args)),
+	ctx, span := p.tracer.Start(ctx, "db.query", trace.WithAttributes(
+		attribute.String("db.system.name", "postgresql"),
+		attribute.String("server.address", conn.Config().Host),
+		attribute.Int("server.port", int(conn.Config().Port)),
+		attribute.String("db.namespace", conn.Config().Database),
+		attribute.String("db.user", conn.Config().User),
+		attribute.String("db.query.text", data.SQL),
+		attribute.StringSlice("db.query.parameters", anySliceToStrings(data.Args)),
 	))
-	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
 
 func (p pgxTraceAdapter) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
-		span.SetAttributes(attribute.Int64("sql_rows_affected", data.CommandTag.RowsAffected()))
+		span.SetAttributes(attribute.Int64("db.response.returned_rows", data.CommandTag.RowsAffected()))
 
 		if data.Err != nil {
 			span.SetStatus(codes.Error, data.Err.Error())
@@ -61,32 +61,31 @@ func (p pgxTraceAdapter) TraceBatchStart(
 	conn *pgx.Conn,
 	data pgx.TraceBatchStartData,
 ) context.Context {
-	ctx, span := p.tracer.Start(ctx, "pgx", trace.WithAttributes(
-		attribute.String("db_host", conn.Config().Host),
-		attribute.Int("db_port", int(conn.Config().Port)),
-		attribute.String("db_database", conn.Config().Database),
-		attribute.String("db_user", conn.Config().User),
-		attribute.Int("batch_len", data.Batch.Len()),
+	ctx, span := p.tracer.Start(ctx, "db.batch", trace.WithAttributes(
+		attribute.String("db.system.name", "postgresql"),
+		attribute.String("server.address", conn.Config().Host),
+		attribute.Int("server.port", int(conn.Config().Port)),
+		attribute.String("db.namespace", conn.Config().Database),
+		attribute.String("db.user", conn.Config().User),
+		attribute.String("db.operation.name", "batch"),
+		attribute.Int("db.operation.batch.size", data.Batch.Len()),
 	))
-	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
 
 func (p pgxTraceAdapter) TraceBatchQuery(ctx context.Context, conn *pgx.Conn, data pgx.TraceBatchQueryData) {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
-		span.SetAttributes(attribute.String("db_host", conn.Config().Host))
-		span.SetAttributes(attribute.Int("db_port", int(conn.Config().Port)))
-		span.SetAttributes(attribute.String("db_database", conn.Config().Database))
-		span.SetAttributes(attribute.String("db_user", conn.Config().User))
-		span.SetAttributes(attribute.String("batch_sql", data.SQL))
-		span.SetAttributes(attribute.StringSlice("batch_args", anySliceToStrings(data.Args)))
-		span.SetAttributes(attribute.Int64("sql_rows_affected", data.CommandTag.RowsAffected()))
-		span.SetAttributes(attribute.Bool("sql_select", data.CommandTag.Select()))
-		span.SetAttributes(attribute.Bool("sql_insert", data.CommandTag.Insert()))
-		span.SetAttributes(attribute.Bool("sql_update", data.CommandTag.Update()))
-		span.SetAttributes(attribute.Bool("sql_delete", data.CommandTag.Delete()))
-		span.SetAttributes(attribute.String("sql_string", data.CommandTag.String()))
+		span.SetAttributes(
+			attribute.String("db.query.text", data.SQL),
+			attribute.StringSlice("db.query.parameters", anySliceToStrings(data.Args)),
+			attribute.Int64("db.response.returned_rows", data.CommandTag.RowsAffected()),
+			attribute.Bool("sql_select", data.CommandTag.Select()),
+			attribute.Bool("sql_insert", data.CommandTag.Insert()),
+			attribute.Bool("sql_update", data.CommandTag.Update()),
+			attribute.Bool("sql_delete", data.CommandTag.Delete()),
+			attribute.String("sql_string", data.CommandTag.String()),
+		)
 	}
 }
 
@@ -104,27 +103,29 @@ func (p pgxTraceAdapter) TraceCopyFromStart(ctx context.Context,
 	conn *pgx.Conn,
 	data pgx.TraceCopyFromStartData,
 ) context.Context {
-	ctx, span := p.tracer.Start(ctx, "pgx", trace.WithAttributes(
-		attribute.String("db_host", conn.Config().Host),
-		attribute.Int("db_port", int(conn.Config().Port)),
-		attribute.String("db_database", conn.Config().Database),
-		attribute.String("db_user", conn.Config().User),
+	ctx, span := p.tracer.Start(ctx, "db.copy", trace.WithAttributes(
+		attribute.String("db.system.name", "postgresql"),
+		attribute.String("server.address", conn.Config().Host),
+		attribute.Int("server.port", int(conn.Config().Port)),
+		attribute.String("db.namespace", conn.Config().Database),
+		attribute.String("db.user", conn.Config().User),
 		attribute.String("copyfrom_table_name", data.TableName.Sanitize()),
 		attribute.StringSlice("copyfrom_column_names", data.ColumnNames),
 	))
-	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
 
 func (p pgxTraceAdapter) TraceCopyFromEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceCopyFromEndData) {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
-		span.SetAttributes(attribute.Int64("sql_rows_affected", data.CommandTag.RowsAffected()))
-		span.SetAttributes(attribute.Bool("sql_select", data.CommandTag.Select()))
-		span.SetAttributes(attribute.Bool("sql_insert", data.CommandTag.Insert()))
-		span.SetAttributes(attribute.Bool("sql_update", data.CommandTag.Update()))
-		span.SetAttributes(attribute.Bool("sql_delete", data.CommandTag.Delete()))
-		span.SetAttributes(attribute.String("sql_string", data.CommandTag.String()))
+		span.SetAttributes(
+			attribute.Int64("db.response.returned_rows", data.CommandTag.RowsAffected()),
+			attribute.Bool("sql_select", data.CommandTag.Select()),
+			attribute.Bool("sql_insert", data.CommandTag.Insert()),
+			attribute.Bool("sql_update", data.CommandTag.Update()),
+			attribute.Bool("sql_delete", data.CommandTag.Delete()),
+			attribute.String("sql_string", data.CommandTag.String()),
+		)
 
 		if data.Err != nil {
 			span.SetStatus(codes.Error, data.Err.Error())
@@ -139,41 +140,41 @@ func (p pgxTraceAdapter) TracePrepareStart(
 	conn *pgx.Conn,
 	data pgx.TracePrepareStartData,
 ) context.Context {
-	ctx, span := p.tracer.Start(ctx, "pgx", trace.WithAttributes(
-		attribute.String("db_host", conn.Config().Host),
-		attribute.Int("db_port", int(conn.Config().Port)),
-		attribute.String("db_database", conn.Config().Database),
-		attribute.String("db_user", conn.Config().User),
-		attribute.String("sql", data.SQL),
-		attribute.String("name", data.Name),
-	))
-	defer span.End()
+	if span, ok := ctx.Value(spanKey).(trace.Span); ok && span.IsRecording() {
+		span.AddEvent("db.prepare.start", trace.WithAttributes(
+			attribute.String("db.stored_procedure.name", data.Name),
+		))
+	}
 
-	return context.WithValue(ctx, spanKey, span)
+	return ctx
 }
 
 func (p pgxTraceAdapter) TracePrepareEnd(ctx context.Context, _ *pgx.Conn, data pgx.TracePrepareEndData) {
-	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
-		span.SetAttributes(attribute.Bool("already_prepared", data.AlreadyPrepared))
+	if span, ok := ctx.Value(spanKey).(trace.Span); ok && span.IsRecording() {
+		span.AddEvent("db.prepare.end", trace.WithAttributes(
+			attribute.Bool("db.prepared_statement.already_prepared", data.AlreadyPrepared),
+		))
 
 		if data.Err != nil {
 			span.SetStatus(codes.Error, data.Err.Error())
+			span.AddEvent("db.prepare.error", trace.WithAttributes(
+				attribute.String("error.message", data.Err.Error()),
+			))
 		}
-
-		span.End()
 	}
+	return
 }
 
 func (p pgxTraceAdapter) TraceConnectStart(ctx context.Context, data pgx.TraceConnectStartData) context.Context {
-	ctx, span := p.tracer.Start(ctx, "pgx", trace.WithAttributes(
-		attribute.String("db_host", data.ConnConfig.Host),
-		attribute.Int("db_port", int(data.ConnConfig.Port)),
-		attribute.String("db_database", data.ConnConfig.Database),
-		attribute.String("db_user", data.ConnConfig.User),
+	ctx, span := p.tracer.Start(ctx, "db.connect", trace.WithAttributes(
+		attribute.String("db.system.name", "postgresql"),
+		attribute.String("server.address", data.ConnConfig.Host),
+		attribute.Int("server.port", int(data.ConnConfig.Port)),
+		attribute.String("db.namespace", data.ConnConfig.Database),
+		attribute.String("db.user", data.ConnConfig.User),
 		attribute.Int("db_timeout", int(data.ConnConfig.ConnectTimeout)),
 		attribute.StringSlice("runtime_params", mapToStringSlice(data.ConnConfig.RuntimeParams)),
 	))
-	defer span.End()
 
 	return context.WithValue(ctx, spanKey, span)
 }
