@@ -3,14 +3,12 @@ package alog
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/afiskon/promtail-client/promtail"
 )
 
 // NewLokiHandler use this handler only for local development!
@@ -20,10 +18,9 @@ import (
 // It does not care about performance, as in production you would log to `stdout` and the
 // container-runtime's drivers (docker, kubernetes) or something will ship your logs to loki.
 func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
-	conf := getPromtailConfig(opt)
-	client := getClient(conf)
+	opt = optsFromConfigOrDefault(opt)
 
-	// generate json log by writing to local buffer with slog default json
+	// generate JSON log by writing to local buffer with slog default JSON
 	buf := &bytes.Buffer{}
 	renderer := slog.NewJSONHandler(buf, &slog.HandlerOptions{
 		Level:       LevelDebug, // allow all messages, as the level gets controlled by the arrowerHandler instead.
@@ -31,23 +28,23 @@ func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 		ReplaceAttr: MapLogLevelsToName,
 	})
 
+	available := pingLoki(opt)
 	handler := &LokiHandler{
-		mu:       sync.Mutex{},
-		client:   client,
-		renderer: renderer,
-		output:   buf,
+		opt:           opt,
+		mu:            sync.Mutex{},
+		lokiAvailable: &available,
+		renderer:      renderer,
+		output:        buf,
 	}
 
-	if client == nil {
-		go retryLokiConnection(handler, conf)
-	}
+	go retryLokiConnection(handler)
 
 	return handler
 }
 
-func getPromtailConfig(opt *LokiHandlerOptions) promtail.ClientConfig {
+func optsFromConfigOrDefault(opt *LokiHandlerOptions) *LokiHandlerOptions {
 	defaultOpt := &LokiHandlerOptions{
-		PushURL: "http://localhost:3100/api/prom/push",
+		URL: "http://localhost:3100",
 		Labels: map[string]string{
 			"arrower": "application",
 			"client":  "arrower-loki",
@@ -58,80 +55,60 @@ func getPromtailConfig(opt *LokiHandlerOptions) promtail.ClientConfig {
 		opt = defaultOpt
 	}
 
-	if opt.PushURL == "" {
-		opt.PushURL = defaultOpt.PushURL
+	if opt.URL == "" {
+		opt.URL = defaultOpt.URL
 	}
 
 	if len(opt.Labels) == 0 {
 		opt.Labels = defaultOpt.Labels
 	}
 
-	label := "{"
-	for k, l := range opt.Labels {
-		label += fmt.Sprintf("%s=\"%s\",", k, l)
-	}
-	label += "}" //nolint:wsl
-
-	return promtail.ClientConfig{
-		PushURL:            opt.PushURL,
-		BatchWait:          1 * time.Second,
-		BatchEntriesNumber: 1,
-		SendLevel:          promtail.DEBUG,
-		PrintLevel:         promtail.DISABLE,
-		Labels:             label,
-	}
+	return opt
 }
 
-func retryLokiConnection(handler *LokiHandler, conf promtail.ClientConfig) {
+func retryLokiConnection(handler *LokiHandler) {
 	const lokiRetryInterval = 15 * time.Second
 	t := time.NewTicker(lokiRetryInterval)
 
 	for range t.C {
-		client := getClient(conf)
-		if client == nil {
-			continue
-		}
+		av := pingLoki(handler.opt)
 
 		handler.mu.Lock()
-		defer handler.mu.Unlock()
-
-		handler.client = client
-
-		return
+		handler.lokiAvailable = &av
+		handler.mu.Unlock()
 	}
 }
 
-func getClient(conf promtail.ClientConfig) promtail.Client { //nolint:ireturn,lll // promtail.NewClientX() only returns interface.
-	cli := &http.Client{} //nolint:exhaustruct
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, conf.PushURL, nil)
+func pingLoki(opt *LokiHandlerOptions) bool {
+	req, err := http.NewRequest(http.MethodGet, opt.URL+"/ready", nil)
 	if err != nil {
-		slog.Info("could not get request", slog.Any("err", err), slog.String("url", conf.PushURL))
-		return nil
+		return false
 	}
 
-	res, err := cli.Do(req)
+	client := &http.Client{Timeout: 1 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
-		slog.Info("could not ping loki", slog.Any("err", err), slog.String("url", conf.PushURL))
-		return nil
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return false
 	}
 
-	_ = res.Body.Close()
-
-	client, _ := promtail.NewClientJson(conf) // Do not handle error here, because promtail always returns `nil`.
-
-	return client
+	return true
 }
 
 type (
 	LokiHandlerOptions struct {
-		Labels  map[string]string
-		PushURL string
+		Labels map[string]string
+		URL    string
 	}
 
 	LokiHandler struct { //nolint:govet // fieldalignment not as important as readability.
-		mu     sync.Mutex
-		client promtail.Client
+		opt           *LokiHandlerOptions
+		mu            sync.Mutex
+		lokiAvailable *bool
 
 		renderer slog.Handler
 		output   *bytes.Buffer
@@ -144,7 +121,7 @@ func (l *LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if l.client == nil { // client is empty if no loki instance is available => do not log.
+	if !*l.lokiAvailable { //  no loki instance is available => do not log.
 		return nil
 	}
 
@@ -153,34 +130,77 @@ func (l *LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 		return fmt.Errorf("%w", err)
 	}
 
-	var attrs string
+	level := record.Level
 
 	record.Attrs(func(a slog.Attr) bool {
-		// this is high cardinality and can kill loki
-		// https://grafana.com/docs/loki/latest/fundamentals/labels/#cardinality
-		attrs += fmt.Sprintf(",%s=%s ", a.Key, a.Value.String())
-
-		return true // process next attr
+		if a.Key == "err" {
+			level = slog.LevelError
+			return false
+		}
+		return true
 	})
 
-	attrs = strings.TrimPrefix(attrs, ",")
-	attrs = strings.TrimSpace(attrs)
+	//jsonLog := strings.TrimSpace()
 
-	l.client.Infof(record.Message + " " + attrs) // in grafana: green
-	l.client.Infof(l.output.String())            // in grafana: green
+	err = l.sendToLoki(l.output.String(), level)
+	if err != nil {
+		return fmt.Errorf("could not send logs to loki: %v", err)
+	}
 
 	l.output.Reset()
 
-	// client.Debugf(record.Message) // in grafana: blue
-	// client.Errorf(record.Message) // in grafana: red
-	// client.Warnf(record.Message)  // in grafana: yellow
+	return nil
+}
 
-	// !!! Query in grafana with !!!
-	// {job="somejob"} | logfmt | command="GetWorkersRequest"
-	//
-	// https://grafana.com/docs/loki/latest/logql/log_queries/#logfmt
+func (l *LokiHandler) sendToLoki(jsonLog string, level slog.Level) error {
+	payload := map[string]interface{}{
+		"streams": []map[string]interface{}{
+			{
+				"stream": l.getLabels(level),
+				"values": [][]string{
+					{fmt.Sprintf("%d", time.Now().UnixNano()), jsonLog},
+				},
+			},
+		},
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", l.opt.URL+"/loki/api/v1/push", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body := make([]byte, 1024)
+		resp.Body.Read(body)
+		return fmt.Errorf("loki error %d: %s", resp.StatusCode, string(body))
+	}
 
 	return nil
+}
+
+func (l *LokiHandler) getLabels(level slog.Level) map[string]string {
+	copiedMap := make(map[string]string)
+	for key, value := range l.opt.Labels {
+		copiedMap[key] = value
+	}
+
+	copiedMap["level"] = level.String()
+
+	return copiedMap
 }
 
 func (l *LokiHandler) Enabled(_ context.Context, _ slog.Level) bool {
@@ -189,18 +209,20 @@ func (l *LokiHandler) Enabled(_ context.Context, _ slog.Level) bool {
 
 func (l *LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &LokiHandler{
-		mu:       sync.Mutex{},
-		client:   l.client,
-		renderer: l.renderer.WithAttrs(attrs),
-		output:   l.output,
+		opt:           l.opt,
+		mu:            sync.Mutex{}, // todo this is a new mutex but existing output buffer below
+		lokiAvailable: l.lokiAvailable,
+		renderer:      l.renderer.WithAttrs(attrs),
+		output:        l.output,
 	}
 }
 
 func (l *LokiHandler) WithGroup(name string) slog.Handler {
 	return &LokiHandler{
-		mu:       sync.Mutex{},
-		client:   l.client,
-		renderer: l.renderer.WithGroup(name),
-		output:   l.output,
+		opt:           l.opt,
+		mu:            sync.Mutex{}, // todo this is a new mutex but existing output buffer below
+		lokiAvailable: l.lokiAvailable,
+		renderer:      l.renderer.WithGroup(name),
+		output:        l.output,
 	}
 }
