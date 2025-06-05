@@ -20,8 +20,11 @@ import (
 	"sync"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/go-arrower/arrower/ctx"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
 	"github.com/go-arrower/arrower/alog"
 )
@@ -43,6 +46,8 @@ const (
 	templateSeparator = "=>"
 	fragmentSeparator = "#"
 )
+
+const CtxI18n ctx.CTXKey = "arrower.lang_tag" // todo move to i18n package
 
 type (
 	Map      map[string]any
@@ -200,6 +205,16 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 		}
 	}
 
+	tag, ok := ctx.Value(CtxI18n).(language.Tag)
+	if ok {
+		printer := message.NewPrinter(tag)
+		templ = template.Must(templ.Clone()).Funcs(map[string]any{
+			"t": func(key message.Reference, args ...interface{}) string {
+				return printer.Sprintf(key, args...)
+			},
+		})
+	}
+
 	err = templ.ExecuteTemplate(w, parsedTempl.templateName(), data)
 	if err != nil {
 		return fmt.Errorf("%w: could not execute template: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
@@ -342,7 +357,12 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:errorlint,goerr113,lll // prevent err in api
 	}
 
-	componentTemplates := template.New("<empty>").Funcs(sprig.FuncMap()).Funcs(funcMap)
+	componentTemplates := template.New("<empty>").
+		Funcs(sprig.FuncMap()).
+		Funcs(map[string]any{
+			"t": func(key message.Reference, args ...interface{}) string { return "" }, // shell to compile i18n
+		}).
+		Funcs(funcMap)
 
 	for _, c := range components {
 		file, err := readFile(viewFS, c) //nolint:govet // govet is too pedantic for shadowing errors

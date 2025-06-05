@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -101,7 +102,7 @@ func New() (*Container, error) {
 			Port:     4317,
 			Hostname: "www.servername.tld",
 		},
-	}, nil, nil, nil)
+	}, nil, nil, nil, nil)
 }
 
 func (c *Container) EnsureAllDependenciesPresent() error {
@@ -112,7 +113,14 @@ func (c *Container) EnsureAllDependenciesPresent() error {
 	return nil
 }
 
-func InitialiseDefaultDependencies(ctx context.Context, conf *Config, migrations fs.FS, publicAssets fs.FS, sharedViews fs.FS) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
+func InitialiseDefaultDependencies(
+	ctx context.Context,
+	conf *Config,
+	migrations fs.FS,
+	publicAssets fs.FS,
+	sharedViews fs.FS,
+	funcs template.FuncMap,
+) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
 	dc := &Container{ //nolint:exhaustruct
 		Config: conf,
 	}
@@ -242,13 +250,13 @@ func InitialiseDefaultDependencies(ctx context.Context, conf *Config, migrations
 
 		if conf.Environment == LocalEnv {
 			router.Debug = true
-			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), true)
+			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), funcs, true)
 
 			router.StaticFS("/static/", os.DirFS("public"))
 
 			router.Use(injectMW)
 		} else {
-			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, sharedViews, false)
+			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, sharedViews, funcs, false)
 
 			router.StaticFS("/static/", publicAssets)
 		}

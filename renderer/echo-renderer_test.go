@@ -20,7 +20,7 @@ func TestNewEchoRenderer(t *testing.T) {
 	t.Run("new", func(t *testing.T) {
 		t.Parallel()
 
-		r, err := renderer.NewEchoRenderer(alog.NewNoop(), noop.NewTracerProvider(), nil, testdata.FilesEmpty, true)
+		r, err := renderer.NewEchoRenderer(alog.NewNoop(), noop.NewTracerProvider(), nil, testdata.FilesEmpty, nil, true)
 		assert.NoError(t, err)
 		assert.NotNil(t, r)
 	})
@@ -33,7 +33,7 @@ func TestNewEchoRenderer(t *testing.T) {
 		router.GET("/", func(c echo.Context) error { return c.NoContent(http.StatusOK) }).Name = "named-route"
 
 		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
-		r, err := renderer.NewEchoRenderer(alog.NewNoop(), noop.NewTracerProvider(), router, testdata.FilesEcho, true)
+		r, err := renderer.NewEchoRenderer(alog.NewNoop(), noop.NewTracerProvider(), router, testdata.FilesEcho, nil, true)
 		assert.NoError(t, err)
 
 		err = r.Render(&buf, "hello", nil, router.NewContext(req, nil))

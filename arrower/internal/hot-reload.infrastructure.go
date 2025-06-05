@@ -43,6 +43,7 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 		noop.NewTracerProvider(),
 		router,
 		os.DirFS("/home/tsd/Projekte/go-arrower/arrower/arrower/internal/views"), // todo right path
+		nil,
 		true,
 	)
 	if err != nil {

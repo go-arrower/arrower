@@ -18,11 +18,18 @@ func NewEchoRenderer(
 	traceProvider trace.TracerProvider,
 	echo *echo.Echo,
 	viewFS fs.FS,
+	funcs template.FuncMap,
 	hotReload bool,
 ) (*EchoRenderer, error) {
-	renderer, err := New(logger, traceProvider, viewFS, template.FuncMap{
+	mergedFM := template.FuncMap{
 		"route": echo.Reverse,
-	}, hotReload)
+	}
+
+	for name, fn := range funcs {
+		mergedFM[name] = fn
+	}
+
+	renderer, err := New(logger, traceProvider, viewFS, mergedFM, hotReload)
 	if err != nil {
 		return nil, fmt.Errorf("could not create echo renderer: %w", err)
 	}
