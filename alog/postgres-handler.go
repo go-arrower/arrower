@@ -10,13 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/go-arrower/arrower/alog/models"
+	"github.com/go-arrower/arrower/contexts/auth"
 )
 
 var ErrLogFailed = errors.New("could not save log")
@@ -118,7 +117,7 @@ type (
 		MaxTimeout time.Duration
 	}
 
-	PostgresHandler struct { //nolint:govet // accept fieldalignment
+	PostgresHandler struct {
 		queries *models.Queries
 
 		mu       sync.Mutex
@@ -129,7 +128,7 @@ type (
 		records chan logRecord
 	}
 
-	logRecord struct { //nolint:govet // accept fieldalignment
+	logRecord struct {
 		time   time.Time
 		userID uuid.NullUUID
 		Log    []byte
@@ -170,7 +169,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 
 	err = saveLogs(ctx, l.queries, []logRecord{lRecord})
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrLogFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrLogFailed, err)
 	}
 
 	return nil
@@ -223,7 +222,7 @@ func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) er
 
 	_, err := queries.LogRecords(ctx, params)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrLogFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrLogFailed, err)
 	}
 
 	return nil

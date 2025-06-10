@@ -1,6 +1,8 @@
-// Package alog provides a logger that is a subset of the slog.Logger interface.
-// The alog.Logger encourages to only use debug and info levels.
-// More leves are not required, if all errors are handled properly in Go.
+// Package alog provides loggers and utilities for logging and observability.
+//
+// The logger is build around the slog.Logger interface.
+// The alog.Logger encourages it to only use debug and info levels.
+// More levels are not required if all errors are handled properly in Go.
 //
 // Additionally, alog provides a logger implementation different stages
 // of the software, from development and testing to production.

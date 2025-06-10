@@ -8,19 +8,18 @@ import (
 	"slices"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/setting"
 )
 
 var (
-	SettingLogLevel = setting.NewKey("arrower", "log", "level") //nolint:gochecknoglobals
-	SettingLogUsers = setting.NewKey("arrower", "log", "users") //nolint:gochecknoglobals
+	SettingLogLevel = setting.NewKey("arrower", "log", "level")
+	SettingLogUsers = setting.NewKey("arrower", "log", "users")
 )
 
 // LoggerOpt allows to initialise a logger with custom options.

@@ -248,17 +248,27 @@ issues:
     # Exclude Arrower specific best practises
     #
 
+    # Allow for dependency setup to be less rigid, as code is expected to still be clear to read
+    - path: "contexts/(.*)/init/(.*).go|shared/init/(.*).go"
+      linters:
+        - funlen
+
     # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
-    - path: "contexts/(.*)/init/(.*).go"
+    - path: "contexts/(.*)/init/(.*).go|shared/init/(.*).go"
       linters:
         - wsl
       text: "assignments should only be cuddled with other assignments"
 
     # Allow setting keys to be global variables, so they can be setup by a context init and used everywhere
-    - path: "contexts/(.*).api.go"
-      linters:
+    - linters:
         - gochecknoglobals
       text: "Setting" # If settings key is prefixed e.g. auth.SettingAllowRegistration
+
+    # Allow the use of t as a translation shortcut in the web package
+    - path: "(.*)interfaces/web/(.*).go"
+      linters:
+        - varnamelen
+      text: "variable name 't'"
 
     # Don't force package name_test for files dedicated to white-box testing by their file name
     - path: _wb_test.go
@@ -282,10 +292,17 @@ issues:
     # Allow patterns that are considered best practices for Corba CLI applications
     - path: cmd
       linters:
-        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
+        - gochecknoglobals # Allow globals, as cobra encourages their use in the official docs
+        - exhaustruct # Allow the command to not use all configurations options & hooks cobra offers
+        - forbidigo # Allow the use of fmt.Print* statements, as a cli outputs textual content
+        - testpackage # Allow white box testing for individual cobra commands, as they should not be public
+        - funlen # Allow a longer Run(), as they might contain verbose but harmless dependency setup
+
+    # Allow the use of zero structs. It is assumed that this is a conscious decision to do so
     - path: arrower/cmd
       linters:
         - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
+      source: "{}"
 
     #
     # Exclude issues from test files
@@ -298,6 +315,7 @@ issues:
         - lll # Mostly because of lengthy msgAndArgs params in assertions
         - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
         - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
+        - wrapcheck # test helpers don't need a traceable error message stack
 
     # Partly exclude wsl when testing, to keep tests easier to read.
     - path: _test.go|testing.go

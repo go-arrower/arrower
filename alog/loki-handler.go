@@ -86,10 +86,12 @@ func pingLoki(opt *LokiHandlerOptions) bool {
 	}
 
 	client := &http.Client{Timeout: 1 * time.Second}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
@@ -105,7 +107,7 @@ type (
 		URL    string
 	}
 
-	LokiHandler struct { //nolint:govet // fieldalignment not as important as readability.
+	LokiHandler struct {
 		opt           *LokiHandlerOptions
 		mu            sync.Mutex
 		lokiAvailable *bool
@@ -139,8 +141,6 @@ func (l *LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 		}
 		return true
 	})
-
-	//jsonLog := strings.TrimSpace()
 
 	err = l.sendToLoki(l.output.String(), level)
 	if err != nil {
@@ -177,10 +177,12 @@ func (l *LokiHandler) sendToLoki(jsonLog string, level slog.Level) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
