@@ -62,35 +62,43 @@ func getLevelNames() map[slog.Leveler]string {
 	}
 }
 
-// CtxAttr contains request scoped attributes.
-const CtxAttr ctx2.CTXKey = "arrower.slog"
+// ctxAttr is the key for request scoped attributes.
+const ctxAttr ctx2.CTXKey = "arrower.slog"
 
-// AddAttr adds a single attribute to ctx. All attrs in CtxAttr will be logged automatically by the arrowerHandler.
+// AddAttr adds a single attribute to ctx. All attrs in ctxAttr will be logged automatically by the arrowerHandler.
 func AddAttr(ctx context.Context, attr slog.Attr) context.Context {
-	if attrs, ok := FromContext(ctx); ok {
-		return context.WithValue(ctx, CtxAttr, append(attrs, attr))
+	if attrs := FromContext(ctx); len(attrs) > 0 {
+		return context.WithValue(ctx, ctxAttr, append(attrs, attr))
 	}
 
-	return context.WithValue(ctx, CtxAttr, []slog.Attr{attr})
+	return context.WithValue(ctx, ctxAttr, []slog.Attr{attr})
 }
 
-// AddAttrs adds multiple attributes to ctx. All attrs in CtxAttr will be logged automatically by the arrowerHandler.
+// AddAttrs adds multiple attributes to ctx. All attrs in ctxAttr will be logged automatically by the arrowerHandler.
 func AddAttrs(ctx context.Context, newAttrs ...slog.Attr) context.Context {
-	if attrs, ok := FromContext(ctx); ok {
-		return context.WithValue(ctx, CtxAttr, append(attrs, newAttrs...))
+	if attrs := FromContext(ctx); len(attrs) > 0 {
+		return context.WithValue(ctx, ctxAttr, append(attrs, newAttrs...))
 	}
 
-	return context.WithValue(ctx, CtxAttr, newAttrs)
+	return context.WithValue(ctx, ctxAttr, newAttrs)
 }
 
-// ClearAttrs does remove all attributes from CtxAttr.
+// ClearAttrs does remove all attributes from ctxAttr.
 func ClearAttrs(ctx context.Context) context.Context {
-	return context.WithValue(ctx, CtxAttr, nil)
+	return context.WithValue(ctx, ctxAttr, nil)
 }
 
 // FromContext returns the attributes stored in ctx, if any.
-func FromContext(ctx context.Context) ([]slog.Attr, bool) {
-	attrs, ok := ctx.Value(CtxAttr).([]slog.Attr)
+func FromContext(ctx context.Context) []slog.Attr {
+	attrs, ok := ctx.Value(ctxAttr).([]slog.Attr)
+	if !ok {
+		return []slog.Attr{}
+	}
 
-	return attrs, ok
+	return attrs
+}
+
+// Error returns an Attr for an error value.
+func Error(err error) slog.Attr {
+	return slog.String("err", err.Error())
 }

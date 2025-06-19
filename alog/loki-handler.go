@@ -4,11 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
+)
+
+var (
+	errSendFailed = errors.New("send to loki failed")
+	errLokiFailed = errors.New("loki failed")
 )
 
 // NewLokiHandler use this handler only for local development!
@@ -31,7 +38,7 @@ func NewLokiHandler(opt *LokiHandlerOptions) *LokiHandler {
 	available := pingLoki(opt)
 	handler := &LokiHandler{
 		opt:           opt,
-		mu:            sync.Mutex{},
+		mu:            &sync.Mutex{},
 		lokiAvailable: &available,
 		renderer:      renderer,
 		output:        buf,
@@ -80,12 +87,20 @@ func retryLokiConnection(handler *LokiHandler) {
 }
 
 func pingLoki(opt *LokiHandlerOptions) bool {
-	req, err := http.NewRequest(http.MethodGet, opt.URL+"/ready", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, opt.URL+"/ready", nil)
 	if err != nil {
 		return false
 	}
 
-	client := &http.Client{Timeout: 1 * time.Second}
+	client := &http.Client{
+		Transport:     http.DefaultTransport,
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       defaultTimeout,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -94,11 +109,7 @@ func pingLoki(opt *LokiHandlerOptions) bool {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		return false
-	}
-
-	return true
+	return resp.StatusCode < http.StatusBadRequest
 }
 
 type (
@@ -109,7 +120,7 @@ type (
 
 	LokiHandler struct {
 		opt           *LokiHandlerOptions
-		mu            sync.Mutex
+		mu            *sync.Mutex
 		lokiAvailable *bool
 
 		renderer slog.Handler
@@ -139,12 +150,13 @@ func (l *LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 			level = slog.LevelError
 			return false
 		}
+
 		return true
 	})
 
-	err = l.sendToLoki(l.output.String(), level)
+	err = l.sendToLoki(ctx, l.output.String(), level)
 	if err != nil {
-		return fmt.Errorf("could not send logs to loki: %v", err)
+		return fmt.Errorf("%w: could not transmit logs: %w", errSendFailed, err)
 	}
 
 	l.output.Reset()
@@ -152,13 +164,13 @@ func (l *LokiHandler) Handle(ctx context.Context, record slog.Record) error {
 	return nil
 }
 
-func (l *LokiHandler) sendToLoki(jsonLog string, level slog.Level) error {
+func (l *LokiHandler) sendToLoki(ctx context.Context, jsonLog string, level slog.Level) error {
 	payload := map[string]interface{}{
 		"streams": []map[string]interface{}{
 			{
 				"stream": l.getLabels(level),
 				"values": [][]string{
-					{fmt.Sprintf("%d", time.Now().UnixNano()), jsonLog},
+					{strconv.FormatInt(time.Now().UnixNano(), 10), jsonLog},
 				},
 			},
 		},
@@ -166,29 +178,40 @@ func (l *LokiHandler) sendToLoki(jsonLog string, level slog.Level) error {
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not marshal payload: %v", err) //nolint:err113,errorlint // // prevent err in api
 	}
 
-	req, err := http.NewRequest("POST", l.opt.URL+"/loki/api/v1/push", bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		l.opt.URL+"/loki/api/v1/push",
+		bytes.NewBuffer(jsonPayload),
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not build http request: %v", err) //nolint:err113,errorlint // // prevent err in api
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{
+		Transport:     http.DefaultTransport,
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       defaultTimeout,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not post to URL: %v", err) //nolint:err113,errorlint // // prevent err in api
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		body := make([]byte, 1024)
-		resp.Body.Read(body)
-		return fmt.Errorf("loki error %d: %s", resp.StatusCode, string(body))
+	if resp.StatusCode >= http.StatusBadRequest {
+		body := []byte{}
+		_, _ = resp.Body.Read(body)
+
+		return fmt.Errorf("%w: %d: %s", errLokiFailed, resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -212,7 +235,7 @@ func (l *LokiHandler) Enabled(_ context.Context, _ slog.Level) bool {
 func (l *LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &LokiHandler{
 		opt:           l.opt,
-		mu:            sync.Mutex{}, // todo this is a new mutex but existing output buffer below
+		mu:            l.mu,
 		lokiAvailable: l.lokiAvailable,
 		renderer:      l.renderer.WithAttrs(attrs),
 		output:        l.output,
@@ -222,7 +245,7 @@ func (l *LokiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 func (l *LokiHandler) WithGroup(name string) slog.Handler {
 	return &LokiHandler{
 		opt:           l.opt,
-		mu:            sync.Mutex{}, // todo this is a new mutex but existing output buffer below
+		mu:            l.mu,
 		lokiAvailable: l.lokiAvailable,
 		renderer:      l.renderer.WithGroup(name),
 		output:        l.output,

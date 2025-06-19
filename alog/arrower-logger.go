@@ -66,22 +66,20 @@ func New(opts ...LoggerOpt) *slog.Logger {
 func NewDevelopment(pgx *pgxpool.Pool) *slog.Logger {
 	const batchSize = 10
 
-	config := []LoggerOpt{
+	opts := []LoggerOpt{
 		WithLevel(slog.LevelDebug),
 		WithHandler(slog.NewTextHandler(os.Stderr, getDebugHandlerOptions())),
 		WithHandler(NewLokiHandler(nil)),
 	}
 
 	if pgx != nil {
-		config = append(config,
+		opts = append(opts,
 			WithHandler(NewPostgresHandler(pgx, &PostgresHandlerOptions{MaxBatchSize: batchSize, MaxTimeout: time.Second})),
 			WithSettings(setting.NewPostgresSettings(pgx)),
 		)
 	}
 
-	return New(
-		config...,
-	)
+	return New(opts...)
 }
 
 // newArrowerHandler implements the main arrower specific logging logic and features.
@@ -284,8 +282,8 @@ func (l *tracedHandler) Handle(ctx context.Context, record slog.Record) error {
 
 	record = addTraceAndSpanIDsToLogs(span, record)
 
-	attr, ok := FromContext(ctx)
-	if ok {
+	attr := FromContext(ctx)
+	if len(attr) > 0 {
 		record.AddAttrs(attr...)
 	}
 
@@ -349,10 +347,6 @@ func (l *tracedHandler) UsesSettings() bool {
 	return l.settings != nil
 }
 
-func (l *tracedHandler) NumHandlers() int {
-	return len(l.handlers)
-}
-
 // ArrowerLogger is an extension to Logger and slog.Logger and offers
 // additional control over the logger at run time.
 // Unwrap a logger to get access to this features.
@@ -360,7 +354,6 @@ type ArrowerLogger interface {
 	SetLevel(level slog.Level)
 	Level() slog.Level
 	UsesSettings() bool
-	// NumHandlers
 }
 
 // Unwrap unwraps the given logger and returns a ArrowerLogger.

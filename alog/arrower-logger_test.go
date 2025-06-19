@@ -266,7 +266,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 			// dynamically add userID to the setting of users to log
 			settings.Save(ctx, alog.SettingLogUsers, setting.NewValue([]string{userID}))
 
-			ctx := context.WithValue(ctx, auth.CtxUserID, userID)
+			ctx = context.WithValue(ctx, auth.CtxUserID, userID) //nolint:fatcontext // fp, as this is not a loop
 			logger.Log(ctx, slog.LevelDebug, "debug")
 
 			assert.Contains(t, buf.String(), "debug")

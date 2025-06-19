@@ -1,6 +1,7 @@
 package alog_test
 
 import (
+	"errors"
 	"log/slog"
 	"testing"
 
@@ -17,8 +18,7 @@ func TestAddAttr(t *testing.T) {
 
 		ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
-		attr, ok := alog.FromContext(ctx)
-		assert.True(t, ok)
+		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 1)
 	})
 
@@ -29,8 +29,7 @@ func TestAddAttr(t *testing.T) {
 
 		ctx = alog.AddAttr(ctx, slog.String("some", "attr"))
 
-		attr, ok := alog.FromContext(ctx)
-		assert.True(t, ok)
+		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 2)
 	})
 }
@@ -43,8 +42,7 @@ func TestAddAttrs(t *testing.T) {
 
 		ctx := alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
-		attr, ok := alog.FromContext(ctx)
-		assert.True(t, ok)
+		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 2)
 	})
 
@@ -55,8 +53,7 @@ func TestAddAttrs(t *testing.T) {
 
 		ctx = alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr"))
 
-		attr, ok := alog.FromContext(ctx)
-		assert.True(t, ok)
+		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 3)
 	})
 }
@@ -68,8 +65,7 @@ func TestClearAttrs(t *testing.T) {
 
 	ctx = alog.ClearAttrs(ctx)
 
-	attr, ok := alog.FromContext(ctx)
-	assert.False(t, ok)
+	attr := alog.FromContext(ctx)
 	assert.Empty(t, attr)
 }
 
@@ -79,8 +75,17 @@ func TestFromContext(t *testing.T) {
 	t.Run("ensure empty ctx has no attr", func(t *testing.T) {
 		t.Parallel()
 
-		attr, ok := alog.FromContext(ctx)
-		assert.False(t, ok)
-		assert.Empty(t, attr)
+		attrs := alog.FromContext(ctx)
+		assert.NotNil(t, attrs)
+		assert.Empty(t, attrs)
 	})
+}
+
+func TestError(t *testing.T) {
+	t.Parallel()
+
+	got := alog.Error(errors.New("my-error")) //nolint:err113
+	assert.Equal(t, "err", got.Key)
+	assert.Equal(t, "my-error", got.Value.String())
+	assert.Equal(t, "err=my-error", got.String())
 }

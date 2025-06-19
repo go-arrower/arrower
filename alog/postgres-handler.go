@@ -18,7 +18,13 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth"
 )
 
-var ErrLogFailed = errors.New("could not save log")
+var errLogFailed = errors.New("could not save log")
+
+const (
+	defaultLogChanBuffer = 10
+	defaultTimeout       = 2 * time.Second
+	defaultBatchSize     = 100
+)
 
 // NewPostgresHandler use this handler in low traffic situations
 // to inspect logs via the arrower admin Context.
@@ -49,12 +55,6 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 	}
 
 	var isAsync bool
-
-	const (
-		defaultLogChanBuffer = 10
-		defaultTimeout       = 2 * time.Second
-		defaultBatchSize     = 100
-	)
 
 	records := make(chan logRecord, defaultLogChanBuffer)
 
@@ -152,7 +152,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 
 	out, err := l.render(ctx, record)
 	if err != nil {
-		return fmt.Errorf("%w: could not render the record: %w", ErrLogFailed, err)
+		return fmt.Errorf("%w: could not render the record: %w", errLogFailed, err)
 	}
 
 	lRecord := logRecord{
@@ -169,7 +169,7 @@ func (l *PostgresHandler) Handle(ctx context.Context, record slog.Record) error 
 
 	err = saveLogs(ctx, l.queries, []logRecord{lRecord})
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrLogFailed, err)
+		return fmt.Errorf("%w: %v", errLogFailed, err)
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func saveLogs(ctx context.Context, queries *models.Queries, logs []logRecord) er
 
 	_, err := queries.LogRecords(ctx, params)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrLogFailed, err)
+		return fmt.Errorf("%w: %v", errLogFailed, err)
 	}
 
 	return nil
