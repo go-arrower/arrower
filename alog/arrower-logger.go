@@ -356,7 +356,7 @@ type ArrowerLogger interface {
 	UsesSettings() bool
 }
 
-// Unwrap unwraps the given logger and returns a ArrowerLogger.
+// Unwrap unwraps the given logger and returns an ArrowerLogger.
 // In case of an invalid implementation of logger,
 // it returns nil.
 func Unwrap(logger Logger) ArrowerLogger { //nolint:ireturn,lll // interface required to return a TestLogger and arrowerHandler

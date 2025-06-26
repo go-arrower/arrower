@@ -4,6 +4,7 @@ package repository_test
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -12,7 +13,6 @@ import (
 	mnoop "go.opentelemetry.io/otel/metric/noop"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/testdata"
@@ -45,7 +45,7 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 
 		// Given a job queue
-		jq0, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
+		jq0, err := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 		assert.NoError(t, err)
 
 		// And given a different job queue run in the future, meaning: this queue does not have a history yet
-		jq1, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
+		jq1, err := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(),
 			pg, ajobs.WithPollInterval(time.Nanosecond), ajobs.WithQueue("some_queue"),
 		)
 		assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, pendingJobs, "queue needs to be empty, as no jobs got enqueued yet")
 
-		jq, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
+		jq, _ := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
 		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
 
 		pendingJobs, err = repo.PendingJobs(ctx, jobs.DefaultQueueName)
@@ -158,7 +158,7 @@ func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
+		jq, err := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
 		assert.NoError(t, err)
 
 		err = jq.Enqueue(ctx, testdata.SimpleJob{})
@@ -195,7 +195,7 @@ func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, err := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -234,7 +234,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, _ := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
 
@@ -258,7 +258,7 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
-		jq, _ := ajobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, _ := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			ajobs.WithPollInterval(time.Nanosecond),
 		)
 

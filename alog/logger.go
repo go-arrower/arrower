@@ -12,7 +12,7 @@ import (
 	"context"
 	"log/slog"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
+	"github.com/go-arrower/arrower/ctx"
 )
 
 // Logger interface is a subset of slog.Logger, with the aim to:
@@ -63,7 +63,7 @@ func getLevelNames() map[slog.Leveler]string {
 }
 
 // ctxAttr is the key for request scoped attributes.
-const ctxAttr ctx2.CTXKey = "arrower.slog"
+const ctxAttr ctx.CTXKey = "arrower.slog"
 
 // AddAttr adds a single attribute to ctx. All attrs in ctxAttr will be logged automatically by the arrowerHandler.
 func AddAttr(ctx context.Context, attr slog.Attr) context.Context {

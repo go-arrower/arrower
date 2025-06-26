@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -71,7 +72,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		queue := jobs.Test(t)
 		registrator := registrator(repo)
 
-		handler := application.NewRegisterUserRequestHandler(alog.NewNoop(), repo, registrator, queue)
+		handler := application.NewRegisterUserRequestHandler(slog.New(slog.DiscardHandler), repo, registrator, queue)
 
 		usr, err := handler.H(ctx, registerUserRequest(
 			with("RegisterEmail", newUserLogin),

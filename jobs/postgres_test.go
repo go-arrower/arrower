@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"sync"
 	"testing"
@@ -47,7 +48,7 @@ func TestNewPostgresJobs(t *testing.T) {
 	t.Run("initialise a new PostgresJobsHandler", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
 		assert.NoError(t, err)
 		assert.NotEmpty(t, jq)
 	})
@@ -55,7 +56,7 @@ func TestNewPostgresJobs(t *testing.T) {
 	t.Run("initialise a new PostgresJobsHandler with queue", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
 			jobs.WithQueue("name"),
 		)
 		assert.NoError(t, err)
@@ -65,7 +66,7 @@ func TestNewPostgresJobs(t *testing.T) {
 	t.Run("initialise a new PostgresJobsHandler with poll interval", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -75,7 +76,7 @@ func TestNewPostgresJobs(t *testing.T) {
 	t.Run("initialise a new PostgresJobsHandler with pool size", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
 			jobs.WithPoolSize(1),
 		)
 		assert.NoError(t, err)
@@ -123,7 +124,7 @@ func TestNewPostgresJobs(t *testing.T) {
 			)
 
 			pg := pgHandler.NewTestDatabase()
-			jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+			jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 				jobs.WithPollInterval(time.Nanosecond), jobs.WithPoolSize(1),
 				jobs.WithPollStrategy(jobs.RunAtPollStrategy),
 			)
@@ -176,7 +177,7 @@ func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 	t.Run("ensure JobFunc is of type func and signature has two arguments with first ctx and returns error", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
 		assert.NoError(t, err)
 
 		err = jq.RegisterJobFunc(nil)
@@ -208,7 +209,7 @@ func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 	t.Run("ensure only one worker can register for a JobType name", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx())
 		assert.NoError(t, err)
 
 		err = jq.RegisterJobFunc(func(_ context.Context, _ simpleJob) error { return nil })
@@ -227,7 +228,7 @@ func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -258,7 +259,7 @@ func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 		)
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -295,7 +296,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 	t.Run("invalid job", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -323,7 +324,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), trace.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), trace.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -351,7 +352,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -395,7 +396,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -438,7 +439,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		)
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond), jobs.WithPoolSize(1),
 		)
 		assert.NoError(t, err)
@@ -584,7 +585,7 @@ func TestPostgresJobs_StartWorkers(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -651,7 +652,7 @@ func TestPostgresJobs_StartWorkers(t *testing.T) {
 
 		pg := pgHandler.NewTestDatabase()
 		queries := models.New(pg)
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPoolName("pool_name"), jobs.WithPoolSize(7), jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -684,7 +685,7 @@ func TestPostgresJobs_History(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -729,7 +730,7 @@ func TestPostgresJobs_History(t *testing.T) {
 		)
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -800,7 +801,7 @@ func TestPostgresJobs_History(t *testing.T) {
 		)
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -860,7 +861,7 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 	t.Run("ensure shutdown can be called without workers started", func(t *testing.T) {
 		t.Parallel()
 
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pgHandler.PGx(),
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -874,7 +875,7 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 		t.Skip() // currently, the Group that gue uses does not allow returning before all Jobs are finished
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -909,7 +910,7 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 		t.Skip() // currently, the Group that gue uses does not allow returning before all Jobs are finished
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -940,7 +941,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -970,7 +971,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 		t.Parallel()
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Second), // prevent an immediate start of the worker, so the assertions below work
 		)
 		assert.NoError(t, err)
@@ -999,7 +1000,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 
 		var wg sync.WaitGroup
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -1049,7 +1050,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 
 		var wg sync.WaitGroup
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -1103,15 +1104,15 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
 
 		wg.Add(1)
 		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
-			attr, exists := alog.FromContext(ctx)
-			assert.True(t, exists)
+			attr := alog.FromContext(ctx)
+			assert.NotEmpty(t, attr)
 			assert.Equal(t, "jobID", attr[0].Key)
 			assert.NotEmpty(t, attr[0].Value, "ctx needs a jobID as slog attribute")
 
@@ -1142,7 +1143,7 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)
@@ -1171,7 +1172,7 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 		var wg sync.WaitGroup
 
 		pg := pgHandler.NewTestDatabase()
-		jq, err := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
+		jq, err := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg,
 			jobs.WithPollInterval(time.Nanosecond),
 		)
 		assert.NoError(t, err)

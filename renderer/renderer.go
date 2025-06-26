@@ -63,7 +63,7 @@ func New(
 	hotReload bool,
 ) (*Renderer, error) {
 	if logger == nil {
-		logger = alog.NewNoop()
+		logger = slog.New(slog.DiscardHandler)
 	}
 
 	if traceProvider == nil {

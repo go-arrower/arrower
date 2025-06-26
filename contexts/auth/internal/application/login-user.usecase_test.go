@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator())
 
 		res, err := handler.H(ctx, application.LoginUserRequest{
 			LoginEmail: validUserLogin,
@@ -75,7 +76,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(ctx, userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(alog.NewNoop(), repo, queue, authentificator())
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator())
 
 		_, err := handler.H(ctx, application.LoginUserRequest{
 			LoginEmail:  validUserLogin,

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"sync"
 	"testing"
@@ -14,15 +15,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
-
-	"github.com/go-arrower/arrower/alog"
 )
 
 func Test(
 	viewFS fs.FS,
 	funcMap template.FuncMap,
 ) (*TestRenderer, error) {
-	r, err := New(alog.NewNoop(), noop.NewTracerProvider(), viewFS, funcMap, false)
+	r, err := New(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), viewFS, funcMap, false)
 	if err != nil {
 		return &TestRenderer{}, fmt.Errorf("could not create test renderer: %w", err)
 	}

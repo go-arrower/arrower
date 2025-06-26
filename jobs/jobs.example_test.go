@@ -5,13 +5,13 @@ package jobs_test
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
 	mnoop "go.opentelemetry.io/otel/metric/noop"
 	tnoop "go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/tests"
 )
@@ -25,7 +25,7 @@ type otherJob struct{}
 func Example_postgresJobsHandler() {
 	db := tests.GetPostgresDockerForIntegrationTestingInstance()
 
-	jq, _ := jobs.NewPostgresJobs(alog.NewNoop(), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), db.PGx(),
+	jq, _ := jobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), db.PGx(),
 		jobs.WithPollInterval(time.Millisecond), jobs.WithPoolSize(1), // options are to make example deterministic, no production values
 	)
 
