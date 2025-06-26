@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	prometheusSDK "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
@@ -245,8 +246,18 @@ func InitialiseDefaultDependencies(
 		router.Logger.SetOutput(io.Discard)
 		router.Validator = &CustomValidator{validator: validator.New()}
 		router.IPExtractor = echo.ExtractIPFromXFFHeader() // see: https://echo.labstack.com/docs/ip-address
+
 		router.Use(otelecho.Middleware(conf.OTEL.Hostname, otelecho.WithTracerProvider(dc.TraceProvider)))
 		router.Use(echoprometheus.NewMiddleware(conf.ApplicationName))
+		router.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
+			TargetHeader: "Request-Id",
+			RequestIDHandler: func(c echo.Context, rid string) {
+				c.SetRequest(c.Request().WithContext(alog.AddAttr(
+					c.Request().Context(),
+					slog.String("request_id", rid)),
+				))
+			},
+		}))
 
 		if conf.Environment == LocalEnv {
 			router.Debug = true

@@ -151,13 +151,13 @@ func addTraceAndSpanIDsToLogs(span trace.Span, record slog.Record) slog.Record {
 
 	if sCtx.HasTraceID() {
 		attrs = append(attrs,
-			slog.Attr{Key: "traceID", Value: slog.StringValue(sCtx.TraceID().String())},
+			slog.Attr{Key: "trace_id", Value: slog.StringValue(sCtx.TraceID().String())},
 		)
 	}
 
 	if sCtx.HasSpanID() {
 		attrs = append(attrs,
-			slog.Attr{Key: "spanID", Value: slog.StringValue(sCtx.SpanID().String())},
+			slog.Attr{Key: "span_id", Value: slog.StringValue(sCtx.SpanID().String())},
 		)
 	}
 
@@ -246,7 +246,7 @@ func (l *tracedHandler) Enabled(ctx context.Context, level slog.Level) bool {
 				if slices.Contains(users, userID) {
 					span.SetAttributes(
 						attribute.Bool("enabled", true),
-						attribute.String("userID", userID),
+						attribute.String("user_id", userID),
 					)
 
 					return true

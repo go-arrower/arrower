@@ -505,7 +505,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 		defer childSpan.End()
 
 		childSpan.SetAttributes(
-			attribute.String("jobID", job.ID.String()),
+			attribute.String("job_id", job.ID.String()),
 			attribute.String("queue", job.Queue),
 			attribute.String("type", job.Type),
 			attribute.Int("priority", int(job.Priority)),
@@ -513,7 +513,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 			attribute.String("run_at", job.RunAt.Format(time.RFC3339)),
 		)
 
-		ctx = alog.AddAttr(ctx, slog.String("jobID", job.ID.String()))
+		ctx = alog.AddAttr(ctx, slog.String("job_id", job.ID.String()))
 		ctx = context.WithValue(ctx, CTXJobID, job.ID.String())
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 

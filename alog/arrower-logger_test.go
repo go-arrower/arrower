@@ -347,11 +347,11 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			ctx := trace.ContextWithSpan(ctx, &fakeSpan{t: t, ID: 1}) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger.Info(applicationMsg)
-			logger.NotContains("traceID")
+			logger.NotContains("trace_id")
 
 			logger.InfoContext(ctx, applicationMsg)
-			logger.Contains("traceID=")
-			logger.Contains("spanID=")
+			logger.Contains("trace_id=")
+			logger.Contains("span_id=")
 		})
 
 		t.Run("add logs to span as event", func(t *testing.T) {
