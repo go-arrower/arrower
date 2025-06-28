@@ -13,11 +13,12 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/go-arrower/arrower/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/go-arrower/arrower/postgres"
 )
 
 var (
@@ -105,6 +106,7 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var serial int64
+
 		err := pgxscan.Get(ctx, repo.TxOrConn(ctx), &serial,
 			"SELECT nextval(pg_get_serial_sequence('"+repo.Table+"', '"+strings.ToLower(repo.IDFieldName)+"'))",
 		)
@@ -115,6 +117,7 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 		reflect.ValueOf(&id).Elem().SetInt(serial)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var serial int64
+
 		err := pgxscan.Get(ctx, repo.TxOrConn(ctx), &serial,
 			"SELECT nextval(pg_get_serial_sequence('"+repo.Table+"', '"+strings.ToLower(repo.IDFieldName)+"'))",
 		)
@@ -154,7 +157,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 	if err != nil && strings.Contains(err.Error(), "SQLSTATE 23505") {
 		return ErrAlreadyExists
 	}
-	if err != nil {
+	if err != nil { //nolint:wsl // error handling belongs together
 		return fmt.Errorf("%w: could not insert entity: %v", ErrInvalidQuery, err)
 	}
 
@@ -187,7 +190,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 	if err == nil && res.RowsAffected() == 0 {
 		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
 	}
-	if err != nil {
+	if err != nil { //nolint:wsl // error handling belongs together
 		return fmt.Errorf("%w: could not update entity with id: %v: %v", ErrSaveFailed, id, err)
 	}
 
@@ -239,7 +242,7 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
 	}
-	if err != nil {
+	if err != nil { //nolint:wsl // error handling belongs together
 		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
 	}
 
@@ -284,7 +287,7 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Co
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
 	}
-	if err != nil {
+	if err != nil { //nolint:wsl // error handling belongs together
 		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
 	}
 
@@ -305,7 +308,7 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return *new(E), fmt.Errorf("%w: entity does not exist: %v", ErrNotFound, err)
 	}
-	if err != nil {
+	if err != nil { //nolint:wsl // error handling belongs together
 		return *new(E), fmt.Errorf("%w: could not scan entity: %v", ErrInvalidQuery, err)
 	}
 
@@ -417,9 +420,9 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 
 	values := make([]any, len(repo.Columns))
 
-	e := reflect.ValueOf(entity)
+	ent := reflect.ValueOf(entity)
 	for i, name := range repo.Columns {
-		values[i] = e.FieldByName(fieldByColumnName[E](name)).Interface()
+		values[i] = ent.FieldByName(fieldByColumnName[E](name)).Interface()
 	}
 
 	query := psql.
@@ -434,7 +437,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 			expr = name + "= ?"
 		}
 
-		sql, args, err := squirrel.Expr(expr, e.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
+		sql, args, err := squirrel.Expr(expr, ent.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
 		if err != nil {
 			return fmt.Errorf("%w: could not build on conflict sub-query: %v", ErrInvalidQuery, err)
 		}
@@ -608,6 +611,8 @@ func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
 	return i.nextBatchValue()
 }
 
+const batchSize = 1000
+
 func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error) bool) {
 	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
 	// todo check, if the cursor needs to be named different, if the transaction is already different
@@ -622,13 +627,15 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 		i.cursorOpen = true
 	}
 
-	quit := make(chan struct{}, 2) // cap 2, so regular and error branches can terminate the go routine without blocking
+	// cap 2, so regular and error branches can terminate the go routine without blocking
+	quit := make(chan struct{}, 2) //nolint:mnd
 
-	ch := make(chan E, 1000)
+	ch := make(chan E, batchSize)
+
 	var fetchErr atomic.Value
 
 	go func() {
-		var entities = make([]E, 1000)
+		entities := make([]E, batchSize)
 
 		for {
 			select { // prevent go routine leak
@@ -658,6 +665,7 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 
 	return func(yield func(e E, err error) bool) {
 		var err error
+
 		for e := range ch {
 			if fe := fetchErr.Load(); fe != nil {
 				err = fe.(error)
@@ -758,7 +766,6 @@ func fieldByColumnName[E any](name string) string {
 		field := t.Field(i)
 		dbTag := field.Tag.Get("db")
 
-		fmt.Println(name, ":", dbTag, field.Name)
 		if dbTag == name || field.Name == name {
 			return field.Name
 		}

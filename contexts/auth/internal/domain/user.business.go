@@ -26,7 +26,7 @@ func NewUser(registerEmail string, password string) (User, error) {
 	}
 
 	if _, err := mail.ParseAddress(registerEmail); err != nil {
-		return User{}, fmt.Errorf("%w: invalid email address: %v", ErrInvalidUserDetails, err) //nolint:errorlint,lll // prevent err in api
+		return User{}, fmt.Errorf("%w: invalid email address: %v", ErrInvalidUserDetails, err)
 	}
 
 	pwHash, err := NewStrongPasswordHash(password)
@@ -62,7 +62,7 @@ func NewUser(registerEmail string, password string) (User, error) {
 
 type (
 	// User represents a user of the software, that can perform all the auth functionalities.
-	User struct { //nolint:govet // fieldalignment less important than grouping of fields.
+	User struct {
 		ID           ID
 		Login        Login // UserName / email, or phone, or nickname, or whatever the developer wants to have as a login
 		PasswordHash PasswordHash

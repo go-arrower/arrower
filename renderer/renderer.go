@@ -106,7 +106,7 @@ func New(
 	}, nil
 }
 
-type Renderer struct { //nolint:govet // readability over memory layout.
+type Renderer struct {
 	logger alog.Logger
 	tracer trace.Tracer
 
@@ -217,7 +217,7 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 
 	err = templ.ExecuteTemplate(w, parsedTempl.templateName(), data)
 	if err != nil {
-		return fmt.Errorf("%w: could not execute template: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: could not execute template: %v", ErrRenderFailed, err)
 	}
 
 	r.rawTemplate(templ)
@@ -282,12 +282,12 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 
 		newTemplate, err := newTemplate.AddParseTree(parsedTempl.key(), newTemplate.Tree)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
+			return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err)
 		}
 
 		newTemplate, err = newTemplate.Clone()
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
+			return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err)
 		}
 
 		return newTemplate, nil
@@ -295,7 +295,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 
 	newTemplate, err := r.views[parsedTempl.context].components.Clone()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
+		return nil, fmt.Errorf("%w: %v", ErrRenderFailed, err)
 	}
 
 	isPageWithoutLayout := parsedTempl.baseLayout == "" && parsedTempl.contextLayout == ""
@@ -308,14 +308,14 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 
 		newTemplate, err = newTemplate.New(parsedTempl.key()).Parse(r.views[SharedViews].rawLayouts[parsedTempl.baseLayout])
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not parse base: %v", ErrRenderFailed, err) //nolint:errorlint,lll // prevent err in api
+			return nil, fmt.Errorf("%w: could not parse base: %v", ErrRenderFailed, err)
 		}
 
 		if isContext {
 			newTemplate, err = newTemplate.New("layout").
 				Parse(r.views[parsedTempl.context].rawLayouts[parsedTempl.contextLayout])
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not parse layout: %v", ErrRenderFailed, err) //nolint:errorlint,lll // prevent err in api
+				return nil, fmt.Errorf("%w: could not parse layout: %v", ErrRenderFailed, err)
 			}
 		}
 
@@ -327,7 +327,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 			newTemplate, err = newTemplate.New("layout").
 				Parse(r.views["admin"].rawLayouts[parsedTempl.contextLayout])
 			if err != nil {
-				return nil, fmt.Errorf("%w: could not parse admin layout: %v", ErrRenderFailed, err) //nolint:errorlint,lll // prevent err in api
+				return nil, fmt.Errorf("%w: could not parse admin layout: %v", ErrRenderFailed, err)
 			}
 		}
 	}
@@ -345,7 +345,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 
 	newTemplate, err = newTemplate.New("content").Parse(page)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not parse page: %v", ErrRenderFailed, err) //nolint:errorlint // prevent err in api
+		return nil, fmt.Errorf("%w: could not parse page: %v", ErrRenderFailed, err)
 	}
 
 	return newTemplate, nil
@@ -354,7 +354,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.FuncMap, isContext bool) (viewTemplates, error) {
 	components, err := fs.Glob(viewFS, "components/*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:errorlint,goerr113,lll // prevent err in api
+		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:goerr113
 	}
 
 	componentTemplates := template.New("<empty>").
@@ -374,7 +374,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 
 		_, err = componentTemplates.New(name).Parse(file)
 		if err != nil {
-			return viewTemplates{}, fmt.Errorf("could not parse component: %s: %v", file, err) //nolint:errorlint,goerr113,lll // prevent err in api
+			return viewTemplates{}, fmt.Errorf("could not parse component: %s: %v", file, err) //nolint:goerr113
 		}
 	}
 
@@ -386,7 +386,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 
 	pages, err := fs.Glob(viewFS, "pages/*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get pages from fs: %v", err) //nolint:errorlint,goerr113,lll // prevent err in api
+		return viewTemplates{}, fmt.Errorf("could not get pages from fs: %v", err) //nolint:goerr113
 	}
 
 	rawPages := make(map[string]string)
@@ -410,7 +410,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 
 	layouts, err := fs.Glob(viewFS, "*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get layouts from fs: %v", err) //nolint:errorlint,goerr113,lll // prevent err in api
+		return viewTemplates{}, fmt.Errorf("could not get layouts from fs: %v", err) //nolint:goerr113
 	}
 
 	var defaultLayout string
@@ -488,14 +488,14 @@ func pageName(pageName string) string {
 func readFile(sfs fs.FS, name string) (string, error) {
 	file, err := sfs.Open(name)
 	if err != nil {
-		return "", fmt.Errorf("%v", err) //nolint:errorlint,goerr113 // do not expose err to arrower api
+		return "", fmt.Errorf("%v", err) //nolint:goerr113
 	}
 
 	var buf bytes.Buffer
 
 	_, err = io.Copy(&buf, file)
 	if err != nil {
-		return "", fmt.Errorf("could not read: %v", err) //nolint:errorlint,goerr113 // do not expose err to arrower api
+		return "", fmt.Errorf("could not read: %v", err) //nolint:goerr113
 	}
 
 	return buf.String(), nil

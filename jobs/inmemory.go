@@ -35,7 +35,7 @@ func newMemoryQueue() *MemoryQueue {
 	}
 }
 
-type MemoryQueue struct { //nolint:govet // alignment less important than grouping of mutex
+type MemoryQueue struct {
 	modulePath string
 
 	mu        sync.Mutex
@@ -85,7 +85,7 @@ func (q *MemoryQueue) Schedule(spec string, job Job) error {
 		q.jobs = append(q.jobs, job)
 	})
 	if err != nil {
-		return fmt.Errorf("%w: could not schedule job: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not schedule job: %v", ErrScheduleFailed, err)
 	}
 
 	return nil

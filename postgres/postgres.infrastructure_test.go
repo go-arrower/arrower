@@ -47,7 +47,7 @@ func TestConnect(t *testing.T) {
 					Database: "dbname_test",
 				}, noop.NewTracerProvider())
 				if err != nil {
-					return err //nolint:wrapcheck
+					return err
 				}
 
 				pgHandler = handler
@@ -80,7 +80,7 @@ func TestConnect(t *testing.T) {
 					Database: "dbname_test",
 				}, noop.NewTracerProvider())
 				if err != nil {
-					return err //nolint:wrapcheck
+					return err
 				}
 
 				pgHandler = handler
@@ -120,7 +120,7 @@ func TestConnectAndMigrate(t *testing.T) {
 					Database: "dbname_test",
 				}, noop.NewTracerProvider())
 				if err != nil && !errors.Is(err, postgres.ErrMigrationFailed) {
-					return err //nolint:wrapcheck
+					return err
 				}
 
 				t.Log(err)
@@ -150,7 +150,7 @@ func TestConnectAndMigrate(t *testing.T) {
 					Migrations: postgres.ArrowerDefaultMigrations,
 				}, noop.NewTracerProvider())
 				if err != nil {
-					return err //nolint:wrapcheck
+					return err
 				}
 
 				pgHandler = handler
@@ -187,7 +187,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			return func() error {
 				_, err := postgres.ConnectAndMigrate(context.Background(), config, noop.NewTracerProvider())
 				if err != nil {
-					return err //nolint:wrapcheck
+					return err
 				}
 
 				return nil

@@ -2,7 +2,6 @@ run:
   build-tags:
     - integration
 
-
 linters-settings:
   exhaustive:
     # Presence of "default" case in switch statements satisfies exhaustiveness,

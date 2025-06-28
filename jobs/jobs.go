@@ -202,7 +202,6 @@ type (
 	// PersistencePayload is the structure of how a Job is saved by each Queue implementation.
 	//
 	// The JSON of this struct is shown in the admin UI => keep the order if fields (especially JobData at the top).
-	//nolint:govet // fieldalignment not important compared to sort order of fields when serialising.
 	PersistencePayload struct {
 		// JobData is the actual data as string instead of []byte,
 		// so that it is readable more easily when assessing it via psql directly.
@@ -225,8 +224,7 @@ type (
 	// PersistenceCTXPayload contains a selected subset of the values stored in the request ctx.
 	// These values are partially handed down to the job worker's ctx.
 	//
-	// Note: slog.Attr saves the value as a pointer and does not persist when marshalled to json.
-	//nolint:govet // fieldalignment not important compared to sort order of fields when serialising.
+	// Note: slog.Attr saves the value as a pointer and does not persist when marshalled to JSON.
 	PersistenceCTXPayload struct {
 		UserID string `json:"userId"`
 

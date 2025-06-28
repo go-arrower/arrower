@@ -12,6 +12,7 @@ type Condition[T any] interface {
 func Filter[T any](m T) Condition[T] {
 	return filter[T]{model: m, orderBy: ""}
 }
+
 func OrderBy[T any](m string) Condition[T] {
 	return filter[T]{orderBy: m, model: *new(T)}
 }

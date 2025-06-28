@@ -49,12 +49,12 @@ func (h *pruneJobHistoryRequestHandler) H(
 		pgtype.Timestamptz{Time: deleteBefore, Valid: true, InfinityModifier: pgtype.Finite},
 	)
 	if err != nil {
-		return PruneJobHistoryResponse{}, fmt.Errorf("%w: could not delete old history: %v", ErrPruneJobHistoryFailed, err) //nolint:errorlint,lll // prevent err in api
+		return PruneJobHistoryResponse{}, fmt.Errorf("%w: could not delete old history: %v", ErrPruneJobHistoryFailed, err)
 	}
 
 	size, err := h.queries.JobTableSize(ctx)
 	if err != nil {
-		return PruneJobHistoryResponse{}, fmt.Errorf("%w: could not get new jobs table size: %v", ErrPruneJobHistoryFailed, err) //nolint:errorlint,lll // prevent err in api
+		return PruneJobHistoryResponse{}, fmt.Errorf("%w: could not get new jobs table size: %v", ErrPruneJobHistoryFailed, err)
 	}
 
 	return PruneJobHistoryResponse{

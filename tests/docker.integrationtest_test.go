@@ -113,7 +113,7 @@ var (
 
 			conn, err := pgx.Connect(context.Background(), url)
 			if err != nil {
-				return err //nolint:wrapcheck
+				return err
 			}
 
 			return conn.Ping(context.Background())

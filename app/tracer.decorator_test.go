@@ -102,7 +102,7 @@ func TestJobTracingDecorator_H(t *testing.T) {
 	})
 }
 
-func newFakeTracer(t *testing.T) trace.TracerProvider { //nolint:ireturn
+func newFakeTracer(t *testing.T) trace.TracerProvider {
 	t.Helper()
 
 	return &fakeTracerProvider{t: t}
@@ -125,7 +125,7 @@ type (
 
 var _ trace.TracerProvider = (*fakeTracerProvider)(nil)
 
-func (f fakeTracerProvider) Tracer(name string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
+func (f fakeTracerProvider) Tracer(name string, _ ...trace.TracerOption) trace.Tracer {
 	f.t.Helper()
 
 	assert.Equal(f.t, "arrower.application", name)
@@ -193,7 +193,7 @@ func (f fakeSpan) SetAttributes(_ ...attribute.KeyValue) {
 	panic("implement me")
 }
 
-func (f fakeSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
+func (f fakeSpan) TracerProvider() trace.TracerProvider {
 	panic("implement me")
 }
 

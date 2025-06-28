@@ -19,7 +19,7 @@ type requestLoggingDecorator[Req any, Res any] struct {
 	base   Request[Req, Res]
 }
 
-func (d *requestLoggingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *requestLoggingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	cmdName := commandName(req)
 
 	d.logger.DebugContext(ctx, "executing request",
@@ -87,7 +87,7 @@ type queryLoggingDecorator[Q any, Res any] struct {
 	base   Query[Q, Res]
 }
 
-func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) {
 	cmdName := commandName(query)
 
 	d.logger.DebugContext(ctx, "executing query",

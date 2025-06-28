@@ -20,7 +20,7 @@ type requestTracingDecorator[Req any, Res any] struct {
 	base   Request[Req, Res]
 }
 
-func (d *requestTracingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *requestTracingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	cmdName := commandName(req)
 
 	newCtx, span := d.tracer.Start(ctx, "usecase",
@@ -76,7 +76,7 @@ type queryTracingDecorator[Q any, Res any] struct {
 	base   Query[Q, Res]
 }
 
-func (d *queryTracingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *queryTracingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) {
 	cmdName := commandName(query)
 
 	newCtx, span := d.tracer.Start(ctx, "usecase",

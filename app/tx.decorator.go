@@ -21,7 +21,7 @@ type requestTxDecorator[Req any, Res any] struct {
 	base Request[Req, Res]
 }
 
-func (d *requestTxDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *requestTxDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	tx, err := d.pgx.Begin(ctx)
 	if err != nil {
 		return *new(Res), fmt.Errorf("could not start transaction: %w", err)

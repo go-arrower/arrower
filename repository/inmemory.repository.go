@@ -441,7 +441,7 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 	return nil
 }
 
-func (repo *MemoryRepository[E, ID]) UpdateAll(ctx context.Context, entities []E) error {
+func (repo *MemoryRepository[E, ID]) UpdateAll(_ context.Context, entities []E) error {
 	repo.Lock()
 	defer repo.Unlock()
 

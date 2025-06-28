@@ -264,6 +264,12 @@ issues:
         - gochecknoglobals
       text: "Setting" # If settings key is prefixed e.g. auth.SettingAllowRegistration
 
+    # Allow the use of t as a translation shortcut in the web package
+    - path: "(.*)interfaces/web/(.*).go"
+      linters:
+        - varnamelen
+      text: "variable name 't'"
+
     # Don't force package name_test for files dedicated to white-box testing by their file name
     - path: _wb_test.go
       linters:
@@ -294,7 +300,7 @@ issues:
 
     # Allow the use of zero structs. It is assumed that this is a conscious decision to do so
     - linters:
-        - exhaustruct
+        - exhaustruct # Allow the command to not use all configurations options & hooks Cobra offers
       source: "{}"
 
     #
@@ -308,6 +314,7 @@ issues:
         - lll # Mostly because of lengthy msgAndArgs params in assertions
         - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
         - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
+        - wrapcheck # test helpers don't need a traceable error message stack
 
     # Partly exclude wsl when testing, to keep tests easier to read.
     - path: _test.go|testing.go

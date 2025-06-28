@@ -24,7 +24,7 @@ func WatchFolder(ctx context.Context, path string, fileChanged chan<- File, debo
 	path += "/..."
 
 	if err := notify.Watch(path, fsEvents, notify.All); err != nil {
-		return fmt.Errorf("%w: %v", ErrObserverFSFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrObserverFSFailed, err)
 	}
 	defer notify.Stop(fsEvents)
 

@@ -225,6 +225,8 @@ func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 }
 
 func TestPostgresRepository_All(t *testing.T) {
+	t.Parallel()
+
 	initTestSchema(t, pgHandler.PGx())
 
 	for i := range 100 {
@@ -246,21 +248,22 @@ func TestPostgresRepository_All(t *testing.T) {
 		assert.NoError(t, err)
 		_ = e
 	}
-	t.Log(time.Since(start))
 
-	// 									batch(cursor fetch, channel buffer)
-	// 		all(memory)	single			batch(10,2)		batch(100,100)	batch(100,250)	batch(1000,1000)	batch(1000,10.000)
-	// 1k 	570.828µs	36.446862ms		4.08922ms
-	// 1k 	598.836µs	43.675608ms		5.853376ms
-	// 1k 	1.360914ms	35.811862ms     4.473658ms
-	// 10k	4.077662ms	488.063487ms 	39.897611ms		12.328828ms		9.206824ms		5.890355ms			5.433562ms
-	// 10k 	3.969914ms	338.096554ms	39.821585ms		9.013266ms		9.851891ms		6.038974ms			5.615281ms
-	// 10k 	4.026195ms	341.875893ms	43.254681ms		9.933388ms		9.774993ms		5.194709ms			5.210752ms
-	// 100k	47.302105ms																	47.697103ms			46.811288ms
-	//
-	// evaluation of the benchmark:
-	// - the laptop was running all kinds of other "regular office" software such as the browser, slack etc.
-	// - each run is in a new docker container with random values in the DB, so disc caching is not an issue
-	// - the database table is trivial. Does not represent anything real world data
-	// - network latency is not considered / tests run all on same machine
+	t.Log(time.Since(start))
 }
+
+// 									batch(cursor fetch, channel buffer)
+// 		all(memory)	single			batch(10,2)		batch(100,100)	batch(100,250)	batch(1000,1000)	batch(1000,10.000)
+// 1k 	570.828µs	36.446862ms		4.08922ms
+// 1k 	598.836µs	43.675608ms		5.853376ms
+// 1k 	1.360914ms	35.811862ms     4.473658ms
+// 10k	4.077662ms	488.063487ms 	39.897611ms		12.328828ms		9.206824ms		5.890355ms			5.433562ms
+// 10k 	3.969914ms	338.096554ms	39.821585ms		9.013266ms		9.851891ms		6.038974ms			5.615281ms
+// 10k 	4.026195ms	341.875893ms	43.254681ms		9.933388ms		9.774993ms		5.194709ms			5.210752ms
+// 100k	47.302105ms																	47.697103ms			46.811288ms
+//
+// evaluation of the benchmark:
+// - the laptop was running all kinds of other "regular office" software such as the browser, slack etc.
+// - each run is in a new docker container with random values in the DB, so disc caching is not an issue
+// - the database table is trivial. Does not represent anything real world data
+// - network latency is not considered / tests run all on same machine

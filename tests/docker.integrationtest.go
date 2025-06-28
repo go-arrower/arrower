@@ -47,12 +47,12 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 
 	pool, err := dockertest.NewPool("") // uses a sensible default on windows (tcp/http) and linux/osx (socket)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not create new pool: %v", ErrDockerFailure, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not create new pool: %v", ErrDockerFailure, err)
 	}
 
 	err = pool.Client.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not connect to docker: %v", ErrDockerFailure, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not connect to docker: %v", ErrDockerFailure, err)
 	}
 
 	// pulls an image, creates a container based on it and runs it
@@ -69,7 +69,7 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 		}
 	}
 	if err != nil && !errors.Is(err, docker.ErrContainerAlreadyExists) { //nolint:wsl
-		return nil, fmt.Errorf("%w: could not start resource: %v, options: %v", ErrDockerFailure, err, runOptions) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not start resource: %v, options: %v", ErrDockerFailure, err, runOptions)
 	}
 
 	_ = resource.Expire(uint(dockerTimeout / time.Second)) // tell docker to hard kill the container in 120 seconds
@@ -77,7 +77,7 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	pool.MaxWait = dockerTimeout
 	if err := pool.Retry(retryFunc(resource)); err != nil {
-		return nil, fmt.Errorf("%w: could not connect to docker: %v", ErrDockerFailure, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not connect to docker: %v", ErrDockerFailure, err)
 	}
 
 	cleanup := getCleanupFunc(pool, resource)
@@ -134,7 +134,7 @@ func getCleanupFunc(pool *dockertest.Pool, resource *dockertest.Resource) func()
 					return nil
 				}
 
-				return fmt.Errorf("%w: could not purge resource: %v", ErrDockerFailure, err) //nolint:errorlint,lll // prevent err in api
+				return fmt.Errorf("%w: could not purge resource: %v", ErrDockerFailure, err)
 			}
 		}
 

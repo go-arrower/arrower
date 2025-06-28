@@ -993,7 +993,7 @@ func TestSuite(
 			repo := newEntityRepo()
 			iter := repo.AllIter(ctx)
 
-			for _, _ = range iter.Next() {
+			for range iter.Next() {
 				assert.Fail(t, "this should never be called, because repo is empty")
 			}
 		})
@@ -1041,7 +1041,7 @@ func TestSuite(
 			repo := newEntityRepo()
 			iter := repo.FindAllIter(ctx)
 
-			for _, _ = range iter.Next() {
+			for range iter.Next() {
 				assert.Fail(t, "this should never be called, because repo is empty")
 			}
 		})

@@ -32,7 +32,7 @@ func (l *gueLogAdapter) Error(msg string, fields ...adapter.Field) {
 	l.l.Log(context.Background(), alog.LevelInfo, msg, l.slogFields(fields)...)
 }
 
-func (l *gueLogAdapter) With(fields ...adapter.Field) adapter.Logger { //nolint:ireturn // required for adapter.Logger
+func (l *gueLogAdapter) With(fields ...adapter.Field) adapter.Logger {
 	return &gueLogAdapter{l: l.l.With(l.slogFields(fields)...)}
 }
 

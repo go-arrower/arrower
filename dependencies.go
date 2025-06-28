@@ -121,8 +121,8 @@ func InitialiseDefaultDependencies(
 	publicAssets fs.FS,
 	sharedViews fs.FS,
 	funcs template.FuncMap,
-) (*Container, error) { //nolint:funlen,gocyclo,cyclop,lll // dependency injection is long but also straight forward.
-	dc := &Container{ //nolint:exhaustruct
+) (*Container, error) {
+	dc := &Container{
 		Config: conf,
 	}
 

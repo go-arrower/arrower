@@ -46,12 +46,12 @@ func (h *vacuumJobTableRequestHandler) H(
 
 	_, err := h.db.Exec(ctx, `VACUUM FULL arrower.`+validTables()[req.Table])
 	if err != nil {
-		return VacuumJobTableResponse{}, fmt.Errorf("%w for table: %s: %v", ErrVacuumJobTableFailed, req.Table, err) //nolint:errorlint,lll // prevent err in api
+		return VacuumJobTableResponse{}, fmt.Errorf("%w for table: %s: %v", ErrVacuumJobTableFailed, req.Table, err)
 	}
 
 	size, err := h.queries.JobTableSize(ctx)
 	if err != nil {
-		return VacuumJobTableResponse{}, fmt.Errorf("%w: could not get new job table size: %v", ErrVacuumJobTableFailed, err) //nolint:errorlint,lll // prevent err in api
+		return VacuumJobTableResponse{}, fmt.Errorf("%w: could not get new job table size: %v", ErrVacuumJobTableFailed, err)
 	}
 
 	return VacuumJobTableResponse{

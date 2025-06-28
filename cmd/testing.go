@@ -78,7 +78,7 @@ func (b *syncBuffer) Write(p []byte) (int, error) {
 	b.m.Lock()
 	defer b.m.Unlock()
 
-	return b.b.Write(p) //nolint:wrapcheck
+	return b.b.Write(p)
 }
 
 func (b *syncBuffer) String() string {

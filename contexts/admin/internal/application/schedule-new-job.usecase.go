@@ -66,12 +66,12 @@ func buildJobs(in ScheduleJobsCommand, carrier propagation.MapCarrier) ([]models
 
 	err := json.Unmarshal([]byte(strings.TrimSpace(in.Payload)), &buf)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not unmarshal job: %v", ErrScheduleJobsFailed, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not unmarshal job: %v", ErrScheduleJobsFailed, err)
 	}
 
 	args, err := json.Marshal(JobPayload{JobData: buf, Carrier: carrier})
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrScheduleJobsFailed, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrScheduleJobsFailed, err)
 	}
 
 	for i := 0; i < in.Count; i++ {

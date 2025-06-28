@@ -73,7 +73,7 @@ type browserTab struct {
 func (tab *browserTab) notify(msg string) error {
 	err := websocket.Message.Send(tab.ws, msg)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrConnectionFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrConnectionFailed, err)
 	}
 
 	return nil

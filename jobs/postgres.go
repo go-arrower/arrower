@@ -126,7 +126,7 @@ func NewPostgresJobs(
 }
 
 // PostgresJobsHandler is the main jobs' abstraction.
-type PostgresJobsHandler struct { //nolint:govet // accept fieldalignment so the struct fields are grouped by meaning
+type PostgresJobsHandler struct {
 	logger     alog.Logger
 	gueLogger  adapter.Logger
 	meter      metric.Meter
@@ -199,7 +199,7 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 	if txOk {
 		err = h.gueClient.EnqueueBatchTx(ctx, gueJobs, pgxv5.NewTx(tx))
 		if err != nil {
-			return fmt.Errorf("%w: could not enqueue gue with transaction: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
+			return fmt.Errorf("%w: could not enqueue gue with transaction: %v", ErrEnqueueFailed, err)
 		}
 
 		return nil
@@ -207,7 +207,7 @@ func (h *PostgresJobsHandler) Enqueue(ctx context.Context, job Job, opts ...JobO
 
 	err = h.gueClient.EnqueueBatch(ctx, gueJobs)
 	if err != nil {
-		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrEnqueueFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: could not enqueue gue job: %v", ErrEnqueueFailed, err)
 	}
 
 	return nil
@@ -234,7 +234,7 @@ func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("%w: could not marshal cron: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not marshal cron: %v", ErrScheduleFailed, err)
 	}
 
 	h.mu.Lock()
@@ -248,7 +248,7 @@ func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
 
 	_, err = h.scheduler.Add(spec, jobType, args)
 	if err != nil {
-		return fmt.Errorf("%w: could not schedule cron: %v", ErrScheduleFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not schedule cron: %v", ErrScheduleFailed, err)
 	}
 
 	return nil
@@ -325,7 +325,7 @@ func buildAndAppendGueJob(
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrEnqueueFailed, err)
 	}
 
 	gueJob := &gue.Job{ //nolint:exhaustruct // only set required properties
@@ -523,7 +523,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 
 		_, err = txHandle.Exec(ctx, `SAVEPOINT before_worker;`)
 		if err != nil {
-			return fmt.Errorf("%w: could not create savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+			return fmt.Errorf("%w: could not create savepoint: %v", ErrJobFuncFailed, err)
 		}
 
 		// call the JobFunc
@@ -540,16 +540,16 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 
 				_, err = txHandle.Exec(ctx, `ROLLBACK TO before_worker;`)
 				if err != nil {
-					return fmt.Errorf("%w: could not roll back to savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+					return fmt.Errorf("%w: could not roll back to savepoint: %v", ErrJobFuncFailed, err)
 				}
 
-				return fmt.Errorf("%w: %s", ErrJobFuncFailed, jobErr) //nolint:errorlint // prevent err in api
+				return fmt.Errorf("%w: %s", ErrJobFuncFailed, jobErr)
 			}
 		}
 
 		_, err = txHandle.Exec(ctx, `RELEASE SAVEPOINT before_worker;`)
 		if err != nil {
-			return fmt.Errorf("%w: could not release savepoint: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+			return fmt.Errorf("%w: could not release savepoint: %v", ErrJobFuncFailed, err)
 		}
 
 		return nil
@@ -574,14 +574,14 @@ func unmarshalArgsToJobPayload(paramType reflect.Type, rawArgs []byte) (Persiste
 	if err != nil {
 		return PersistencePayload{},
 			nil,
-			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
 	}
 
 	err = json.Unmarshal(buf, argsP)
 	if err != nil {
 		return PersistencePayload{},
 			nil,
-			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+			fmt.Errorf("%w: could not convert job data to target job type struct: %v", ErrJobFuncFailed, err)
 	}
 
 	return payload, argsP, nil
@@ -608,7 +608,7 @@ func (h *PostgresJobsHandler) startWorkers() error {
 		gue.WithPoolPanicStackBufSize(defaultPanicStackBufSize),
 	)
 	if err != nil {
-		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrRegisterJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrRegisterJobFuncFailed, err)
 	}
 
 	ctx, shutdown := context.WithCancel(context.Background())
@@ -873,7 +873,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 	h.shutdownWorkerPool()
 
 	if err := h.groupWorkerPool.Wait(); err != nil {
-		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrRegisterJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrRegisterJobFuncFailed, err)
 	}
 
 	if err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
@@ -884,7 +884,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 		Workers:   0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	}); err != nil {
-		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrRegisterJobFuncFailed, err) //nolint:errorlint,lll // prevent err in api
+		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrRegisterJobFuncFailed, err)
 	}
 
 	h.hasStarted = false

@@ -86,7 +86,7 @@ func (repo *MemoryTenantRepository[tID, E, eID]) getID(e E) eID { //nolint:dupl,
 	return id
 }
 
-func (repo *MemoryTenantRepository[tid, E, eID]) NextID(ctx context.Context) (eID, error) {
+func (repo *MemoryTenantRepository[tid, E, eID]) NextID(_ context.Context) (eID, error) {
 	var id eID
 
 	switch reflect.TypeOf(id).Kind() {

@@ -32,7 +32,6 @@ func NewInterruptSignalChannel() chan os.Signal {
 	return osSignal
 }
 
-//nolint:funlen // allow length because of init work
 func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) *cobra.Command {
 	return &cobra.Command{
 		Use:                   "run",

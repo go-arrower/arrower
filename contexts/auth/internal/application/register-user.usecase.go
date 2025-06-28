@@ -40,7 +40,7 @@ type registerUserRequestHandler struct {
 }
 
 type (
-	RegisterUserRequest struct { //nolint:govet // fieldalignment less important than grouping of params.
+	RegisterUserRequest struct {
 		RegisterEmail          string `form:"login"                 validate:"max=1024,required,email"`
 		Password               string `form:"password"              validate:"max=1024,min=8"`
 		PasswordConfirmation   string `form:"password_confirmation" validate:"max=1024,eqfield=Password"`

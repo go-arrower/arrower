@@ -19,7 +19,7 @@ func newGenerateCmd() *cobra.Command {
 		Args:                  cobra.NoArgs,
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return cmd.Help() //nolint:wrapcheck
+			return cmd.Help()
 		},
 	}
 

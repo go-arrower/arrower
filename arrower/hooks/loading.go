@@ -23,16 +23,16 @@ var loadedHooks Hooks
 func Load(dir string) (Hooks, error) {
 	var interpreter *interp.Interpreter
 	{
-		interpreter = interp.New(interp.Options{GoPath: build.Default.GOPATH}) //nolint:exhaustruct
+		interpreter = interp.New(interp.Options{GoPath: build.Default.GOPATH})
 
 		err := interpreter.Use(stdlib.Symbols)
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err) //nolint:errorlint,lll // prevent err in api
+			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err)
 		}
 
 		err = interpreter.Use(unrestricted.Symbols)
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err) //nolint:errorlint,lll // prevent err in api
+			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err)
 		}
 
 		err = interpreter.Use(map[string]map[string]reflect.Value{
@@ -43,13 +43,13 @@ func Load(dir string) (Hooks, error) {
 			},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err) //nolint:errorlint,lll // prevent err in api
+			return nil, fmt.Errorf("%w: could not load interpreter: %v", ErrLoadHooksFailed, err)
 		}
 	}
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not read directory: %s: %v", ErrLoadHooksFailed, dir, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: could not read directory: %s: %v", ErrLoadHooksFailed, dir, err)
 	}
 
 	for _, e := range entries {
@@ -60,7 +60,7 @@ func Load(dir string) (Hooks, error) {
 
 		_, err = interpreter.EvalPath(path.Join(dir, hookFileName))
 		if err != nil {
-			return nil, fmt.Errorf("%w: could not evaluate hook: %s: %v", ErrLoadHooksFailed, hookFileName, err) //nolint:errorlint,lll // prevent err in api
+			return nil, fmt.Errorf("%w: could not evaluate hook: %s: %v", ErrLoadHooksFailed, hookFileName, err)
 		}
 	}
 

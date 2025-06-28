@@ -1,6 +1,4 @@
 // Package hooks enables you to customise and extend the behaviour of arrower run.
-//
-//nolint:govet // fieldalignment less important than readability.
 package hooks
 
 import "strings"

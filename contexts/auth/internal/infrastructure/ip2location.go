@@ -47,7 +47,7 @@ func (s *IP2Location) ResolveIP(ip string) (domain.ResolvedIP, error) {
 
 		db, err = ip2location.OpenDB(searchDir + "/" + s.dbPath)
 		if err != nil {
-			return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err) //nolint:errorlint // prevent err in api
+			return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err)
 		}
 	}
 
@@ -58,7 +58,7 @@ func (s *IP2Location) ResolveIP(ip string) (domain.ResolvedIP, error) {
 
 	results, err := db.Get_all(ipAddr.String())
 	if err != nil {
-		return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err) //nolint:errorlint // prevent err in api
+		return domain.ResolvedIP{}, fmt.Errorf("%w: %v", ErrResolveFailed, err)
 	}
 
 	db.Close()

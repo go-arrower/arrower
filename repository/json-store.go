@@ -42,18 +42,18 @@ func (s *JSONStore) Store(fileName string, data any) error {
 
 	file, err := os.Create(filepath.Join(s.dir, fileName))
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStore, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrStore, err)
 	}
 	defer file.Close()
 
 	b, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStore, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrStore, err)
 	}
 
 	_, err = io.Copy(file, bytes.NewReader(b))
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStore, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrStore, err)
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func (s *JSONStore) Load(fileName string, data any) error {
 
 	err = json.NewDecoder(f).Decode(data)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrLoad, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrLoad, err)
 	}
 
 	return nil

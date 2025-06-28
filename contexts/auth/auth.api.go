@@ -46,7 +46,7 @@ const (
 
 type UserID string
 
-type User struct { //nolint:govet // fieldalignment less important than grouping of fields.
+type User struct {
 	ID        UserID
 	CreatedAt time.Time
 	UpdatedAt time.Time

@@ -34,7 +34,7 @@ func (h jobTypesForQueueQueryHandler) H(ctx context.Context, query JobTypesForQu
 
 	types, err := h.queries.JobTypes(ctx, string(queue))
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s: %v", ErrJobTypesForQueueFailed, queue, err) //nolint:errorlint,lll // prevent err in api
+		return nil, fmt.Errorf("%w: %s: %v", ErrJobTypesForQueueFailed, queue, err)
 	}
 
 	jobTypes := make([]jobs.JobType, len(types))

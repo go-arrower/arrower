@@ -29,7 +29,7 @@ type requestMeteringDecorator[Req any, Res any] struct {
 	base     Request[Req, Res]
 }
 
-func (d *requestMeteringDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *requestMeteringDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	var (
 		opt     metric.MeasurementOption
 		cmdName = commandName(req)
@@ -131,7 +131,7 @@ type queryMeteringDecorator[Q any, Res any] struct {
 	base     Request[Q, Res]
 }
 
-func (d *queryMeteringDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *queryMeteringDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) {
 	var (
 		opt     metric.MeasurementOption
 		cmdName = commandName(query)

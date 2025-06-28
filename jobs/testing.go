@@ -44,13 +44,13 @@ func (q *TestQueue) Jobs() []Job {
 
 // GetFirst returns the first Job in the queue or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *TestQueue) GetFirst() Job { //nolint:ireturn // fp
+func (q *TestQueue) GetFirst() Job {
 	return q.Get(1)
 }
 
 // Get returns the pos'th Job in the queue or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *TestQueue) Get(pos int) Job { //nolint:ireturn // fp
+func (q *TestQueue) Get(pos int) Job {
 	if len(q.jobs) == 0 || pos > len(q.jobs) {
 		return nil
 	}
@@ -66,13 +66,13 @@ func (q *TestQueue) Get(pos int) Job { //nolint:ireturn // fp
 
 // GetFirstOf returns the first Job of the same type as the given job or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *TestQueue) GetFirstOf(job Job) Job { //nolint:ireturn // fp
+func (q *TestQueue) GetFirstOf(job Job) Job {
 	return q.GetOf(job, 1)
 }
 
 // GetOf returns the pos'th Job of the same type as the given job or nil if the queue is empty.
 // The Job stays in the queue.
-func (q *TestQueue) GetOf(job Job, pos int) Job { //nolint:ireturn // fp
+func (q *TestQueue) GetOf(job Job, pos int) Job {
 	if len(q.jobs) == 0 {
 		return nil
 	}

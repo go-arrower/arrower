@@ -110,7 +110,7 @@ func OpenBrowser(url string) error {
 
 	err := exec.Command("xdg-open", url).Run()
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCommandFailed, err) //nolint:errorlint // prevent err in api
+		return fmt.Errorf("%w: %v", ErrCommandFailed, err)
 	}
 
 	return nil
