@@ -189,16 +189,11 @@ func TestSuite(
 	t *testing.T,
 	newEntityRepo func(opts ...Option) Repository[testdata.Entity, testdata.EntityID],
 	newEntityRepoInt func(opts ...Option) Repository[testdata.EntityWithIntPK, testdata.EntityIDInt],
-	newEntityWithoutIDRepo func(opts ...Option) Repository[testdata.EntityWithoutID, testdata.EntityID],
 ) {
 	t.Helper()
 
 	if newEntityRepo == nil {
 		t.Fatal("entity constructor is nil")
-	}
-
-	if newEntityWithoutIDRepo == nil {
-		t.Fatal("entity without id constructor is nil")
 	}
 
 	ctx := context.Background()
@@ -211,20 +206,22 @@ func TestSuite(
 	t.Run("new", func(t *testing.T) {
 		t.Parallel()
 
-		repo := newEntityRepo()
-		assert.NotNil(t, repo)
-	})
-
-	t.Run("struct without ID field", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("default - fails", func(t *testing.T) {
+		t.Run("default", func(t *testing.T) {
 			t.Parallel()
 
-			repo := newEntityWithoutIDRepo()
+			repo := newEntityRepo()
+			assert.NotNil(t, repo)
+
+			idField := reflect.ValueOf(repo).Elem().FieldByName("IDFieldName")
+			assert.True(t, idField.IsValid())
+			assert.NotEmpty(t, idField.String())
+		})
+
+		t.Run("missing ID field", func(t *testing.T) {
+			t.Parallel()
 
 			assert.Panics(t, func() {
-				repo.Save(ctx, testdata.EntityWithoutID{})
+				newEntityRepo(WithIDField("non-existing-field"))
 			})
 		})
 
@@ -232,9 +229,13 @@ func TestSuite(
 			t.Parallel()
 
 			name := gofakeit.Name()
-			repo := newEntityWithoutIDRepo(WithIDField("Name"))
+			repo := newEntityRepo(WithIDField("Name"))
 
-			err := repo.Save(ctx, testdata.EntityWithoutID{Name: name})
+			idField := reflect.ValueOf(repo).Elem().FieldByName("IDFieldName")
+			assert.True(t, idField.IsValid())
+			assert.NotEmpty(t, idField.String())
+
+			err := repo.Save(ctx, testdata.Entity{ID: testdata.EntityID(uuid.New().String()), Name: name})
 			assert.NoError(t, err)
 
 			got, err := repo.FindByID(ctx, testdata.EntityID(name))
@@ -372,13 +373,13 @@ func TestSuite(
 			assert.ErrorIs(t, err, ErrAlreadyExists, "already exists")
 		})
 
-		t.Run("missing id", func(t *testing.T) {
+		t.Run("missing id value", func(t *testing.T) {
 			t.Parallel()
 
 			repo := newEntityRepo()
 
 			err := repo.Create(ctx, testdata.Entity{})
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 		})
 	})
 
@@ -408,7 +409,7 @@ func TestSuite(
 			repo := newEntityRepo()
 
 			err := repo.Update(ctx, testdata.DefaultEntity)
-			assert.ErrorIs(t, err, ErrSaveFailed, "can not update not existing entity")
+			assert.ErrorIs(t, err, ErrNotFound, "can not update not existing entity")
 		})
 
 		t.Run("missing id", func(t *testing.T) {
@@ -422,7 +423,7 @@ func TestSuite(
 			entity.ID = ""
 
 			err = repo.Update(ctx, entity)
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 		})
 	})
 
@@ -442,6 +443,15 @@ func TestSuite(
 			got, err := repo.FindByID(ctx, testdata.DefaultEntity.ID)
 			assert.ErrorIs(t, err, ErrNotFound)
 			assert.Empty(t, got)
+		})
+
+		t.Run("missing id", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			err := repo.Delete(ctx, testdata.Entity{})
+			assert.NoError(t, err)
 		})
 
 		t.Run("non-existing", func(t *testing.T) {
@@ -653,7 +663,7 @@ func TestSuite(
 			repo := newEntityRepo()
 
 			err := repo.CreateAll(ctx, []testdata.Entity{testdata.DefaultEntity, {}})
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 
 			c, err := repo.Count(ctx)
 			assert.NoError(t, err)
@@ -706,7 +716,7 @@ func TestSuite(
 			repo := newEntityRepo()
 
 			err := repo.Save(ctx, testdata.Entity{})
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 		})
 	})
 
@@ -772,7 +782,7 @@ func TestSuite(
 			assert.NoError(t, err)
 
 			err = repo.UpdateAll(ctx, []testdata.Entity{{}})
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 		})
 	})
 
@@ -813,7 +823,7 @@ func TestSuite(
 			repo := newEntityRepo()
 
 			err := repo.AddAll(ctx, []testdata.Entity{testdata.DefaultEntity, {}})
-			assert.ErrorIs(t, err, ErrSaveFailed)
+			assert.ErrorIs(t, err, ErrStorage)
 
 			c, err := repo.Count(ctx)
 			assert.NoError(t, err)

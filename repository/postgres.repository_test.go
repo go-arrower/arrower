@@ -45,12 +45,6 @@ func TestPostgresRepository(t *testing.T) {
 
 			return repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
 		},
-		func(opts ...repository.Option) repository.Repository[testdata.EntityWithoutID, testdata.EntityID] {
-			pgx := pgHandler.NewTestDatabase()
-			initTestSchema(t, pgx)
-
-			return repository.NewPostgresRepository[testdata.EntityWithoutID, testdata.EntityID](pgx, opts...)
-		},
 	)
 }
 
@@ -58,6 +52,9 @@ func TestPostgresRepository(t *testing.T) {
 
 func TestPostgresRepositoryWithIDField(t *testing.T) {
 	t.Parallel()
+
+	// TODO: what value does this TC add?
+	// TODO: is it different from "ID field overwrite" from the TestSuite?
 
 	pgx := pgHandler.NewTestDatabase()
 	initTestSchema(t, pgx)

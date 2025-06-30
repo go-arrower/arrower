@@ -14,14 +14,14 @@ type Store interface {
 	Load(fileName string, data any) error
 }
 
-var _ Store = (*NoopStore)(nil)
+var NoopStore Store = &noopStore{} //nolint:gochecknoglobals // pattern from std lib slog.DiscardHandler
 
-type NoopStore struct{}
+type noopStore struct{}
 
-func (n NoopStore) Store(_ string, _ any) error {
+func (n noopStore) Store(_ string, _ any) error {
 	return nil
 }
 
-func (n NoopStore) Load(_ string, _ any) error {
+func (n noopStore) Load(_ string, _ any) error {
 	return nil
 }

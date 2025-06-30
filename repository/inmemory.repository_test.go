@@ -20,12 +20,9 @@ func TestMemoryRepository(t *testing.T) {
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			return repository.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
 		},
-		func(opts ...repository.Option) repository.Repository[testdata.EntityWithoutID, testdata.EntityID] {
-			return repository.NewMemoryRepository[testdata.EntityWithoutID, testdata.EntityID](opts...)
-		},
 	)
 
-	t.Run("store success", func(t *testing.T) {
+	t.Run("With Store: always success", func(t *testing.T) {
 		t.Parallel()
 
 		// Ensure that the store is called with the right filename.
@@ -40,14 +37,10 @@ func TestMemoryRepository(t *testing.T) {
 				opts = append(opts, repository.WithStore(testStoreSuccessEntity(t, "EntityWithIntPK.json")))
 				return repository.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
 			},
-			func(opts ...repository.Option) repository.Repository[testdata.EntityWithoutID, testdata.EntityID] {
-				opts = append(opts, repository.WithStore(testStoreSuccessEntity(t, "custom.json")), repository.WithStoreFilename("custom.json"))
-				return repository.NewMemoryRepository[testdata.EntityWithoutID, testdata.EntityID](opts...)
-			},
 		)
 	})
 
-	t.Run("Store, load fails", func(t *testing.T) {
+	t.Run("With Store: load fails", func(t *testing.T) {
 		t.Parallel()
 
 		assert.Panics(t, func() {
@@ -55,7 +48,7 @@ func TestMemoryRepository(t *testing.T) {
 		})
 	})
 
-	t.Run("Store, store fails", func(t *testing.T) {
+	t.Run("With Store: store fails", func(t *testing.T) {
 		t.Parallel()
 
 		t.Run("Create", func(t *testing.T) {

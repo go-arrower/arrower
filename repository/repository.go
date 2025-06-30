@@ -1,6 +1,17 @@
 package repository
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"reflect"
+)
+
+var (
+	ErrStorage       = errors.New("storage error")
+	ErrNotFound      = errors.New("not found")
+	ErrAlreadyExists = errors.New("already exists")
+)
 
 // Condition is an interface that filters can implement to influence the
 // selected entities that the Repository returns.
@@ -30,27 +41,19 @@ func (f filter[T]) OrderBy() string {
 	return f.orderBy
 }
 
-// id are the types allowed as a primary key used in the generic Repository.
-type id interface {
-	~string |
-		~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
-}
+type Option func(any)
 
 // WithIDField set's the name of the field that is used as an id or primary key.
 // If not set, it is assumed that the entity struct has a field with the name "ID".
 func WithIDField(idFieldName string) Option {
-	return func(config *repoConfig) {
-		config.IDFieldName = idFieldName
+	return func(repoConfig any) {
+		idField := reflect.ValueOf(repoConfig).Elem().FieldByName("IDFieldName")
+		if !idField.CanSet() || idField.Kind() != reflect.String {
+			panic("cannot set IDField: repository MUST have a field `IDFieldName` of type string")
+		}
+
+		idField.SetString(idFieldName)
 	}
-}
-
-type Option func(*repoConfig)
-
-type repoConfig struct {
-	IDFieldName string
-	store       Store
-	filename    string
 }
 
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
@@ -107,3 +110,21 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 type Iterator[E any, ID id] interface {
 	Next() func(yield func(e E, err error) bool)
 }
+
+// id are the types allowed as a primary key used in the generic Repository.
+type id interface {
+	~string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+
+var (
+	errIDGenerationFailed = fmt.Errorf("%w: id generation failed", ErrStorage)
+	errCreateFailed       = fmt.Errorf("%w: create failed", ErrStorage)
+	errFindFailed         = fmt.Errorf("%w: find failed", ErrStorage)
+	errUpdateFailed       = fmt.Errorf("%w: update failed", ErrStorage)
+	errDeleteFailed       = fmt.Errorf("%w: delete failed", ErrStorage)
+	errExistsFailed       = fmt.Errorf("%w: exists failed", ErrStorage)
+	errSaveFailed         = fmt.Errorf("%w: save failed", ErrStorage)
+	errCountFailed        = fmt.Errorf("%w: count failed", ErrStorage)
+)

@@ -12,7 +12,7 @@ type Entity struct {
 	Name string
 }
 
-type EntityWithoutID struct {
+type EntityWithoutID struct { // todo can this be removed? Since the third constructor is gone from the TestSuite, this one might not be required any longer
 	Name string
 }
 

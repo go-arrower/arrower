@@ -11,6 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
+var ErrSaveFailed = errors.New("") // TODO REMOVE: only use the errors defined in repository.go
+
+const panicIDNotSupported = "type of ID is not supported: " // TODO remove
+
 // NewMemoryTenantRepository returns an implementation of MemoryTenantRepository for the given entity E.
 // It is expected that E have a field called `ID`, that is used as the primary key and can
 // be overwritten by WithIDField.
@@ -22,15 +26,15 @@ func NewMemoryTenantRepository[tID id, E any, eID id](
 	repo := &MemoryTenantRepository[tID, E, eID]{
 		Mutex: &sync.Mutex{},
 		Data:  make(map[tID]map[eID]E),
-		repoConfig: repoConfig{
+		memoryRepoConfig: memoryRepoConfig{
 			IDFieldName: "ID",
-			store:       NoopStore{},
+			store:       noopStore{},
 			filename:    defaultFileName(new(E)),
 		},
 	}
 
 	for _, opt := range opts {
-		opt(&repo.repoConfig)
+		opt(&repo.memoryRepoConfig)
 	}
 
 	err := repo.store.Load(repo.filename, &repo.Data)
@@ -52,7 +56,7 @@ type MemoryTenantRepository[tID id, E any, eID id] struct {
 	Data         map[tID]map[eID]E
 	currentIntID eID
 
-	repoConfig
+	memoryRepoConfig
 }
 
 // ensureTenantInitialised creates a tenant-specific map, as go does not initialise maps into an empty state by default.
@@ -62,7 +66,7 @@ func (repo *MemoryTenantRepository[tID, E, eID]) ensureTenantInitialised(id tID)
 	}
 }
 
-func (repo *MemoryTenantRepository[tID, E, eID]) getID(e E) eID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *MemoryTenantRepository[tID, E, eID]) getID(e E) eID { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(e)
 
 	idField := val.FieldByName(repo.IDFieldName)

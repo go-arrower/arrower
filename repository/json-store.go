@@ -65,7 +65,7 @@ func (s *JSONStore) Load(fileName string, data any) error {
 
 	f, err := os.Open(filepath.Join(s.dir, fileName))
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrLoad, err)
+		return fmt.Errorf("%w: %v", ErrLoad, err)
 	}
 	defer f.Close()
 

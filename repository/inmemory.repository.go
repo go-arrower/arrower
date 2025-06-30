@@ -11,55 +11,57 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	ErrNotFound      = errors.New("not found")
-	ErrSaveFailed    = errors.New("save failed") // TODO separate into more preceise persitance errors (create, update general?)
-	ErrAlreadyExists = errors.New("exists already")
-	ErrDeleteFailed  = errors.New("delete failed")
-)
-
 // WithStore sets a Store used to persist the Repository.
 // ONLY applies to the in memory implementations.
 //
 // There are no transactions or any consistency guarantees at all! For example, if a store fails,
 // the collection is still changed in memory of the repository.
 func WithStore(store Store) Option {
-	return func(config *repoConfig) {
-		config.store = store
+	return func(rawRepo any) {
+		repo := rawRepo.(*memoryRepoConfig)
+		repo.store = store
 	}
 }
 
 // WithStoreFilename overwrites the file name a Store should use to persist this Repository.
 // ONLY applies to the in memory implementations.
 func WithStoreFilename(name string) Option {
-	return func(config *repoConfig) {
-		config.filename = name
+	return func(rawRepo any) {
+		repo := rawRepo.(*memoryRepoConfig)
+		repo.filename = name
 	}
 }
 
 // NewMemoryRepository returns an implementation of Repository for the given entity E.
 // It is expected that E has a field called `ID`, that is used as the primary key and can
 // be overwritten by WithIDField.
+// In case of an issue, NewMemoryRepository panics.
+//
 // If your repository needs additional methods, you can embed this repo into our own implementation to extend
 // your own repository easily to your use case. See the examples in the test files.
 //
 // Warning: the consistency of MemoryRepository is not on paar with ACID guarantees of a RDBMS.
-// Certain steps are taken to have a minimum of consistency, but be aware that this
-// it not a design goal.
+// Certain steps are taken to have at least some consistency, but be aware that this
+// is not a design goal.
 func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] {
 	repo := &MemoryRepository[E, ID]{
 		Mutex:        &sync.Mutex{},
 		Data:         make(map[ID]E),
 		currentIntID: *new(ID),
-		repoConfig: repoConfig{
+		memoryRepoConfig: memoryRepoConfig{
 			IDFieldName: "ID",
-			store:       NoopStore{},
+			store:       noopStore{},
 			filename:    defaultFileName(new(E)),
 		},
 	}
 
 	for _, opt := range opts {
-		opt(&repo.repoConfig)
+		opt(&repo.memoryRepoConfig)
+	}
+
+	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
+	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
+		panic("entity does not have the ID field with name: " + repo.IDFieldName)
 	}
 
 	err := repo.store.Load(repo.filename, &repo.Data)
@@ -76,29 +78,30 @@ type MemoryRepository[E any, ID id] struct {
 	*sync.Mutex
 
 	// Data is the repository's collection. It is exposed in case you're extending the repository.
-	// PREVENT using and accessing Data it directly, go through the repository methods.
+	// PREVENT using and accessing Data directly, go through the repository methods.
 	// If you write to Data, USE the Mutex to lock first.
 	Data         map[ID]E
 	currentIntID ID
 
-	repoConfig
+	memoryRepoConfig
 }
 
-const panicIDNotSupported = "type of ID is not supported: "
+type memoryRepoConfig struct {
+	IDFieldName string
+	store       Store
+	filename    string
+}
 
 func defaultFileName(entity any) string {
 	return reflect.TypeOf(entity).Elem().Name() + ".json"
 }
 
-func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:dupl,ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
-	val := reflect.ValueOf(t)
-
-	idField := val.FieldByName(repo.IDFieldName)
-	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		panic("entity does not have the field with name: " + repo.IDFieldName)
-	}
-
+// getID returns the ID (its value) from the entity's ID field.
+func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	var id ID
+
+	val := reflect.ValueOf(t)
+	idField := val.FieldByName(repo.IDFieldName)
 
 	switch idField.Kind() {
 	case reflect.String:
@@ -108,7 +111,7 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:dupl,ireturn,lll
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		reflect.ValueOf(&id).Elem().SetUint(idField.Uint())
 	default:
-		panic(panicIDNotSupported + idField.Kind().String())
+		// can never happen: compiler enforces valid types from the `id` interface (constraint)
 	}
 
 	return id
@@ -146,7 +149,8 @@ func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //n
 
 		reflect.ValueOf(&id).Elem().SetUint(newID)
 	default:
-		panic(panicIDNotSupported + reflect.TypeOf(id).Kind().String())
+		return id, fmt.Errorf("%w: type %s of ID is not supported; only string and ints are",
+			errIDGenerationFailed, reflect.TypeOf(id).Kind().String())
 	}
 
 	return id, nil
@@ -158,7 +162,7 @@ func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
 
 	id := repo.getID(entity)
 	if id == *new(ID) {
-		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+		return fmt.Errorf("%w: %s is empty", errCreateFailed, repo.IDFieldName)
 	}
 
 	if _, found := repo.Data[id]; found {
@@ -170,7 +174,7 @@ func (repo *MemoryRepository[E, ID]) Create(_ context.Context, entity E) error {
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
 		delete(repo.Data, id)
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errCreateFailed, err)
 	}
 
 	return nil
@@ -186,11 +190,11 @@ func (repo *MemoryRepository[E, ID]) Update(_ context.Context, entity E) error {
 
 	id := repo.getID(entity)
 	if id == *new(ID) {
-		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+		return fmt.Errorf("%w: %s is empty", errUpdateFailed, repo.IDFieldName)
 	}
 
 	if _, found := repo.Data[id]; !found {
-		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
+		return fmt.Errorf("%w: entity %w", errUpdateFailed, ErrNotFound)
 	}
 
 	oldEntity := repo.Data[id]
@@ -199,7 +203,7 @@ func (repo *MemoryRepository[E, ID]) Update(_ context.Context, entity E) error {
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
 		repo.Data[id] = oldEntity
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errUpdateFailed, err)
 	}
 
 	return nil
@@ -217,7 +221,7 @@ func (repo *MemoryRepository[E, ID]) Delete(_ context.Context, entity E) error {
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
 		repo.Data[id] = oldEntity
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errDeleteFailed, err)
 	}
 
 	return nil
@@ -245,7 +249,7 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 }
 
 func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error) {
-	if filters == nil || len(filters) == 0 {
+	if len(filters) == 0 {
 		return repo.All(ctx)
 	}
 
@@ -330,7 +334,7 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E
 	}
 
 	if len(result) != len(ids) {
-		return []E(nil), ErrNotFound
+		return []E(nil), fmt.Errorf("some ids %w", ErrNotFound)
 	}
 
 	return result, nil
@@ -398,7 +402,7 @@ func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 
 	id := repo.getID(entity)
 	if id == *new(ID) {
-		return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+		return fmt.Errorf("%w: %s is empty", errSaveFailed, repo.IDFieldName)
 	}
 
 	repo.Data[id] = entity
@@ -406,7 +410,7 @@ func (repo *MemoryRepository[E, ID]) Save(_ context.Context, entity E) error {
 	err := repo.store.Store(repo.filename, repo.Data)
 	if err != nil {
 		delete(repo.Data, id)
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errSaveFailed, err)
 	}
 
 	return nil
@@ -418,7 +422,7 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 
 	for _, e := range entities {
 		if repo.getID(e) == *new(ID) {
-			return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+			return fmt.Errorf("%w: at least one %s is empty", errSaveFailed, repo.IDFieldName)
 		}
 	}
 
@@ -435,7 +439,7 @@ func (repo *MemoryRepository[E, ID]) SaveAll(_ context.Context, entities []E) er
 			repo.Data[repo.getID(e)] = e
 		}
 
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errSaveFailed, err)
 	}
 
 	return nil
@@ -447,7 +451,7 @@ func (repo *MemoryRepository[E, ID]) UpdateAll(_ context.Context, entities []E) 
 
 	for _, e := range entities {
 		if repo.getID(e) == *new(ID) {
-			return fmt.Errorf("missing ID: %w", ErrSaveFailed)
+			return fmt.Errorf("%w: at least one %s is empty", errUpdateFailed, repo.IDFieldName)
 		}
 	}
 
@@ -456,7 +460,7 @@ func (repo *MemoryRepository[E, ID]) UpdateAll(_ context.Context, entities []E) 
 
 	for _, e := range entities {
 		if _, found := repo.Data[repo.getID(e)]; !found {
-			return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
+			return fmt.Errorf("%w: at least one entity %w", errUpdateFailed, ErrNotFound)
 		}
 
 		oldEntities = append(oldEntities, repo.Data[repo.getID(e)])
@@ -473,7 +477,7 @@ func (repo *MemoryRepository[E, ID]) UpdateAll(_ context.Context, entities []E) 
 			repo.Data[repo.getID(e)] = e
 		}
 
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errUpdateFailed, err)
 	}
 
 	return nil
@@ -487,7 +491,7 @@ func (repo *MemoryRepository[E, ID]) AddAll(ctx context.Context, entities []E) e
 	for _, e := range entities {
 		ex, _ := repo.Exists(ctx, repo.getID(e))
 		if ex {
-			return ErrAlreadyExists
+			return fmt.Errorf("at least one %w", ErrAlreadyExists)
 		}
 	}
 
@@ -526,7 +530,7 @@ func (repo *MemoryRepository[E, ID]) DeleteByIDs(_ context.Context, ids []ID) er
 			repo.Data[repo.getID(e)] = e
 		}
 
-		return fmt.Errorf("could not delete: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errDeleteFailed, err)
 	}
 
 	return nil
@@ -549,7 +553,7 @@ func (repo *MemoryRepository[E, ID]) DeleteAll(_ context.Context) error {
 			repo.Data[repo.getID(e)] = e
 		}
 
-		return fmt.Errorf("could not save: %w", err)
+		return fmt.Errorf("%w: could not store: %w", errDeleteFailed, err)
 	}
 
 	return nil

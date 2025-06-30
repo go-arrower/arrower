@@ -21,25 +21,20 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 )
 
-var (
-	ErrInvalidQuery = errors.New("invalid query")
-
-	errIDFieldWrong = errors.New("the ID field used as primary key is wrong")
-)
+// TODO keep below error or remove /replace?
+var errIDFieldWrong = errors.New("the ID field used as primary key is wrong")
 
 func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) *PostgresRepository[E, ID] {
 	repo := &PostgresRepository[E, ID]{
 		PGx: pgx,
 		// logger:  alog.NewNoopLogger().WithGroup("arrower.repository"),
-		Table:   tableName(*new(E)),
-		Columns: columnNames(*new(E)),
-		repoConfig: repoConfig{ //nolint:exhaustruct // other configs not supported by postgres implementation.
-			IDFieldName: "ID",
-		},
+		Table:       tableName(*new(E)),
+		Columns:     columnNames(*new(E)),
+		IDFieldName: "ID",
 	}
 
 	for _, opt := range opts {
-		opt(&repo.repoConfig)
+		opt(repo)
 	}
 
 	return repo
@@ -49,9 +44,9 @@ type PostgresRepository[E any, ID id] struct {
 	// logger alog.Logger
 	PGx *pgxpool.Pool
 
-	repoConfig
-	Table   string
-	Columns []string
+	IDFieldName string
+	Table       string
+	Columns     []string
 }
 
 type dbInterface interface {
@@ -73,6 +68,12 @@ var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) //nolint
 func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
 	val := reflect.ValueOf(t)
 
+	// FIXME: prevent the repository from panicking at run time
+	// move this check into the constructor:
+	// inmemory: panic
+	// postgres: return error
+	// this ensures that the getID() can be called without any checks during runtime
+	// TODO ALSO: check the type, so this method never panics, see below => move to constructor
 	idField := val.FieldByName(repo.IDFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
 		return *new(ID), fmt.Errorf("%w: entity does not have the field with name: %s", errIDFieldWrong, repo.IDFieldName)
@@ -92,7 +93,7 @@ func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:iretu
 	}
 
 	if id == *new(ID) {
-		return *new(ID), fmt.Errorf("%w: missing ID", errIDFieldWrong)
+		return *new(ID), fmt.Errorf("%w: %s is empty", errIDFieldWrong, repo.IDFieldName)
 	}
 
 	return id, nil
@@ -111,7 +112,7 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 			"SELECT nextval(pg_get_serial_sequence('"+repo.Table+"', '"+strings.ToLower(repo.IDFieldName)+"'))",
 		)
 		if err != nil {
-			return id, fmt.Errorf("could not get id from sequence: %v", err)
+			return id, fmt.Errorf("%w: could not get from sequence: %v", errIDGenerationFailed, err)
 		}
 
 		reflect.ValueOf(&id).Elem().SetInt(serial)
@@ -122,12 +123,13 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 			"SELECT nextval(pg_get_serial_sequence('"+repo.Table+"', '"+strings.ToLower(repo.IDFieldName)+"'))",
 		)
 		if err != nil {
-			return id, fmt.Errorf("could not get id from sequence: %v", err)
+			return id, fmt.Errorf("%w: could not get from sequence: %v", errIDGenerationFailed, err)
 		}
 
 		reflect.ValueOf(&id).Elem().SetInt(serial)
 	default:
-		return id, fmt.Errorf("%w: unsupported type", errIDFieldWrong)
+		return id, fmt.Errorf("%w: type %s of ID is not supported; only string and ints are",
+			errIDGenerationFailed, reflect.TypeOf(id).Kind().String())
 	}
 
 	return id, nil
@@ -138,7 +140,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 
 	_, err := repo.getID(entity)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrSaveFailed, err)
+		return fmt.Errorf("%w: %w", errCreateFailed, err)
 	}
 
 	e := reflect.ValueOf(entity)
@@ -148,7 +150,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 
 	sql, args, err := psql.Insert(repo.Table).Columns(repo.Columns...).Values(values...).ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errCreateFailed, err)
 	}
 
 	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "create entity", slog.String("query", query), slog.Any("args", args))
@@ -158,7 +160,12 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 		return ErrAlreadyExists
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return fmt.Errorf("%w: could not insert entity: %v", ErrInvalidQuery, err)
+		id, idErr := repo.getID(entity)
+		if idErr != nil {
+			return fmt.Errorf("%w: %v: %w", errDeleteFailed, err, idErr)
+		}
+
+		return fmt.Errorf("%w: could not insert entity with id: %v: %v", errCreateFailed, id, idErr)
 	}
 
 	return nil
@@ -171,7 +178,7 @@ func (repo *PostgresRepository[E, ID]) Read(ctx context.Context, id ID) (E, erro
 func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) error {
 	id, err := repo.getID(entity)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrSaveFailed, err)
+		return fmt.Errorf("%w: %w", errUpdateFailed, err)
 	}
 
 	query := psql.Update(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id})
@@ -183,15 +190,15 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errUpdateFailed, err)
 	}
 
 	res, err := repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err == nil && res.RowsAffected() == 0 {
-		return fmt.Errorf("entity does not exist yet: %w", ErrSaveFailed)
+		return fmt.Errorf("entity %w", ErrNotFound)
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return fmt.Errorf("%w: could not update entity with id: %v: %v", ErrSaveFailed, id, err)
+		return fmt.Errorf("%w: could not update entity with id: %v: %v", errUpdateFailed, id, err)
 	}
 
 	return nil
@@ -200,17 +207,17 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 func (repo *PostgresRepository[E, ID]) Delete(ctx context.Context, entity E) error {
 	id, err := repo.getID(entity)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrSaveFailed, err)
+		return fmt.Errorf("%w: %w", errDeleteFailed, err)
 	}
 
 	sql, args, err := psql.Delete(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errDeleteFailed, err)
 	}
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not delete entity with id: %v", ErrDeleteFailed, id)
+		return fmt.Errorf("%w: could not delete entity with id: %v: %v", errDeleteFailed, id, err)
 	}
 
 	return nil
@@ -233,17 +240,17 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
 	entities := []E{}
 
 	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
+		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
 	return entities, nil
@@ -278,26 +285,26 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Co
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
 	entities := []E{}
 
 	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
+		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
 	return entities, nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) {
+func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).ToSql()
 	if err != nil {
-		return *new(E), fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return *new(E), fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
 	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "read entity", slog.String("query", query), slog.Any("args", args))
@@ -306,10 +313,10 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 
 	err = pgxscan.Get(ctx, repo.PGx, &entity, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return *new(E), fmt.Errorf("%w: entity does not exist: %v", ErrNotFound, err)
+		return *new(E), fmt.Errorf("entity %w: %v", ErrNotFound, err)
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return *new(E), fmt.Errorf("%w: could not scan entity: %v", ErrInvalidQuery, err)
+		return *new(E), fmt.Errorf("%w: could not scan entity: %v", errFindFailed, err)
 	}
 
 	return entity, nil
@@ -322,18 +329,18 @@ func (repo *PostgresRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) 
 
 	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: ids}).ToSql()
 	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
 	entities := []E{}
 
 	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
 	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", ErrInvalidQuery, err)
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
 	if len(entities) != len(ids) {
-		return []E{}, fmt.Errorf("%w: entities do not exist: %v", ErrNotFound, err)
+		return []E{}, fmt.Errorf("some ids: %w", ErrNotFound)
 	}
 
 	return entities, nil
@@ -345,14 +352,14 @@ func (repo *PostgresRepository[E, ID]) Exists(ctx context.Context, id ID) (bool,
 		From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).
 		Suffix(")").ToSql()
 	if err != nil {
-		return false, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err) // todo add sql statement to every error that does not build for easier debugging
+		return false, fmt.Errorf("%w: could not build query: %v", errExistsFailed, err)
 	}
 
 	var exists bool
 
 	err = pgxscan.Get(ctx, repo.PGx, &exists, sql, args...)
 	if err != nil {
-		return false, fmt.Errorf("%w: could not scan exists result: %v", ErrInvalidQuery, err)
+		return false, fmt.Errorf("%w: could not scan result: %v", errExistsFailed, err)
 	}
 
 	return exists, nil
@@ -362,8 +369,8 @@ func (repo *PostgresRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (b
 	return repo.Exists(ctx, id)
 }
 
-func (repo *PostgresRepository[E, ID]) ExistByIDs(_ context.Context, _ []ID) (bool, error) {
-	panic("implement me")
+func (repo *PostgresRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
+	return repo.ExistAll(ctx, ids)
 }
 
 func (repo *PostgresRepository[E, ID]) ExistAll(_ context.Context, _ []ID) (bool, error) {
@@ -387,14 +394,14 @@ func (repo *PostgresRepository[E, ID]) ContainsIDs(ctx context.Context, ids []ID
 		From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: ids}).
 		ToSql()
 	if err != nil {
-		return false, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err) // todo add sql statement to every error that does not build for easier debugging
+		return false, fmt.Errorf("%w: could not build query: %v", errExistsFailed, err)
 	}
 
 	var count int
 
 	err = pgxscan.Get(ctx, repo.PGx, &count, sql, args...)
 	if err != nil {
-		return false, fmt.Errorf("%w: could not scan count result: %v", ErrInvalidQuery, err)
+		return false, fmt.Errorf("%w: could not scan result: %v", errExistsFailed, err)
 	}
 
 	if count == len(ids) {
@@ -415,7 +422,7 @@ func (repo *PostgresRepository[E, ID]) CreateAll(ctx context.Context, entities [
 func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error {
 	_, err := repo.getID(entity)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrSaveFailed, err)
+		return fmt.Errorf("%w: %w", errSaveFailed, err)
 	}
 
 	values := make([]any, len(repo.Columns))
@@ -437,9 +444,9 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 			expr = name + "= ?"
 		}
 
-		sql, args, err := squirrel.Expr(expr, ent.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
-		if err != nil {
-			return fmt.Errorf("%w: could not build on conflict sub-query: %v", ErrInvalidQuery, err)
+		sql, args, sqErr := squirrel.Expr(expr, ent.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
+		if sqErr != nil {
+			return fmt.Errorf("%w: could not build on conflict sub-query: %v", errSaveFailed, sqErr)
 		}
 
 		query = query.Suffix(sql, args...)
@@ -447,12 +454,12 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errSaveFailed, err)
 	}
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not save entity: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not insert entity: %v", errSaveFailed, err)
 	}
 
 	return nil
@@ -466,7 +473,7 @@ func (repo *PostgresRepository[E, ID]) UpdateAll(ctx context.Context, entities [
 	for _, entity := range entities {
 		err := repo.Update(ctx, entity) // TODO make one operation instead of loop
 		if err != nil {
-			return fmt.Errorf("%w: could not update entity: %v", ErrInvalidQuery, err)
+			return fmt.Errorf("%w: could not update entity: %v", errUpdateFailed, err)
 		}
 	}
 
@@ -482,12 +489,12 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 
 	for _, entity := range entities {
 		if reflect.DeepEqual(entity, *new(E)) {
-			return fmt.Errorf("%w", ErrSaveFailed)
+			return fmt.Errorf("%w", errCreateFailed)
 		}
 
 		id, err := repo.getID(entity)
 		if err != nil {
-			return fmt.Errorf("could not get id for entity %v: %w", entity, err)
+			return fmt.Errorf("%w: could not get id for entity %v: %w", errCreateFailed, entity, err)
 		}
 
 		exists, err := repo.Exists(ctx, id)
@@ -496,7 +503,7 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 		}
 
 		if exists {
-			return fmt.Errorf("%w: entity %v exists already", ErrAlreadyExists, entity)
+			return fmt.Errorf("at least one %w", ErrAlreadyExists)
 		}
 
 		vals := []any{}
@@ -511,12 +518,12 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 
 	sql, args, err := query.ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errCreateFailed, err)
 	}
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not execute query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not execute query: %v", errCreateFailed, err)
 	}
 
 	return nil
@@ -525,14 +532,14 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 func (repo *PostgresRepository[E, ID]) Count(ctx context.Context) (int, error) {
 	sql, args, err := psql.Select("COUNT(*)").From(repo.Table).ToSql()
 	if err != nil {
-		return 0, fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return 0, fmt.Errorf("%w: could not build query: %v", errCountFailed, err)
 	}
 
 	var count int
 
 	err = pgxscan.Get(ctx, repo.PGx, &count, sql, args...)
 	if err != nil {
-		return 0, fmt.Errorf("%w: could not scan count result: %v", ErrInvalidQuery, err)
+		return 0, fmt.Errorf("%w: could not scan result: %v", errCountFailed, err)
 	}
 
 	return count, nil
@@ -549,12 +556,12 @@ func (repo *PostgresRepository[E, ID]) DeleteByID(ctx context.Context, id ID) er
 func (repo *PostgresRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID) error {
 	sql, args, err := psql.Delete(repo.Table).Where(squirrel.Eq{repo.IDFieldName: ids}).ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errDeleteFailed, err)
 	}
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not delete ids from table: %s: %v", ErrDeleteFailed, repo.Table, err) // todo ids
+		return fmt.Errorf("%w: could not execute query: %v", errDeleteFailed, err)
 	}
 
 	return nil
@@ -563,12 +570,12 @@ func (repo *PostgresRepository[E, ID]) DeleteByIDs(ctx context.Context, ids []ID
 func (repo *PostgresRepository[E, ID]) DeleteAll(ctx context.Context) error {
 	sql, args, err := psql.Delete(repo.Table).ToSql()
 	if err != nil {
-		return fmt.Errorf("%w: could not build query: %v", ErrInvalidQuery, err)
+		return fmt.Errorf("%w: could not build query: %v", errDeleteFailed, err)
 	}
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("%w: could not delete table: %s: %v", ErrDeleteFailed, repo.Table, err)
+		return fmt.Errorf("%w: could not execute query: %v", errDeleteFailed, err)
 	}
 
 	return nil
@@ -608,6 +615,7 @@ type PostgresIterator[E any, ID id] struct {
 }
 
 func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
+	// return i.nextSingleValue()
 	return i.nextBatchValue()
 }
 
