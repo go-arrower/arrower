@@ -41,18 +41,23 @@ func (f filter[T]) OrderBy() string {
 	return f.orderBy
 }
 
-type Option func(any)
+// Option takes in a repository to set different optional properties.
+// The WithOption function is required to cast the parameter,
+// to ensure the option is only applied to a repository, where it is supported.
+type Option func(any) error
 
 // WithIDField set's the name of the field that is used as an id or primary key.
 // If not set, it is assumed that the entity struct has a field with the name "ID".
 func WithIDField(idFieldName string) Option {
-	return func(repoConfig any) {
+	return func(repoConfig any) error {
 		idField := reflect.ValueOf(repoConfig).Elem().FieldByName("IDFieldName")
 		if !idField.CanSet() || idField.Kind() != reflect.String {
-			panic("cannot set IDField: repository MUST have a field `IDFieldName` of type string")
+			return errSetIDFieldFailed
 		}
 
 		idField.SetString(idFieldName)
+
+		return nil
 	}
 }
 
@@ -119,6 +124,7 @@ type id interface {
 }
 
 var (
+	errSetIDFieldFailed   = errors.New("cannot set IDField: repository MUST have a field `IDFieldName` of type string")
 	errIDGenerationFailed = fmt.Errorf("%w: id generation failed", ErrStorage)
 	errCreateFailed       = fmt.Errorf("%w: create failed", ErrStorage)
 	errFindFailed         = fmt.Errorf("%w: find failed", ErrStorage)

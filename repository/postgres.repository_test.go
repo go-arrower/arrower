@@ -37,13 +37,15 @@ func TestPostgresRepository(t *testing.T) {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			return repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
+			repo, _ := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
+			return repo
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			return repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
+			repo, _ := repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
+			return repo
 		},
 	)
 }
@@ -59,13 +61,14 @@ func TestPostgresRepositoryWithIDField(t *testing.T) {
 	pgx := pgHandler.NewTestDatabase()
 	initTestSchema(t, pgx)
 
-	repo := repository.NewPostgresRepository[testdata.EntityWithoutID, string](pgx,
+	repo, err := repository.NewPostgresRepository[testdata.EntityWithoutID, string](pgx,
 		repository.WithIDField("Name"),
 	)
+	assert.NoError(t, err)
 
 	name := gofakeit.Name()
 
-	err := repo.Create(ctx, testdata.EntityWithoutID{Name: name})
+	err = repo.Create(ctx, testdata.EntityWithoutID{Name: name})
 	assert.NoError(t, err)
 	_, err = repo.Read(ctx, name)
 	assert.NoError(t, err)
@@ -77,10 +80,11 @@ func TestPostgresRepository_Create(t *testing.T) {
 	pgx := pgHandler.NewTestDatabase()
 	initTestSchema(t, pgx)
 
-	repo := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx)
+	repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx)
 	assert.NotNil(t, repo)
+	assert.NoError(t, err)
 
-	err := repo.Create(ctx, testdata.DefaultEntity)
+	err = repo.Create(ctx, testdata.DefaultEntity)
 	assert.NoError(t, err)
 
 	got, err := repo.Read(ctx, testdata.DefaultEntity.ID)
@@ -102,14 +106,15 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo := repository.NewPostgresRepository[MyType, string](pgx)
+		repo, err := repository.NewPostgresRepository[MyType, string](pgx)
 		repo.Table = "entity"
 		assert.NotNil(t, repo)
+		assert.NoError(t, err)
 
 		id := "my-pk"
 		myType := MyType{ID: id, MyName: gofakeit.Name()}
 
-		err := repo.Create(ctx, myType)
+		err = repo.Create(ctx, myType)
 		assert.NoError(t, err)
 
 		entity, err := repo.FindByID(ctx, id)
@@ -146,13 +151,14 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
+		assert.NoError(t, err)
 
 		id := "my-pk"
 		myType := NestedStruct{ID: id, MyName: gofakeit.Name()}
 
-		err := repo.Create(ctx, myType)
+		err = repo.Create(ctx, myType)
 		assert.NoError(t, err)
 	})
 
@@ -170,13 +176,14 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
+		assert.NoError(t, err)
 
 		id := "my-pk"
 		myType := NestedStruct{ID: id, MyName: Name{Name: gofakeit.Name()}}
 
-		err := repo.Create(ctx, myType)
+		err = repo.Create(ctx, myType)
 		assert.NoError(t, err)
 	})
 
@@ -194,13 +201,14 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
+		assert.NoError(t, err)
 
 		id := "my-pk"
 		myType := NestedStruct{ID: id, Name: Name{Name: gofakeit.Name()}}
 
-		err := repo.Create(ctx, myType)
+		err = repo.Create(ctx, myType)
 		assert.NoError(t, err)
 	})
 }
@@ -232,7 +240,9 @@ func TestPostgresRepository_All(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	repo := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.PGx())
+	repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.PGx())
+	assert.NoError(t, err)
+
 	iter := repo.AllIter(ctx)
 	_ = iter
 

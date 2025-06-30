@@ -17,18 +17,20 @@ import (
 // There are no transactions or any consistency guarantees at all! For example, if a store fails,
 // the collection is still changed in memory of the repository.
 func WithStore(store Store) Option {
-	return func(rawRepo any) {
+	return func(rawRepo any) error {
 		repo := rawRepo.(*memoryRepoConfig)
 		repo.store = store
+		return nil
 	}
 }
 
 // WithStoreFilename overwrites the file name a Store should use to persist this Repository.
 // ONLY applies to the in memory implementations.
 func WithStoreFilename(name string) Option {
-	return func(rawRepo any) {
+	return func(rawRepo any) error {
 		repo := rawRepo.(*memoryRepoConfig)
 		repo.filename = name
+		return nil
 	}
 }
 
@@ -56,17 +58,23 @@ func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] 
 	}
 
 	for _, opt := range opts {
-		opt(&repo.memoryRepoConfig)
+		err := opt(&repo.memoryRepoConfig)
+		if err != nil {
+			name := reflect.TypeOf(*new(E)).Name()
+			panic(fmt.Sprintf("could not initialise %s memory repository: option returned error: %v", name, err.Error()))
+		}
 	}
 
 	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		panic("entity does not have the ID field with name: " + repo.IDFieldName)
+		name := reflect.TypeOf(*new(E)).Name()
+		panic(fmt.Sprintf("could not initialise %s memory repository: entity does not have the ID field with name: %v", name, repo.IDFieldName))
 	}
 
 	err := repo.store.Load(repo.filename, &repo.Data)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		panic("could not load data for memory repository from store: " + err.Error())
+		name := reflect.TypeOf(*new(E)).Name()
+		panic(fmt.Sprintf("could not initialise %s memory repository: could not load data for memory repository from store: %v", name, err.Error()))
 	}
 
 	return repo

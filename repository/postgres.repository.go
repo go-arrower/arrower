@@ -24,24 +24,26 @@ import (
 // TODO keep below error or remove /replace?
 var errIDFieldWrong = errors.New("the ID field used as primary key is wrong")
 
-func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) *PostgresRepository[E, ID] {
+func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) (*PostgresRepository[E, ID], error) {
 	repo := &PostgresRepository[E, ID]{
-		PGx: pgx,
-		// logger:  alog.NewNoopLogger().WithGroup("arrower.repository"),
+		PGx:         pgx,
 		Table:       tableName(*new(E)),
 		Columns:     columnNames(*new(E)),
 		IDFieldName: "ID",
 	}
 
 	for _, opt := range opts {
-		opt(repo)
+		err := opt(repo)
+		if err != nil {
+			name := reflect.TypeOf(*new(E)).Name()
+			return nil, fmt.Errorf("could not initialise %s postgres repository: option returned error: %w", name, err)
+		}
 	}
 
-	return repo
+	return repo, nil
 }
 
 type PostgresRepository[E any, ID id] struct {
-	// logger alog.Logger
 	PGx *pgxpool.Pool
 
 	IDFieldName string
