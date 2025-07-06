@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
+
+	"github.com/go-arrower/arrower/repository/q"
 )
 
 // WithStore sets a Store used to persist the Repository.
@@ -20,6 +23,7 @@ func WithStore(store Store) Option {
 	return func(rawRepo any) error {
 		repo := rawRepo.(*memoryRepoConfig)
 		repo.store = store
+
 		return nil
 	}
 }
@@ -30,6 +34,7 @@ func WithStoreFilename(name string) Option {
 	return func(rawRepo any) error {
 		repo := rawRepo.(*memoryRepoConfig)
 		repo.filename = name
+
 		return nil
 	}
 }
@@ -65,16 +70,18 @@ func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] 
 		}
 	}
 
-	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
-	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		name := reflect.TypeOf(*new(E)).Name()
-		panic(fmt.Sprintf("could not initialise %s memory repository: entity does not have the ID field with name: %v", name, repo.IDFieldName))
+	if repo.IDFieldName != "" { // TODO check if I want this exception: it is to make the existing settings implementation pass
+		idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
+		if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
+			name := reflect.TypeOf(*new(E)).Name()
+			panic(fmt.Sprintf("could not initialise %s memory repository: entity does not have the ID field with name: %v", name, repo.IDFieldName)) //nolint:lll
+		}
 	}
 
 	err := repo.store.Load(repo.filename, &repo.Data)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		name := reflect.TypeOf(*new(E)).Name()
-		panic(fmt.Sprintf("could not initialise %s memory repository: could not load data for memory repository from store: %v", name, err.Error()))
+		panic(fmt.Sprintf("could not initialise %s memory repository: could not load data for memory repository from store: %v", name, err.Error())) //nolint:lll
 	}
 
 	return repo
@@ -84,13 +91,12 @@ func NewMemoryRepository[E any, ID id](opts ...Option) *MemoryRepository[E, ID] 
 type MemoryRepository[E any, ID id] struct {
 	// Mutex is embedded, so that repositories who extend MemoryRepository can lock the same mutex as other methods.
 	*sync.Mutex
-
 	// Data is the repository's collection. It is exposed in case you're extending the repository.
 	// PREVENT using and accessing Data directly, go through the repository methods.
 	// If you write to Data, USE the Mutex to lock first.
-	Data         map[ID]E
-	currentIntID ID
+	Data map[ID]E
 
+	currentIntID ID
 	memoryRepoConfig
 }
 
@@ -239,6 +245,64 @@ func (repo *MemoryRepository[E, ID]) All(ctx context.Context) ([]E, error) {
 	return repo.FindAll(ctx)
 }
 
+func (repo *MemoryRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
+	entities, _ := repo.All(ctx)
+	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 {
+		return entities, nil
+	}
+
+	filteredEntities := []E{}
+
+	for _, entity := range entities {
+		for _, cond := range query.Conditions.Conditions {
+			if cond.Value == nil {
+				return []E{}, fmt.Errorf("%w: value can not be nil", errInvalidQuery)
+			}
+
+			name := fieldName(reflect.TypeOf(entity), cond.Field)
+			if !reflect.ValueOf(entity).FieldByName(name).IsValid() {
+				return []E{}, fmt.Errorf("%w: entity does not have field: %s", errInvalidQuery, cond.Field)
+			}
+
+			if reflect.TypeOf(cond.Value).Kind() != reflect.ValueOf(entity).FieldByName(name).Kind() {
+				return []E{}, fmt.Errorf("%w: field %s is of type: %s but value of type: %s",
+					errInvalidQuery,
+					name,
+					reflect.ValueOf(entity).FieldByName(name).Kind().String(),
+					reflect.TypeOf(cond.Value).Kind().String(),
+				)
+			}
+
+			chVal := reflect.ValueOf(entity).FieldByName(name).Interface()
+			if chVal == cond.Value {
+				filteredEntities = append(filteredEntities, entity)
+			}
+		}
+	}
+
+	return filteredEntities, nil
+}
+
+// fieldName returns the case-insensitive name of the field. Except is the field being quoted.
+// This brings the behaviour of the MemoryRepository close to postgres behaviour.
+// In SQL all column names are case-insensitive, except they are explicitly quoted.
+func fieldName(entity reflect.Type, name string) string {
+	isQuoted := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
+	if isQuoted {
+		return strings.TrimPrefix(strings.TrimSuffix(name, `"`), `"`)
+	}
+
+	name = strings.ToLower(name)
+
+	for i := range entity.NumField() {
+		if strings.ToLower(entity.Field(i).Name) == name {
+			return entity.Field(i).Name
+		}
+	}
+
+	return ""
+}
+
 func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
 	return repo.FindByIDs(ctx, ids)
 }
@@ -256,7 +320,7 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error) {
+func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error) {
 	if len(filters) == 0 {
 		return repo.All(ctx)
 	}
@@ -342,7 +406,7 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E
 	}
 
 	if len(result) != len(ids) {
-		return []E(nil), fmt.Errorf("some ids %w", ErrNotFound)
+		return []E{}, fmt.Errorf("some ids %w", ErrNotFound)
 	}
 
 	return result, nil

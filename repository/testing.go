@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/go-arrower/arrower/repository/q"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
@@ -101,7 +102,7 @@ func (a *TestAssertions[E, ID]) Total(total int, msgAndArgs ...any) bool {
 // TestTenant returns a MemoryTenantRepository tuned for unit testing.
 func TestTenant[tID id, E any, eID id](t *testing.T, repo TenantRepository[tID, E, eID]) *TestTenantRepository[tID, E, eID] {
 	if repo == nil {
-		repo = NewMemoryTenantRepository[tID, E, eID]()
+		//repo = NewMemoryTenantRepository[tID, E, eID]()
 	}
 
 	return &TestTenantRepository[tID, E, eID]{
@@ -213,13 +214,17 @@ func TestSuite(
 			assert.NotNil(t, repo)
 
 			idField := reflect.ValueOf(repo).Elem().FieldByName("IDFieldName")
-			assert.True(t, idField.IsValid())
+			assert.True(t, idField.IsValid(), "repository MUST have a public field called `IDFieldName`")
+			assert.Equal(t, reflect.String, idField.Kind(), "field `IDFieldName` MUST be of type string")
 			assert.NotEmpty(t, idField.String())
 		})
 
 		t.Run("missing ID field", func(t *testing.T) {
 			t.Parallel()
 
+			// In case of a failing constructor expect a panic.
+			// To be flexible with the implementation, e.g. to return an error instead,
+			// see newEntityRepo of the TestPostgresRepository on how to use this.
 			assert.Panics(t, func() {
 				newEntityRepo(WithIDField("non-existing-field"))
 			})
@@ -513,7 +518,113 @@ func TestSuite(
 			testdata.EntityID(uuid.New().String()),
 		})
 		assert.ErrorIs(t, err, ErrNotFound, "should not find all ids")
+		assert.NotNil(t, all)
 		assert.Empty(t, all)
+	})
+
+	t.Run("AllBy", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("empty query", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			all, err := repo.AllBy(ctx, q.Query{})
+			assert.NoError(t, err)
+			assert.NotNil(t, all)
+			assert.Empty(t, all)
+
+			_ = repo.Create(ctx, testdata.RandomEntity())
+
+			all, err = repo.AllBy(ctx, q.Query{})
+			assert.NoError(t, err)
+			assert.Len(t, all, 1, "empty query should return all entities")
+		})
+
+		t.Run("where", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+			_ = repo.Create(ctx, testdata.DefaultEntity)
+			_ = repo.Create(ctx, testdata.RandomEntity())
+
+			t.Run("case-insensitive field", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("name").Is(testdata.DefaultEntity.Name))
+				assert.NoError(t, err)
+				assert.Len(t, all, 1)
+			})
+
+			t.Run("quoted field", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where(`"Name"`).Is(testdata.DefaultEntity.Name))
+				assert.NoError(t, err)
+				assert.Len(t, all, 1)
+			})
+
+			t.Run("empty field", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("").Is(testdata.DefaultEntity.Name))
+				assert.ErrorIs(t, err, ErrStorage)
+				assert.NotNil(t, all)
+				assert.Empty(t, all)
+			})
+
+			t.Run("unknown field", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("non-existent").Is(testdata.DefaultEntity.Name))
+				assert.ErrorIs(t, err, ErrStorage)
+				assert.NotNil(t, all)
+				assert.Empty(t, all)
+			})
+
+			t.Run("nil value", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("Name").Is(nil))
+				assert.ErrorIs(t, err, ErrStorage)
+				assert.Empty(t, all)
+			})
+
+			t.Run("invalid value", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("Name").Is(1))
+				assert.ErrorIs(t, err, ErrStorage)
+				assert.Empty(t, all)
+			})
+
+			t.Run("not existing value", func(t *testing.T) {
+				t.Parallel()
+
+				all, err := repo.AllBy(ctx, q.Where("Name").Is("non-existent"))
+				assert.NoError(t, err)
+				assert.NotNil(t, all)
+				assert.Empty(t, all)
+			})
+		})
+
+		t.Run("filter", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+			_ = repo.Create(ctx, testdata.DefaultEntity)
+			_ = repo.Create(ctx, testdata.RandomEntity())
+
+			all, err := repo.AllBy(ctx, q.F(testdata.Entity{Name: testdata.DefaultEntity.Name}))
+			assert.NoError(t, err)
+			assert.Len(t, all, 1)
+
+			all, err = repo.AllBy(ctx, q.F(testdata.Entity{Name: "non-existent"}))
+			assert.NoError(t, err)
+			assert.NotNil(t, all)
+			assert.Empty(t, all)
+		})
 	})
 
 	t.Run("FindBy", func(t *testing.T) {
@@ -544,11 +655,11 @@ func TestSuite(
 			assert.NoError(t, err)
 			assert.Len(t, all, 4, "no filter returns all")
 
-			all, err = repo.FindBy(ctx, Filter(testdata.Entity{Name: name}))
+			all, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name}))
 			assert.NoError(t, err)
 			assert.Len(t, all, 2)
 
-			all, err = repo.FindBy(ctx, Filter(testdata.Entity{Name: name, ID: id}))
+			all, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name, ID: id}))
 			assert.NoError(t, err)
 			assert.Len(t, all, 1)
 		})

@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -19,11 +20,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/go-arrower/arrower/postgres"
+	"github.com/go-arrower/arrower/repository/q"
 )
 
 // TODO keep below error or remove /replace?
 var errIDFieldWrong = errors.New("the ID field used as primary key is wrong")
 
+// NewPostgresRepository
+//
+// If using the WithIDField option, it is required that the column in postgres has a unique or exclusion constraint,
+// otherwise Save will fail, because they use the ON CONFLICT statement.
+//
+// To map the database rows to Go structs  dbscan is used. It translates the struct field name to snake case.
+// To override this behaviour, specify the column name in the `db` field tag.
+//
+//	type User struct {
+//		ID        string `db:"user_id"`
+//		FirstName string
+//		Email     string
+//	}
+//
+// In the example above User struct is mapped to the following columns: "user_id", "first_name", "email".
 func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) (*PostgresRepository[E, ID], error) {
 	repo := &PostgresRepository[E, ID]{
 		PGx:         pgx,
@@ -40,9 +57,18 @@ func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) (*Po
 		}
 	}
 
+	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
+	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
+		name := reflect.TypeOf(*new(E)).Name()
+		return nil, fmt.Errorf("could not initialise %s memory repository: entity does not have the ID field with name: %v", name, repo.IDFieldName)
+	}
+
 	return repo, nil
 }
 
+// PostgresRepository implements Repository in a generic way. Use it to speed up your development.
+//
+// The repository exposes fields required to extend the repository with custom methods.
 type PostgresRepository[E any, ID id] struct {
 	PGx *pgxpool.Pool
 
@@ -51,12 +77,10 @@ type PostgresRepository[E any, ID id] struct {
 	Columns     []string
 }
 
-type dbInterface interface {
+func (repo *PostgresRepository[E, ID]) TxOrConn(ctx context.Context) interface {
 	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
 	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
-}
-
-func (repo *PostgresRepository[E, ID]) TxOrConn(ctx context.Context) dbInterface {
+} {
 	tx, ok := ctx.Value(postgres.CtxTX).(pgx.Tx)
 	if ok {
 		return tx
@@ -209,7 +233,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 func (repo *PostgresRepository[E, ID]) Delete(ctx context.Context, entity E) error {
 	id, err := repo.getID(entity)
 	if err != nil {
-		return fmt.Errorf("%w: %w", errDeleteFailed, err)
+		return nil //nolint:nilerr // entity without ID does not exist in the repo; meaning it is as if it is deleted.
 	}
 
 	sql, args, err := psql.Delete(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).ToSql()
@@ -231,6 +255,25 @@ func (repo *PostgresRepository[E, ID]) All(ctx context.Context) ([]E, error) {
 
 func (repo *PostgresRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
 	return repo.FindByIDs(ctx, ids)
+}
+
+func (repo *PostgresRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
+	sql, args, err := repo.buildSQL(query)
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
+	}
+
+	entities := []E{}
+
+	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
+	}
+	if err != nil { //nolint:wsl // error handling belongs together
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
+	}
+
+	return entities, nil
 }
 
 func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
@@ -258,7 +301,7 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	return entities, nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error) {
+func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error) {
 	query := psql.Select(repo.Columns...).From(repo.Table)
 
 	for _, filter := range filters {
@@ -275,7 +318,7 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Co
 
 			if !reflect.DeepEqual(field.Interface(), zeroValue) {
 				query = query.Where(squirrel.Eq{
-					fieldColumnName[E](ft.Field(i)): fv.FieldByName(ft.Field(i).Name).Interface(),
+					fieldColumnName(ft.Field(i)): fv.FieldByName(ft.Field(i).Name).Interface(),
 				})
 			}
 		}
@@ -292,7 +335,7 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Co
 
 	entities := []E{}
 
-	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
+	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
@@ -301,6 +344,45 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...Co
 	}
 
 	return entities, nil
+}
+
+//nolint:wrapcheck // caller wraps properly
+func (repo *PostgresRepository[E, ID]) buildSQL(dataQuery q.Query) (string, []any, error) {
+	query := psql.Select(repo.Columns...).From(repo.Table)
+
+	conditions := dataQuery.Conditions.Conditions
+	if len(conditions) == 0 {
+		return query.ToSql()
+	}
+
+	for _, condition := range conditions {
+		if condition.Value == nil {
+			return "", nil, errors.New("value can not be nil")
+		}
+
+		query = query.Where(squirrel.Eq{ // todo operator
+			fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+		})
+	}
+
+	groups := dataQuery.Conditions.Groups
+	for _, g := range groups {
+		inner := squirrel.Or{} // todo operator
+
+		for _, condition := range g.Conditions {
+			if condition.Value == nil {
+				return "", nil, errors.New("value can not be nil")
+			}
+
+			inner = append(inner, squirrel.Eq{ // todo operator
+				fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+			})
+		}
+
+		query = query.Where(inner)
+	}
+
+	return query.ToSql()
 }
 
 func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
@@ -313,7 +395,7 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 
 	entity := *new(E)
 
-	err = pgxscan.Get(ctx, repo.PGx, &entity, sql, args...)
+	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), &entity, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return *new(E), fmt.Errorf("entity %w: %v", ErrNotFound, err)
 	}
@@ -336,7 +418,7 @@ func (repo *PostgresRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) 
 
 	entities := []E{}
 
-	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
+	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
 	if err != nil {
 		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
@@ -359,7 +441,7 @@ func (repo *PostgresRepository[E, ID]) Exists(ctx context.Context, id ID) (bool,
 
 	var exists bool
 
-	err = pgxscan.Get(ctx, repo.PGx, &exists, sql, args...)
+	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), &exists, sql, args...)
 	if err != nil {
 		return false, fmt.Errorf("%w: could not scan result: %v", errExistsFailed, err)
 	}
@@ -401,7 +483,7 @@ func (repo *PostgresRepository[E, ID]) ContainsIDs(ctx context.Context, ids []ID
 
 	var count int
 
-	err = pgxscan.Get(ctx, repo.PGx, &count, sql, args...)
+	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), &count, sql, args...)
 	if err != nil {
 		return false, fmt.Errorf("%w: could not scan result: %v", errExistsFailed, err)
 	}
@@ -472,11 +554,62 @@ func (repo *PostgresRepository[E, ID]) SaveAll(ctx context.Context, entities []E
 }
 
 func (repo *PostgresRepository[E, ID]) UpdateAll(ctx context.Context, entities []E) error {
-	for _, entity := range entities {
-		err := repo.Update(ctx, entity) // TODO make one operation instead of loop
+	var tx pgx.Tx
+
+	conn := repo.TxOrConn(ctx)
+	if conTx, ok := conn.(pgx.Tx); ok {
+		tx = conTx
+	} else {
+		t, err := repo.PGx.Begin(ctx)
 		if err != nil {
-			return fmt.Errorf("%w: could not update entity: %v", errUpdateFailed, err)
+			return fmt.Errorf("%w: could not start transaction: %v", errSaveFailed, err)
 		}
+
+		tx = t
+	}
+
+	for _, entity := range entities {
+		err := func() error {
+			id, err := repo.getID(entity)
+			if err != nil {
+				return fmt.Errorf("%w: %w", errUpdateFailed, err)
+			}
+
+			query := psql.Update(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id})
+
+			e := reflect.ValueOf(entity)
+			for _, name := range repo.Columns {
+				query = query.Set(name, e.FieldByName(fieldByColumnName[E](name)).Interface())
+			}
+
+			sql, args, err := query.ToSql()
+			if err != nil {
+				return fmt.Errorf("%w: could not build query: %v", errUpdateFailed, err)
+			}
+
+			res, err := tx.Exec(ctx, sql, args...)
+			if err == nil && res.RowsAffected() == 0 {
+				return fmt.Errorf("entity %w", ErrNotFound)
+			}
+			if err != nil { //nolint:wsl // error handling belongs together
+				return fmt.Errorf("%w: could not update entity with id: %v: %v", errUpdateFailed, id, err)
+			}
+
+			return nil
+		}()
+		if err != nil {
+			rb := tx.Rollback(ctx)
+			if rb != nil {
+				return fmt.Errorf("%w: %v: could not rollback transaction: %v", errSaveFailed, err, rb)
+			}
+
+			return err
+		}
+	}
+
+	rb := tx.Commit(ctx)
+	if rb != nil {
+		return fmt.Errorf("%w: could not commit transaction: %v", errSaveFailed, rb)
 	}
 
 	return nil
@@ -539,7 +672,7 @@ func (repo *PostgresRepository[E, ID]) Count(ctx context.Context) (int, error) {
 
 	var count int
 
-	err = pgxscan.Get(ctx, repo.PGx, &count, sql, args...)
+	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), &count, sql, args...)
 	if err != nil {
 		return 0, fmt.Errorf("%w: could not scan result: %v", errCountFailed, err)
 	}
@@ -628,7 +761,7 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 	// todo check, if the cursor needs to be named different, if the transaction is already different
 
 	if !i.cursorOpen {
-		tx, _ := i.pgx.Begin(i.ctx)
+		tx, _ := i.pgx.Begin(i.ctx) // TODO is this correct or pull an tx from the ctx?
 		i.tx = tx
 
 		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
@@ -750,7 +883,7 @@ func columnNames[E any](entity E) []string {
 				colName = fmt.Sprintf(`"%s"`, dbTag)
 			}
 		} else {
-			colName = field.Name
+			colName = dbscan.SnakeCaseMapper(field.Name)
 		}
 
 		if field.Type.Kind() == reflect.Struct && field.Anonymous {
@@ -776,7 +909,7 @@ func fieldByColumnName[E any](name string) string {
 		field := t.Field(i)
 		dbTag := field.Tag.Get("db")
 
-		if dbTag == name || field.Name == name {
+		if dbTag == name || dbscan.SnakeCaseMapper(field.Name) == name {
 			return field.Name
 		}
 
@@ -791,7 +924,7 @@ func fieldByColumnName[E any](name string) string {
 	return ""
 }
 
-func fieldColumnName[E any](field reflect.StructField) string {
+func fieldColumnName(field reflect.StructField) string {
 	if dbTag := field.Tag.Get("db"); dbTag != "" {
 		colName := dbTag
 		if strings.Contains(colName, ".") {
@@ -801,5 +934,5 @@ func fieldColumnName[E any](field reflect.StructField) string {
 		return colName
 	}
 
-	return field.Name
+	return dbscan.SnakeCaseMapper(field.Name)
 }

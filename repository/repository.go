@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/go-arrower/arrower/repository/q"
 )
 
 var (
@@ -12,34 +14,6 @@ var (
 	ErrNotFound      = errors.New("not found")
 	ErrAlreadyExists = errors.New("already exists")
 )
-
-// Condition is an interface that filters can implement to influence the
-// selected entities that the Repository returns.
-type Condition[T any] interface {
-	Filter() T
-	OrderBy() string
-}
-
-func Filter[T any](m T) Condition[T] {
-	return filter[T]{model: m, orderBy: ""}
-}
-
-func OrderBy[T any](m string) Condition[T] {
-	return filter[T]{orderBy: m, model: *new(T)}
-}
-
-type filter[T any] struct {
-	model   T
-	orderBy string
-}
-
-func (f filter[T]) Filter() T { //nolint:ireturn // type param of OrderBy is any, but irrelevant
-	return f.model
-}
-
-func (f filter[T]) OrderBy() string {
-	return f.orderBy
-}
 
 // Option takes in a repository to set different optional properties.
 // The WithOption function is required to cast the parameter,
@@ -74,13 +48,13 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Delete(ctx context.Context, entity E) error
 
 	All(ctx context.Context) ([]E, error)
-	// AllBy
 	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
+	AllBy(ctx context.Context, query q.Query) ([]E, error)
 	FindAll(ctx context.Context) ([]E, error)
-	FindBy(ctx context.Context, filters ...Condition[E]) ([]E, error)
 	// FindAllBy
 	FindByID(ctx context.Context, id ID) (E, error)
 	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
+	FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error)
 	Exists(ctx context.Context, id ID) (bool, error)
 	ExistsByID(ctx context.Context, id ID) (bool, error)
 	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
@@ -98,17 +72,22 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	AddAll(ctx context.Context, entities []E) error
 
 	Count(ctx context.Context) (int, error)
+	// CountBy
 	Length(ctx context.Context) (int, error)
 
-	// DeleteBy
+	// DeleteByID removes the entity with the given it from the repository.
+	// If no ID is set, nothing happens and no error is returned.
 	DeleteByID(ctx context.Context, id ID) error
 	DeleteByIDs(ctx context.Context, ids []ID) error
+	// DeleteBy
 	DeleteAll(ctx context.Context) error
 	Clear(ctx context.Context) error
 
+	// IterBy(ctx context.Context, query q.Query) Iterator[E, ID]
 	// AllByIter
 	AllIter(ctx context.Context) Iterator[E, ID]
 	// FindAllByIter
+	// FindByIter
 	FindAllIter(ctx context.Context) Iterator[E, ID]
 }
 
@@ -133,4 +112,5 @@ var (
 	errExistsFailed       = fmt.Errorf("%w: exists failed", ErrStorage)
 	errSaveFailed         = fmt.Errorf("%w: save failed", ErrStorage)
 	errCountFailed        = fmt.Errorf("%w: count failed", ErrStorage)
+	errInvalidQuery       = fmt.Errorf("%w: invalidQuery", ErrStorage)
 )

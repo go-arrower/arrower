@@ -37,14 +37,22 @@ func TestPostgresRepository(t *testing.T) {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			repo, _ := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
+			repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
+			if err != nil {
+				panic(err) // the TestSuite expects a panic in case of a failing constructor
+			}
+
 			return repo
 		},
 		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			repo, _ := repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
+			repo, err := repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
+			if err != nil {
+				panic(err) // the TestSuite expects a panic in case of a failing constructor
+			}
+
 			return repo
 		},
 	)
@@ -216,13 +224,13 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
-	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
+	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT UNIQUE);`)
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)
 	assert.NoError(t, err)
 
-	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uintid INTEGER, name TEXT);`)
+	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uint_id INTEGER, name TEXT);`)
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS nestedstruct(id TEXT PRIMARY KEY, "custom.name" TEXT);`)

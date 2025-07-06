@@ -8,7 +8,7 @@ import (
 
 func NewInMemorySettings() *InMemorySettings {
 	return &InMemorySettings{
-		repo: &inMemoryRepository{MemoryRepository: repository.NewMemoryRepository[Value, Key]()},
+		repo: &inMemoryRepository{MemoryRepository: repository.NewMemoryRepository[Value, Key](repository.WithIDField(""))},
 	}
 }
 

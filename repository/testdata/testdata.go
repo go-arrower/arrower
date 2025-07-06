@@ -21,7 +21,7 @@ type (
 	EntityIDUint    uint
 	EntityWithIntPK struct {
 		ID     EntityIDInt
-		UintID EntityIDUint // todo check or remove
+		UintID EntityIDUint
 		Name   string
 	}
 )

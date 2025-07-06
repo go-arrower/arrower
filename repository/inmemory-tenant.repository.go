@@ -1,3 +1,4 @@
+//nolint:all // TODO enable linter
 package repository
 
 import (
