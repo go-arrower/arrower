@@ -20,11 +20,11 @@ func TestExplore(t *testing.T) {
 	repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 
 	repo.AllBy(ctx, q.F(auth.User{}))
-	repo.AllBy(ctx, q.F(q.MyUserFilter{}))
+	repo.AllBy(ctx, q.F(MyUserFilter{}))
 	repo.AllBy(ctx, q.Where("Name").Is("test"))
-	repo.AllBy(ctx, q.ActiveUsers())
-	repo.AllBy(ctx, q.User{}.Active())
-	repo.AllBy(ctx, q.Users().
+	repo.AllBy(ctx, ActiveUsers())
+	repo.AllBy(ctx, User{}.Active())
+	repo.AllBy(ctx, Users().
 		Active().
 		Adults().
 		WithVerifiedEmail().
@@ -99,3 +99,54 @@ Test Cases
 	* mixed nested AND and OR
 	* logical query calls limit or sortBy
 */
+
+func ActiveUsers() q.Query {
+	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Cond{
+		{
+			Field:    "Active",
+			Operator: "=",
+			Value:    true,
+		},
+	}}}
+}
+
+type MyUserFilter struct{}
+type User struct{}
+
+func (u User) Active() q.Query {
+	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Cond{
+		{
+			Field:    "Active",
+			Operator: "=",
+			Value:    true,
+		},
+	}}}
+}
+
+type UserQuery struct {
+	*q.Query
+}
+
+func Users() *UserQuery {
+	return &UserQuery{&q.Query{}}
+}
+
+// Now you can add model-specific helpers
+func (q *UserQuery) Active() *UserQuery {
+	*q.Query = q.Where("status").Is("active")
+	return q
+}
+
+func (q *UserQuery) Adults() *UserQuery {
+	*q.Query = q.Where("age").Is("18") // use GTE
+	return q
+}
+
+func (q *UserQuery) WithVerifiedEmail() *UserQuery {
+	*q.Query = q.Where("email_verified").Is(true)
+	return q
+}
+
+func (q *UserQuery) Find() q.Query {
+	return *q.Query
+}

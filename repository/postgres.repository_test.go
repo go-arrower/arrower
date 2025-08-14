@@ -224,7 +224,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
-	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT UNIQUE);`)
+	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)

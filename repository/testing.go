@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
-	"github.com/go-arrower/arrower/repository/q"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/repository/q"
 	"github.com/go-arrower/arrower/repository/testdata"
 )
 
@@ -102,7 +102,7 @@ func (a *TestAssertions[E, ID]) Total(total int, msgAndArgs ...any) bool {
 // TestTenant returns a MemoryTenantRepository tuned for unit testing.
 func TestTenant[tID id, E any, eID id](t *testing.T, repo TenantRepository[tID, E, eID]) *TestTenantRepository[tID, E, eID] {
 	if repo == nil {
-		//repo = NewMemoryTenantRepository[tID, E, eID]()
+		// repo = NewMemoryTenantRepository[tID, E, eID]()
 	}
 
 	return &TestTenantRepository[tID, E, eID]{
@@ -638,28 +638,28 @@ func TestSuite(
 			id := testdata.EntityID(uuid.New().String())
 			name := gofakeit.Name()
 
-			_ = repo.Create(ctx, testdata.Entity{Name: name, ID: id})
-			_ = repo.Create(ctx, testdata.Entity{Name: name, ID: testdata.EntityID(uuid.New().String())})
-			_ = repo.Create(ctx, testdata.RandomEntity())
-			_ = repo.Create(ctx, testdata.RandomEntity())
+			err := repo.Create(ctx, testdata.Entity{Name: name, ID: id})
+			assert.NoError(t, err)
+			err = repo.Create(ctx, testdata.Entity{Name: name, ID: testdata.EntityID(uuid.New().String())})
+			assert.NoError(t, err)
+			err = repo.Create(ctx, testdata.RandomEntity())
+			assert.NoError(t, err)
+			err = repo.Create(ctx, testdata.RandomEntity())
+			assert.NoError(t, err)
 
-			all, err := repo.FindBy(ctx)
+			c, err := repo.Count(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, 4, c)
+
+			all, err := repo.FindBy(ctx, q.Query{})
 			assert.NoError(t, err)
 			assert.Len(t, all, 4, "no filter returns all")
 
-			all, err = repo.FindBy(ctx, nil)
-			assert.NoError(t, err)
-			assert.Len(t, all, 4, "no filter returns all")
-
-			all, err = repo.FindBy(ctx, nil...)
-			assert.NoError(t, err)
-			assert.Len(t, all, 4, "no filter returns all")
-
-			all, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name}))
+			all, err = repo.FindBy(ctx, q.F(testdata.Entity{Name: name}))
 			assert.NoError(t, err)
 			assert.Len(t, all, 2)
 
-			all, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name, ID: id}))
+			all, err = repo.FindBy(ctx, q.F(testdata.Entity{Name: name, ID: id}))
 			assert.NoError(t, err)
 			assert.Len(t, all, 1)
 		})

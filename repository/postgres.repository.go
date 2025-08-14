@@ -23,9 +23,6 @@ import (
 	"github.com/go-arrower/arrower/repository/q"
 )
 
-// TODO keep below error or remove /replace?
-var errIDFieldWrong = errors.New("the ID field used as primary key is wrong")
-
 // NewPostgresRepository
 //
 // If using the WithIDField option, it is required that the column in postgres has a unique or exclusion constraint,
@@ -60,7 +57,7 @@ func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) (*Po
 	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
 		name := reflect.TypeOf(*new(E)).Name()
-		return nil, fmt.Errorf("could not initialise %s memory repository: entity does not have the ID field with name: %v", name, repo.IDFieldName)
+		return nil, fmt.Errorf("could not initialise %s postgres repository: entity does not have the ID field with name: %v", name, repo.IDFieldName)
 	}
 
 	return repo, nil
@@ -89,24 +86,26 @@ func (repo *PostgresRepository[E, ID]) TxOrConn(ctx context.Context) interface {
 	return repo.PGx
 }
 
+func (repo *PostgresRepository[E, ID]) Tx(ctx context.Context) pgx.Tx {
+	tx, ok := ctx.Value(postgres.CtxTX).(pgx.Tx)
+	if ok {
+		return tx
+	}
+
+	tx, _ = repo.PGx.Begin(ctx)
+
+	return tx
+}
+
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) //nolint:gochecknoglobals,lll // squirrel recommends this
 
 func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
-	val := reflect.ValueOf(t)
-
-	// FIXME: prevent the repository from panicking at run time
-	// move this check into the constructor:
-	// inmemory: panic
-	// postgres: return error
-	// this ensures that the getID() can be called without any checks during runtime
-	// TODO ALSO: check the type, so this method never panics, see below => move to constructor
-	idField := val.FieldByName(repo.IDFieldName)
-	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
-		return *new(ID), fmt.Errorf("%w: entity does not have the field with name: %s", errIDFieldWrong, repo.IDFieldName)
-	}
-
 	var id ID
 
+	val := reflect.ValueOf(t)
+	idField := val.FieldByName(repo.IDFieldName)
+
+	//nolint:wsl // the default case is kept for documenting the behaviour.
 	switch idField.Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(idField.String())
@@ -115,11 +114,11 @@ func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:iretu
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		reflect.ValueOf(&id).Elem().SetUint(idField.Uint())
 	default:
-		return *new(ID), fmt.Errorf("%w: %s: %v", errIDFieldWrong, "type of ID is not supported", idField.Kind())
+		// can never happen: compiler enforces valid types from the `id` interface (constraint)
 	}
 
 	if id == *new(ID) {
-		return *new(ID), fmt.Errorf("%w: %s is empty", errIDFieldWrong, repo.IDFieldName)
+		return *new(ID), fmt.Errorf("%w: missing %s", errIDFailed, repo.IDFieldName)
 	}
 
 	return id, nil
@@ -171,15 +170,13 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 
 	e := reflect.ValueOf(entity)
 	for i, name := range repo.Columns {
-		values[i] = e.FieldByName(fieldByColumnName[E](name)).Interface()
+		values[i] = e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface()
 	}
 
 	sql, args, err := psql.Insert(repo.Table).Columns(repo.Columns...).Values(values...).ToSql()
 	if err != nil {
 		return fmt.Errorf("%w: could not build query: %v", errCreateFailed, err)
 	}
-
-	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "create entity", slog.String("query", query), slog.Any("args", args))
 
 	_, err = repo.TxOrConn(ctx).Exec(ctx, sql, args...)
 	if err != nil && strings.Contains(err.Error(), "SQLSTATE 23505") {
@@ -211,7 +208,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 
 	e := reflect.ValueOf(entity)
 	for _, name := range repo.Columns {
-		query = query.Set(name, e.FieldByName(fieldByColumnName[E](name)).Interface())
+		query = query.Set(name, e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface())
 	}
 
 	sql, args, err := query.ToSql()
@@ -258,7 +255,7 @@ func (repo *PostgresRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) (
 }
 
 func (repo *PostgresRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
-	sql, args, err := repo.buildSQL(query)
+	sql, args, err := repo.buildFilteredSQL(query)
 	if err != nil {
 		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
@@ -301,34 +298,8 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	return entities, nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error) {
-	query := psql.Select(repo.Columns...).From(repo.Table)
-
-	for _, filter := range filters {
-		if filter == nil {
-			continue
-		}
-
-		fv := reflect.ValueOf(filter.Filter())
-		ft := fv.Type()
-
-		for i := range fv.NumField() {
-			field := fv.Field(i)
-			zeroValue := reflect.Zero(field.Type()).Interface()
-
-			if !reflect.DeepEqual(field.Interface(), zeroValue) {
-				query = query.Where(squirrel.Eq{
-					fieldColumnName(ft.Field(i)): fv.FieldByName(ft.Field(i).Name).Interface(),
-				})
-			}
-		}
-	}
-
-	if slices.Contains(repo.Columns, "created_at") {
-		query = query.OrderBy("created_at ASC")
-	}
-
-	sql, args, err := query.ToSql()
+func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query) ([]E, error) {
+	sql, args, err := repo.buildFilteredSQL(query)
 	if err != nil {
 		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
@@ -346,56 +317,15 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, filters ...q.
 	return entities, nil
 }
 
-//nolint:wrapcheck // caller wraps properly
-func (repo *PostgresRepository[E, ID]) buildSQL(dataQuery q.Query) (string, []any, error) {
-	query := psql.Select(repo.Columns...).From(repo.Table)
-
-	conditions := dataQuery.Conditions.Conditions
-	if len(conditions) == 0 {
-		return query.ToSql()
-	}
-
-	for _, condition := range conditions {
-		if condition.Value == nil {
-			return "", nil, errors.New("value can not be nil")
-		}
-
-		query = query.Where(squirrel.Eq{ // todo operator
-			fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
-		})
-	}
-
-	groups := dataQuery.Conditions.Groups
-	for _, g := range groups {
-		inner := squirrel.Or{} // todo operator
-
-		for _, condition := range g.Conditions {
-			if condition.Value == nil {
-				return "", nil, errors.New("value can not be nil")
-			}
-
-			inner = append(inner, squirrel.Eq{ // todo operator
-				fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
-			})
-		}
-
-		query = query.Where(inner)
-	}
-
-	return query.ToSql()
-}
-
 func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
 	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).ToSql()
 	if err != nil {
 		return *new(E), fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
-	// repo.logger.LogAttrs(ctx, alog.LevelDebug, "read entity", slog.String("query", query), slog.Any("args", args))
+	entity := new(E)
 
-	entity := *new(E)
-
-	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), &entity, sql, args...)
+	err = pgxscan.Get(ctx, repo.TxOrConn(ctx), entity, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return *new(E), fmt.Errorf("entity %w: %v", ErrNotFound, err)
 	}
@@ -403,7 +333,7 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 		return *new(E), fmt.Errorf("%w: could not scan entity: %v", errFindFailed, err)
 	}
 
-	return entity, nil
+	return *entity, nil
 }
 
 func (repo *PostgresRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([]E, error) {
@@ -513,7 +443,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 
 	ent := reflect.ValueOf(entity)
 	for i, name := range repo.Columns {
-		values[i] = ent.FieldByName(fieldByColumnName[E](name)).Interface()
+		values[i] = ent.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface()
 	}
 
 	query := psql.
@@ -528,7 +458,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 			expr = name + "= ?"
 		}
 
-		sql, args, sqErr := squirrel.Expr(expr, ent.FieldByName(fieldByColumnName[E](name)).Interface()).ToSql()
+		sql, args, sqErr := squirrel.Expr(expr, ent.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface()).ToSql()
 		if sqErr != nil {
 			return fmt.Errorf("%w: could not build on conflict sub-query: %v", errSaveFailed, sqErr)
 		}
@@ -549,7 +479,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 	return nil
 }
 
-func (repo *PostgresRepository[E, ID]) SaveAll(ctx context.Context, entities []E) error {
+func (repo *PostgresRepository[E, ID]) SaveAll(_ context.Context, entities []E) error {
 	panic("implement me")
 }
 
@@ -579,7 +509,7 @@ func (repo *PostgresRepository[E, ID]) UpdateAll(ctx context.Context, entities [
 
 			e := reflect.ValueOf(entity)
 			for _, name := range repo.Columns {
-				query = query.Set(name, e.FieldByName(fieldByColumnName[E](name)).Interface())
+				query = query.Set(name, e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface())
 			}
 
 			sql, args, err := query.ToSql()
@@ -645,7 +575,7 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 
 		e := reflect.ValueOf(entity)
 		for _, name := range repo.Columns {
-			vals = append(vals, e.FieldByName(fieldByColumnName[E](name)).Interface())
+			vals = append(vals, e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface())
 		}
 
 		query = query.Values(vals...)
@@ -722,7 +652,7 @@ func (repo *PostgresRepository[E, ID]) Clear(ctx context.Context) error {
 
 func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, ID] {
 	return PostgresIterator[E, ID]{
-		pgx:        repo.PGx,
+		repo:       repo,
 		ctx:        ctx,
 		tx:         nil,
 		sql:        "SELECT * FROM " + repo.Table,
@@ -732,18 +662,59 @@ func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, 
 
 func (repo *PostgresRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
 	return PostgresIterator[E, ID]{
-		pgx:        repo.PGx,
-		ctx:        ctx,
+		repo:       repo,
+		ctx:        ctx, //nolint:containedctx,lll // context scoped to single iterator/request; enable Go 1.23+ iterator pattern without breaking loop semantics
 		tx:         nil,
 		sql:        "SELECT * FROM " + repo.Table,
 		cursorOpen: false,
 	}
 }
 
+//nolint:wrapcheck // caller wraps properly
+func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (string, []any, error) {
+	query := psql.Select(repo.Columns...).From(repo.Table)
+
+	conditions := dataQuery.Conditions.Conditions
+	if len(conditions) == 0 {
+		return query.ToSql()
+	}
+
+	for _, condition := range conditions {
+		if condition.Value == nil {
+			return "", nil, errors.New("value can not be nil")
+		}
+
+		query = query.Where(squirrel.Eq{
+			fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+		})
+	}
+
+	groups := dataQuery.Conditions.Groups
+	for _, g := range groups {
+		inner := squirrel.Or{}
+
+		for _, condition := range g.Conditions {
+			if condition.Value == nil {
+				return "", nil, errors.New("value can not be nil")
+			}
+
+			inner = append(inner, squirrel.Eq{
+				fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+			})
+		}
+
+		query = query.Where(inner)
+	}
+
+	return query.ToSql()
+}
+
+const batchSize = 1000
+
 type PostgresIterator[E any, ID id] struct {
-	pgx *pgxpool.Pool
-	ctx context.Context
-	tx  pgx.Tx
+	repo *PostgresRepository[E, ID]
+	ctx  context.Context
+	tx   pgx.Tx
 
 	sql        string
 	cursorOpen bool
@@ -754,18 +725,19 @@ func (i PostgresIterator[E, ID]) Next() func(yield func(e E, err error) bool) {
 	return i.nextBatchValue()
 }
 
-const batchSize = 1000
-
 func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error) bool) {
-	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
-	// todo check, if the cursor needs to be named different, if the transaction is already different
+	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // get a unique name, no crypto required
 
 	if !i.cursorOpen {
-		tx, _ := i.pgx.Begin(i.ctx) // TODO is this correct or pull an tx from the ctx?
+		tx := i.repo.Tx(i.ctx)
 		i.tx = tx
 
-		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
-		// todo err check
+		_, err := i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
+		if err != nil {
+			return func(yield func(e E, err error) bool) {
+				yield(*new(E), fmt.Errorf("%w: iterator could not declare cursor: %v", errFindFailed, err))
+			}
+		}
 
 		i.cursorOpen = true
 	}
@@ -807,38 +779,58 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 	}()
 
 	return func(yield func(e E, err error) bool) {
+		defer func() {
+			quit <- struct{}{}
+		}()
+
 		var err error
 
 		for e := range ch {
-			if fe := fetchErr.Load(); fe != nil {
-				err = fe.(error)
-			}
-
-			if !yield(e, err) {
-				quit <- struct{}{}
-
+			select {
+			case <-i.ctx.Done():
+				yield(*new(E), i.ctx.Err())
 				return
+			default:
+				if fe := fetchErr.Load(); fe != nil {
+					err = fe.(error) //nolint:forcetypeassert // fetchErr is local and only stores errors
+				}
+
+				if !yield(e, err) {
+					quit <- struct{}{}
+
+					return
+				}
 			}
 		}
 
-		_, _ = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
+		_, err = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
+		if err != nil {
+			yield(*new(E), fmt.Errorf("%w: iterator could close cursor: %v", errFindFailed, err))
+		}
 
-		_ = i.tx.Commit(i.ctx)
-
-		quit <- struct{}{}
+		err = i.tx.Commit(i.ctx)
+		if err != nil {
+			yield(*new(E), fmt.Errorf("%w: iterator could close cursor: %v", errFindFailed, err))
+		}
 	}
 }
 
+// nextSingleValue returns always one value at a time.
+//
+//nolint:unused // keep it around for benchmarking
 func (i PostgresIterator[E, ID]) nextSingleValue() func(yield func(e E, err error) bool) {
-	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // no need for security
-	// todo check, if the cursor needs to be named different, if the transaction is already different
+	cursorName := "cursor_" + strconv.Itoa(rand.Int()) //nolint:gosec // get a unique name, no crypto required
 
 	if !i.cursorOpen {
-		tx, _ := i.pgx.Begin(i.ctx)
+		tx := i.repo.Tx(i.ctx)
 		i.tx = tx
 
-		_, _ = i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
-		// todo err check
+		_, err := i.tx.Exec(i.ctx, "DECLARE "+cursorName+" CURSOR FOR "+i.sql+";")
+		if err != nil {
+			return func(yield func(e E, err error) bool) {
+				yield(*new(E), fmt.Errorf("%w: iterator could not declare cursor: %v", errFindFailed, err))
+			}
+		}
 
 		i.cursorOpen = true
 	}
@@ -847,17 +839,31 @@ func (i PostgresIterator[E, ID]) nextSingleValue() func(yield func(e E, err erro
 		var entity E
 
 		for {
-			err := pgxscan.Get(i.ctx, i.tx, &entity, "FETCH FORWARD 1 FROM "+cursorName+";")
-			if err != nil {
+			select {
+			case <-i.ctx.Done():
+				yield(*new(E), i.ctx.Err())
 				return
-			}
+			default:
+				err := pgxscan.Get(i.ctx, i.tx, &entity, "FETCH FORWARD 1 FROM "+cursorName+";")
+				if err != nil {
+					return
+				}
 
-			if !yield(entity, err) {
-				_, err = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
+				if !yield(entity, err) {
+					_, err = i.tx.Exec(i.ctx, "CLOSE "+cursorName+";")
+					if err != nil {
+						yield(*new(E), fmt.Errorf("%w: iterator could close cursor: %v", errFindFailed, err))
+						return
+					}
 
-				_ = i.tx.Commit(i.ctx)
+					err = i.tx.Commit(i.ctx)
+					if err != nil {
+						yield(*new(E), fmt.Errorf("%w: iterator could close cursor: %v", errFindFailed, err))
+						return
+					}
 
-				return
+					return
+				}
 			}
 		}
 	}
@@ -899,7 +905,7 @@ func columnNames[E any](entity E) []string {
 	return columns
 }
 
-func fieldByColumnName[E any](name string) string {
+func entitiesFieldNameByColumnName[E any](name string) string {
 	name = strings.TrimPrefix(name, `"`)
 	name = strings.TrimSuffix(name, `"`)
 

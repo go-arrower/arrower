@@ -3,8 +3,9 @@ package repository_test
 import (
 	"testing"
 
-	"github.com/go-arrower/arrower/repository"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-arrower/arrower/repository"
 )
 
 func TestWithIDField(t *testing.T) {

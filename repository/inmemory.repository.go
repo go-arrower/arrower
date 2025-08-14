@@ -21,10 +21,12 @@ import (
 // the collection is still changed in memory of the repository.
 func WithStore(store Store) Option {
 	return func(rawRepo any) error {
-		repo := rawRepo.(*memoryRepoConfig)
-		repo.store = store
+		if repo, ok := rawRepo.(*memoryRepoConfig); ok {
+			repo.store = store
+			return nil
+		}
 
-		return nil
+		return fmt.Errorf("%w: WithStore can only be used with a MemoryRepository", errInvalidOption)
 	}
 }
 
@@ -32,10 +34,12 @@ func WithStore(store Store) Option {
 // ONLY applies to the in memory implementations.
 func WithStoreFilename(name string) Option {
 	return func(rawRepo any) error {
-		repo := rawRepo.(*memoryRepoConfig)
-		repo.filename = name
+		if repo, ok := rawRepo.(*memoryRepoConfig); ok {
+			repo.filename = name
+			return nil
+		}
 
-		return nil
+		return fmt.Errorf("%w: WithStoreFilename can only be used with a MemoryRepository", errInvalidOption)
 	}
 }
 
@@ -117,6 +121,7 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // n
 	val := reflect.ValueOf(t)
 	idField := val.FieldByName(repo.IDFieldName)
 
+	//nolint:wsl // the default case is kept for documenting the behaviour.
 	switch idField.Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(idField.String())
@@ -320,60 +325,38 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error) {
-	if len(filters) == 0 {
-		return repo.All(ctx)
+func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) ([]E, error) {
+	entities, _ := repo.All(ctx)
+	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 {
+		return entities, nil
 	}
 
-	var filteredEntities []E
+	filteredEntities := []E{}
 
-	entities, _ := repo.All(ctx)
 	for _, entity := range entities {
-		var matchesSingleFilter []bool
-
-		for _, filter := range filters {
-			if filter == nil {
-				continue
+		for _, cond := range query.Conditions.Conditions {
+			if cond.Value == nil {
+				return []E{}, fmt.Errorf("%w: value can not be nil", errInvalidQuery)
 			}
 
-			fv := reflect.ValueOf(filter.Filter())
-			ft := fv.Type()
-
-			var matchFilterField []bool
-
-			for i := range fv.NumField() {
-				field := fv.Field(i)
-				zeroValue := reflect.Zero(field.Type()).Interface()
-
-				if !reflect.DeepEqual(field.Interface(), zeroValue) {
-					chVal := reflect.ValueOf(entity).FieldByName(ft.Field(i).Name).Interface()
-					fVal := field.Interface()
-
-					matchFilterField = append(matchFilterField, chVal == fVal)
-				}
+			name := fieldName(reflect.TypeOf(entity), cond.Field)
+			if !reflect.ValueOf(entity).FieldByName(name).IsValid() {
+				return []E{}, fmt.Errorf("%w: entity does not have field: %s", errInvalidQuery, cond.Field)
 			}
 
-			matchAllFilterConditions := true
-
-			for _, match := range matchFilterField {
-				if !match {
-					matchAllFilterConditions = false
-				}
+			if reflect.TypeOf(cond.Value).Kind() != reflect.ValueOf(entity).FieldByName(name).Kind() {
+				return []E{}, fmt.Errorf("%w: field %s is of type: %s but value of type: %s",
+					errInvalidQuery,
+					name,
+					reflect.ValueOf(entity).FieldByName(name).Kind().String(),
+					reflect.TypeOf(cond.Value).Kind().String(),
+				)
 			}
 
-			matchesSingleFilter = append(matchesSingleFilter, matchAllFilterConditions)
-		}
-
-		matchesAllFilters := true
-
-		for _, match := range matchesSingleFilter {
-			if !match {
-				matchesAllFilters = false
+			chVal := reflect.ValueOf(entity).FieldByName(name).Interface()
+			if chVal == cond.Value {
+				filteredEntities = append(filteredEntities, entity)
 			}
-		}
-
-		if matchesAllFilters {
-			filteredEntities = append(filteredEntities, entity)
 		}
 	}
 

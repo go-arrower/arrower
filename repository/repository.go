@@ -54,7 +54,7 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	// FindAllBy
 	FindByID(ctx context.Context, id ID) (E, error)
 	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
-	FindBy(ctx context.Context, filters ...q.Condition[E]) ([]E, error)
+	FindBy(ctx context.Context, query q.Query) ([]E, error)
 	Exists(ctx context.Context, id ID) (bool, error)
 	ExistsByID(ctx context.Context, id ID) (bool, error)
 	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
@@ -103,8 +103,10 @@ type id interface {
 }
 
 var (
+	errInvalidOption      = fmt.Errorf("%w: invalid option", ErrStorage)
 	errSetIDFieldFailed   = errors.New("cannot set IDField: repository MUST have a field `IDFieldName` of type string")
 	errIDGenerationFailed = fmt.Errorf("%w: id generation failed", ErrStorage)
+	errIDFailed           = fmt.Errorf("%w: accessing ID failed", ErrStorage)
 	errCreateFailed       = fmt.Errorf("%w: create failed", ErrStorage)
 	errFindFailed         = fmt.Errorf("%w: find failed", ErrStorage)
 	errUpdateFailed       = fmt.Errorf("%w: update failed", ErrStorage)
@@ -112,5 +114,5 @@ var (
 	errExistsFailed       = fmt.Errorf("%w: exists failed", ErrStorage)
 	errSaveFailed         = fmt.Errorf("%w: save failed", ErrStorage)
 	errCountFailed        = fmt.Errorf("%w: count failed", ErrStorage)
-	errInvalidQuery       = fmt.Errorf("%w: invalidQuery", ErrStorage)
+	errInvalidQuery       = fmt.Errorf("%w: invalid query", ErrStorage)
 )
