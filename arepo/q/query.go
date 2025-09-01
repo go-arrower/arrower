@@ -1,7 +1,11 @@
 package q
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
+
+	"github.com/georgysavva/scany/v2/dbscan"
 )
 
 /*
@@ -59,7 +63,7 @@ func (q Query) Or(cond ...Query) Query {
 }
 
 func (q *Query) addCondition(field string, op Operator, value any) {
-	q.Conditions.Conditions = append(q.Conditions.Conditions, Cond{
+	q.Conditions.Conditions = append(q.Conditions.Conditions, Condition{
 		Field:    field,
 		Operator: op,
 		Value:    value,
@@ -68,12 +72,12 @@ func (q *Query) addCondition(field string, op Operator, value any) {
 
 type ConditionGroup struct {
 	Operator   LogicalOperator
-	Conditions []Cond
+	Conditions []Condition
 	Groups     []ConditionGroup
 }
 
 // Condition represents a single WHERE condition
-type Cond struct {
+type Condition struct {
 	Field    string
 	Operator Operator
 	Value    any
@@ -82,7 +86,7 @@ type Cond struct {
 }
 
 func Where(field string) *WhereQuery {
-	return &WhereQuery{query: &Query{Conditions: ConditionGroup{Conditions: make([]Cond, 0)}}, field: field}
+	return &WhereQuery{query: &Query{Conditions: ConditionGroup{Conditions: make([]Condition, 0)}}, field: field}
 }
 
 type WhereQuery struct {
@@ -128,27 +132,43 @@ func (o *OrderQuery) Descending() Query {
 	return *o.query
 }
 
-// F ignores zero values
-func F[T any](m T) Query {
-	fv := reflect.ValueOf(m)
+// Filter ignores zero values
+func Filter[T any](objFilter T) Query {
+	fv := reflect.ValueOf(objFilter)
 	ft := fv.Type()
 
-	var conds []Cond
+	var conditions []Condition
 
 	for i := range fv.NumField() {
 		field := fv.Field(i)
 		zeroValue := reflect.Zero(field.Type()).Interface()
 
 		if !reflect.DeepEqual(field.Interface(), zeroValue) {
+			fName := fieldName(ft.Field(i))
 			fVal := field.Interface()
 
-			conds = append(conds, Cond{
-				Field:    ft.Field(i).Name,
+			conditions = append(conditions, Condition{
+				Field:    fName,
 				Operator: "=",
 				Value:    fVal,
 			})
 		}
 	}
 
-	return Query{Conditions: ConditionGroup{Conditions: conds}}
+	return Query{Conditions: ConditionGroup{Conditions: conditions}}
+}
+
+func fieldName(tField reflect.StructField) string {
+	var name string
+
+	if dbTag := tField.Tag.Get("db"); dbTag != "" {
+		name = dbTag
+		if strings.Contains(name, ".") {
+			name = fmt.Sprintf(`"%s"`, dbTag)
+		}
+	} else {
+		name = dbscan.SnakeCaseMapper(tField.Name)
+	}
+
+	return name
 }

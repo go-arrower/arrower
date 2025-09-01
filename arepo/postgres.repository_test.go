@@ -1,6 +1,6 @@
 //go:build integration
 
-package repository_test
+package arepo_test
 
 import (
 	"os"
@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/testdata"
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/testdata"
 	"github.com/go-arrower/arrower/tests"
 )
 
@@ -32,23 +32,23 @@ func TestMain(m *testing.M) {
 func TestPostgresRepository(t *testing.T) {
 	t.Parallel()
 
-	repository.TestSuite(t,
-		func(opts ...repository.Option) repository.Repository[testdata.Entity, testdata.EntityID] {
+	arepo.TestSuite(t,
+		func(opts ...arepo.Option) arepo.Repository[testdata.Entity, testdata.EntityID] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
+			repo, err := arepo.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx, opts...)
 			if err != nil {
 				panic(err) // the TestSuite expects a panic in case of a failing constructor
 			}
 
 			return repo
 		},
-		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
+		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
 
-			repo, err := repository.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
+			repo, err := arepo.NewPostgresRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](pgx, opts...)
 			if err != nil {
 				panic(err) // the TestSuite expects a panic in case of a failing constructor
 			}
@@ -69,8 +69,8 @@ func TestPostgresRepositoryWithIDField(t *testing.T) {
 	pgx := pgHandler.NewTestDatabase()
 	initTestSchema(t, pgx)
 
-	repo, err := repository.NewPostgresRepository[testdata.EntityWithoutID, string](pgx,
-		repository.WithIDField("Name"),
+	repo, err := arepo.NewPostgresRepository[testdata.EntityWithoutID, string](pgx,
+		arepo.WithIDField("Name"),
 	)
 	assert.NoError(t, err)
 
@@ -88,7 +88,7 @@ func TestPostgresRepository_Create(t *testing.T) {
 	pgx := pgHandler.NewTestDatabase()
 	initTestSchema(t, pgx)
 
-	repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx)
+	repo, err := arepo.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgx)
 	assert.NotNil(t, repo)
 	assert.NoError(t, err)
 
@@ -114,7 +114,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo, err := repository.NewPostgresRepository[MyType, string](pgx)
+		repo, err := arepo.NewPostgresRepository[MyType, string](pgx)
 		repo.Table = "entity"
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
@@ -159,7 +159,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := arepo.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
@@ -184,7 +184,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := arepo.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
@@ -209,7 +209,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		pgx := pgHandler.NewTestDatabase()
 		initTestSchema(t, pgx)
 
-		repo, err := repository.NewPostgresRepository[NestedStruct, string](pgx)
+		repo, err := arepo.NewPostgresRepository[NestedStruct, string](pgx)
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
@@ -248,7 +248,7 @@ func TestPostgresRepository_All(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	repo, err := repository.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.PGx())
+	repo, err := arepo.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.PGx())
 	assert.NoError(t, err)
 
 	iter := repo.AllIter(ctx)

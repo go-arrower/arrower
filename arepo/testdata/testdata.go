@@ -21,7 +21,7 @@ type (
 	EntityIDUint    uint
 	EntityWithIntPK struct {
 		ID     EntityIDInt
-		UintID EntityIDUint
+		UintID EntityIDUint `db:"uint_id"`
 		Name   string
 	}
 )

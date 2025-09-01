@@ -7,19 +7,19 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/go-arrower/arrower/arepo"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-	"github.com/go-arrower/arrower/repository"
 )
 
 func NewUserMemoryRepository() *MemoryRepository {
 	return &MemoryRepository{
-		MemoryRepository: repository.NewMemoryRepository[domain.User, domain.ID](),
+		MemoryRepository: arepo.NewMemoryRepository[domain.User, domain.ID](),
 		tokens:           make(map[uuid.UUID]domain.VerificationToken),
 	}
 }
 
 type MemoryRepository struct {
-	*repository.MemoryRepository[domain.User, domain.ID]
+	*arepo.MemoryRepository[domain.User, domain.ID]
 
 	tokens map[uuid.UUID]domain.VerificationToken
 }

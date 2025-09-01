@@ -1,10 +1,10 @@
-package repository_test
+package arepo_test
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/arepo"
 )
 
 func Example_overwriteRepositoryMethodWithOwnBehaviour() {
@@ -25,12 +25,12 @@ type Element struct {
 
 func NewElementMemoryRepository() *ElementMemoryRepository {
 	return &ElementMemoryRepository{
-		MemoryRepository: repository.NewMemoryRepository[Element, int](),
+		MemoryRepository: arepo.NewMemoryRepository[Element, int](),
 	}
 }
 
 type ElementMemoryRepository struct {
-	*repository.MemoryRepository[Element, int]
+	*arepo.MemoryRepository[Element, int]
 }
 
 // Count overwrites the existing Count method with your own implementation.

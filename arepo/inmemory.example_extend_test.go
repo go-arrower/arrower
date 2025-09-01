@@ -1,10 +1,10 @@
-package repository_test
+package arepo_test
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/arepo"
 )
 
 func Example_extendRepositoryWithNewMethods() {
@@ -28,12 +28,12 @@ type User struct {
 
 func NewUserMemoryRepository() *UserMemoryRepository {
 	return &UserMemoryRepository{
-		MemoryRepository: repository.NewMemoryRepository[User, UserID](),
+		MemoryRepository: arepo.NewMemoryRepository[User, UserID](),
 	}
 }
 
 type UserMemoryRepository struct {
-	*repository.MemoryRepository[User, UserID]
+	*arepo.MemoryRepository[User, UserID]
 }
 
 // FindByLogin implements a custom method, that is not supported by the Repository out of the box.
@@ -46,5 +46,5 @@ func (repo *UserMemoryRepository) FindByLogin(ctx context.Context, login string)
 		}
 	}
 
-	return User{}, repository.ErrNotFound
+	return User{}, arepo.ErrNotFound
 }

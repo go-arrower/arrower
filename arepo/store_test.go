@@ -1,6 +1,6 @@
 //go:build integration
 
-package repository_test
+package arepo_test
 
 import (
 	"path"
@@ -9,8 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/testdata"
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/testdata"
 )
 
 //nolint:paralleltest // subtests need to execute in order
@@ -18,7 +18,7 @@ func TestStore(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	store := repository.NewJSONStore(dir)
+	store := arepo.NewJSONStore(dir)
 
 	t.Run("load from empty folder", func(t *testing.T) {
 		repo := testEntityMemoryRepository(store)
@@ -49,9 +49,9 @@ func TestStore(t *testing.T) {
 	})
 
 	t.Run("second entity, different file, some store", func(t *testing.T) {
-		repo := repository.NewMemoryRepository[testdata.Entity, string](
-			repository.WithStore(store),
-			repository.WithStoreFilename("Entity2.json"),
+		repo := arepo.NewMemoryRepository[testdata.Entity, string](
+			arepo.WithStore(store),
+			arepo.WithStoreFilename("Entity2.json"),
 		)
 		err := repo.Save(ctx, testdata.DefaultEntity)
 		assert.NoError(t, err)

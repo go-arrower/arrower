@@ -8,19 +8,19 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/q"
+	"github.com/go-arrower/arrower/arepo/testdata"
 	"github.com/go-arrower/arrower/contexts/auth"
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/q"
-	"github.com/go-arrower/arrower/repository/testdata"
 	"github.com/go-arrower/arrower/tests"
 )
 
 func TestExplore(t *testing.T) {
 	ctx := context.Background()
-	repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
+	repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 
-	repo.AllBy(ctx, q.F(auth.User{}))
-	repo.AllBy(ctx, q.F(MyUserFilter{}))
+	repo.AllBy(ctx, q.Filter(auth.User{}))
+	repo.AllBy(ctx, q.Filter(MyUserFilter{}))
 	repo.AllBy(ctx, q.Where("Name").Is("test"))
 	repo.AllBy(ctx, ActiveUsers())
 	repo.AllBy(ctx, User{}.Active())
@@ -50,10 +50,10 @@ func TestPG(t *testing.T) {
 	_, err = pg.PGx().Exec(ctx, `INSERT INTO entity (id, name, age) VALUES (uuid_generate_v4(),'test1', 1337);`)
 	assert.NoError(t, err)
 
-	repo, err := repository.NewPostgresRepository[Entity, string](pg.PGx())
+	repo, err := arepo.NewPostgresRepository[Entity, string](pg.PGx())
 	assert.NoError(t, err)
 
-	found, err := repo.AllBy(ctx, q.F(Entity{Name: "test1", Age: 1337}))
+	found, err := repo.AllBy(ctx, q.Filter(Entity{Name: "test1", Age: 1337}))
 	assert.NoError(t, err)
 	assert.Len(t, found, 1)
 	t.Log(found)
@@ -101,7 +101,7 @@ Test Cases
 */
 
 func ActiveUsers() q.Query {
-	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Cond{
+	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Condition{
 		{
 			Field:    "Active",
 			Operator: "=",
@@ -114,7 +114,7 @@ type MyUserFilter struct{}
 type User struct{}
 
 func (u User) Active() q.Query {
-	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Cond{
+	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Condition{
 		{
 			Field:    "Active",
 			Operator: "=",

@@ -1,5 +1,5 @@
 //nolint:all // TODO enable linter
-package repository
+package arepo
 
 import (
 	"context"

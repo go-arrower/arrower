@@ -13,11 +13,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/arepo"
 )
 
 type TestCasesController struct {
-	repo *repository.MemoryRepository[testcase, string]
+	repo *arepo.MemoryRepository[testcase, string]
 }
 
 // showTestCase is a fat controller rendering a specific testcase.
@@ -130,7 +130,7 @@ func (cont TestCasesController) storeTestcase() func(c echo.Context) error {
 		}
 
 		test, err := cont.repo.Read(c.Request().Context(), testRun.TestName)
-		if errors.Is(err, repository.ErrNotFound) { // first time this test case is seen => create it
+		if errors.Is(err, arepo.ErrNotFound) { // first time this test case is seen => create it
 			test = testcase{Name: testRun.TestName, Runs: make(map[string]run)}
 		} else if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())

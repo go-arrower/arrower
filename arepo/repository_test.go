@@ -1,20 +1,20 @@
-package repository_test
+package arepo_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository"
+	"github.com/go-arrower/arrower/arepo"
 )
 
 func TestWithIDField(t *testing.T) {
 	t.Parallel()
 
-	err := repository.WithIDField("ID")(&invalidRepositoryMissingIDFieldName{})
+	err := arepo.WithIDField("ID")(&invalidRepositoryMissingIDFieldName{})
 	assert.Error(t, err)
 
-	err = repository.WithIDField("ID")(&invalidRepositoryWrongIDFieldNameType{})
+	err = arepo.WithIDField("ID")(&invalidRepositoryWrongIDFieldNameType{})
 	assert.Error(t, err)
 }
 

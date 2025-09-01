@@ -1,6 +1,6 @@
 //go:build integration
 
-package repository_test
+package arepo_test
 
 import (
 	"os"
@@ -9,15 +9,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/testdata"
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/testdata"
 )
 
 func TestJSONStore_Store(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	store := repository.NewJSONStore(dir)
+	store := arepo.NewJSONStore(dir)
 
 	data := map[testdata.EntityID]testdata.Entity{}
 
@@ -48,13 +48,13 @@ func TestJSONStore_Load(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	store := repository.NewJSONStore(dir)
+	store := arepo.NewJSONStore(dir)
 
 	t.Run("file does not exist", func(t *testing.T) {
 		t.Parallel()
 
 		err := store.Load("file-not-exists", map[testdata.EntityID]testdata.Entity{})
-		assert.ErrorIs(t, err, repository.ErrLoad)
+		assert.ErrorIs(t, err, arepo.ErrLoad)
 		assert.ErrorIs(t, err, os.ErrNotExist)
 	})
 
@@ -62,6 +62,6 @@ func TestJSONStore_Load(t *testing.T) {
 		t.Parallel()
 
 		err := store.Load("", map[testdata.EntityID]testdata.Entity{})
-		assert.ErrorIs(t, err, repository.ErrLoad)
+		assert.ErrorIs(t, err, arepo.ErrLoad)
 	})
 }

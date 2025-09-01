@@ -1,4 +1,4 @@
-// Package repository implements generic repositories.
+// Package arepo implements generic repositories.
 // It panics instead of returning errors,
 // to make calling it much easier and prevent boilerplate in error checking.
 // The repositories are intended for rapid prototyping and development and not production use.
@@ -16,4 +16,4 @@
 // This is NOT intended for production use and only recommended for local demoing of an application.
 // With the application worked out, it's best to implement a proper repository
 // that stores the data in a real datastore.
-package repository
+package arepo

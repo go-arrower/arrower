@@ -1,4 +1,4 @@
-package repository
+package arepo
 
 import (
 	"context"
@@ -9,9 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/georgysavva/scany/v2/dbscan"
 	"github.com/google/uuid"
 
-	"github.com/go-arrower/arrower/repository/q"
+	"github.com/go-arrower/arrower/arepo/q"
 )
 
 // WithStore sets a Store used to persist the Repository.
@@ -250,15 +251,15 @@ func (repo *MemoryRepository[E, ID]) All(ctx context.Context) ([]E, error) {
 	return repo.FindAll(ctx)
 }
 
-func (repo *MemoryRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
-	entities, _ := repo.All(ctx)
-	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 {
-		return entities, nil
-	}
+func (repo *MemoryRepository[E, ID]) AllBy(_ context.Context, query q.Query) ([]E, error) {
+	repo.Lock()
+	defer repo.Unlock()
 
 	filteredEntities := []E{}
 
-	for _, entity := range entities {
+	for _, entity := range repo.Data {
+		fieldsThatMatch := 0
+
 		for _, cond := range query.Conditions.Conditions {
 			if cond.Value == nil {
 				return []E{}, fmt.Errorf("%w: value can not be nil", errInvalidQuery)
@@ -280,8 +281,13 @@ func (repo *MemoryRepository[E, ID]) AllBy(ctx context.Context, query q.Query) (
 
 			chVal := reflect.ValueOf(entity).FieldByName(name).Interface()
 			if chVal == cond.Value {
-				filteredEntities = append(filteredEntities, entity)
+				fieldsThatMatch++
 			}
+		}
+
+		entityMatches := fieldsThatMatch == len(query.Conditions.Conditions)
+		if entityMatches {
+			filteredEntities = append(filteredEntities, entity)
 		}
 	}
 
@@ -303,9 +309,21 @@ func fieldName(entity reflect.Type, name string) string {
 		if strings.ToLower(entity.Field(i).Name) == name {
 			return entity.Field(i).Name
 		}
+		condName := ""
+		if dbTag := entity.Field(i).Tag.Get("db"); dbTag != "" {
+			condName = dbTag
+			if strings.Contains(condName, ".") {
+				condName = fmt.Sprintf(`"%s"`, dbTag)
+			}
+		} else {
+			condName = dbscan.SnakeCaseMapper(entity.Field(i).Name)
+		}
+		if condName == name {
+			return entity.Field(i).Name
+		}
 	}
 
-	return ""
+	return name
 }
 
 func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
@@ -325,27 +343,29 @@ func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) ([]E, error) {
+func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) (E, error) {
 	entities, _ := repo.All(ctx)
-	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 {
-		return entities, nil
+	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 && len(entities) == 1 {
+		return entities[0], nil
 	}
 
 	filteredEntities := []E{}
 
+	// TODO REMOVE FILTERS AS ALLBY() OR RAW repo.DATA CAN BE USED INSTEAD
 	for _, entity := range entities {
+		fieldsThatMatch := 0
 		for _, cond := range query.Conditions.Conditions {
 			if cond.Value == nil {
-				return []E{}, fmt.Errorf("%w: value can not be nil", errInvalidQuery)
+				return *new(E), fmt.Errorf("%w: value can not be nil", errInvalidQuery)
 			}
 
 			name := fieldName(reflect.TypeOf(entity), cond.Field)
 			if !reflect.ValueOf(entity).FieldByName(name).IsValid() {
-				return []E{}, fmt.Errorf("%w: entity does not have field: %s", errInvalidQuery, cond.Field)
+				return *new(E), fmt.Errorf("%w: entity does not have field: %s", errInvalidQuery, cond.Field)
 			}
 
 			if reflect.TypeOf(cond.Value).Kind() != reflect.ValueOf(entity).FieldByName(name).Kind() {
-				return []E{}, fmt.Errorf("%w: field %s is of type: %s but value of type: %s",
+				return *new(E), fmt.Errorf("%w: field %s is of type: %s but value of type: %s",
 					errInvalidQuery,
 					name,
 					reflect.ValueOf(entity).FieldByName(name).Kind().String(),
@@ -355,12 +375,21 @@ func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) 
 
 			chVal := reflect.ValueOf(entity).FieldByName(name).Interface()
 			if chVal == cond.Value {
-				filteredEntities = append(filteredEntities, entity)
+				fieldsThatMatch++
 			}
+		}
+
+		entityMatches := fieldsThatMatch == len(query.Conditions.Conditions)
+		if entityMatches {
+			filteredEntities = append(filteredEntities, entity)
 		}
 	}
 
-	return filteredEntities, nil
+	if len(filteredEntities) != 1 {
+		return *new(E), fmt.Errorf("%w: FindBy only returns one entity, but filter found: %d", ErrNotFound, len(filteredEntities))
+	}
+
+	return filteredEntities[0], nil
 }
 
 func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics

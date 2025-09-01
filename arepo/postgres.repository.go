@@ -1,4 +1,4 @@
-package repository
+package arepo
 
 import (
 	"context"
@@ -19,8 +19,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/go-arrower/arrower/arepo/q"
 	"github.com/go-arrower/arrower/postgres"
-	"github.com/go-arrower/arrower/repository/q"
 )
 
 // NewPostgresRepository
@@ -298,23 +298,28 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	return entities, nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query) ([]E, error) {
+func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query) (E, error) {
 	sql, args, err := repo.buildFilteredSQL(query)
 	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
+		return *new(E), fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
 	}
 
 	entities := []E{}
 
 	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
+		return *new(E), fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
 	if err != nil { //nolint:wsl // error handling belongs together
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
+		return *new(E), fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
-	return entities, nil
+	// todo verify this via test
+	if len(entities) != 1 {
+		return *new(E), fmt.Errorf("%w: FindBy only returns one entity, but filter found: %d", ErrNotFound, len(entities))
+	}
+
+	return entities[0], nil
 }
 
 func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
@@ -685,7 +690,7 @@ func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (stri
 		}
 
 		query = query.Where(squirrel.Eq{
-			fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+			pgFieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
 		})
 	}
 
@@ -699,7 +704,7 @@ func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (stri
 			}
 
 			inner = append(inner, squirrel.Eq{
-				fieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
+				pgFieldName(reflect.TypeOf(*new(E)), condition.Field): condition.Value,
 			})
 		}
 
@@ -873,6 +878,7 @@ func tableName[E any](entity E) string {
 	return strings.ToLower(reflect.TypeOf(entity).Name())
 }
 
+// todo can generics be removed?
 func columnNames[E any](entity E) []string {
 	columns := []string{}
 
@@ -941,4 +947,15 @@ func fieldColumnName(field reflect.StructField) string {
 	}
 
 	return dbscan.SnakeCaseMapper(field.Name)
+}
+
+func pgFieldName(entity reflect.Type, name string) string {
+	isQuoted := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
+	if isQuoted {
+		return strings.TrimPrefix(strings.TrimSuffix(name, `"`), `"`)
+	}
+
+	name = strings.ToLower(name)
+
+	return name
 }

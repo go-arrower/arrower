@@ -1,24 +1,23 @@
-package repository_test
+package arepo_test
 
 import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/testdata"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/testdata"
 )
 
 func TestMemoryRepository(t *testing.T) {
 	t.Parallel()
 
-	repository.TestSuite(t,
-		func(opts ...repository.Option) repository.Repository[testdata.Entity, testdata.EntityID] {
-			return repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
+	arepo.TestSuite(t,
+		func(opts ...arepo.Option) arepo.Repository[testdata.Entity, testdata.EntityID] {
+			return arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
 		},
-		func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
-			return repository.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
+		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
+			return arepo.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
 		},
 	)
 
@@ -28,14 +27,14 @@ func TestMemoryRepository(t *testing.T) {
 		// Ensure that the store is called with the right filename.
 		// This test is testing the happy path: store and load operations always work
 
-		repository.TestSuite(t,
-			func(opts ...repository.Option) repository.Repository[testdata.Entity, testdata.EntityID] {
-				opts = append(opts, repository.WithStore(testStoreSuccessEntity(t, "Entity.json")))
-				return repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
+		arepo.TestSuite(t,
+			func(opts ...arepo.Option) arepo.Repository[testdata.Entity, testdata.EntityID] {
+				opts = append(opts, arepo.WithStore(testStoreSuccessEntity(t, "Entity.json")))
+				return arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
 			},
-			func(opts ...repository.Option) repository.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
-				opts = append(opts, repository.WithStore(testStoreSuccessEntity(t, "EntityWithIntPK.json")))
-				return repository.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
+			func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
+				opts = append(opts, arepo.WithStore(testStoreSuccessEntity(t, "EntityWithIntPK.json")))
+				return arepo.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
 			},
 		)
 	})
@@ -44,7 +43,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Parallel()
 
 		assert.Panics(t, func() {
-			repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreLoadFails()))
+			arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreLoadFails()))
 		})
 	})
 
@@ -54,7 +53,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(0)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(0)))
 
 			err := repo.Create(ctx, testdata.DefaultEntity)
 			assert.Error(t, err)
@@ -67,7 +66,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("Update", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 
 			entity := testdata.RandomEntity()
 			oldEntity := entity
@@ -86,7 +85,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("UpdateAll", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 			err := repo.AddAll(ctx, []testdata.Entity{testdata.RandomEntity(), testdata.RandomEntity()})
 			assert.NoError(t, err)
 
@@ -101,7 +100,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("Delete", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 			err := repo.Add(ctx, testdata.DefaultEntity)
 			assert.NoError(t, err)
 
@@ -116,7 +115,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("Save", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(0)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(0)))
 
 			err := repo.Save(ctx, testdata.RandomEntity())
 			assert.Error(t, err)
@@ -133,7 +132,7 @@ func TestMemoryRepository(t *testing.T) {
 			oe0 := e0
 			e1 := testdata.RandomEntity()
 			oe1 := e1
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 			err := repo.SaveAll(ctx, []testdata.Entity{e0, e1})
 			assert.NoError(t, err)
 
@@ -156,7 +155,7 @@ func TestMemoryRepository(t *testing.T) {
 			e0 := testdata.RandomEntity()
 			e1 := testdata.RandomEntity()
 			e2 := testdata.RandomEntity()
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 			err := repo.AddAll(ctx, []testdata.Entity{e0, e1, e2})
 			assert.NoError(t, err)
 
@@ -171,7 +170,7 @@ func TestMemoryRepository(t *testing.T) {
 		t.Run("DeleteAll", func(t *testing.T) {
 			t.Parallel()
 
-			repo := repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(testStoreStoreFails(1)))
+			repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(testStoreStoreFails(1)))
 			err := repo.Create(ctx, testdata.DefaultEntity)
 			assert.NoError(t, err)
 
@@ -199,7 +198,7 @@ func TestNewMemoryRepository_IntPK(t *testing.T) {
 	t.Run("use uint field", func(t *testing.T) {
 		t.Parallel()
 
-		repo := repository.NewMemoryRepository[entity, entityUint](repository.WithIDField("UintID"))
+		repo := arepo.NewMemoryRepository[entity, entityUint](arepo.WithIDField("UintID"))
 
 		id, err := repo.NextID(ctx)
 		assert.NoError(t, err)

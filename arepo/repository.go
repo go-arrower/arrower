@@ -1,4 +1,4 @@
-package repository
+package arepo
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-arrower/arrower/repository/q"
+	"github.com/go-arrower/arrower/arepo/q"
 )
 
 var (
@@ -48,13 +48,14 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	Delete(ctx context.Context, entity E) error
 
 	All(ctx context.Context) ([]E, error)
-	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
 	AllBy(ctx context.Context, query q.Query) ([]E, error)
-	FindAll(ctx context.Context) ([]E, error)
-	// FindAllBy
+	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
+	// FindAll(ctx context.Context) ([]E, error) // todo remove
+
 	FindByID(ctx context.Context, id ID) (E, error)
-	FindByIDs(ctx context.Context, ids []ID) ([]E, error)
-	FindBy(ctx context.Context, query q.Query) ([]E, error)
+	FindBy(ctx context.Context, query q.Query) (E, error)
+	// FindByIDs(ctx context.Context, ids []ID) ([]E, error) // todo remove
+
 	Exists(ctx context.Context, id ID) (bool, error)
 	ExistsByID(ctx context.Context, id ID) (bool, error)
 	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
@@ -83,12 +84,9 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	DeleteAll(ctx context.Context) error
 	Clear(ctx context.Context) error
 
-	// IterBy(ctx context.Context, query q.Query) Iterator[E, ID]
 	// AllByIter
 	AllIter(ctx context.Context) Iterator[E, ID]
-	// FindAllByIter
-	// FindByIter
-	FindAllIter(ctx context.Context) Iterator[E, ID]
+	FindAllIter(ctx context.Context) Iterator[E, ID] // todo remove
 }
 
 type Iterator[E any, ID id] interface {

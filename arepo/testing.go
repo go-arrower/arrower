@@ -1,4 +1,4 @@
-package repository
+package arepo
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository/q"
-	"github.com/go-arrower/arrower/repository/testdata"
+	"github.com/go-arrower/arrower/arepo/q"
+	"github.com/go-arrower/arrower/arepo/testdata"
 )
 
 var ctx = context.Background()
@@ -489,39 +489,6 @@ func TestSuite(
 		assert.Len(t, all, 2, "should have two entities")
 	})
 
-	t.Run("AllByIDs", func(t *testing.T) {
-		t.Parallel()
-
-		e0 := testdata.RandomEntity()
-		e1 := testdata.RandomEntity()
-		repo := newEntityRepo()
-
-		_ = repo.Create(ctx, e0)
-		_ = repo.Create(ctx, testdata.RandomEntity())
-		_ = repo.Create(ctx, e1)
-		_ = repo.Create(ctx, testdata.RandomEntity())
-
-		all, err := repo.AllByIDs(ctx, nil)
-		assert.NoError(t, err)
-		assert.Empty(t, all, "nil is not matching any IDs")
-
-		all, err = repo.AllByIDs(ctx, []testdata.EntityID{})
-		assert.NoError(t, err, "empty list should not return an error")
-		assert.Empty(t, all)
-
-		all, err = repo.AllByIDs(ctx, []testdata.EntityID{e0.ID, e1.ID})
-		assert.NoError(t, err)
-		assert.Len(t, all, 2, "should find all ids")
-
-		all, err = repo.AllByIDs(ctx, []testdata.EntityID{
-			e0.ID,
-			testdata.EntityID(uuid.New().String()),
-		})
-		assert.ErrorIs(t, err, ErrNotFound, "should not find all ids")
-		assert.NotNil(t, all)
-		assert.Empty(t, all)
-	})
-
 	t.Run("AllBy", func(t *testing.T) {
 		t.Parallel()
 
@@ -536,10 +503,11 @@ func TestSuite(
 			assert.Empty(t, all)
 
 			_ = repo.Create(ctx, testdata.RandomEntity())
+			_ = repo.Create(ctx, testdata.RandomEntity())
 
 			all, err = repo.AllBy(ctx, q.Query{})
 			assert.NoError(t, err)
-			assert.Len(t, all, 1, "empty query should return all entities")
+			assert.Len(t, all, 2, "empty query should return all entities")
 		})
 
 		t.Run("where", func(t *testing.T) {
@@ -614,16 +582,110 @@ func TestSuite(
 
 			repo := newEntityRepo()
 			_ = repo.Create(ctx, testdata.DefaultEntity)
+			_ = repo.Create(ctx, testdata.Entity{
+				ID:   testdata.EntityID(uuid.New().String()),
+				Name: testdata.DefaultEntity.Name,
+			})
 			_ = repo.Create(ctx, testdata.RandomEntity())
 
-			all, err := repo.AllBy(ctx, q.F(testdata.Entity{Name: testdata.DefaultEntity.Name}))
+			all, err := repo.AllBy(ctx, q.Filter(testdata.Entity{Name: testdata.DefaultEntity.Name}))
 			assert.NoError(t, err)
-			assert.Len(t, all, 1)
+			assert.Len(t, all, 2)
 
-			all, err = repo.AllBy(ctx, q.F(testdata.Entity{Name: "non-existent"}))
+			all, err = repo.AllBy(ctx, q.Filter(testdata.Entity{Name: "non-existent"}))
 			assert.NoError(t, err)
 			assert.NotNil(t, all)
 			assert.Empty(t, all)
+		})
+
+		t.Run("filter on multiple fields", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepoInt()
+			_ = repo.Create(ctx, testdata.EntityWithIntPK{
+				ID:     1,
+				UintID: 100,
+				Name:   testdata.DefaultEntity.Name,
+			})
+			_ = repo.Create(ctx, testdata.EntityWithIntPK{
+				ID:     2,
+				UintID: 100,
+				Name:   testdata.DefaultEntity.Name,
+			})
+			_ = repo.Create(ctx, testdata.EntityWithIntPK{
+				ID:     3,
+				UintID: 101,
+				Name:   testdata.DefaultEntity.Name,
+			})
+
+			all, err := repo.AllBy(ctx, q.Filter(testdata.EntityWithIntPK{UintID: 100, Name: testdata.DefaultEntity.Name}))
+			assert.NoError(t, err)
+			assert.Len(t, all, 2)
+
+			all, err = repo.AllBy(ctx, q.Filter(testdata.Entity{Name: "non-existent"}))
+			assert.NoError(t, err)
+			assert.NotNil(t, all)
+			assert.Empty(t, all)
+		})
+	})
+
+	t.Run("AllByIDs", func(t *testing.T) {
+		t.Parallel()
+
+		e0 := testdata.RandomEntity()
+		e1 := testdata.RandomEntity()
+		repo := newEntityRepo()
+
+		_ = repo.Create(ctx, e0)
+		_ = repo.Create(ctx, testdata.RandomEntity())
+		_ = repo.Create(ctx, e1)
+		_ = repo.Create(ctx, testdata.RandomEntity())
+
+		all, err := repo.AllByIDs(ctx, nil)
+		assert.NoError(t, err)
+		assert.Empty(t, all, "nil is not matching any IDs")
+
+		all, err = repo.AllByIDs(ctx, []testdata.EntityID{})
+		assert.NoError(t, err, "empty list should not return an error")
+		assert.Empty(t, all)
+
+		all, err = repo.AllByIDs(ctx, []testdata.EntityID{e0.ID, e1.ID})
+		assert.NoError(t, err)
+		assert.Len(t, all, 2, "should find all ids")
+
+		all, err = repo.AllByIDs(ctx, []testdata.EntityID{
+			e0.ID,
+			testdata.EntityID(uuid.New().String()),
+		})
+		assert.ErrorIs(t, err, ErrNotFound, "should not find all ids")
+		assert.NotNil(t, all)
+		assert.Empty(t, all)
+	})
+
+	t.Run("FindByID", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("find by id", func(t *testing.T) {
+			t.Parallel()
+
+			entity := testdata.RandomEntity()
+			repo := newEntityRepo()
+			err := repo.Add(ctx, entity)
+			assert.NoError(t, err)
+
+			got, err := repo.FindByID(ctx, entity.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, entity, got)
+		})
+
+		t.Run("non-existing", func(t *testing.T) {
+			t.Parallel()
+
+			repo := newEntityRepo()
+
+			e, err := repo.FindByID(ctx, testdata.RandomEntity().ID)
+			assert.ErrorIs(t, err, ErrNotFound)
+			assert.Empty(t, e)
 		})
 	})
 
@@ -651,44 +713,17 @@ func TestSuite(
 			assert.NoError(t, err)
 			assert.Equal(t, 4, c)
 
-			all, err := repo.FindBy(ctx, q.Query{})
+			entity, err := repo.FindBy(ctx, q.Query{})
+			assert.Error(t, err, "FindBy should filter to one entity only")
+			assert.Empty(t, entity)
+
+			entity, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name}))
+			assert.Error(t, err)
+			assert.Empty(t, entity)
+
+			entity, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name, ID: id}))
 			assert.NoError(t, err)
-			assert.Len(t, all, 4, "no filter returns all")
-
-			all, err = repo.FindBy(ctx, q.F(testdata.Entity{Name: name}))
-			assert.NoError(t, err)
-			assert.Len(t, all, 2)
-
-			all, err = repo.FindBy(ctx, q.F(testdata.Entity{Name: name, ID: id}))
-			assert.NoError(t, err)
-			assert.Len(t, all, 1)
-		})
-	})
-
-	t.Run("FindByID", func(t *testing.T) {
-		t.Parallel()
-
-		t.Run("find by id", func(t *testing.T) {
-			t.Parallel()
-
-			entity := testdata.RandomEntity()
-			repo := newEntityRepo()
-			err := repo.Add(ctx, entity)
-			assert.NoError(t, err)
-
-			got, err := repo.FindByID(ctx, entity.ID)
-			assert.NoError(t, err)
-			assert.Equal(t, entity, got)
-		})
-
-		t.Run("non-existing", func(t *testing.T) {
-			t.Parallel()
-
-			repo := newEntityRepo()
-
-			e, err := repo.FindByID(ctx, testdata.RandomEntity().ID)
-			assert.ErrorIs(t, err, ErrNotFound)
-			assert.Empty(t, e)
+			assert.NotEmpty(t, entity)
 		})
 	})
 

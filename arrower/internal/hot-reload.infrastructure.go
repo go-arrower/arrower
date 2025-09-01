@@ -16,8 +16,8 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/arepo"
 	"github.com/go-arrower/arrower/renderer"
-	"github.com/go-arrower/arrower/repository"
 )
 
 var ErrConnectionFailed = errors.New("ws connection failed")
@@ -54,7 +54,7 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 
 	router.GET("/ws", HotReloadHandler(notify))
 
-	cont := TestCasesController{repo: repository.NewMemoryRepository[testcase, string](repository.WithIDField("Name"))}
+	cont := TestCasesController{repo: arepo.NewMemoryRepository[testcase, string](arepo.WithIDField("Name"))}
 	router.GET("/testcase", cont.showTestCase())
 	router.HEAD("/testcase", func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)

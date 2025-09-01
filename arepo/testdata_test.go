@@ -1,4 +1,4 @@
-package repository_test
+package arepo_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-arrower/arrower/repository"
-	"github.com/go-arrower/arrower/repository/testdata"
+	"github.com/go-arrower/arrower/arepo"
+	"github.com/go-arrower/arrower/arepo/testdata"
 )
 
 var errStoreFailed = errors.New("store failed")
@@ -36,14 +36,14 @@ type (
 	}
 )
 
-func testEntityMemoryRepository(s repository.Store) *entityMemoryRepository {
+func testEntityMemoryRepository(s arepo.Store) *entityMemoryRepository {
 	return &entityMemoryRepository{
-		MemoryRepository: repository.NewMemoryRepository[testdata.Entity, testdata.EntityID](repository.WithStore(s)),
+		MemoryRepository: arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](arepo.WithStore(s)),
 	}
 }
 
 type entityMemoryRepository struct {
-	*repository.MemoryRepository[testdata.Entity, testdata.EntityID]
+	*arepo.MemoryRepository[testdata.Entity, testdata.EntityID]
 }
 
 type testStore struct {
