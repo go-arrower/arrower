@@ -131,7 +131,7 @@ func with(field string, value string) func(req *application.RegisterUserRequest)
 }
 
 func registerUserRequest(opts ...func(res *application.RegisterUserRequest)) application.RegisterUserRequest {
-	password := gofakeit.Password(true, true, true, true, false, 12)
+	password := gofakeit.Password(true, true, true, true, false, 48)
 	req := application.RegisterUserRequest{
 		RegisterEmail:          gofakeit.Email(),
 		Password:               password,
