@@ -54,8 +54,8 @@ func main() {
 		}
 
 		userID := "World"
-		if id, ok := sess.Values[auth.SessKeyUserID].(string); ok {
-			userID = id
+		if id, ok := sess.Values[auth.SessKeyUserID].(auth.UserID); ok {
+			userID = string(id)
 		}
 
 		flashes := sess.Flashes()

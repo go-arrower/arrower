@@ -257,7 +257,7 @@ func newTestRouter(pg *pgxpool.Pool) *echo.Echo {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		sess.Values[auth.SessKeyUserID] = userID.String()
+		sess.Values[auth.SessKeyUserID] = auth.UserID(userID.String())
 
 		err = sess.Save(c.Request(), c.Response())
 		if err != nil {

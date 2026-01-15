@@ -29,11 +29,11 @@ func (cont SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		if originalUserID, ok := sess.Values[auth.SessKeyUserID].(string); ok {
+		if originalUserID, ok := sess.Values[auth.SessKeyUserID].(auth.UserID); ok {
 			sess.Values[auth.SessIsSuperuserLoggedInAsUser] = true
 			sess.Values[auth.SessSuperuserOriginalUserID] = originalUserID
 
-			sess.Values[auth.SessKeyUserID] = user.ID.String()
+			sess.Values[auth.SessKeyUserID] = auth.UserID(user.ID.String())
 			sess.AddFlash("Angemeldet als Nutzer: " + user.Login)
 
 			err = sess.Save(c.Request(), c.Response())
@@ -53,7 +53,7 @@ func (cont SuperuserController) AdminLeaveUser() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		if originalUserID, ok := sess.Values[auth.SessSuperuserOriginalUserID].(string); ok {
+		if originalUserID, ok := sess.Values[auth.SessSuperuserOriginalUserID].(auth.UserID); ok {
 			delete(sess.Values, auth.SessIsSuperuserLoggedInAsUser)
 			delete(sess.Values, auth.SessSuperuserOriginalUserID)
 

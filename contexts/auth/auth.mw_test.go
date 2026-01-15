@@ -40,7 +40,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 		echoRouter := newEnsureRouterToAssertOnHandler(func(c echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
-			assert.Equal(t, "1337", auth.CurrentUserID(ctx))
+			assert.Equal(t, auth.UserID("1337"), auth.CurrentUserID(ctx))
 
 			return c.NoContent(http.StatusOK)
 		})
@@ -83,7 +83,7 @@ func TestIsSuperuser(t *testing.T) {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
 			assert.True(t, auth.IsSuperuser(ctx))
-			assert.Equal(t, "1337", auth.CurrentUserID(ctx))
+			assert.Equal(t, auth.UserID("1337"), auth.CurrentUserID(ctx))
 
 			return c.NoContent(http.StatusOK)
 		})
@@ -123,7 +123,7 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 		echoRouter := newEnrichRouterToAssertOnHandler(func(c echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
-			assert.Equal(t, "1337", auth.CurrentUserID(ctx))
+			assert.Equal(t, auth.UserID("1337"), auth.CurrentUserID(ctx))
 			assert.True(t, auth.IsSuperuser(ctx))
 
 			return c.NoContent(http.StatusOK)
@@ -148,7 +148,7 @@ func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true
-		sess.Values[auth.SessKeyUserID] = "1337"
+		sess.Values[auth.SessKeyUserID] = auth.UserID("1337")
 
 		_ = sess.Save(c.Request(), c.Response())
 
@@ -172,7 +172,7 @@ func newEnsureIsSuperuserRouterToAssertOnHandler(handler func(c echo.Context) er
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true
-		sess.Values[auth.SessKeyUserID] = "1337"
+		sess.Values[auth.SessKeyUserID] = auth.UserID("1337")
 		sess.Values[auth.SessKeyIsSuperuser] = true
 
 		_ = sess.Save(c.Request(), c.Response())
@@ -200,7 +200,7 @@ func newEnrichRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true
-		sess.Values[auth.SessKeyUserID] = "1337"
+		sess.Values[auth.SessKeyUserID] = auth.UserID("1337")
 		sess.Values[auth.SessKeyIsSuperuser] = true
 
 		_ = sess.Save(c.Request(), c.Response())

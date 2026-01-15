@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,17 +10,17 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
+	"github.com/go-arrower/arrower/ctx"
 )
 
 var ErrInvalidSessionValue = errors.New("invalid session value")
 
 const (
-	CtxLoggedIn                  ctx2.CTXKey = "auth.pass"
-	CtxIsSuperuser               ctx2.CTXKey = "auth.superuser"
-	CtxIsSuperuserLoggedInAsUser ctx2.CTXKey = "auth.superuser_logged_in_as_user"
-	CtxUserID                    ctx2.CTXKey = "auth.user_id"
-	CtxUser                      ctx2.CTXKey = "auth.user"
+	CtxLoggedIn                  ctx.CTXKey = "auth.pass"
+	CtxIsSuperuser               ctx.CTXKey = "auth.superuser"
+	CtxIsSuperuserLoggedInAsUser ctx.CTXKey = "auth.superuser_logged_in_as_user"
+	CtxUserID                    ctx.CTXKey = "auth.user_id"
+	CtxUser                      ctx.CTXKey = "auth.user"
 )
 
 const (
@@ -30,6 +31,12 @@ const (
 	SessIsSuperuserLoggedInAsUser = "auth.superuser.is_logged_in_as_user"
 	SessSuperuserOriginalUserID   = "auth.superuser.original_user_id"
 )
+
+func init() {
+	// `gorilla/sessions` uses gob encoding,
+	// so custom types in the session have to be registered.
+	gob.Register(UserID(""))
+}
 
 // EnsureUserIsLoggedInMiddleware makes sure the routes can only be accessed by a logged-in user.
 // It does set the User in the same way EnrichCtxWithUserInfoMiddleware does.

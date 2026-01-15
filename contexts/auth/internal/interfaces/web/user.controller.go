@@ -298,7 +298,7 @@ func (uc UserController) Register() func(echo.Context) error {
 			SameSite: http.SameSiteStrictMode,
 		}
 		sess.Values[auth.SessKeyLoggedIn] = true
-		sess.Values[auth.SessKeyUserID] = string(response.User.ID)
+		sess.Values[auth.SessKeyUserID] = auth.UserID(response.User.ID)
 
 		sess.AddFlash("Register successful")
 
