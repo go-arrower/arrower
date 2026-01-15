@@ -82,6 +82,7 @@ func (q *MemoryQueue) Schedule(spec string, job Job) error {
 	_, err = q.cron.AddFunc(spec, func() {
 		q.mu.Lock()
 		defer q.mu.Unlock()
+
 		q.jobs = append(q.jobs, job)
 	})
 	if err != nil {
@@ -129,6 +130,7 @@ func (q *MemoryQueue) start(ctx context.Context) {
 
 func (q *MemoryQueue) runWorkers(ctx context.Context) {
 	const tickerDuration = 100 * time.Millisecond
+
 	interval := time.NewTicker(tickerDuration)
 
 	for {

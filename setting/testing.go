@@ -266,6 +266,7 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel,m
 
 			loc, err := time.LoadLocation("Asia/Tokyo")
 			assert.NoError(t, err)
+
 			now := time.Now().In(loc) // make the case difficult by changing the tz.
 
 			key := NewKey("arrower", "test", "time")

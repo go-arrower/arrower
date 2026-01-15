@@ -32,7 +32,7 @@ func WatchBuildAndRunApp(
 	filesChanged := make(chan File)
 
 	wg.Add(1)
-	go func(wg *sync.WaitGroup) { //nolint:wsl
+	go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 		const interval = 350
 
 		err := WatchFolder(ctx, path, filesChanged, interval)

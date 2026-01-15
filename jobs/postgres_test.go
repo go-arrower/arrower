@@ -1,5 +1,6 @@
 //go:build integration
 
+//nolint:wsl_v5
 package jobs_test
 
 import (
@@ -98,6 +99,7 @@ func TestNewPostgresJobs(t *testing.T) {
 
 		_ = jq.RegisterJobFunc(func(context.Context, simpleJob) error { return nil }) // register JobFunc to start workers
 		_ = jq.Enqueue(ctx, simpleJob{})
+
 		time.Sleep(500 * time.Millisecond) // wait for worker to start and process the job
 
 		queries := models.New(pg)
@@ -456,6 +458,7 @@ func TestPostgresJobs_Enqueue(t *testing.T) {
 		assert.NoError(t, err)
 
 		wg.Add(2)
+
 		err = jq.RegisterJobFunc(func(_ context.Context, job jobWithArgs) error {
 			mu.Lock()
 			defer mu.Unlock()
@@ -885,6 +888,7 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 
 			for {
 				time.Sleep(time.Second)
+
 				select {
 				case <-ctx.Done():
 					// return nil

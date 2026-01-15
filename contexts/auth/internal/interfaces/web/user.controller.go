@@ -105,7 +105,7 @@ func (uc UserController) Login() func(echo.Context) error {
 
 		if loginUser.RememberMe {
 			const oneMonth = 60 * 60 * 24 * 30 //  60 sec * 60 min * 24 hours * 30 day
-			maxAge = oneMonth
+			maxAge = oneMonth                  //nolint:wsl_v5
 		}
 
 		sess.Options = &sessions.Options{

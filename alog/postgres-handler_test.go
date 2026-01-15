@@ -122,7 +122,6 @@ func TestPostgresHandler_Handle(t *testing.T) {
 			const maxRequests = 100
 
 			wg.Add(maxRequests)
-
 			for range maxRequests {
 				go func() {
 					time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond) //nolint:gosec // no need for secure number, just spread logs

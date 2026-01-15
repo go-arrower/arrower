@@ -14,7 +14,7 @@ func PresentJobsExamplePayloads(queue, jobType string, payloads [][]byte) echo.M
 
 	for i, p := range payloads {
 		var jobPayload application.JobPayload
-		_ = json.Unmarshal(p, &jobPayload)
+		_ = json.Unmarshal(p, &jobPayload) //nolint:wsl_v5
 
 		prettyPayloads[i] = prettyJobPayloadDataAsFormattedJSON(jobPayload)
 	}

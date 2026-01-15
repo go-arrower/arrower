@@ -24,7 +24,7 @@ func TestRunCmd(t *testing.T) {
 		)
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			output, err := executeCommand(cmd.NewArrowerCLI(osSignal, noBrowser), "run")
 			output = strings.ToLower(output)
 			assert.NoError(t, err)
@@ -35,7 +35,7 @@ func TestRunCmd(t *testing.T) {
 			assert.Contains(t, output, "done")
 
 			wg.Done()
-		}()
+		}(&wg)
 
 		time.Sleep(50 * time.Millisecond)
 		osSignal <- syscall.SIGTERM

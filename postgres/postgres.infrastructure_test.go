@@ -35,6 +35,7 @@ func TestConnect(t *testing.T) {
 		t.Parallel()
 
 		var pgHandler *postgres.Handler
+
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
@@ -68,6 +69,7 @@ func TestConnect(t *testing.T) {
 		t.Parallel()
 
 		var pgHandler *postgres.Handler
+
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
@@ -137,6 +139,7 @@ func TestConnectAndMigrate(t *testing.T) {
 		t.Parallel()
 
 		var pgHandler *postgres.Handler
+
 		cleanup, _ := tests.StartDockerContainer(runOptions, func(resource *dockertest.Resource) func() error {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 

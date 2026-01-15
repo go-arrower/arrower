@@ -30,11 +30,11 @@ func TestWatchFolder(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, ".", filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		cancel()
 		wg.Wait()
@@ -60,11 +60,11 @@ func TestWatchFolder(t *testing.T) {
 		dir := t.TempDir()
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		cancel()
 		wg.Wait()
@@ -81,11 +81,11 @@ func TestWatchFolder(t *testing.T) {
 		dir := t.TempDir()
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test.go"))
@@ -108,11 +108,11 @@ func TestWatchFolder(t *testing.T) {
 		dir := t.TempDir()
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
@@ -139,11 +139,11 @@ func TestWatchFolder(t *testing.T) {
 		dir := t.TempDir()
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
@@ -170,11 +170,11 @@ func TestWatchFolder(t *testing.T) {
 		dir := t.TempDir()
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "something_test.go"))

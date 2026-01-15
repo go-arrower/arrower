@@ -36,7 +36,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), func(_ string) error {
 				browserStarted = true
 
@@ -45,7 +45,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, browserStarted)
 			wg.Done()
-		}()
+		}(&wg)
 
 		waitUntilRunning(buf)
 
@@ -71,11 +71,11 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), noBrowser)
 			assert.NoError(t, err)
 			wg.Done()
-		}()
+		}(&wg)
 
 		waitUntilRunning(buf) // time for the example-server to start
 
@@ -104,12 +104,12 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		hotReload := make(chan internal.File, 1)
 
 		wg.Add(1)
-		go func() {
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, hotReload, noBrowser)
 			assert.NoError(t, err)
 
 			wg.Done()
-		}()
+		}(&wg)
 
 		waitUntilRunning(buf) // time for the example-server to start
 
@@ -147,6 +147,7 @@ func waitUntilRunning(buf *syncBuffer) {
 	retriesUntilServerStarted := 0
 	for retriesUntilServerStarted < maxTries {
 		time.Sleep(100 * time.Millisecond)
+
 		retriesUntilServerStarted--
 
 		if strings.Contains(buf.String(), "running...") {

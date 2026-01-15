@@ -27,7 +27,6 @@ func (d *requestLoggingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res
 	)
 
 	res, err := d.base.H(ctx, req)
-
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute request",
 			slog.String("command", cmdName),
@@ -61,7 +60,6 @@ func (d *commandLoggingDecorator[C]) H(ctx context.Context, cmd C) error {
 	)
 
 	err := d.base.H(ctx, cmd)
-
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute command",
 			slog.String("command", cmdName),
@@ -95,7 +93,6 @@ func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, er
 	)
 
 	res, err := d.base.H(ctx, query)
-
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute query",
 			slog.String("command", cmdName),
@@ -129,7 +126,6 @@ func (d *jobLoggingDecorator[J]) H(ctx context.Context, job J) error {
 	)
 
 	err := d.base.H(ctx, job)
-
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute job",
 			slog.String("command", cmdName),

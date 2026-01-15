@@ -422,6 +422,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 
 		t.Run("ensure ctx attributes are added as event to span", func(t *testing.T) {
 			t.Parallel()
+
 			buf := &bytes.Buffer{}
 			h := slog.NewTextHandler(buf, nil)
 			logger := alog.New(alog.WithHandler(h))

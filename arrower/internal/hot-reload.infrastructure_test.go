@@ -36,7 +36,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		server, _ := internal.NewHotReloadServer(make(chan internal.File))
 
 		wg.Add(1)
-		go func(server *echo.Echo) {
+		go func(wg *sync.WaitGroup, server *echo.Echo) { //nolint:wsl_v5
 			wg.Done()
 
 			port := 1024 * rand.Intn(10) //nolint:gosec // rand does not need to be secure for port number
@@ -45,7 +45,7 @@ func TestNewHotReloadServer(t *testing.T) {
 			if !errors.Is(err, http.ErrServerClosed) {
 				assert.NoError(t, err)
 			}
-		}(server)
+		}(&wg, server)
 
 		wg.Wait()
 		err := server.Shutdown(context.Background())
@@ -111,12 +111,12 @@ func TestNewHotReloadServer(t *testing.T) {
 		wgBrowsersConnected.Add(maxConnections)
 
 		for i := 0; i < maxConnections; i++ {
-			go func() {
+			go func(wg *sync.WaitGroup) {
 				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
-
 				assert.NoError(t, err)
 
 				defer ws.Close()
+
 				wgBrowsersConnected.Done()
 
 				for {
@@ -132,7 +132,7 @@ func TestNewHotReloadServer(t *testing.T) {
 				}
 
 				wg.Done()
-			}()
+			}(&wg)
 		}
 
 		wgBrowsersConnected.Wait()

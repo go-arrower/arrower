@@ -155,6 +155,7 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 			defer mu.Unlock()
 
 			counter++
+
 			assert.NotEmpty(t, job.Name)
 
 			return nil

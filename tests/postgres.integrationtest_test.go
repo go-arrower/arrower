@@ -35,6 +35,7 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 		t.Parallel()
 
 		var pg *pgxpool.Pool
+
 		assert.NotPanics(t, func() {
 			pg = pgHandler.NewTestDatabase()
 		})
@@ -48,6 +49,7 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 		t.Parallel()
 
 		var pg *pgxpool.Pool
+
 		assert.NotPanics(t, func() {
 			pg = pgHandler.NewTestDatabase(
 				"testdata/fixtures/test_case0.yaml",
@@ -68,9 +70,10 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 		var wg sync.WaitGroup
 
 		wg.Add(testNumber)
-		for i := 0; i < testNumber; i++ {
+		for i := 0; i < testNumber; i++ { //nolint:wsl_v5
 			go func() {
 				var pg *pgxpool.Pool
+
 				assert.NotPanics(t, func() {
 					pg = pgHandler.NewTestDatabase()
 				})
@@ -109,6 +112,7 @@ func TestWithMigrations(t *testing.T) {
 	// path with migration at the end; arrower does search in a folder that is called "migrations" // TODO
 }
 
+//nolint:wsl_v5
 func assertTableNumberOfRows(t *testing.T, db *pgxpool.Pool, table string, num int) {
 	t.Helper()
 

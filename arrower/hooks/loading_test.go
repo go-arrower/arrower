@@ -59,8 +59,8 @@ func TestLoad(t *testing.T) {
 	t.Run("empty hook", func(t *testing.T) {
 		hooks, err := hooks.Load("./testdata/.config")
 		assert.NoError(t, err)
-		plugin := hooks[3]
 
+		plugin := hooks[3]
 		assert.Equal(t, "<unknown>", plugin.Name)
 
 		assert.NotPanics(t, func() {

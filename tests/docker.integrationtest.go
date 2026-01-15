@@ -68,7 +68,7 @@ func StartDockerContainer(runOptions *dockertest.RunOptions, retryFunc RetryFunc
 			return nil, err
 		}
 	}
-	if err != nil && !errors.Is(err, docker.ErrContainerAlreadyExists) { //nolint:wsl
+	if err != nil && !errors.Is(err, docker.ErrContainerAlreadyExists) { //nolint:wsl_v5
 		return nil, fmt.Errorf("%w: could not start resource: %v, options: %v", ErrDockerFailure, err, runOptions)
 	}
 

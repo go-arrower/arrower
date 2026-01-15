@@ -184,6 +184,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 
 		result := rec.Result()
 		defer result.Body.Close()
+
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Empty(t, rec.Body.String())
 		assert.Len(t, result.Cookies(), 1)
@@ -203,9 +204,10 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 		rec := httptest.NewRecorder()
 		echoRouter.ServeHTTP(rec, req)
 
-		// assert cookie
 		result := rec.Result()
 		defer result.Body.Close()
+
+		// assert cookie
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Empty(t, rec.Body.String())
 		assert.Len(t, result.Cookies(), 1)

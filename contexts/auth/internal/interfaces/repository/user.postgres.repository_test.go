@@ -283,6 +283,7 @@ func TestPostgresRepository_SaveAll(t *testing.T) {
 
 		c, _ := repo.Count(ctx)
 		assert.Equal(t, 4, c)
+
 		u, _ := repo.FindByID(ctx, testdata.UserIDZero)
 		assert.NotEmpty(t, u.Name)
 	})

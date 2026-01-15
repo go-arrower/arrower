@@ -122,7 +122,6 @@ func (repo *MemoryRepository[E, ID]) getID(t any) ID { //nolint:ireturn,lll // n
 	val := reflect.ValueOf(t)
 	idField := val.FieldByName(repo.IDFieldName)
 
-	//nolint:wsl // the default case is kept for documenting the behaviour.
 	switch idField.Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(idField.String())
@@ -318,6 +317,7 @@ func fieldName(entity reflect.Type, name string) string {
 		} else {
 			condName = dbscan.SnakeCaseMapper(entity.Field(i).Name)
 		}
+
 		if condName == name {
 			return entity.Field(i).Name
 		}
@@ -354,6 +354,7 @@ func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) 
 	// TODO REMOVE FILTERS AS ALLBY() OR RAW repo.DATA CAN BE USED INSTEAD
 	for _, entity := range entities {
 		fieldsThatMatch := 0
+
 		for _, cond := range query.Conditions.Conditions {
 			if cond.Value == nil {
 				return *new(E), fmt.Errorf("%w: value can not be nil", errInvalidQuery)

@@ -86,7 +86,7 @@ func TestNewKey(t *testing.T) {
 	}
 }
 
-//nolint:dupl,maintidx // the test is cumbersome, but covers a lot of cases to be explicit in the behaviour of the type casts.
+//nolint:dupl,maintidx,wsl_v5 // the test is cumbersome, but covers a lot of cases to be explicit in the behaviour of the type casts.
 func TestNewValue(t *testing.T) {
 	t.Parallel()
 

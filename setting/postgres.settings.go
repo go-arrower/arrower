@@ -29,7 +29,7 @@ type PostgresSettings struct {
 
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) //nolint:gochecknoglobals,lll // squirrel recommends this
 
-func (s *PostgresSettings) Register(ctx context.Context, settings map[Key]any) error { //nolint:wsl
+func (s *PostgresSettings) Register(ctx context.Context, settings map[Key]any) error {
 	// sqlc does not support atomic import:
 	// sqlc can do copyform, but that does not have ON CONFLICT support
 	// a workaround with temporary tables, does not worj with sqlc,

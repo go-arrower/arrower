@@ -289,6 +289,7 @@ func createAndConnectToNewRandomDatabase(pg *postgres.Handler) *postgres.Handler
 	return newHandler
 }
 
+//nolint:wsl_v5
 func randomDatabaseName() string {
 	validPGDatabaseLetters := []rune("abcdefghijklmnopqrstuvwxyz")
 

@@ -105,7 +105,6 @@ func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:iretu
 	val := reflect.ValueOf(t)
 	idField := val.FieldByName(repo.IDFieldName)
 
-	//nolint:wsl // the default case is kept for documenting the behaviour.
 	switch idField.Kind() {
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(idField.String())
@@ -182,7 +181,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 	if err != nil && strings.Contains(err.Error(), "SQLSTATE 23505") {
 		return ErrAlreadyExists
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		id, idErr := repo.getID(entity)
 		if idErr != nil {
 			return fmt.Errorf("%w: %v: %w", errDeleteFailed, err, idErr)
@@ -220,7 +219,7 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 	if err == nil && res.RowsAffected() == 0 {
 		return fmt.Errorf("entity %w", ErrNotFound)
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		return fmt.Errorf("%w: could not update entity with id: %v: %v", errUpdateFailed, id, err)
 	}
 
@@ -266,7 +265,7 @@ func (repo *PostgresRepository[E, ID]) AllBy(ctx context.Context, query q.Query)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
@@ -291,7 +290,7 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
@@ -310,7 +309,7 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query
 	if errors.Is(err, pgx.ErrNoRows) {
 		return *new(E), fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		return *new(E), fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
@@ -334,7 +333,7 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return *new(E), fmt.Errorf("entity %w: %v", ErrNotFound, err)
 	}
-	if err != nil { //nolint:wsl // error handling belongs together
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
 		return *new(E), fmt.Errorf("%w: could not scan entity: %v", errFindFailed, err)
 	}
 
@@ -526,7 +525,7 @@ func (repo *PostgresRepository[E, ID]) UpdateAll(ctx context.Context, entities [
 			if err == nil && res.RowsAffected() == 0 {
 				return fmt.Errorf("entity %w", ErrNotFound)
 			}
-			if err != nil { //nolint:wsl // error handling belongs together
+			if err != nil { //nolint:wsl_v5 // error handling belongs together
 				return fmt.Errorf("%w: could not update entity with id: %v: %v", errUpdateFailed, id, err)
 			}
 

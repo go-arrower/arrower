@@ -88,7 +88,7 @@ func TestSecret_String(t *testing.T) {
 			//t.Log(logger.String())
 
 			logger.Contains("******")
-			if notEmpty := strings.Trim(tc.secret, " ") != ""; notEmpty { //nolint:wsl
+			if notEmpty := strings.Trim(tc.secret, " ") != ""; notEmpty { //nolint:wsl_v5
 				logger.NotContains(tc.secret, "non empty secret should not contain it's original data")
 			}
 		})
