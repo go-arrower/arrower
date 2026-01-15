@@ -56,8 +56,9 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			}
 
 			hooks, err := hooks.Load(".config")
-			if err != nil { // todo "no such file or directory" should continue without any issue
-				panic(err)
+			if err != nil {
+				red := color.New(color.FgRed, color.Bold).FprintlnFunc()
+				red(cmd.OutOrStdout(), "failed to load hooks: %s\n", err)
 			}
 
 			if len(hooks) > 0 {
