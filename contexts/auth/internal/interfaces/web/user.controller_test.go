@@ -249,10 +249,11 @@ func TestUserController_Logout(t *testing.T) {
 		echoRouter.GET("/logout", controller.Logout())
 		echoRouter.ServeHTTP(rec, req)
 
+		result = rec.Result()
+		defer result.Body.Close()
+
 		assert.Equal(t, http.StatusSeeOther, rec.Code)
-		assert.Len(t, result.Cookies(), 1) // FIXME
-		// t.Log(result.Cookies()[0])
-		// t.Log(result.Cookies()[1])
+		assert.Len(t, result.Cookies(), 1)
 		assert.Equal(t, "/", result.Cookies()[0].Path)
 		assert.Equal(t, -1, result.Cookies()[0].MaxAge)
 	})
