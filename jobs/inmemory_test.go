@@ -19,7 +19,7 @@ func TestNewMemoryQueue(t *testing.T) {
 		t.Parallel()
 
 		jq := jobs.NewMemoryQueue()
-		assert.NotEmpty(t, jq)
+		assert.NotNil(t, jq)
 	})
 }
 
@@ -168,8 +168,10 @@ func TestInMemoryQueue_Schedule(t *testing.T) {
 		assert.NoError(t, err)
 
 		// it looks like the cron library ignores 1ms values and always ticks at a second mark
-		time.Sleep(2100 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 
-		assert.GreaterOrEqual(t, counter, 4)
+		mu.Lock()
+		defer mu.Unlock()
+		assert.GreaterOrEqual(t, counter, 4) //nolint:wsl_v5
 	})
 }
