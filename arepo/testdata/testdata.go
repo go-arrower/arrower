@@ -12,6 +12,11 @@ type Entity struct {
 	Name string
 }
 
+type EntityWithNamePK struct {
+	Name        string
+	Description string
+}
+
 type EntityWithoutID struct { // todo can this be removed? Since the third constructor is gone from the TestSuite, this one might not be required any longer
 	Name string
 }

@@ -558,13 +558,13 @@ func TestPostgresJobsHandler_Schedule(t *testing.T) {
 		err = jq.Schedule("@every 1ms", simpleJob{})
 		assert.NoError(t, err)
 
-		time.Sleep(5000 * time.Millisecond) // wait until gueron is set up
+		time.Sleep(5 * time.Second) // wait until gueron is set up
 
 		c, err := pg.Exec(ctx, `UPDATE arrower.gue_jobs SET run_at = $1 WHERE job_type = $2;`, "2023-06-20 19:35:27-01", "gueron-refresh-schedule")
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), c.RowsAffected())
 
-		time.Sleep(5000 * time.Millisecond) // wait until gue has processed the gueron job
+		time.Sleep(10 * time.Second) // wait until gue has processed the gueron job
 		_ = jq.Shutdown(ctx)
 
 		logger.NotContains("git hash failed", "gueron should deserialise into the arrower job payload without issue")
@@ -663,7 +663,7 @@ func TestPostgresJobs_StartWorkers(t *testing.T) {
 		// pool only starts after a call to RegisterJobFunc
 		_ = jq.RegisterJobFunc(func(context.Context, simpleJob) error { return nil })
 		// wait for the startWorkers to register itself as online
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 
 		wp, err := queries.GetWorkerPools(ctx)
 		assert.NoError(t, err)

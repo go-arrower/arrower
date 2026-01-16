@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -69,13 +70,16 @@ func TestTestExecute(t *testing.T) {
 			fmt.Fprintln(os.Stdout, "hello os out")
 		}}
 
+		var wg sync.WaitGroup
 		for range 10 {
-			go func() {
+			wg.Go(func() {
 				output, err := cmd.TestExecute(t, rootCmd)
 				assert.NoError(t, err)
 				assert.Contains(t, output, "hello cmd out")
 				assert.Contains(t, output, "hello os out")
-			}()
+			})
 		}
+
+		wg.Wait()
 	})
 }

@@ -160,19 +160,12 @@ func (repo *PostgresRepository[E, ID]) NextID(ctx context.Context) (ID, error) {
 }
 
 func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) error {
-	values := make([]any, len(repo.Columns))
-
-	_, err := repo.getID(entity)
+	id, err := repo.getID(entity)
 	if err != nil {
 		return fmt.Errorf("%w: %w", errCreateFailed, err)
 	}
 
-	e := reflect.ValueOf(entity)
-	for i, name := range repo.Columns {
-		values[i] = e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface()
-	}
-
-	sql, args, err := psql.Insert(repo.Table).Columns(repo.Columns...).Values(values...).ToSql()
+	sql, args, err := psql.Insert(repo.Table).Columns(repo.Columns...).Values(columnValues(entity)...).ToSql()
 	if err != nil {
 		return fmt.Errorf("%w: could not build query: %v", errCreateFailed, err)
 	}
@@ -182,12 +175,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 		return ErrAlreadyExists
 	}
 	if err != nil { //nolint:wsl_v5 // error handling belongs together
-		id, idErr := repo.getID(entity)
-		if idErr != nil {
-			return fmt.Errorf("%w: %v: %w", errDeleteFailed, err, idErr)
-		}
-
-		return fmt.Errorf("%w: could not insert entity with id: %v: %v", errCreateFailed, id, idErr)
+		return fmt.Errorf("%w: could not insert entity with id %v: %v", errCreateFailed, id, err)
 	}
 
 	return nil
@@ -205,9 +193,9 @@ func (repo *PostgresRepository[E, ID]) Update(ctx context.Context, entity E) err
 
 	query := psql.Update(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id})
 
-	e := reflect.ValueOf(entity)
-	for _, name := range repo.Columns {
-		query = query.Set(name, e.FieldByName(entitiesFieldNameByColumnName[E](name)).Interface())
+	vals := columnValues(entity)
+	for i, name := range repo.Columns {
+		query = query.Set(name, vals[i])
 	}
 
 	sql, args, err := query.ToSql()
@@ -877,39 +865,6 @@ func tableName[E any](entity E) string {
 	return strings.ToLower(reflect.TypeOf(entity).Name())
 }
 
-// todo can generics be removed?
-func columnNames[E any](entity E) []string {
-	columns := []string{}
-
-	e := reflect.TypeOf(entity)
-
-	for i := range e.NumField() {
-		field := e.Field(i)
-
-		var colName string
-
-		if dbTag := field.Tag.Get("db"); dbTag != "" {
-			colName = dbTag
-			if strings.Contains(colName, ".") {
-				colName = fmt.Sprintf(`"%s"`, dbTag)
-			}
-		} else {
-			colName = dbscan.SnakeCaseMapper(field.Name)
-		}
-
-		if field.Type.Kind() == reflect.Struct && field.Anonymous {
-			sc := columnNames(reflect.New(field.Type).Elem().Interface())
-			for _, c := range sc {
-				columns = append(columns, fmt.Sprintf(`"%s.%s"`, colName, c))
-			}
-		} else {
-			columns = append(columns, colName)
-		}
-	}
-
-	return columns
-}
-
 func entitiesFieldNameByColumnName[E any](name string) string {
 	name = strings.TrimPrefix(name, `"`)
 	name = strings.TrimSuffix(name, `"`)
@@ -935,19 +890,6 @@ func entitiesFieldNameByColumnName[E any](name string) string {
 	return ""
 }
 
-func fieldColumnName(field reflect.StructField) string {
-	if dbTag := field.Tag.Get("db"); dbTag != "" {
-		colName := dbTag
-		if strings.Contains(colName, ".") {
-			colName = fmt.Sprintf(`"%s"`, dbTag)
-		}
-
-		return colName
-	}
-
-	return dbscan.SnakeCaseMapper(field.Name)
-}
-
 func pgFieldName(entity reflect.Type, name string) string {
 	isQuoted := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
 	if isQuoted {
@@ -957,4 +899,118 @@ func pgFieldName(entity reflect.Type, name string) string {
 	name = strings.ToLower(name)
 
 	return name
+}
+
+func quoteIdent(s string) string {
+	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+}
+
+// columnNames gibt die Spaltennamen zurück (raw, ohne Quotes)
+func columnNames[E any](entity E) []string {
+	cols, _ := columnsAndValues(reflect.ValueOf(entity), "")
+	names := make([]string, len(cols))
+	for i, c := range cols {
+		names[i] = quoteIdent(c.name)
+	}
+	return names
+}
+
+// columnValues gibt die Werte in derselben Reihenfolge zurück
+func columnValues[E any](entity E) []any {
+	cols, _ := columnsAndValues(reflect.ValueOf(entity), "")
+	vals := make([]any, len(cols))
+	for i, c := range cols {
+		vals[i] = c.value
+	}
+	return vals
+}
+
+type colVal struct {
+	name  string
+	value any
+}
+
+func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
+	var result []colVal
+
+	// Deref pointer
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return nil, nil
+		}
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
+	t := v.Type()
+
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		fv := v.Field(i)
+
+		// Skip unexported
+		if f.PkgPath != "" {
+			continue
+		}
+
+		col := f.Tag.Get("db")
+		if col == "" {
+			col = dbscan.SnakeCaseMapper(f.Name)
+		}
+
+		// Deref pointer field
+		ft := f.Type
+		for ft.Kind() == reflect.Pointer {
+			ft = ft.Elem()
+			if fv.Kind() == reflect.Pointer {
+				if fv.IsNil() {
+					// nil pointer -> skip oder NULL
+					result = append(result, colVal{name: col, value: nil})
+					continue
+				}
+				fv = fv.Elem()
+			}
+		}
+
+		// Embedded struct ODER normales Struct-Feld -> flatten
+		if ft.Kind() == reflect.Struct {
+			// Bestimme Prefix
+			var newPrefix string
+			if f.Anonymous {
+				// Embedded ohne db-Tag -> kein Prefix
+				if f.Tag.Get("db") == "" {
+					newPrefix = prefix
+				} else {
+					// Embedded mit db-Tag -> custom.xxx
+					newPrefix = joinPrefix(prefix, col)
+				}
+			} else {
+				// Normales Feld -> custom.xxx
+				newPrefix = joinPrefix(prefix, col)
+			}
+
+			sub, err := columnsAndValues(fv, newPrefix)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, sub...)
+			continue
+		}
+
+		// Normales Feld
+		fullCol := joinPrefix(prefix, col)
+		result = append(result, colVal{name: fullCol, value: fv.Interface()})
+	}
+
+	return result, nil
+}
+
+func joinPrefix(prefix, col string) string {
+	if prefix == "" {
+		return col
+	}
+	return prefix + "." + col
 }

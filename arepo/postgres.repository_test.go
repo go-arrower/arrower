@@ -44,6 +44,17 @@ func TestPostgresRepository(t *testing.T) {
 
 			return repo
 		},
+		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithNamePK, string] {
+			pgx := pgHandler.NewTestDatabase()
+			initTestSchema(t, pgx)
+
+			repo, err := arepo.NewPostgresRepository[testdata.EntityWithNamePK, string](pgx, opts...)
+			if err != nil {
+				panic(err) // the TestSuite expects a panic in case of a failing constructor
+			}
+
+			return repo
+		},
 		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			pgx := pgHandler.NewTestDatabase()
 			initTestSchema(t, pgx)
@@ -193,6 +204,11 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		err = repo.Create(ctx, myType)
 		assert.NoError(t, err)
+
+		//
+		myType.MyName.Name = gofakeit.Name()
+		err = repo.Update(ctx, myType)
+		assert.NoError(t, err)
 	})
 
 	t.Run("embedded tags", func(t *testing.T) {
@@ -225,6 +241,9 @@ func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
 	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
+	assert.NoError(t, err)
+
+	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithnamepk(name TEXT PRIMARY KEY, description TEXT);`)
 	assert.NoError(t, err)
 
 	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)

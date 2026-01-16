@@ -189,6 +189,7 @@ func (a *TestTenantAssertions[tID, E, eID]) Total(total int, msgAndArgs ...any) 
 func TestSuite(
 	t *testing.T,
 	newEntityRepo func(opts ...Option) Repository[testdata.Entity, testdata.EntityID],
+	newEntityRepoOtherPk func(opts ...Option) Repository[testdata.EntityWithNamePK, string],
 	newEntityRepoInt func(opts ...Option) Repository[testdata.EntityWithIntPK, testdata.EntityIDInt],
 ) {
 	t.Helper()
@@ -234,16 +235,16 @@ func TestSuite(
 			t.Parallel()
 
 			name := gofakeit.Name()
-			repo := newEntityRepo(WithIDField("Name"))
+			repo := newEntityRepoOtherPk(WithIDField("Name"))
 
 			idField := reflect.ValueOf(repo).Elem().FieldByName("IDFieldName")
 			assert.True(t, idField.IsValid())
-			assert.NotEmpty(t, idField.String())
+			assert.Equal(t, "Name", idField.String())
 
-			err := repo.Save(ctx, testdata.Entity{ID: testdata.EntityID(uuid.New().String()), Name: name})
+			err := repo.Save(ctx, testdata.EntityWithNamePK{Description: uuid.New().String(), Name: name})
 			assert.NoError(t, err)
 
-			got, err := repo.FindByID(ctx, testdata.EntityID(name))
+			got, err := repo.FindByID(ctx, name)
 			assert.NoError(t, err)
 			assert.Equal(t, name, got.Name)
 		})

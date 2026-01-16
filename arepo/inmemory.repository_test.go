@@ -16,6 +16,9 @@ func TestMemoryRepository(t *testing.T) {
 		func(opts ...arepo.Option) arepo.Repository[testdata.Entity, testdata.EntityID] {
 			return arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
 		},
+		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithNamePK, string] {
+			return arepo.NewMemoryRepository[testdata.EntityWithNamePK, string](opts...)
+		},
 		func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 			return arepo.NewMemoryRepository[testdata.EntityWithIntPK, testdata.EntityIDInt](opts...)
 		},
@@ -31,6 +34,9 @@ func TestMemoryRepository(t *testing.T) {
 			func(opts ...arepo.Option) arepo.Repository[testdata.Entity, testdata.EntityID] {
 				opts = append(opts, arepo.WithStore(testStoreSuccessEntity(t, "Entity.json")))
 				return arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID](opts...)
+			},
+			func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithNamePK, string] {
+				return arepo.NewMemoryRepository[testdata.EntityWithNamePK, string](opts...)
 			},
 			func(opts ...arepo.Option) arepo.Repository[testdata.EntityWithIntPK, testdata.EntityIDInt] {
 				opts = append(opts, arepo.WithStore(testStoreSuccessEntity(t, "EntityWithIntPK.json")))
