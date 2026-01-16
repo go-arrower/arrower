@@ -311,7 +311,7 @@ usecases_duration_seconds_sum{command="app_test.request",otel_scope_name="arrowe
 usecases_duration_seconds_count{command="app_test.request",otel_scope_name="arrower.application",otel_scope_version=""} 1
 # HELP usecases_total a simple counter
 # TYPE usecases_total counter
-usecases_total{command="app_test.request",otel_scope_name="arrower.application",otel_scope_version="",status="success"} 1
+usecases_total{command="app_test.request",otel_scope_name="arrower.application",otel_scope_schema_url="",otel_scope_version="",status="success"} 1
 `))
 	metricsForSucceedingRequest = bytes.NewReader(rawMetricsForSucceedingUseCase)
 	metricsForSucceedingCommand = bytes.NewReader(rawMetricsForSucceedingUseCase)
@@ -342,7 +342,7 @@ usecases_duration_seconds_sum{command="app_test.request",otel_scope_name="arrowe
 usecases_duration_seconds_count{command="app_test.request",otel_scope_name="arrower.application",otel_scope_version=""} 1
 # HELP usecases_total a simple counter
 # TYPE usecases_total counter
-usecases_total{command="app_test.request",otel_scope_name="arrower.application",otel_scope_version="",status="failure"} 1
+usecases_total{command="app_test.request",otel_scope_name="arrower.application",otel_scope_schema_url="",otel_scope_version="",status="failure"} 1
 `))
 	metricsForFailingRequest = bytes.NewReader(rawMetricsForFailingUseCase)
 	metricsForFailingCommand = bytes.NewReader(rawMetricsForFailingUseCase)
