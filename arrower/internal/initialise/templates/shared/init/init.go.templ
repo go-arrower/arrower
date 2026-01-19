@@ -33,6 +33,7 @@ func SharedDependencies(ctx context.Context, cfgFile string) (*Container, error)
 		postgres.Migrations,
 		public.Assets,
 		views.SharedViews,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not initialise dependencies: %w", err)
