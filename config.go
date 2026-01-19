@@ -145,12 +145,20 @@ func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error
 		return fmt.Errorf("%w: could not cast to arrower.Config", errConfigLoadFailed)
 	}
 
-	err = vip.Viper.UnmarshalKey("http.cookie_secret", &config.HTTP.CookieSecret, viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()))
+	err = vip.Viper.UnmarshalKey(
+		"http.cookie_secret",
+		&config.HTTP.CookieSecret,
+		viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()),
+	)
 	if err != nil {
 		return fmt.Errorf("%w: could not decode secret: %v", errConfigLoadFailed, err)
 	}
 
-	err = vip.Viper.UnmarshalKey("postgres.password", &config.Postgres.Password, viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()))
+	err = vip.Viper.UnmarshalKey(
+		"postgres.password",
+		&config.Postgres.Password,
+		viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()),
+	)
 	if err != nil {
 		return fmt.Errorf("%w: could not decode secret: %v", errConfigLoadFailed, err)
 	}

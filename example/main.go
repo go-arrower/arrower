@@ -119,7 +119,12 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 	)
 
 	_ = di.DefaultQueue.RegisterJobFunc(
-		app.NewInstrumentedJob[NamedJob](di.TraceProvider, di.MeterProvider, di.Logger, &namedJobHandler{Logger: di.Logger}).H,
+		app.NewInstrumentedJob[NamedJob](
+			di.TraceProvider,
+			di.MeterProvider,
+			di.Logger,
+			&namedJobHandler{Logger: di.Logger},
+		).H,
 	)
 
 	_ = di.DefaultQueue.RegisterJobFunc(

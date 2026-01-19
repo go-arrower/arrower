@@ -54,7 +54,11 @@ func (h *pruneJobHistoryRequestHandler) H(
 
 	size, err := h.queries.JobTableSize(ctx)
 	if err != nil {
-		return PruneJobHistoryResponse{}, fmt.Errorf("%w: could not get new jobs table size: %v", ErrPruneJobHistoryFailed, err)
+		return PruneJobHistoryResponse{}, fmt.Errorf(
+			"%w: could not get new jobs table size: %v",
+			ErrPruneJobHistoryFailed,
+			err,
+		)
 	}
 
 	return PruneJobHistoryResponse{

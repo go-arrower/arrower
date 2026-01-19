@@ -387,7 +387,11 @@ func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) 
 	}
 
 	if len(filteredEntities) != 1 {
-		return *new(E), fmt.Errorf("%w: FindBy only returns one entity, but filter found: %d", ErrNotFound, len(filteredEntities))
+		return *new(E), fmt.Errorf(
+			"%w: FindBy only returns one entity, but filter found: %d",
+			ErrNotFound,
+			len(filteredEntities),
+		)
 	}
 
 	return filteredEntities[0], nil
