@@ -47,6 +47,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/auth/", nil)
 		req.AddCookie(getSessionCookie(echoRouter))
+
 		rec := httptest.NewRecorder()
 
 		echoRouter.ServeHTTP(rec, req)
@@ -90,6 +91,7 @@ func TestIsSuperuser(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/admin/", nil)
 		req.AddCookie(getSessionCookie(echoRouter))
+
 		rec := httptest.NewRecorder()
 
 		echoRouter.ServeHTTP(rec, req)
@@ -131,6 +133,7 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.AddCookie(getSessionCookie(echoRouter))
+
 		rec := httptest.NewRecorder()
 
 		echoRouter.ServeHTTP(rec, req)

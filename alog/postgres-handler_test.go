@@ -118,8 +118,9 @@ func TestPostgresHandler_Handle(t *testing.T) {
 				alog.WithHandler(alog.NewPostgresHandler(pg, &alog.PostgresHandlerOptions{MaxBatchSize: 1000, MaxTimeout: time.Millisecond})),
 			)
 
-			var wg sync.WaitGroup
 			const maxRequests = 100
+
+			var wg sync.WaitGroup
 
 			wg.Add(maxRequests)
 			for range maxRequests {

@@ -131,7 +131,7 @@ func TestRenderer_Render(t *testing.T) {
 				err := render.Render(ctx, buf, renderer.SharedViews, "#non-existing", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
-				assert.ErrorIs(t, err, renderer.ErrNotExistsComponent) // FIXME this test fails sometimes, very very rarely (1/30 or fewer)
+				assert.ErrorIs(t, err, renderer.ErrNotExistsComponent) // FIXME this test fails sometimes, very rarely (1/30 or fewer)
 				assert.Empty(t, buf.String())
 			})
 		})
@@ -803,6 +803,7 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 		for testName, tt := range tests {
 			t.Run(testName, func(t *testing.T) {
 				t.Parallel()
+
 				buf := &bytes.Buffer{}
 
 				err := render.Render(ctx, buf, testdata.ExampleContext, tt.templateName, map[string]any{
@@ -863,6 +864,7 @@ func TestRenderInParallel(t *testing.T) {
 	t.Parallel()
 
 	const numPages = 10
+
 	fs, fsContext, pageNames := testdata.GenRandomPages(numPages)
 
 	render, err := renderer.New(nil, nil, fs, template.FuncMap{}, true)
@@ -890,7 +892,8 @@ func TestRenderInParallel(t *testing.T) {
 	const numPageLoads = 1000
 
 	wg.Add(numPageLoads)
-	for i := 0; i < numPageLoads; i++ {
+
+	for range numPageLoads {
 		go func() {
 			n := rand.Intn(numPages) //nolint:gosec // rand used to simulate a page visit; not for secure code
 

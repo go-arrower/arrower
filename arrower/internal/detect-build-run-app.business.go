@@ -1,3 +1,4 @@
+//nolint:misspell // external library uses "color" (American spelling), not "colour"
 package internal
 
 import (
@@ -9,8 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fatih/color" //nolint:misspell
-
+	"github.com/fatih/color"
 	"github.com/go-arrower/arrower/arrower/hooks"
 )
 

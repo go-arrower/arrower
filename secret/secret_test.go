@@ -50,7 +50,7 @@ func TestSecret_Secret(t *testing.T) {
 	type s struct{ secret secret.Secret }
 
 	assert.Equal(t, secretPhrase, secret.New(secretPhrase).Secret())
-	assert.Equal(t, "", s{}.secret.Secret())
+	assert.Empty(t, s{}.secret.Secret())
 }
 
 func TestSecret_String(t *testing.T) {
@@ -85,7 +85,7 @@ func TestSecret_String(t *testing.T) {
 			logger := alog.Test(t)
 			logger.Info("msg", slog.Any("secret", secret))
 			// uncomment, to see masking of secrets in action:
-			//t.Log(logger.String())
+			// t.Log(logger.String())
 
 			logger.Contains("******")
 			if notEmpty := strings.Trim(tc.secret, " ") != ""; notEmpty { //nolint:wsl_v5
@@ -103,7 +103,7 @@ func TestSecret_MarshalJSON(t *testing.T) {
 
 	err := e.Encode(testStruct{Value: "val", Password: secret.New(secretPhrase)})
 	assert.NoError(t, err)
-	assert.Equal(t, `{"value":"val","password":"******"}`+"\n", buf.String())
+	assert.JSONEq(t, `{"value":"val","password":"******"}`+"\n", buf.String())
 	assert.Contains(t, buf.String(), "******")
 	assert.NotContains(t, buf.String(), secretPhrase)
 }

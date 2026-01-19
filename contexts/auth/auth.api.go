@@ -71,10 +71,10 @@ type User struct {
 
 type APIKey struct{}
 
-//see CurrentUserID.
-//func UserID(ctx context.Context) string { return "" } // or just ID()
+// see CurrentUserID.
+// func UserID(ctx context.Context) string { return "" } // or just ID()
 
-//func UserFromContext(ctx context.Context) User { // or just User()
+// func UserFromContext(ctx context.Context) User { // or just User()
 //	return User{}
 //}
 

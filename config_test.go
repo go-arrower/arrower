@@ -3,8 +3,9 @@ package arrower_test
 import (
 	"testing"
 
-	"github.com/go-arrower/arrower"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/go-arrower/arrower"
 )
 
 func TestDefaultViper(t *testing.T) {
@@ -37,7 +38,7 @@ func TestDefaultViper(t *testing.T) {
 
 	assert.Equal(t, "localhost", vip.GetString("otel.host"))
 	assert.Equal(t, 4317, vip.GetInt("otel.port"))
-	assert.Equal(t, "", vip.GetString("otel.hostname"))
+	assert.Empty(t, vip.GetString("otel.hostname"))
 }
 
 func TestDefaultViper_CustomTypes(t *testing.T) {

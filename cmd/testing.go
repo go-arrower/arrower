@@ -7,9 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 )
 
 // mu synchronisation is required:
@@ -39,6 +38,7 @@ func TestExecute(t *testing.T, command *cobra.Command, args ...string) (string, 
 	assert.NoError(t, err)
 	rErr, wErr, err := os.Pipe()
 	assert.NoError(t, err)
+
 	os.Stdout = wOut
 	os.Stderr = wErr
 

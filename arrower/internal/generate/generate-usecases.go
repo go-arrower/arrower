@@ -275,9 +275,11 @@ func renderFiles(arg []string, cType CodeType, pkgPath string) ([][]byte, error)
 func camelName(arg []string) string {
 	name := ""
 
+	var nameSb278 strings.Builder
 	for _, n := range arg {
-		name += cases.Title(language.Und).String(n)
+		nameSb278.WriteString(cases.Title(language.Und).String(n))
 	}
+	name += nameSb278.String()
 
 	return name
 }

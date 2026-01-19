@@ -48,6 +48,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		}(&wg, server)
 
 		wg.Wait()
+
 		err := server.Shutdown(context.Background())
 		assert.NoError(t, err)
 	})
@@ -93,6 +94,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		t.Parallel()
 
 		const maxConnections = 100
+
 		ch := make(chan internal.File, maxConnections)
 
 		s, err := internal.NewHotReloadServer(ch)
@@ -110,7 +112,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		wg.Add(maxConnections)
 		wgBrowsersConnected.Add(maxConnections)
 
-		for i := 0; i < maxConnections; i++ {
+		for range maxConnections {
 			go func(wg *sync.WaitGroup) {
 				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
 				assert.NoError(t, err)
@@ -137,7 +139,7 @@ func TestNewHotReloadServer(t *testing.T) {
 
 		wgBrowsersConnected.Wait()
 
-		for i := 0; i < maxConnections; i++ {
+		for range maxConnections {
 			ch <- "some.html"
 		}
 

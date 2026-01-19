@@ -187,6 +187,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		type Name struct {
 			Name string `db:"name"`
 		}
+
 		type NestedStruct struct {
 			ID     string `db:"id"`
 			MyName Name   `db:"custom"`
@@ -217,6 +218,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		type Name struct {
 			Name string `db:"name"`
 		}
+
 		type NestedStruct struct {
 			ID   string `db:"id"`
 			Name `db:"custom"`
@@ -280,6 +282,7 @@ func TestPostgresRepository_All(t *testing.T) {
 	// }
 	for e, err := range iter.Next() {
 		assert.NoError(t, err)
+
 		_ = e
 	}
 

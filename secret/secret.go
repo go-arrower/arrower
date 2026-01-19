@@ -74,6 +74,7 @@ func (s *Secret) Scan(value interface{}) error {
 	}
 
 	s.secret = &strValue
+
 	return nil
 }
 

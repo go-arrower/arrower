@@ -264,6 +264,7 @@ func NewBirthday(day Day, month Month, year Year) (Birthday, error) {
 	}
 
 	const maxAge = 150 * 356 * 24 * time.Hour // 150 years
+
 	isTooOld := int(year) < time.Now().UTC().Add(-maxAge).Year()
 	isInTheFuture := int(year) > time.Now().UTC().Year()
 

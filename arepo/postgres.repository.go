@@ -905,23 +905,27 @@ func quoteIdent(s string) string {
 	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
 }
 
-// columnNames gibt die Spaltennamen zurück (raw, ohne Quotes)
+// columnNames gibt die Spaltennamen zurück (raw, ohne Quotes).
 func columnNames[E any](entity E) []string {
 	cols, _ := columnsAndValues(reflect.ValueOf(entity), "")
+
 	names := make([]string, len(cols))
 	for i, c := range cols {
 		names[i] = quoteIdent(c.name)
 	}
+
 	return names
 }
 
-// columnValues gibt die Werte in derselben Reihenfolge zurück
+// columnValues gibt die Werte in derselben Reihenfolge zurück.
 func columnValues[E any](entity E) []any {
 	cols, _ := columnsAndValues(reflect.ValueOf(entity), "")
+
 	vals := make([]any, len(cols))
 	for i, c := range cols {
 		vals[i] = c.value
 	}
+
 	return vals
 }
 
@@ -938,6 +942,7 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 		if v.IsNil() {
 			return nil, nil
 		}
+
 		v = v.Elem()
 	}
 
@@ -965,12 +970,14 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 		ft := f.Type
 		for ft.Kind() == reflect.Pointer {
 			ft = ft.Elem()
+
 			if fv.Kind() == reflect.Pointer {
 				if fv.IsNil() {
 					// nil pointer -> skip oder NULL
 					result = append(result, colVal{name: col, value: nil})
 					continue
 				}
+
 				fv = fv.Elem()
 			}
 		}
@@ -979,6 +986,7 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 		if ft.Kind() == reflect.Struct {
 			// Bestimme Prefix
 			var newPrefix string
+
 			if f.Anonymous {
 				// Embedded ohne db-Tag -> kein Prefix
 				if f.Tag.Get("db") == "" {
@@ -996,7 +1004,9 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			result = append(result, sub...)
+
 			continue
 		}
 
@@ -1012,5 +1022,6 @@ func joinPrefix(prefix, col string) string {
 	if prefix == "" {
 		return col
 	}
+
 	return prefix + "." + col
 }

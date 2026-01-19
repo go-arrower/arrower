@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	// FIXME: is redundant and can disappear from the session, use the existance of user_id to set the flag in the ctx middleware.
+	// FIXME: is redundant and can disappear from the session, use the existence of user_id to set the flag in the ctx middleware.
 	SessKeyLoggedIn               = "auth.user_is_logged_in" // FIXME don't export from the context => move internally
 	SessKeyUserID                 = "auth.user_id"
 	SessKeyIsSuperuser            = "auth.user_is_superuser"

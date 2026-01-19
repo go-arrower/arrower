@@ -60,6 +60,7 @@ func TestUserController_Login(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader("login=1337&password=12345678"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("User-Agent", "arrower/0")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -95,6 +96,7 @@ func TestUserController_Login(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", loginPostPayload())
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -115,7 +117,7 @@ func TestUserController_Login(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "login")
-		assert.Len(t, result.Cookies(), 0, "failed logins should not have a known_device cookie")
+		assert.Empty(t, result.Cookies(), "failed logins should not have a known_device cookie")
 	})
 
 	t.Run("unknown device succeeds login", func(t *testing.T) {
@@ -123,6 +125,7 @@ func TestUserController_Login(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", loginPostPayload())
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -150,6 +153,7 @@ func TestUserController_Login(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/", loginPostPayload())
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.AddCookie(result.Cookies()[1])
+
 			rec := httptest.NewRecorder()
 
 			controller := web.NewUserController(application.UserApplication{
@@ -180,6 +184,7 @@ func TestUserController_Login(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("remember_me=true"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -227,6 +232,7 @@ func TestUserController_Logout(t *testing.T) {
 		// log in first
 		req := httptest.NewRequest(http.MethodPost, "/login", loginPostPayload())
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -244,6 +250,7 @@ func TestUserController_Logout(t *testing.T) {
 		// log out
 		req = httptest.NewRequest(http.MethodGet, "/logout", nil)
 		req.AddCookie(result.Cookies()[0])
+
 		rec = httptest.NewRecorder()
 
 		echoRouter.GET("/logout", controller.Logout())
@@ -302,6 +309,7 @@ func TestUserController_Register(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/", registerPostPayload())
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{
@@ -323,7 +331,7 @@ func TestUserController_Register(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "create")
-		assert.Len(t, result.Cookies(), 0, "failed registration should have no cookies")
+		assert.Empty(t, result.Cookies(), "failed registration should have no cookies")
 	})
 
 	t.Run("register succeeds", func(t *testing.T) {
@@ -332,6 +340,7 @@ func TestUserController_Register(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/", registerPostPayload())
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("User-Agent", "arrower/0")
+
 		rec := httptest.NewRecorder()
 
 		controller := web.NewUserController(application.UserApplication{

@@ -1,3 +1,4 @@
+//nolint:misspell // external library uses "color" (American spelling), not "colour"
 package cmd
 
 import (
@@ -41,7 +42,6 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 		DisableFlagsInUseLine: true,
 		Run: func(cmd *cobra.Command, _ []string) {
 			// log.Debug().Msg("start command `run`")
-
 			blue := color.New(color.FgBlue, color.Bold).FprintfFunc()
 			wg := sync.WaitGroup{}
 
@@ -78,6 +78,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			hotReload := make(chan internal.File, 1)
 
 			ctx, cancel := context.WithCancel(context.Background())
+
 			wg.Add(1)
 			go func(ctx context.Context, wg *sync.WaitGroup) {
 				// log.Debug().Str("path", path).Msg("start to watch file system")
@@ -99,7 +100,6 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			wg.Add(1)
 			go func() {
 				// log.Debug().Msg("start hot reload server")
-
 				_ = hotReloadServer.Start(fmt.Sprintf(":%d", config.Port))
 
 				wg.Done()
@@ -114,6 +114,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 				hooks.OnShutdown()
 
 				cancel()
+
 				err = hotReloadServer.Shutdown(context.Background())
 				if err != nil {
 					panic(err)

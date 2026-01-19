@@ -205,7 +205,7 @@ func (pd *PostgresDocker) NewTestDatabase(files ...string) *pgxpool.Pool {
 // - All tables will be truncated
 // - All fixture files are allied
 // - If there is a file named `testdata/fixtures/_common.yaml`, it's always loaded by default.
-// TODO: automatically search for files in two locations: given one and if not exist with auto prefix: testdata/fixtures/
+// TODO: automatically search for files in two locations: given one and if not exist with auto prefix: testdata/fixtures/.
 func (pd *PostgresDocker) PrepareDatabase(files ...string) {
 	{ // truncate all tables
 		c := pd.pg.Config

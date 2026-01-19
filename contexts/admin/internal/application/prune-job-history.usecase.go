@@ -42,6 +42,7 @@ func (h *pruneJobHistoryRequestHandler) H(
 	req PruneJobHistoryRequest,
 ) (PruneJobHistoryResponse, error) {
 	const timeDay = time.Hour * 24
+
 	deleteBefore := time.Now().Add(-1 * time.Duration(req.Days) * timeDay)
 
 	err := h.queries.PruneHistory(

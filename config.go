@@ -7,9 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-arrower/arrower/secret"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+
+	"github.com/go-arrower/arrower/secret"
 )
 
 // Config is a structure used for service configuration.
@@ -42,26 +43,26 @@ type Environment string
 
 type (
 	HTTP struct {
-		Port                  int           `mapstructure:"port"                    json:"port"`
-		CookieSecret          secret.Secret `mapstructure:"cookie_secret,squash"    json:"-"`
-		StatusEndpointEnabled bool          `mapstructure:"status_endpoint_enabled" json:"-"`
-		StatusEndpointPort    int           `mapstructure:"status_endpoint_port"    json:"-"`
+		Port                  int           `json:"port" mapstructure:"port"`
+		CookieSecret          secret.Secret `json:"-"    mapstructure:"cookie_secret,squash"`
+		StatusEndpointEnabled bool          `json:"-"    mapstructure:"status_endpoint_enabled"`
+		StatusEndpointPort    int           `json:"-"    mapstructure:"status_endpoint_port"`
 	}
 
 	Postgres struct {
-		User     string        `mapstructure:"user"            json:"user"`
-		Password secret.Secret `mapstructure:"password,squash" json:"-"`
-		Database string        `mapstructure:"database"        json:"database"`
-		Host     string        `mapstructure:"host"            json:"host"`
-		Port     int           `mapstructure:"port"            json:"port"`
-		SSLMode  string        `mapstructure:"ssl_mode"        json:"sslMode"`
-		MaxConns int           `mapstructure:"max_conns"       json:"maxConns"`
+		User     string        `json:"user"     mapstructure:"user"`
+		Password secret.Secret `json:"-"        mapstructure:"password,squash"`
+		Database string        `json:"database" mapstructure:"database"`
+		Host     string        `json:"host"     mapstructure:"host"`
+		Port     int           `json:"port"     mapstructure:"port"`
+		SSLMode  string        `json:"sslMode"  mapstructure:"ssl_mode"`
+		MaxConns int           `json:"maxConns" mapstructure:"max_conns"`
 	}
 
 	OTEL struct {
-		Host     string `mapstructure:"host"     json:"host"`
-		Port     int    `mapstructure:"port"     json:"port"`
-		Hostname string `mapstructure:"hostname" json:"hostname"`
+		Host     string `json:"host"     mapstructure:"host"`
+		Port     int    `json:"port"     mapstructure:"port"`
+		Hostname string `json:"hostname" mapstructure:"hostname"`
 	}
 )
 
@@ -145,7 +146,7 @@ func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error
 		return fmt.Errorf("%w: could not cast to arrower.Config", errConfigLoadFailed)
 	}
 
-	err = vip.Viper.UnmarshalKey(
+	err = vip.UnmarshalKey(
 		"http.cookie_secret",
 		&config.HTTP.CookieSecret,
 		viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()),
@@ -154,7 +155,7 @@ func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error
 		return fmt.Errorf("%w: could not decode secret: %v", errConfigLoadFailed, err)
 	}
 
-	err = vip.Viper.UnmarshalKey(
+	err = vip.UnmarshalKey(
 		"postgres.password",
 		&config.Postgres.Password,
 		viper.DecodeHook(mapstructure.TextUnmarshallerHookFunc()),

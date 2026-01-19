@@ -121,7 +121,7 @@ var _ ArrowerLogger = (*arrowerHandler)(nil)
 var _ slog.Handler = (*arrowerHandler)(nil)
 
 func (l *arrowerHandler) Enabled(_ context.Context, level slog.Level) bool {
-	if l.tracedHandler.UsesSettings() {
+	if l.UsesSettings() {
 		// the check is done in Handle,
 		// so that the actual Enabled and Handle calls are in the same span.
 		return true

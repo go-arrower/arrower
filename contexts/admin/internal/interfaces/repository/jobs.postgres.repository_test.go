@@ -83,7 +83,7 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 
 		q, err := repo.FindAllQueueNames(ctx)
 		assert.NoError(t, err)
-		assert.EqualValues(t, jobs.QueueNames{"Default", "Q0", "Q1"}, q)
+		assert.Equal(t, jobs.QueueNames{"Default", "Q0", "Q1"}, q)
 	})
 }
 

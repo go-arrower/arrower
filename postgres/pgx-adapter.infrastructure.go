@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	ctx2 "github.com/go-arrower/arrower/ctx"
-
 	"github.com/jackc/pgx/v5"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
+	ctx2 "github.com/go-arrower/arrower/ctx"
 )
 
 const spanKey ctx2.CTXKey = "otel_span"
@@ -109,7 +109,7 @@ func (p pgxTraceAdapter) TraceCopyFromStart(ctx context.Context,
 		attribute.Int("server.port", int(conn.Config().Port)),
 		attribute.String("db.namespace", conn.Config().Database),
 		attribute.String("db.user", conn.Config().User),
-		attribute.String("copyfrom_table_name", data.TableName.Sanitize()),
+		attribute.String("copyfrom_table_name", data.TableName.Sanitize()), //nolint:misspell
 		attribute.StringSlice("copyfrom_column_names", data.ColumnNames),
 	))
 
@@ -162,6 +162,7 @@ func (p pgxTraceAdapter) TracePrepareEnd(ctx context.Context, _ *pgx.Conn, data 
 			))
 		}
 	}
+
 	return
 }
 
@@ -192,7 +193,7 @@ func (p pgxTraceAdapter) TraceConnectEnd(ctx context.Context, data pgx.TraceConn
 func anySliceToStrings(in []any) []string {
 	s := make([]string, len(in))
 
-	for i := 0; i < len(in); i++ {
+	for i := range len(in) {
 		s[i] = fmt.Sprintf("%v", in[i])
 	}
 

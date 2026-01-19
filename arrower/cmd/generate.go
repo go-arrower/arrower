@@ -1,10 +1,11 @@
+//nolint:misspell // external library uses "color" (American spelling), not "colour"
 package cmd
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/fatih/color" //nolint:misspell
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/internal/generate"

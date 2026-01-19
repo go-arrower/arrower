@@ -70,7 +70,7 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 		var wg sync.WaitGroup
 
 		wg.Add(testNumber)
-		for i := 0; i < testNumber; i++ { //nolint:wsl_v5
+		for range testNumber { //nolint:wsl_v5
 			go func() {
 				var pg *pgxpool.Pool
 

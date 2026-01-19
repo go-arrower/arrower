@@ -179,6 +179,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 	t.Run("session already exists => user logs in", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/login", nil)
 		req.AddCookie(cookie) // use the cookie / session from the call before
+
 		rec := httptest.NewRecorder()
 		echoRouter.ServeHTTP(rec, req)
 
@@ -201,6 +202,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 	t.Run("destroy session", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/destroy", nil)
 		req.AddCookie(cookie) // use the cookie / session from the call before
+
 		rec := httptest.NewRecorder()
 		echoRouter.ServeHTTP(rec, req)
 
@@ -219,7 +221,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 		queries := models.New(pg)
 		sessions, _ := queries.AllSessions(ctx)
 
-		assert.Len(t, sessions, 0)
+		assert.Empty(t, sessions)
 	})
 }
 

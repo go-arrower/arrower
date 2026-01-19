@@ -16,10 +16,7 @@ func NewJob(jobs []models.ArrowerGueJobsHistory) Job {
 		}
 	}
 
-	showAction := false
-	if !jobs[0].Success {
-		showAction = true
-	}
+	showAction := !jobs[0].Success
 
 	return Job{
 		Jobs:        jobs,

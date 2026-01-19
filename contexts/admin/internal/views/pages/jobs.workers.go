@@ -22,7 +22,7 @@ type JobWorker struct { // todo embed jobs.WorkerPool struct
 func PresentWorkers(pool []jobs.WorkerPool) []JobWorker {
 	jobWorkers := make([]JobWorker, len(pool))
 
-	for i, _ := range pool {
+	for i := range pool {
 		jt := []string{}
 
 		for _, t := range pool[i].JobTypes {

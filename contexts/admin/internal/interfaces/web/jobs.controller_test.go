@@ -175,7 +175,7 @@ func TestJobsController_DeleteHistory(t *testing.T) {
 
 		assert.NoError(t, handler.DeleteHistory()(c))
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "arrower:admin.jobs.history.deleted", rec.Header().Get("HX-Trigger"))
+		assert.Equal(t, "arrower:admin.jobs.history.deleted", rec.Header().Get("Hx-Trigger"))
 	})
 
 	t.Run("usecase failure", func(t *testing.T) {
@@ -193,6 +193,6 @@ func TestJobsController_DeleteHistory(t *testing.T) {
 
 		assert.NoError(t, handler.DeleteHistory()(c))
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Equal(t, "", rec.Header().Get("HX-Trigger"))
+		assert.Empty(t, rec.Header().Get("Hx-Trigger"))
 	})
 }

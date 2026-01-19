@@ -4,9 +4,10 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/go-arrower/arrower/arepo"
 	"github.com/go-arrower/arrower/arepo/testdata"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMemoryRepository(t *testing.T) {

@@ -29,8 +29,8 @@ func main() {
 		panic(err)
 	}
 
-	//err = arrower.Settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(int(slog.LevelDebug)))
-	//alog.Unwrap(arrower.Logger).SetLevel(slog.LevelDebug)
+	// err = arrower.Settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(int(slog.LevelDebug)))
+	// alog.Unwrap(arrower.Logger).SetLevel(slog.LevelDebug)
 	alog.Unwrap(arrower.Logger).SetLevel(alog.LevelDebug)
 
 	//
@@ -79,6 +79,7 @@ func main() {
 		arrower.Logger.InfoContext(ctx, "")
 		arrower.Logger.InfoContext(ctx, "", slog.Any("name", j.Name))
 		arrower.Logger.InfoContext(ctx, "")
+
 		return nil
 	})
 
@@ -92,7 +93,7 @@ func main() {
 
 	//
 	// shutdown app
-	// todo implement graceful shutdown ect
+	// todo implement graceful shutdown etc
 	_ = authContext.Shutdown(ctx)
 	_ = adminContext.Shutdown(ctx)
 }
@@ -106,7 +107,7 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 	_ = di.DefaultQueue.RegisterJobFunc(
 		func(ctx context.Context, job SomeJob) error {
 			di.Logger.InfoContext(ctx, "LOG ASYNC SIMPLE JOB")
-			//panic("SOME JOB PANICS")
+			// panic("SOME JOB PANICS")
 
 			time.Sleep(time.Duration(rand.Intn(10)) * time.Second) //nolint:gosec,mnd // weak numbers are ok, it is wait time
 
@@ -172,10 +173,12 @@ type ExampleCron struct {
 	Name string
 }
 
-type NamedJob struct{ Name string }
-type namedJobHandler struct {
-	Logger alog.Logger
-}
+type (
+	NamedJob        struct{ Name string }
+	namedJobHandler struct {
+		Logger alog.Logger
+	}
+)
 
 func (h *namedJobHandler) H(ctx context.Context, job NamedJob) error {
 	h.Logger.InfoContext(ctx, "named job", slog.String("name", job.Name))

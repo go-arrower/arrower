@@ -26,7 +26,7 @@ const (
 )
 
 const (
-	// timeDay is a helper to represent time.Day, which the std lib does not define
+	// timeDay is a helper to represent time.Day, which the std lib does not define.
 	timeDay = time.Hour * 24
 )
 
@@ -256,7 +256,7 @@ func (jc *JobsController) ShowMaintenance() func(c echo.Context) error {
 
 		var queues []string
 
-		for q, _ := range res.QueueStats {
+		for q := range res.QueueStats {
 			queue := string(q)
 			if queue == "" {
 				queue = string(jobs.DefaultQueueName)

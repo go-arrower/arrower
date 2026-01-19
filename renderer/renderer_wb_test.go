@@ -101,7 +101,7 @@ func TestRenderer_Layout(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
-		assert.Equal(t, "", renderer.layout())
+		assert.Empty(t, renderer.layout())
 	})
 
 	t.Run("layout ex, but not the default one", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestRenderer_Layout(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, renderer)
 
-		assert.Equal(t, "", renderer.layout())
+		assert.Empty(t, renderer.layout())
 	})
 
 	t.Run("multiple layouts but with default", func(t *testing.T) {

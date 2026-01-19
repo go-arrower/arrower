@@ -1,3 +1,4 @@
+//nolint:misspell // external library uses "color" (American spelling), not "colour"
 package cmd
 
 import (
@@ -11,8 +12,9 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
-	"github.com/go-arrower/arrower/arrower/internal/initialise"
 	"github.com/spf13/cobra"
+
+	"github.com/go-arrower/arrower/arrower/internal/initialise"
 )
 
 func newInitCommand() *cobra.Command {
@@ -149,6 +151,7 @@ func newInitCommand() *cobra.Command {
 			copy("tests/e2e/cypress/support/e2e.js")
 
 			yellow(cmd.OutOrStdout(), "Project initialised. Download dependencies")
+
 			acmd := exec.Command("go", "mod", "tidy")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
@@ -195,7 +198,7 @@ func addFile(templName string, data projectData) error {
 
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return fmt.Errorf("could not execute template: %v", err)
+		return fmt.Errorf("could not execute template: %w", err)
 	}
 
 	targetFileName := strings.TrimSuffix(templName, ".templ")
@@ -211,7 +214,7 @@ func addFile(templName string, data projectData) error {
 func copy(src string) error {
 	source, err := initialise.TemplatesFS.ReadFile("templates/" + src)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read template file %q: %w", src, err)
 	}
 
 	return os.WriteFile(path.Join(".", src), source, 0o644)

@@ -4,11 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-arrower/arrower/cmd"
-
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/internal"
+	"github.com/go-arrower/arrower/cmd"
 )
 
 func newRootCmd() *cobra.Command {

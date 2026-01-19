@@ -99,7 +99,7 @@ func registerAdminRoutes(di *AdminContext) {
 		page.AddCharts(chart)
 		page.SetPageTitle("Users Chart - Arrower")
 		page.SetLayout(components.PageNoneLayout)
-		//page.SetAssetsHost() //todo
+		// page.SetAssetsHost() //todo
 
 		return page.Render(c.Response().Writer)
 	})

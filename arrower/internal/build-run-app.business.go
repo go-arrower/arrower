@@ -1,3 +1,4 @@
+//nolint:misspell // external library uses "color" (American spelling), not "colour"
 package internal
 
 import (
@@ -11,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fatih/color" //nolint:misspell
+	"github.com/fatih/color"
 )
 
 var (

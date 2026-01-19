@@ -98,7 +98,7 @@ func TestNewValue(t *testing.T) {
 
 		value := setting.NewValue(nil)
 
-		assert.Equal(t, "", value.MustString())
+		assert.Empty(t, value.MustString())
 		assert.Equal(t, []byte(""), value.MustByte())
 
 		assert.False(t, value.MustBool())
@@ -140,7 +140,7 @@ func TestNewValue(t *testing.T) {
 
 			value := setting.NewValue("")
 
-			assert.Equal(t, "", value.MustString())
+			assert.Empty(t, value.MustString())
 			assert.Equal(t, []byte(""), value.MustByte())
 
 			assert.False(t, value.MustBool())

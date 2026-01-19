@@ -110,8 +110,10 @@ func ActiveUsers() q.Query {
 	}}}
 }
 
-type MyUserFilter struct{}
-type User struct{}
+type (
+	MyUserFilter struct{}
+	User         struct{}
+)
 
 func (u User) Active() q.Query {
 	return q.Query{Conditions: q.ConditionGroup{Conditions: []q.Condition{
@@ -131,7 +133,7 @@ func Users() *UserQuery {
 	return &UserQuery{&q.Query{}}
 }
 
-// Now you can add model-specific helpers
+// Now you can add model-specific helpers.
 func (q *UserQuery) Active() *UserQuery {
 	*q.Query = q.Where("status").Is("active")
 	return q

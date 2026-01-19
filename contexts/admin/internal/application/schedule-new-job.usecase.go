@@ -74,7 +74,7 @@ func buildJobs(in ScheduleJobsCommand, carrier propagation.MapCarrier) ([]models
 		return nil, fmt.Errorf("%w: could not marshal job: %v", ErrScheduleJobsFailed, err)
 	}
 
-	for i := 0; i < in.Count; i++ {
+	for i := range in.Count {
 		jobID, _ := ulid.New(ulid.Now(), entropy)
 
 		jobs[i] = models.ScheduleJobsParams{

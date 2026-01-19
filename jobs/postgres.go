@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
 )
@@ -543,7 +542,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 					return fmt.Errorf("%w: could not roll back to savepoint: %v", ErrJobFuncFailed, err)
 				}
 
-				return fmt.Errorf("%w: %s", ErrJobFuncFailed, jobErr)
+				return fmt.Errorf("%w: %v", ErrJobFuncFailed, jobErr)
 			}
 		}
 

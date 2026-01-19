@@ -88,6 +88,7 @@ func TestWatchFolder(t *testing.T) {
 		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test.go"))
 
 		file := <-filesChanged // expect to pull one File from the channel
@@ -115,9 +116,11 @@ func TestWatchFolder(t *testing.T) {
 		}(&wg)
 
 		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
 		time.Sleep(debounceInterval / 2 * time.Millisecond) // wait to enforce order of filesChanged elements
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
 		const expected = 1
@@ -146,9 +149,11 @@ func TestWatchFolder(t *testing.T) {
 		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
 		time.Sleep(debounceInterval * 2 * time.Millisecond) // wait to enforce order of filesChanged elements
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
 		const expected = 2
@@ -177,6 +182,7 @@ func TestWatchFolder(t *testing.T) {
 		}(&wg)
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "something_test.go"))
 
 		select {

@@ -19,8 +19,8 @@ import (
 
 */
 
-// Operator represents comparison operators
-type Operator string // TODO does it have value and must it be exposed? OR jsut use internal strings directly from the WhereQuery functions
+// Operator represents comparison operators.
+type Operator string // TODO does it have value and must it be exposed? OR just use internal strings directly from the WhereQuery functions
 
 const (
 	Eq  Operator = "="
@@ -76,7 +76,7 @@ type ConditionGroup struct {
 	Groups     []ConditionGroup
 }
 
-// Condition represents a single WHERE condition
+// Condition represents a single WHERE condition.
 type Condition struct {
 	Field    string
 	Operator Operator
@@ -99,7 +99,7 @@ func (f *WhereQuery) Is(value any) Query {
 	return *f.query
 }
 
-// TODO use this in the logical stements
+// TODO use this in the logical stements.
 func Field(field string) *FieldQuery {
 	return &FieldQuery{}
 }
@@ -132,7 +132,7 @@ func (o *OrderQuery) Descending() Query {
 	return *o.query
 }
 
-// Filter ignores zero values
+// Filter ignores zero values.
 func Filter[T any](objFilter T) Query {
 	fv := reflect.ValueOf(objFilter)
 	ft := fv.Type()

@@ -144,8 +144,8 @@ func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //n
 	case reflect.String:
 		reflect.ValueOf(&id).Elem().SetString(uuid.New().String())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		repo.Mutex.Lock()
-		defer repo.Mutex.Unlock()
+		repo.Lock()
+		defer repo.Unlock()
 
 		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Int()
 
@@ -156,8 +156,8 @@ func (repo *MemoryRepository[E, ID]) NextID(_ context.Context) (ID, error) { //n
 
 		reflect.ValueOf(&id).Elem().SetInt(newID)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		repo.Mutex.Lock()
-		defer repo.Mutex.Unlock()
+		repo.Lock()
+		defer repo.Unlock()
 
 		currentIDValue := reflect.ValueOf(&repo.currentIntID).Elem().Uint()
 
@@ -308,6 +308,7 @@ func fieldName(entity reflect.Type, name string) string {
 		if strings.ToLower(entity.Field(i).Name) == name {
 			return entity.Field(i).Name
 		}
+
 		condName := ""
 		if dbTag := entity.Field(i).Tag.Get("db"); dbTag != "" {
 			condName = dbTag

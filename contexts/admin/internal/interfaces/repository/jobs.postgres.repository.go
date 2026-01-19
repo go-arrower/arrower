@@ -62,7 +62,7 @@ func (repo *PostgresJobsRepository) PendingJobs(ctx context.Context, queue jobs.
 func jobsToDomain(j []models.ArrowerGueJob) []jobs.Job {
 	jobs := make([]jobs.Job, len(j))
 
-	for i := 0; i < len(j); i++ {
+	for i := range len(j) {
 		jobs[i] = jobToDomain(j[i])
 	}
 
@@ -330,7 +330,7 @@ func (repo *PostgresJobsRepository) FinishedJobsTotal(ctx context.Context, filte
 func historyJobsToDomain(j []models.ArrowerGueJobsHistory) []jobs.Job {
 	jobs := make([]jobs.Job, len(j))
 
-	for i := 0; i < len(j); i++ {
+	for i := range len(j) {
 		jobs[i] = historyJobToDomain(j[i])
 	}
 

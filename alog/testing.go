@@ -79,9 +79,12 @@ func (l *TestLogger) String() string {
 
 	out := ""
 
+	var outSb82 strings.Builder
 	for _, line := range l.buf.lines {
-		out += line.String()
+		outSb82.WriteString(line.String())
 	}
+
+	out += outSb82.String()
 
 	return out
 }

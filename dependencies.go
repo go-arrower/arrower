@@ -16,8 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo-contrib/echoprometheus"
@@ -26,6 +24,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	prometheusSDK "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -164,7 +163,7 @@ func InitialiseDefaultDependencies(
 			)
 			if conf.Environment == LocalEnv {
 				traceProvider = trace.NewTracerProvider(
-					//trace.WithSyncer(traceExporter), // if tempo is not running, this blocks each http request to the app
+					// trace.WithSyncer(traceExporter), // if tempo is not running, this blocks each http request to the app
 					trace.WithBatcher(traceExporter, trace.WithBlocking()),
 					trace.WithResource(resource),
 					trace.WithSampler(trace.AlwaysSample()),
@@ -237,9 +236,7 @@ func InitialiseDefaultDependencies(
 	}
 
 	{ // web routers
-		var (
-			r *renderer.EchoRenderer
-		)
+		var r *renderer.EchoRenderer
 
 		router := echo.New()
 		router.HideBanner = true
@@ -271,9 +268,10 @@ func InitialiseDefaultDependencies(
 
 			router.StaticFS("/static/", publicAssets)
 		}
-		//err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
+		// err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
 		//if err != nil {
-		//	return nil, nil, fmt.Errorf("could not add default base data: %w", err) // todo return shutdown, as some services like postgres are already started
+		//	return nil, fmt.Errorf("could not add default base data: %w", err)
+		//	// todo return shutdown, as some services like postgres are already started
 		//}
 
 		router.Renderer = r
@@ -289,7 +287,8 @@ func InitialiseDefaultDependencies(
 		}
 
 		dc.AdminRouter = dc.WebRouter.Group("/admin")
-		//dc.AdminRouter.Use(auth.EnsureUserIsSuperuserMiddleware) // todo enable adain. Is disabled because pgx could be null or session not present...
+		// dc.AdminRouter.Use(auth.EnsureUserIsSuperuserMiddleware)
+		// todo enable adain. Is disabled because pgx could be null or session not present...
 
 		dc.APIRouter = router.Group("/api") // todo add api middleware
 	}
@@ -324,7 +323,7 @@ func InitialiseDefaultDependencies(
 func (c *Container) Start(ctx context.Context) error {
 	c.Logger.LogAttrs(ctx, alog.LevelInfo, "starting all servers")
 
-	//Start the prometheus HTTP server and pass the exporter Collector to it
+	// Start the prometheus HTTP server and pass the exporter Collector to it
 	if c.Config.HTTP.StatusEndpointEnabled {
 		c.metricsEndpoint = serveMetrics(ctx, c)
 	}
@@ -351,6 +350,7 @@ func (c *Container) Shutdown(ctx context.Context) error { // todo error handling
 	if c.PGx != nil {
 		c.PGx.Close()
 	}
+
 	_ = c.TraceProvider.Shutdown(ctx)
 	_ = c.MeterProvider.Shutdown(ctx)
 
@@ -424,7 +424,7 @@ func injectMW(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// skip htmx requests, as the code is already present on the page from a previous load
-		if c.Request().Header.Get("HX-Request") == "true" {
+		if c.Request().Header.Get("Hx-Request") == "true" {
 			return nil
 		}
 

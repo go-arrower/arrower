@@ -86,10 +86,11 @@ func (r *TestRenderer) Render(
 			return &RendererAssertions{}, fmt.Errorf("could not marshal post body: %w", err)
 		}
 
-		_, err = http.Post("http://localhost:3030/testcase", "application/json", bytes.NewBuffer(postData))
+		resp, err := http.Post("http://localhost:3030/testcase", "application/json", bytes.NewBuffer(postData))
 		if err != nil {
 			return &RendererAssertions{}, fmt.Errorf("could not send testcase: %w", err)
 		}
+		resp.Body.Close() //nolint:errcheck // best effort close, test will fail anyway if POST failed
 	}
 
 	return &RendererAssertions{
@@ -204,8 +205,9 @@ func (a *RendererAssertions) sendAssertion(assertion assertion) {
 		panic("could not marshal post body: " + err.Error())
 	}
 
-	_, err = http.Post("http://localhost:3030/testcase/assertion", "application/json", bytes.NewBuffer(postData))
+	resp, err := http.Post("http://localhost:3030/testcase/assertion", "application/json", bytes.NewBuffer(postData))
 	if err != nil {
 		panic("could not send testcase: " + err.Error())
 	}
+	resp.Body.Close() //nolint:errcheck // best effort close, panic will have already happened if POST failed
 }
