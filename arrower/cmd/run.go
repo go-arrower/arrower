@@ -50,8 +50,9 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 
 			waitUntilShutdownFinished := make(chan struct{})
 
+			const hotReloadPort = 3030
 			config := &hooks.RunConfig{
-				Port:      3030,
+				Port:      hotReloadPort,
 				WatchPath: ".",
 			}
 

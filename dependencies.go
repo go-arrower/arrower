@@ -113,6 +113,7 @@ func (c *Container) EnsureAllDependenciesPresent() error {
 	return nil
 }
 
+//nolint:mnd
 func InitialiseDefaultDependencies(
 	ctx context.Context,
 	conf *Config,

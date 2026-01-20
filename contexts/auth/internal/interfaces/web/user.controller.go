@@ -208,13 +208,14 @@ func (uc UserController) Logout() func(echo.Context) error {
 }
 
 func (uc UserController) List() func(echo.Context) error {
+	const maxUsers = 50
 	return func(c echo.Context) error {
 		query := c.QueryParam("q")
 		offset := c.QueryParam("offset")
 
 		res, err := uc.app.ListUsers.H(c.Request().Context(), application.ListUsersQuery{
 			Query:  query,
-			Filter: domain.Filter{Offset: domain.Login(offset), Limit: 50},
+			Filter: domain.Filter{Offset: domain.Login(offset), Limit: maxUsers},
 		})
 		if err != nil {
 			return fmt.Errorf("%w", err)

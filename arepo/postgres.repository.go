@@ -935,9 +935,6 @@ type colVal struct {
 }
 
 func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
-	var result []colVal
-
-	// Deref pointer
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil, nil
@@ -951,6 +948,8 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 	}
 
 	t := v.Type()
+
+	var result = make([]colVal, 0, t.NumField())
 
 	for i := range t.NumField() {
 		f := t.Field(i)

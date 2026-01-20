@@ -3,6 +3,7 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +25,7 @@ var (
 
 // BuildAndRunApp will build the developer's app at the given appPath to the destination binaryPath.
 // It returns a cleanup function, used to stop the app and leave a clean directory.
-func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() error, error) {
+func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath string) (func() error, error) {
 	yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 	if w == nil {
@@ -46,7 +47,7 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 
 	buf := &bytes.Buffer{}
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, appPath)
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", binaryPath, appPath)
 	cmd.Dir = appPath
 	cmd.Stderr = buf // show error message of the `go build` command
 
@@ -64,7 +65,7 @@ func BuildAndRunApp(w io.Writer, appPath string, binaryPath string) (func() erro
 	// run the app
 	yellow(w, "running...")
 
-	cmd = exec.Command(binaryPath)
+	cmd = exec.CommandContext(context.Background(), binaryPath)
 	cmd.Stdout = w // stream output to same io.Writer
 	cmd.Stderr = w // stream output to same io.Writer
 	cmd.Dir = appPath

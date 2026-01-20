@@ -68,6 +68,8 @@ type (
 
 // DefaultViper returns a new viper instance with all default values
 // from Config set.
+//
+//nolint:mnd
 func DefaultViper() *Viper {
 	vip := viper.New()
 

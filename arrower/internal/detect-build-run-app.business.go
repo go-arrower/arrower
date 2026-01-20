@@ -44,12 +44,12 @@ func WatchBuildAndRunApp(
 		wg.Done()
 	}(&wg)
 
-	stop, err := BuildAndRunApp(w, path, "")
+	stop, err := BuildAndRunApp(ctx, w, path, "")
 	if err != nil {
 		red(w, "build & run failed: ", err)
 	}
 
-	err = openBrowser("localhost:8080")
+	err = openBrowser(ctx, "localhost:8080")
 	if err != nil {
 		return fmt.Errorf("could not open app in browser: %w", err)
 	}
@@ -69,7 +69,7 @@ func WatchBuildAndRunApp(
 
 			checkAndStop(w, stop) // ensures that no two builds are running at the same time
 
-			stop, err = BuildAndRunApp(w, path, "")
+			stop, err = BuildAndRunApp(ctx, w, path, "")
 			if err != nil {
 				red(w, "build & run failed: ", err)
 			}
@@ -101,15 +101,15 @@ func filesRelativePath(f File, absolutePrefix string) string {
 }
 
 // OpenBrowserFunc is a signature used to open a browser from the CLI.
-type OpenBrowserFunc func(url string) error
+type OpenBrowserFunc func(ctx context.Context, url string) error
 
 // OpenBrowser starts the systems default browser with the given website.
-func OpenBrowser(url string) error {
+func OpenBrowser(ctx context.Context, url string) error {
 	if url == "" {
 		return fmt.Errorf("%w: invalid url", ErrCommandFailed)
 	}
 
-	err := exec.Command("xdg-open", url).Run()
+	err := exec.CommandContext(ctx, "xdg-open", url).Run()
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrCommandFailed, err)
 	}

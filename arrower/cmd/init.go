@@ -22,6 +22,7 @@ func newInitCommand() *cobra.Command {
 		Use:   "init",
 		Short: "EXPERIMENTAL! Initialises a blank arrower project",
 		Long:  ``,
+		//nolint:mnd
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a project name")
@@ -152,23 +153,23 @@ func newInitCommand() *cobra.Command {
 
 			yellow(cmd.OutOrStdout(), "Project initialised. Download dependencies")
 
-			acmd := exec.Command("go", "mod", "tidy")
+			acmd := exec.CommandContext(cmd.Context(), "go", "mod", "tidy")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()
-			acmd = exec.Command("go", "mod", "download")
+			acmd = exec.CommandContext(cmd.Context(), "go", "mod", "download")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()
-			acmd = exec.Command("npm", "install", "--package-lock-only")
+			acmd = exec.CommandContext(cmd.Context(), "npm", "install", "--package-lock-only")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()
-			acmd = exec.Command("make", "dev-tools")
+			acmd = exec.CommandContext(cmd.Context(), "make", "dev-tools")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()
-			acmd = exec.Command("make", "generate")
+			acmd = exec.CommandContext(cmd.Context(), "make", "generate")
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()

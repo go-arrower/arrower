@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -110,7 +111,7 @@ func detectCodeType(parsed []string) ([]string, CodeType) {
 	return parsed, cType
 }
 
-func Generate(calledFromPath string, args []string, cType CodeType) ([]string, error) {
+func Generate(ctx context.Context, calledFromPath string, args []string, cType CodeType) ([]string, error) {
 	pargs, err := ParseArgs(calledFromPath, args)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
@@ -135,7 +136,7 @@ func Generate(calledFromPath string, args []string, cType CodeType) ([]string, e
 
 	applicationPath := detectApplicationPath(calledFromPath, pargs.Context)
 
-	err = saveFiles(map[string][]byte{
+	err = saveFiles(ctx, map[string][]byte{
 		path.Join(applicationPath, codeFile): fileContent[0],
 		path.Join(applicationPath, testFile): fileContent[1],
 	})
@@ -284,14 +285,14 @@ func camelName(arg []string) string {
 	return name
 }
 
-func saveFiles(templates map[string][]byte) error {
+func saveFiles(ctx context.Context, templates map[string][]byte) error {
 	for path, templ := range templates {
 		err := os.WriteFile(path, templ, 0o644) //nolint:gosec,mnd // same permissions as default desktop behaviour
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
 
-		err = exec.Command("go", "fmt", path).Run()
+		err = exec.CommandContext(ctx, "go", "fmt", path).Run()
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}

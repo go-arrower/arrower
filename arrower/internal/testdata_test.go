@@ -2,6 +2,7 @@ package internal_test
 
 import (
 	"bytes"
+	"context"
 	"sync"
 )
 
@@ -40,4 +41,4 @@ func (b *syncBuffer) String() string {
 	return b.b.String()
 }
 
-func noBrowser(_ string) error { return nil }
+func noBrowser(_ context.Context, _ string) error { return nil }

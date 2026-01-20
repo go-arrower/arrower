@@ -141,7 +141,7 @@ func initRegularExampleQueueLoad(ctx context.Context, di *arrower.Container) {
 	)
 
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(10 * time.Second) //nolint:mnd
 
 		for {
 			select {

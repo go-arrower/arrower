@@ -18,7 +18,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 
-		_, err := internal.BuildAndRunApp(nil, dir+"/example-cli", "")
+		_, err := internal.BuildAndRunApp(t.Context(), nil, dir+"/example-cli", "")
 		assert.Error(t, err)
 	})
 
@@ -31,7 +31,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-cli", binaryPath)
+		cleanup, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-cli", binaryPath)
 		assert.NoError(t, err)
 		assert.NotNil(t, cleanup)
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
@@ -56,7 +56,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		dir := t.TempDir()
 		copyDir(t, "./testdata/example-cli", dir)
 
-		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-cli", "")
+		cleanup, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-cli", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, cleanup)
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
@@ -72,7 +72,7 @@ func TestBuildAndRunApp(t *testing.T) {
 		buf := &syncBuffer{}
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		_, err := internal.BuildAndRunApp(buf, "/non/existing/path", binaryPath)
+		_, err := internal.BuildAndRunApp(t.Context(), buf, "/non/existing/path", binaryPath)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, internal.ErrBuildFailed)
 		assert.NoFileExists(t, binaryPath)
@@ -89,7 +89,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		stop, err := internal.BuildAndRunApp(buf, dir+"/example-server", binaryPath)
+		stop, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-server", binaryPath)
 		assert.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond) // wait so the process can actually start
@@ -110,7 +110,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		stop, err := internal.BuildAndRunApp(buf, dir+"/example-panic", binaryPath)
+		stop, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-panic", binaryPath)
 		assert.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond) // wait so the process can actually start
@@ -131,7 +131,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		cleanup, err := internal.BuildAndRunApp(buf, dir+"/example-compile-error", binaryPath)
+		cleanup, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-compile-error", binaryPath)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, internal.ErrBuildFailed)
 		assert.Contains(t, err.Error(), "is not in std")
@@ -147,7 +147,7 @@ func TestBuildAndRunApp(t *testing.T) {
 
 		binaryPath, _ := internal.RandomBinaryPath()
 
-		stop, err := internal.BuildAndRunApp(buf, dir+"/example-ignore-sigterm", binaryPath)
+		stop, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-ignore-sigterm", binaryPath)
 		assert.NoError(t, err)
 
 		time.Sleep(50 * time.Millisecond) // wait so the process can actually start

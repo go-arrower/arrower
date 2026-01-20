@@ -190,7 +190,7 @@ func TestGenerate(t *testing.T) {
 
 			dir := newTempProject(t)
 
-			files, err := generate.Generate(dir, tt.args, tt.cType)
+			files, err := generate.Generate(t.Context(), dir, tt.args, tt.cType)
 			assert.NoError(t, err)
 
 			// path & file names as expected
@@ -261,7 +261,7 @@ func TestGenerate(t *testing.T) {
 				err := os.MkdirAll(path.Join(dir, tt.folderPath), os.ModePerm)
 				assert.NoError(t, err)
 
-				files, err := generate.Generate(dir, []string{"example"}, generate.Request)
+				files, err := generate.Generate(t.Context(), dir, []string{"example"}, generate.Request)
 				assert.ErrorIs(t, err, tt.err)
 
 				// files got created
@@ -278,7 +278,7 @@ func TestGenerate(t *testing.T) {
 
 		dir := newTempProject(t)
 
-		files, err := generate.Generate(dir, []string{"admin", "example"}, generate.Request)
+		files, err := generate.Generate(t.Context(), dir, []string{"admin", "example"}, generate.Request)
 		assert.NoError(t, err)
 
 		// files got created

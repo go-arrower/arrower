@@ -26,6 +26,7 @@ type pgxTraceAdapter struct {
 	tracer trace.Tracer
 }
 
+//nolint:spancheck // span is closed in TraceQueryEnd. No memory leak
 func (p pgxTraceAdapter) TraceQueryStart(
 	ctx context.Context,
 	conn *pgx.Conn,
@@ -56,6 +57,7 @@ func (p pgxTraceAdapter) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pg
 	}
 }
 
+//nolint:spancheck // span is closed in TraceBatchEnd. No memory leak
 func (p pgxTraceAdapter) TraceBatchStart(
 	ctx context.Context,
 	conn *pgx.Conn,
@@ -99,6 +101,7 @@ func (p pgxTraceAdapter) TraceBatchEnd(ctx context.Context, _ *pgx.Conn, data pg
 	}
 }
 
+//nolint:spancheck // span is closed in TraceCopyFromEnd. No memory leak
 func (p pgxTraceAdapter) TraceCopyFromStart(ctx context.Context,
 	conn *pgx.Conn,
 	data pgx.TraceCopyFromStartData,
@@ -166,6 +169,7 @@ func (p pgxTraceAdapter) TracePrepareEnd(ctx context.Context, _ *pgx.Conn, data 
 	return
 }
 
+//nolint:spancheck // span is closed in TraceConnectEnd. No memory leak
 func (p pgxTraceAdapter) TraceConnectStart(ctx context.Context, data pgx.TraceConnectStartData) context.Context {
 	ctx, span := p.tracer.Start(ctx, "db.connect", trace.WithAttributes(
 		attribute.String("db.system.name", "postgresql"),

@@ -33,15 +33,17 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		browserStarted := false
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), func(_ string) error {
-				browserStarted = true
+			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{},
+				make(chan internal.File, 1),
+				func(_ context.Context, _ string) error {
+					browserStarted = true
 
-				return nil
-			})
+					return nil
+				})
 			assert.NoError(t, err)
 			assert.True(t, browserStarted)
 			wg.Done()
@@ -134,7 +136,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 func copyDir(t *testing.T, oldDir string, newDir string) {
 	t.Helper()
 
-	cmd := exec.Command("cp", "--recursive", oldDir, newDir)
+	cmd := exec.CommandContext(t.Context(), "cp", "--recursive", oldDir, newDir)
 	err := cmd.Run()
 	assert.NoError(t, err)
 }
@@ -177,7 +179,7 @@ func TestOpenBrowser(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			t.Parallel()
 
-			got := internal.OpenBrowser(tt.url)
+			got := internal.OpenBrowser(t.Context(), tt.url)
 			assert.Equal(t, tt.err, got)
 		})
 	}

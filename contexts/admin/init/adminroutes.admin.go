@@ -92,7 +92,7 @@ func registerAdminRoutes(di *AdminContext) {
 			[]charts.SeriesOpts{charts.WithSeriesOpts(func(s *charts.SingleSeries) {
 				s.Progress = &opts.Progress{Show: &ani}
 				s.Detail = &opts.Detail{Formatter: "{value}"}
-				s.Max = int(value * 1.6)
+				s.Max = int(value * 1.6) //nolint:mnd
 			})}...)
 
 		page := components.NewPage()

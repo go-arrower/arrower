@@ -102,7 +102,7 @@ func TestNewRenderer(t *testing.T) {
 	})
 }
 
-func TestRenderer_Render(t *testing.T) {
+func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 	t.Parallel()
 
 	t.Run("shared views", func(t *testing.T) {

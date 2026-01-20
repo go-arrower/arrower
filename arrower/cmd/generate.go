@@ -43,7 +43,7 @@ func newGenerateUsecase() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			files, err := generate.Generate(path, args, generate.Unknown)
+			files, err := generate.Generate(cmd.Context(), path, args, generate.Unknown)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -71,7 +71,7 @@ func newGenerateRequest() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			files, err := generate.Generate(path, args, generate.Request)
+			files, err := generate.Generate(cmd.Context(), path, args, generate.Request)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -99,7 +99,7 @@ func newGenerateCommand() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			files, err := generate.Generate(path, args, generate.Command)
+			files, err := generate.Generate(cmd.Context(), path, args, generate.Command)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -126,7 +126,7 @@ func newGenerateQuery() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			files, err := generate.Generate(path, args, generate.Query)
+			files, err := generate.Generate(cmd.Context(), path, args, generate.Query)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -153,7 +153,7 @@ func newGenerateJob() *cobra.Command {
 				return fmt.Errorf("%w", err)
 			}
 
-			files, err := generate.Generate(path, args, generate.Job)
+			files, err := generate.Generate(cmd.Context(), path, args, generate.Job)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}

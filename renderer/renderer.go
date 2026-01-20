@@ -536,6 +536,10 @@ func (t parsedTemplate) templateName() string {
 
 func parseTemplateName(name string) (parsedTemplate, error) {
 	const ( // todo combine with templateSeparator and fragmentSeparator
+		isPage          = 1
+		isContextLayout = 2
+		isFullLayout    = 3
+
 		maxCompositionSegments = 3 // how many segments after separated by the separator
 		maxFragmentSegments    = 2
 	)
@@ -555,16 +559,16 @@ func parseTemplateName(name string) (parsedTemplate, error) {
 		isComponent   bool
 	)
 
-	if length == 1 {
+	if length == isPage {
 		page = strings.TrimSpace(elem[0])
 	}
 
-	if length == 2 {
+	if length == isContextLayout {
 		contextLayout = strings.TrimSpace(elem[0])
 		page = strings.TrimSpace(elem[1])
 	}
 
-	if length == 3 {
+	if length == isFullLayout {
 		layout = strings.TrimSpace(elem[0])
 		contextLayout = strings.TrimSpace(elem[1])
 		page = strings.TrimSpace(elem[2])
@@ -575,7 +579,7 @@ func parseTemplateName(name string) (parsedTemplate, error) {
 		return parsedTemplate{}, fmt.Errorf("%w", ErrRenderFailed)
 	}
 
-	if len(fragments) == 2 {
+	if len(fragments) == maxFragmentSegments {
 		page = strings.TrimSpace(fragments[0])
 		fragment = strings.TrimSpace(fragments[1])
 
