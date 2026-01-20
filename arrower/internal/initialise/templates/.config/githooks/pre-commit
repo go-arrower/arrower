@@ -9,8 +9,7 @@
 
 valid_branch_regex="^(master)|((feat|fix|hotfix|chore|improvement|library|prerelease|release)\/[a-z0-9._-]+)$"
 
-local_branch="$(git rev-parse --abbrev-ref HEAD)"
-
+local_branch="$(git symbolic-ref --short HEAD 2>/dev/null)"
 
 if ! [[ $local_branch =~ $valid_branch_regex ]]; then
   echo "CONVENTION VIOLATION: Branch names must adhere to this contract: \`$valid_branch_regex\`"

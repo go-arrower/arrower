@@ -37,6 +37,7 @@ func newInitCommand() *cobra.Command {
 		DisableFlagsInUseLine: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			blue := color.New(color.FgBlue, color.Bold).FprintlnFunc()
+			green := color.New(color.FgGreen, color.Bold).FprintlnFunc()
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			yellow(cmd.OutOrStdout(), "Existing folder content is ignored")
@@ -174,7 +175,17 @@ func newInitCommand() *cobra.Command {
 			acmd.Stderr = cmd.OutOrStderr()
 			acmd.Run()
 
-			blue(cmd.OutOrStdout(), "Initialisation complete")
+			acmd = exec.CommandContext(cmd.Context(), "git", "init", ".", "-b", "master")
+			acmd.Stdout = cmd.OutOrStdout()
+			acmd.Stderr = cmd.OutOrStderr()
+			acmd.Run()
+			acmd = exec.CommandContext(cmd.Context(), "git", "add", ".")
+			acmd.Stdout = cmd.OutOrStdout()
+			acmd.Stderr = cmd.OutOrStderr()
+			acmd.Run()
+
+			green(cmd.OutOrStdout(), "Initialisation complete")
+			blue(cmd.OutOrStdout(), "Run `git commit -m \"chore: initial Arrower application\"`")
 			blue(cmd.OutOrStdout(), "Run `make run`")
 
 			return nil
