@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+
 	"github.com/go-arrower/arrower/arrower/hooks"
 )
 

@@ -309,7 +309,7 @@ func fieldName(entity reflect.Type, name string) string {
 			return entity.Field(i).Name
 		}
 
-		condName := ""
+		var condName string
 		if dbTag := entity.Field(i).Tag.Get("db"); dbTag != "" {
 			condName = dbTag
 			if strings.Contains(condName, ".") {

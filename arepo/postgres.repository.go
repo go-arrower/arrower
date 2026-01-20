@@ -952,7 +952,7 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 
 	t := v.Type()
 
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		f := t.Field(i)
 		fv := v.Field(i)
 

@@ -16,6 +16,8 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
+const id = "my-pk"
+
 var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
@@ -130,7 +132,6 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
-		id := "my-pk"
 		myType := MyType{ID: id, MyName: gofakeit.Name()}
 
 		err = repo.Create(ctx, myType)
@@ -174,7 +175,6 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
-		id := "my-pk"
 		myType := NestedStruct{ID: id, MyName: gofakeit.Name()}
 
 		err = repo.Create(ctx, myType)
@@ -200,7 +200,6 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
-		id := "my-pk"
 		myType := NestedStruct{ID: id, MyName: Name{Name: gofakeit.Name()}}
 
 		err = repo.Create(ctx, myType)
@@ -231,7 +230,6 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		assert.NotNil(t, repo)
 		assert.NoError(t, err)
 
-		id := "my-pk"
 		myType := NestedStruct{ID: id, Name: Name{Name: gofakeit.Name()}}
 
 		err = repo.Create(ctx, myType)

@@ -21,7 +21,7 @@ func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) echo.Map {
 
 	fjobs := make([]finishedJob, len(jobs))
 
-	for i := range len(jobs) {
+	for i := range jobs {
 		var m application.JobPayload
 
 		_ = json.Unmarshal([]byte(jobs[i].Payload), &m)

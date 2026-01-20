@@ -92,7 +92,7 @@ func getNumFields(elem reflect.Value) int {
 				fields += getNumFields(v)
 			case reflect.Map:
 				m := reflect.MakeMapWithSize(field.Type(), 1)
-				v := reflect.Value{}
+				var v reflect.Value
 
 				if field.Type().Kind() == reflect.Map && field.Type().Elem().Kind() == reflect.String {
 					m.SetMapIndex(reflect.ValueOf(""), reflect.New(field.Type().Elem()).Elem())

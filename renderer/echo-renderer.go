@@ -117,7 +117,7 @@ func (r *Renderer) totalCachedTemplates() int {
 
 // rawTemplateNames takes the names of the templates from the keys of the map.
 func rawTemplateNames(pages map[string]string) []string {
-	var names []string
+	names := make([]string, 0, len(pages))
 
 	for k := range pages {
 		names = append(names, k)

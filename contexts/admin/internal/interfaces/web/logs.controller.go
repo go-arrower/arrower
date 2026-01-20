@@ -163,6 +163,7 @@ func (lc *LogsController) SettingLogs() {
 	})
 }
 
+//nolint:misspell // leveler matches Go stdlib slog.Leveler naming
 func getLevelName(leveler slog.Leveler) string {
 	return map[slog.Leveler]string{
 		slog.LevelInfo:  "INFO",

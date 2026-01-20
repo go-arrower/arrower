@@ -53,7 +53,7 @@ type viewJob struct {
 func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
 	vJobs := make([]viewJob, len(pJobs))
 
-	for i := range len(pJobs) {
+	for i := range pJobs {
 		var m application.JobPayload
 
 		_ = json.Unmarshal([]byte(pJobs[i].Payload), &m)

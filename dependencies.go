@@ -232,7 +232,7 @@ func InitialiseDefaultDependencies(
 		}
 
 		dc.Logger = logger
-		slog.SetDefault(dc.Logger.(*slog.Logger))
+		slog.SetDefault(dc.Logger.(*slog.Logger)) //nolint:forcetypeassert
 	}
 
 	{ // web routers
@@ -526,5 +526,5 @@ func getOutboundIP() string {
 	}
 	defer conn.Close()
 
-	return conn.LocalAddr().(*net.UDPAddr).IP.String()
+	return conn.LocalAddr().(*net.UDPAddr).IP.String() //nolint:forcetypeassert
 }

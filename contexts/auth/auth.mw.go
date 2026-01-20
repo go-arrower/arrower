@@ -32,7 +32,7 @@ const (
 	SessSuperuserOriginalUserID   = "auth.superuser.original_user_id"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits // gob.Register must run before sessions are used
 	// `gorilla/sessions` uses gob encoding,
 	// so custom types in the session have to be registered.
 	gob.Register(UserID(""))

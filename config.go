@@ -179,7 +179,11 @@ func allowedEnvironmentHookFunc() mapstructure.DecodeHookFuncType {
 		}
 
 		env := Environments()
-		if slices.Contains(env, Environment(data.(string))) {
+		str, ok := data.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected string, got %T", data)
+		}
+		if slices.Contains(env, Environment(str)) {
 			return data, nil
 		}
 

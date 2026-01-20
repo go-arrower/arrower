@@ -193,7 +193,7 @@ func (p pgxTraceAdapter) TraceConnectEnd(ctx context.Context, data pgx.TraceConn
 func anySliceToStrings(in []any) []string {
 	s := make([]string, len(in))
 
-	for i := range len(in) {
+	for i := range in {
 		s[i] = fmt.Sprintf("%v", in[i])
 	}
 
