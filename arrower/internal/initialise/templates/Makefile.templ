@@ -79,7 +79,7 @@ dev-tools: ## Initialise this machine with development tools & dependencies
 	go install mvdan.cc/gofumpt@latest
 	go install github.com/roblaszczak/go-cleanarch@latest
 	go install golang.org/x/vuln/cmd/govulncheck@latest
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sudo sh -s -- -b $(go env GOPATH)/bin v1.64.8
+	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.8.0
 
 	@# download project dependencies
 	go mod download

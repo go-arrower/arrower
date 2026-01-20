@@ -41,7 +41,7 @@ func newInitCommand() *cobra.Command {
 
 			yellow(cmd.OutOrStdout(), "Existing folder content is ignored")
 
-			projectName := strings.TrimSpace(args[0])
+			projectName := strings.Title(strings.TrimSpace(args[0]))
 			data := projectData{
 				Name:        projectName,
 				NameSmall:   strings.ToLower(projectName),
