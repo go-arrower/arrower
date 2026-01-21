@@ -172,7 +172,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 		assert.Len(t, sessions, 1)
 		// cookie and session expire at the same time, allow 1 second of diff to make sure different granulates
 		// in the representation like nanoseconds in pg are not an issue.
-		assert.True(t, result.Cookies()[0].Expires.Sub(sessions[0].ExpiresAtUtc.Time) < 1)
+		assert.Less(t, int(result.Cookies()[0].Expires.Sub(sessions[0].ExpiresAtUtc.Time)), 1)
 		assert.Empty(t, sessions[0].UserID)
 	})
 

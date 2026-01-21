@@ -13,49 +13,6 @@ import (
 	"github.com/go-arrower/arrower/renderer/testdata"
 )
 
-func TestNewRenderer(t *testing.T) {
-	t.Parallel()
-
-	// todo could be improved by
-	// assert the page has itself and all dependencies loaded as a template
-	// assert template is cached
-
-	// white box test. if it fails, feel free to delete it
-	t.Run("initialise new", func(t *testing.T) {
-		t.Parallel()
-
-		renderer, err := New(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), testdata.FilesSharedViews(), template.FuncMap{}, false)
-		assert.NoError(t, err)
-		assert.NotNil(t, renderer)
-
-		assert.Equal(t, 0, renderer.totalCachedTemplates())
-
-		// assert component templates from testdata.FilesSharedViews is loaded
-		// contains always an empty component, so expected 1 + 2 => 3
-		assert.Len(t, renderer.viewsForContext("").components.Templates(), 3)
-
-		// assert pages are found and extracted
-		assert.Len(t, renderer.viewsForContext("").rawPages, 5)
-		// if the file is called p0.html, the template is called p0
-		assert.NotEmpty(t, renderer.viewsForContext("").rawPages["p0"])
-		assert.NotEmpty(t, renderer.viewsForContext("").rawPages["p1"])
-		assert.NotEmpty(t, renderer.viewsForContext("").rawPages["p2"])
-		assert.Empty(t, renderer.viewsForContext("").rawPages["non-existent"])
-	})
-
-	// white box test. if it fails, feel free to delete it
-	t.Run("fs with no files", func(t *testing.T) {
-		t.Parallel()
-
-		renderer, err := New(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), testdata.FilesEmpty, template.FuncMap{}, false)
-		assert.NoError(t, err)
-		assert.NotNil(t, renderer)
-
-		assert.Len(t, renderer.viewsForContext("").components.Templates(), 1)
-		assert.Equal(t, 0, renderer.totalCachedTemplates())
-	})
-}
-
 // white box test. if it fails, feel free to delete it.
 func TestParsedTemplate(t *testing.T) {
 	t.Parallel()

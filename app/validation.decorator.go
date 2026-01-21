@@ -38,7 +38,7 @@ type requestValidatingDecorator[Req any, Res any] struct {
 	base     Request[Req, Res]
 }
 
-func (d *requestValidatingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *requestValidatingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	err := d.validate.Struct(req)
 	if err != nil {
 		return *new(Res), err //nolint:wrapcheck // validation error is returned on purpose
@@ -88,7 +88,7 @@ type queryValidatingDecorator[Q any, Res any] struct {
 	base     Query[Q, Res]
 }
 
-func (d *queryValidatingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) { //nolint:ireturn,lll // valid use of generics
+func (d *queryValidatingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, error) {
 	err := d.validate.Struct(query)
 	if err != nil {
 		return *new(Res), err //nolint:wrapcheck // validation error is returned on purpose

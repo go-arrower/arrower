@@ -90,7 +90,7 @@ type testDualHandler[Req any, Res any] struct {
 	handler dualHandlerFunc[Req, Res]
 }
 
-func (h *testDualHandler[Req, Res]) H(ctx context.Context, req Req) (Res, error) { //nolint:ireturn // valid use of generics
+func (h *testDualHandler[Req, Res]) H(ctx context.Context, req Req) (Res, error) {
 	return h.handler(ctx, req)
 }
 

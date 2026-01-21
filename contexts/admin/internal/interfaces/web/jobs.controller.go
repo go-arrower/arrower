@@ -104,7 +104,7 @@ func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error {
+func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error { //nolint:funlen
 	type lineData struct {
 		XAxis  []string `json:"xAxis"`
 		Series []int    `json:"series"`

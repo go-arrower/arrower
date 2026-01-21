@@ -63,7 +63,7 @@ func (s *JSONStore) Load(fileName string, data any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	f, err := os.Open(filepath.Join(s.dir, fileName))
+	f, err := os.Open(filepath.Join(s.dir, fileName)) //nolint:varnamelen
 	if err != nil {
 		// Note: exception: expose the underlying error to the API,
 		// so os.ErrNotExist is available to the caller.

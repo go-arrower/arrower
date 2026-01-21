@@ -12,7 +12,7 @@ var (
 	ErrPersistenceFailed = errors.New("persistence operation failed")
 )
 
-type Repository interface {
+type Repository interface { //nolint:interfacebloat
 	All(ctx context.Context, filter Filter) ([]User, error)
 
 	FindByID(ctx context.Context, id ID) (User, error)

@@ -237,8 +237,6 @@ func InitialiseDefaultDependencies(
 	}
 
 	{ // web routers
-		var r *renderer.EchoRenderer
-
 		router := echo.New()
 		router.HideBanner = true
 		router.Logger.SetOutput(io.Discard)
@@ -257,6 +255,7 @@ func InitialiseDefaultDependencies(
 			},
 		}))
 
+		var r *renderer.EchoRenderer
 		if conf.Environment == LocalEnv {
 			router.Debug = true
 			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), funcs, true)

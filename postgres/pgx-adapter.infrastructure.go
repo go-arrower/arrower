@@ -76,7 +76,7 @@ func (p pgxTraceAdapter) TraceBatchStart(
 	return context.WithValue(ctx, spanKey, span)
 }
 
-func (p pgxTraceAdapter) TraceBatchQuery(ctx context.Context, conn *pgx.Conn, data pgx.TraceBatchQueryData) {
+func (p pgxTraceAdapter) TraceBatchQuery(ctx context.Context, _ *pgx.Conn, data pgx.TraceBatchQueryData) {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok {
 		span.SetAttributes(
 			attribute.String("db.query.text", data.SQL),
@@ -140,7 +140,7 @@ func (p pgxTraceAdapter) TraceCopyFromEnd(ctx context.Context, _ *pgx.Conn, data
 
 func (p pgxTraceAdapter) TracePrepareStart(
 	ctx context.Context,
-	conn *pgx.Conn,
+	_ *pgx.Conn,
 	data pgx.TracePrepareStartData,
 ) context.Context {
 	if span, ok := ctx.Value(spanKey).(trace.Span); ok && span.IsRecording() {

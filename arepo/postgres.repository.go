@@ -654,8 +654,9 @@ func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, 
 
 func (repo *PostgresRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
 	return PostgresIterator[E, ID]{
-		repo:       repo,
-		ctx:        ctx, //nolint:containedctx,lll // context scoped to single iterator/request; enable Go 1.23+ iterator pattern without breaking loop semantics
+		repo: repo,
+		// context scoped to single iterator/request; enable Go 1.23+ iterator pattern without breaking loop semantics
+		ctx:        ctx,
 		tx:         nil,
 		sql:        "SELECT * FROM " + repo.Table,
 		cursorOpen: false,
@@ -777,7 +778,7 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 
 		var err error
 
-		for e := range ch {
+		for entity := range ch {
 			select {
 			case <-i.ctx.Done():
 				yield(*new(E), i.ctx.Err())
@@ -787,7 +788,7 @@ func (i PostgresIterator[E, ID]) nextBatchValue() func(yield func(e E, err error
 					err = fe.(error) //nolint:forcetypeassert // fetchErr is local and only stores errors
 				}
 
-				if !yield(e, err) {
+				if !yield(entity, err) {
 					quit <- struct{}{}
 
 					return
@@ -949,8 +950,9 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 
 	t := v.Type()
 
-	var result = make([]colVal, 0, t.NumField())
+	result := make([]colVal, 0, t.NumField())
 
+	//nolint:varnamelen
 	for i := range t.NumField() {
 		f := t.Field(i)
 		fv := v.Field(i)

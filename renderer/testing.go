@@ -116,12 +116,12 @@ func ping() bool {
 }
 
 type testRun struct {
-	TestName string
+	TestName string `json:"testName"`
 
-	RunName  string
-	Template template.HTML
-	Data     string
-	HTML     template.HTML
+	RunName  string        `json:"runName"`
+	Template template.HTML `json:"template"`
+	Data     string        `json:"data"`
+	HTML     template.HTML `json:"html"`
 }
 
 // RendererAssertions is a helper that exposes a lot of TestRenderer-specific assertions for the use in tests.
@@ -187,12 +187,12 @@ func (a *RendererAssertions) Contains(contains any, msgAndArgs ...any) bool {
 }
 
 type assertion struct {
-	TestName string
-	RunName  string
+	TestName string `json:"testName"`
+	RunName  string `json:"runName"`
 
-	Name string
-	Args []any
-	Pass bool
+	Name string `json:"name"`
+	Args []any  `json:"args"`
+	Pass bool   `json:"pass"`
 }
 
 func (a *RendererAssertions) sendAssertion(assertion assertion) {

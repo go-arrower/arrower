@@ -174,9 +174,9 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 	} else {
 		isContext := parsedTempl.context != ""
 
-		newTemplate, err := r.buildPageTemplate(isContext, parsedTempl)
-		if err != nil {
-			return err
+		newTemplate, berr := r.buildPageTemplate(isContext, parsedTempl)
+		if berr != nil {
+			return berr
 		}
 
 		r.cache.Store(parsedTempl.key(), newTemplate)
@@ -360,7 +360,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 	componentTemplates := template.New("<empty>").
 		Funcs(sprig.FuncMap()).
 		Funcs(map[string]any{
-			"t": func(key message.Reference, args ...interface{}) string { return "" }, // shell to compile i18n
+			"t": func(key message.Reference, args ...interface{}) string { return "" }, //nolint:revive // shell to compile i18n
 		}).
 		Funcs(funcMap)
 
@@ -728,7 +728,7 @@ func (r *Renderer) getMergedData(ctx context.Context, parsedTemplate parsedTempl
 		for iter.Next() {
 			k := iter.Key()
 			v := iter.Value()
-			data[k.Interface().(string)] = v.Interface()
+			data[k.Interface().(string)] = v.Interface() //nolint:forcetypeassert // checked with ConvertibleTo above
 		}
 	}
 
@@ -740,7 +740,7 @@ func (r *Renderer) getMergedData(ctx context.Context, parsedTemplate parsedTempl
 		for iter.Next() {
 			k := iter.Key()
 			v := iter.Value()
-			data[k.Interface().(string)] = v.Interface()
+			data[k.Interface().(string)] = v.Interface() //nolint:forcetypeassert // checked with ConvertibleTo above
 		}
 	}
 

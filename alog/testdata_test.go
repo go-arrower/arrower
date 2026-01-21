@@ -68,7 +68,9 @@ func (s *fakeSpan) AddEvent(name string, opts ...trace.EventOption) {
 
 func (s *fakeSpan) SetName(string) {}
 
-func (s *fakeSpan) TracerProvider() trace.TracerProvider { return &fakeTraceProvider{t: s.t} }
+func (s *fakeSpan) TracerProvider() trace.TracerProvider { //nolint:ireturn
+	return &fakeTraceProvider{t: s.t}
+}
 
 func (s fakeSpan) AddLink(_ trace.Link) {
 	panic("implement me")
@@ -80,7 +82,7 @@ type fakeTraceProvider struct {
 	embedded.TracerProvider
 }
 
-func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer {
+func (f *fakeTraceProvider) Tracer(_ string, _ ...trace.TracerOption) trace.Tracer { //nolint:ireturn
 	return &fakeTracer{t: f.t}
 }
 
@@ -90,7 +92,7 @@ type fakeTracer struct {
 	embedded.Tracer
 }
 
-func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) {
+func (f *fakeTracer) Start(ctx context.Context, spanName string, _ ...trace.SpanStartOption) (context.Context, trace.Span) { //nolint:ireturn
 	// Ensures Start() is called from within *arrowerHandler.Handle.
 	// If not equal the nil will make the test panic, without t present
 	// Used in "record a span for the handle method itself"

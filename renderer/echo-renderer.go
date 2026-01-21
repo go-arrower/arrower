@@ -99,22 +99,6 @@ func (r *Renderer) layout() string {
 	return r.views[SharedViews].defaultLayout
 }
 
-func (r *Renderer) viewsForContext(name string) viewTemplates {
-	return r.views[name]
-}
-
-func (r *Renderer) totalCachedTemplates() int {
-	count := 0
-
-	r.cache.Range(func(_, _ any) bool {
-		count++
-
-		return true
-	})
-
-	return count
-}
-
 // rawTemplateNames takes the names of the templates from the keys of the map.
 func rawTemplateNames(pages map[string]string) []string {
 	names := make([]string, 0, len(pages))

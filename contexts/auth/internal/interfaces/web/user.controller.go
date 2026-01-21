@@ -247,7 +247,7 @@ func (uc UserController) Create() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) Register() func(echo.Context) error {
+func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
 	return func(c echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")

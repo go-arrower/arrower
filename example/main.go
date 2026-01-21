@@ -21,8 +21,8 @@ import (
 	auth_init "github.com/go-arrower/arrower/contexts/auth/init"
 )
 
-func main() {
-	ctx, _ := context.WithCancel(context.Background())
+func main() { //nolint:funlen
+	ctx := context.Background()
 
 	arrower, err := arrower.New()
 	if err != nil {

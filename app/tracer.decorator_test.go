@@ -135,7 +135,7 @@ func (f fakeTracerProvider) Tracer(name string, _ ...trace.TracerOption) trace.T
 
 var _ trace.Tracer = (*fakeTracer)(nil)
 
-func (f fakeTracer) Start( //nolint:ireturn
+func (f fakeTracer) Start(
 	ctx context.Context,
 	spanName string,
 	opts ...trace.SpanStartOption,
@@ -158,6 +158,7 @@ func (f fakeSpan) End(_ ...trace.SpanEndOption) {
 
 	// NOTE: this assertion does not work if the call to End() is not made
 	// This method has to be called for each use case. No action to take for this fake.
+	//nolint:testifylint
 	assert.True(f.t, true)
 }
 
