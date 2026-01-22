@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -53,12 +54,39 @@ func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath
 
 	err := cmd.Run()
 	if err != nil {
-		err2 := os.Remove(binaryPath)
-		if err2 != nil {
-			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
-		}
+		goModTidyNeeded := strings.Contains(buf.String(), "go: updates to go.mod needed;") ||
+			strings.Contains(buf.String(), "no required module provides package")
+		if goModTidyNeeded {
+			cmd = exec.CommandContext(ctx, "go", "mod", "tidy")
+			cmd.Stdout = w // stream output to same io.Writer
+			cmd.Stderr = w // stream output to same io.Writer
+			cmd.Dir = appPath
+			err := cmd.Run()
+			if err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
+			}
 
-		return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
+			buf.Reset()
+			cmd = exec.CommandContext(ctx, "go", "build", "-o", binaryPath, appPath)
+			cmd.Dir = appPath
+			cmd.Stderr = buf // show error message of the `go build` command
+			err = cmd.Run()
+			if err != nil {
+				err2 := os.Remove(binaryPath)
+				if err2 != nil {
+					return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
+				}
+
+				return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
+			}
+		} else {
+			err2 := os.Remove(binaryPath)
+			if err2 != nil {
+				return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
+			}
+
+			return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
+		}
 	}
 
 	//

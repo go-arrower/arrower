@@ -138,6 +138,32 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.Nil(t, cleanup)
 	})
 
+	t.Run("build fails: updates to go.mod needed", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &syncBuffer{}
+		dir := t.TempDir()
+		copyDir(t, "./testdata/example-update-go.mod", dir)
+
+		binaryPath, _ := internal.RandomBinaryPath()
+
+		cleanup, err := internal.BuildAndRunApp(t.Context(), buf, dir+"/example-update-go.mod", binaryPath)
+		assert.NoError(t, err)
+		assert.NotNil(t, cleanup)
+		assert.Contains(t, buf.String(), arrowerCLIBuild)
+		assert.Contains(t, buf.String(), arrowerCLIRun)
+
+		// wait so the example application can start & run
+		time.Sleep(50 * time.Millisecond)
+
+		err = cleanup()
+		assert.NoError(t, err)
+		assert.NoFileExists(t, binaryPath)
+
+		// ensure fmt and log output is written to the io.Writer
+		assert.Contains(t, buf.String(), "Generated UUID: ")
+	})
+
 	t.Run("stop if sigterm is ignored", func(t *testing.T) {
 		t.Parallel()
 
