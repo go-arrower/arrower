@@ -1,0 +1,8 @@
+# arrower application files
+../context/admin/internal/views/admin.css
+../arrower/internal/initialise/templates/
+
+
+# Ignore artifacts:
+../build
+../coverage

@@ -15,6 +15,9 @@ generate: ## Generate all code to run the service
 	@# the experimental flag is required for pgx compatible code, see: https://docs.sqlc.dev/en/stable/guides/using-go-and-pgx.html?highlight=experimental#getting-started
 	sqlc generate --experimental
 
+	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --write
+	npx tailwindcss -c contexts/admin/internal/views/tailwind.config.js -i contexts/admin/internal/views/input.css -o contexts/admin/internal/views/static/css/admin.css --minify
+
 .PHONY: test
 test: static-check generate test-unit test-integration ## Run all tests
 	go tool cover -func cover.out | grep total:
@@ -48,6 +51,8 @@ install-tools: ## Initialise this machine with development dependencies
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
 	go install github.com/nikolaydubina/go-cover-treemap@latest
+
+	npm ci
 
 
 

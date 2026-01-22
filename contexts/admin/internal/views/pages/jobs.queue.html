@@ -18,8 +18,9 @@
   <div class="flex flex-col lg:flex-row">
     <div
       id="job_types"
-      class="my-0{{ if eq .Stats.PendingJobs 0 }}invisible{{ end }}
-       mx-4 h-36 grow p-0"
+      class="my-0{{ if eq .Stats.PendingJobs 0 }}
+        invisible
+      {{ end }} mx-4 h-36 grow p-0"
     ></div>
 
     <div class="overflow-x-auto">

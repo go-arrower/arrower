@@ -1,7 +1,7 @@
 on:
   schedule:
     # * is a special character in YAML, so you have to quote this string
-    - cron:  '0 4 * * 1' # every monday morning
+    - cron: "0 4 * * 1" # every monday morning
   workflow_dispatch:
 
 name: Weekly Dependency Update
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
       - name: Update All Dependencies
         run: |
@@ -26,5 +26,5 @@ jobs:
         with:
           title: Weekly Dependency Update
           body: Automated upgrade of all dependencies via `make dev-upgrade`
-          commit-message: 'chore: automated dependency update'
+          commit-message: "chore: automated dependency update"
           token: ${{ secrets.PAT }} # trigger automated-tests workflow, see: https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs

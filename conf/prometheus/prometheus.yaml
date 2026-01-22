@@ -2,11 +2,11 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     scrape_interval: 1m
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]
 
-  - job_name: 'arrower.skeleton'
+  - job_name: "arrower.skeleton"
     static_configs:
-      - targets: ['host.docker.internal:2223']
+      - targets: ["host.docker.internal:2223"]

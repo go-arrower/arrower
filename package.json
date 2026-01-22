@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.x",
+    "@tailwindcss/forms": "^0.5.x",
+    "@tailwindcss/typography": "^0.5.x",
+    "daisyui": "^4.x",
+    "prettier": "latest",
+    "prettier-plugin-go-template": "latest",
+    "prettier-plugin-tailwindcss": "latest",
+    "tailwindcss": "^3.x"
+  }
+}

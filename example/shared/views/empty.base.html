@@ -20,13 +20,13 @@
     <div class="min-h-full">
       {{/* TODO rename Context-Layout in some way to make the language clearer */}}
       {{ block "layout" . }}
-        <div class="flex w-full flex-col flex-wrap sm:flex-row sm:flex-nowrap ">
+        <div class="flex w-full flex-col flex-wrap sm:flex-row sm:flex-nowrap">
           <div class="mt-8 w-full grow-0 basis-2/12 px-4">
             <div class=""></div>
             <nav class="m-0 p-0">
               <a
                 href="/"
-                class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 text-gray-500"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -45,7 +45,7 @@
                 <span class="pl-1">Home</span>
               </a>
 
-              <hr class="w-3/4 rounded border-2 border-base-200" />
+              <hr class="border-base-200 w-3/4 rounded border-2" />
 
               <span class="flex rounded px-3 py-2 text-gray-500">
                 <svg
@@ -67,16 +67,16 @@
 
               <a
                 href="/admin/auth/users"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Users</a
               >
               <a
                 href="/admin/auth/settings"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 ><i>Settings</i></a
               >
 
-              <hr class="w-3/4 rounded border-2 border-base-200" />
+              <hr class="border-base-200 w-3/4 rounded border-2" />
 
               <span class="flex rounded px-3 py-2 text-gray-500">
                 <svg
@@ -98,35 +98,35 @@
 
               <a
                 href="/admin/jobs"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Queues</a
               >
               <a
                 href="{{ route "admin.jobs.finished" }}"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Finished Jobs</a
               >
               <a
                 href="/admin/jobs/schedule"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Schedule Job</a
               >
               <a
                 href="/admin/jobs/workers"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Workers</a
               >
               <a
                 href="/admin/jobs/maintenance"
-                class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 pl-10 text-gray-500"
                 >Maintenance</a
               >
 
-              <hr class="w-3/4 rounded border-2 border-base-200" />
+              <hr class="border-base-200 w-3/4 rounded border-2" />
 
               <a
                 href="/admin/routes"
-                class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 text-gray-500"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -146,7 +146,7 @@
               </a>
               <a
                 href="/admin/settings"
-                class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 text-gray-500"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +171,7 @@
               </a>
               <a
                 href="/admin/logs/"
-                class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
+                class="hover:bg-base-200 hover:text-primary flex rounded px-3 py-2 text-gray-500"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -192,7 +192,7 @@
             </nav>
           </div>
           <div class="w-full">
-            <header class="w-full grow  py-4">
+            <header class="w-full grow py-4">
               <h1 class="text-2xl font-bold tracking-tight text-gray-900">
                 {{ block "admin.title" . }}Admin Dashboard{{ end }}
               </h1>
@@ -207,15 +207,15 @@
           </div>
           <div class="w-full shrink grow-0 basis-1/12">
             <!-- 3-col layout -->
-            <div class=" h-16"></div>
+            <div class="h-16"></div>
           </div>
         </div>
       {{ end }}
 
 
       <footer class="flex w-full flex-row flex-nowrap">
-        <div class="w-full grow-0 basis-2/12 "><!-- 3-col layout --></div>
-        <div class="w-full grow ">
+        <div class="w-full grow-0 basis-2/12"><!-- 3-col layout --></div>
+        <div class="w-full grow">
           <div class="flex w-full py-6">
             <div class="grow basis-3/12 text-left"></div>
             <div class="grow basis-3/12 text-center"></div>

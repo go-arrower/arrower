@@ -10,7 +10,7 @@ arrower.gue_jobs:
     job_type: some-type
     args:
       -
-    last_error: ''
-    queue : ''
+    last_error: ""
+    queue: ""
     created_at: RAW=NOW()
     updated_at: RAW=NOW()

@@ -1,4 +1,5 @@
 # arrower specific
+node_modules/
 cover.*
 *.BIN
 

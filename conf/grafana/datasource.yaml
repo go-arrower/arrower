@@ -14,7 +14,7 @@ datasources:
           matcherRegex: .*\,\"traceID\":\"(\w+)\" # from https://community.grafana.com/t/override-url-label-for-loki-derivedfields/67596
           #matcherRegex: "traceID=(\\w+)"
           name: TraceID
-          url: '$${__value.raw}' # url will be interpreted as query for the datasource
+          url: "$${__value.raw}" # url will be interpreted as query for the datasource
         # it looks like tempo can not search / filter for a spanIDs but only for traceIDs
 
   - name: Prometheus
@@ -36,19 +36,19 @@ datasources:
       httpMethod: GET
       tracesToLogs:
         datasourceUid: Loki
-        tags: [ 'arrower' ] # MATCH MATCH LOGGING LABELS
-        spanStartTimeShift: '1h'
-        spanEndTimeShift: '-1h'
+        tags: ["arrower"] # MUST MATCH LOGGING LABELS
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
         filterByTraceID: true
         filterBySpanID: true
       tracesToMetrics:
         datasourceUid: Prometheus
-        spanStartTimeShift: '1h'
-        spanEndTimeShift: '-1h'
-        tags: [ { key: 'arrower' } ]
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+        tags: [{ key: "arrower" }]
         queries:
-          - name: 'Simple Query'
-            query: 'foo_total'
+          - name: "Simple Query"
+            query: "foo_total"
       search:
         hide: false
       lokiSearch:

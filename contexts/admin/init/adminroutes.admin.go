@@ -9,9 +9,13 @@ import (
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/labstack/echo/v4"
+
+	"github.com/go-arrower/arrower/contexts/admin/internal/views"
 )
 
 func registerAdminRoutes(di *AdminContext) {
+	di.globalContainer.WebRouter.StaticFS("/static/admin/", echo.MustSubFS(views.PublicAssets, "static"))
+
 	di.globalContainer.AdminRouter.GET("", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "admin.home", nil)
 	})

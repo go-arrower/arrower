@@ -22,7 +22,7 @@
     <div class="absolute right-0 mr-36 mt-16">
       {{ range .Flashes }}
         <div
-          class="flex items-center rounded-lg bg-primary px-4 py-3 text-white"
+          class="bg-primary flex items-center rounded-lg px-4 py-3 text-white"
           role="alert"
         >
           <svg
@@ -42,7 +42,7 @@
     <div class="min-h-full">
       {{ if .ShowLoggedInAsUserBanner }}
         <div
-          class="flex items-center justify-between bg-primary px-4 py-2 text-white"
+          class="bg-primary flex items-center justify-between px-4 py-2 text-white"
         >
           <div></div>
           <div class="flex space-x-2">
@@ -62,7 +62,7 @@
             </svg>
             <p>Du bist als Administrator gerade angemeldet für Nutzer:</p>
           </div>
-          <button class="rounded bg-white px-2 py-1 font-bold text-primary">
+          <button class="text-primary rounded bg-white px-2 py-1 font-bold">
             <a href="/admin/auth/leave_user">Administration</a>
           </button>
         </div>
@@ -70,7 +70,7 @@
 
 
       <nav
-        class="flex w-full flex-col flex-wrap px-4 py-2  sm:flex-row sm:flex-nowrap"
+        class="flex w-full flex-col flex-wrap px-4 py-2 sm:flex-row sm:flex-nowrap"
       >
         <div class="w-full shrink grow-0 basis-2/12">
           <a href="/">
@@ -147,7 +147,7 @@
               {{ if .ShowRegistrationBtn }}
                 <a
                   href="/auth/register"
-                  class="btn rounded-md px-3 py-2 text-sm font-medium hover:bg-base-200 hover:text-primary"
+                  class="btn hover:bg-base-200 hover:text-primary rounded-md px-3 py-2 text-sm font-medium"
                   >Register</a
                 >
               {{ end }}
@@ -176,7 +176,7 @@
               </div>
               <ul
                 tabindex="0"
-                class="menu dropdown-content menu-sm z-[1] mt-3 w-52 rounded-box bg-base-100 p-2 shadow"
+                class="menu dropdown-content menu-sm rounded-box bg-base-100 z-[1] mt-3 w-52 p-2 shadow"
               >
                 <li>
                   <a href="/auth/profile">Profile</a>
@@ -188,9 +188,9 @@
         </div>
         <div class="w-full shrink grow-0 basis-1/12"><!-- 3-col layout --></div>
       </nav>
-      <div class=" flex pt-2">
+      <div class="flex pt-2">
         <div class="w-2/12 shrink grow-0"></div>
-        <div class="h-0.5 w-full grow rounded-lg bg-base-200"></div>
+        <div class="bg-base-200 h-0.5 w-full grow rounded-lg"></div>
         <div class="w-1/12 shrink grow-0"></div>
       </div>
 
@@ -214,8 +214,8 @@
 
 
       <footer class="flex w-full flex-row flex-nowrap">
-        <div class="w-full grow-0 basis-2/12 "><!-- 3-col layout --></div>
-        <div class="w-full grow ">
+        <div class="w-full grow-0 basis-2/12"><!-- 3-col layout --></div>
+        <div class="w-full grow">
           <div class="flex w-full py-6">
             <div class="grow basis-3/12 text-left"></div>
             <div class="grow basis-3/12 text-center"></div>
