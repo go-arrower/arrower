@@ -254,6 +254,15 @@ func InitialiseDefaultDependencies(
 				))
 			},
 		}))
+		router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				if c.Request().Header.Get("Hx-Preloaded") == "true" {
+					c.Response().Header().Set("Cache-Control", "private, max-age=10")
+				}
+
+				return next(c)
+			}
+		})
 
 		var r *renderer.EchoRenderer
 		if conf.Environment == LocalEnv {
