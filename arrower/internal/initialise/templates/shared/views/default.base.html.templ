@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,8 +28,11 @@
     <link rel="stylesheet" href="static/css/main.css" />
 
     <script src="static/js/modules/htmx.min.js"></script>
+    <script src="static/js/modules/head-support.min.js"></script>
+    <script src="static/js/modules/preload.min.js"></script>
+    <script src="static/js/modules/multi-swap.min.js"></script>
   </head>
-  <body hx-boost="true">
+  <body hx-boost="true" hx-ext="head-support,preload" class="h-full" preload>
     {{ "{{" }} block "layout" . {{ "}}" }}
       <main>
         {{ "{{" }} block "content" . {{ "}}" }}

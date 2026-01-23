@@ -57,7 +57,7 @@ func {{ .NameSmall }}Cmd(ctx context.Context) *cobra.Command {
 
 			err = dc.Shutdown(timeoutCtx)
 			if err != nil {
-				dc.Logger.InfoContext(ctx, "server shutdown exceeded timeout", slog.Duration("timeout", shutdownTimeout))
+				dc.Logger.InfoContext(timeoutCtx, "server shutdown exceeded timeout", slog.Duration("timeout", shutdownTimeout))
 			}
 		},
 	}
