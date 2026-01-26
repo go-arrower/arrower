@@ -51,7 +51,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			waitUntilShutdownFinished := make(chan struct{})
 
 			const hotReloadPort = 3030
-			config := &hooks.RunConfig{
+			config := &hooks.RunConfig{ //nolint:wsl_v5
 				Port:      hotReloadPort,
 				WatchPath: ".",
 			}
@@ -69,7 +69,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			hooks.OnConfigLoaded(config)
 
 			blue(cmd.OutOrStdout(), "watching %s\n", config.WatchPath)
-			path, err := filepath.Abs(config.WatchPath)
+			path, err := filepath.Abs(config.WatchPath) //nolint:wsl_v5
 			if err != nil {
 				panic(err)
 			}
@@ -81,7 +81,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			ctx, cancel := context.WithCancel(context.Background())
 
 			wg.Add(1)
-			go func(ctx context.Context, wg *sync.WaitGroup) {
+			go func(ctx context.Context, wg *sync.WaitGroup) { //nolint:wsl_v5
 				// log.Debug().Str("path", path).Msg("start to watch file system")
 
 				//nolint:govet // shadowing err prevents a race condition
@@ -99,7 +99,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			}
 
 			wg.Add(1)
-			go func() {
+			go func() { //nolint:wsl_v5
 				// log.Debug().Msg("start hot reload server")
 				_ = hotReloadServer.Start(fmt.Sprintf(":%d", config.Port))
 

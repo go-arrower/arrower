@@ -67,9 +67,11 @@ func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath
 			}
 
 			buf.Reset()
+
 			cmd = exec.CommandContext(ctx, "go", "build", "-o", binaryPath, appPath)
 			cmd.Dir = appPath
 			cmd.Stderr = buf // show error message of the `go build` command
+
 			err = cmd.Run()
 			if err != nil {
 				err2 := os.Remove(binaryPath)
@@ -124,7 +126,7 @@ func stopAndCleanup(cmd *exec.Cmd, binaryPath string) func() error {
 		//
 		// wait for shutdown of the app.
 		appStopped := make(chan error)
-		go func() {
+		go func() { //nolint:wsl_v5
 			err := waitForCmdToFinish(cmd)
 			if err != nil {
 				log.Println(err)

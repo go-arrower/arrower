@@ -91,13 +91,12 @@ func TestDefaultHandlerAndOutputFormat(t *testing.T) { //nolint:paralleltest,wsl
 	// I need to inspect the output.
 	// At the same time the API should stay as simple as possible and not take any io.Writer
 	// as parameter. To make this possible this tests intercept os.Stderr.
-
 	pipeRead, pipeWrite, _ := os.Pipe()
 
 	stderr := os.Stderr
 
 	os.Stderr = pipeWrite
-	defer func() {
+	defer func() { //nolint:wsl_v5
 		os.Stderr = stderr
 	}()
 
@@ -111,7 +110,7 @@ func TestDefaultHandlerAndOutputFormat(t *testing.T) { //nolint:paralleltest,wsl
 	_ = pipeWrite.Close()
 
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, pipeRead)
+	_, _ = io.Copy(&buf, pipeRead) //nolint:wsl_v5
 
 	assert.Contains(t, buf.String(), `"source":`)
 	assert.Contains(t, buf.String(), `"function":`)

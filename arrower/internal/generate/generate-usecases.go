@@ -273,6 +273,7 @@ func renderFiles(arg []string, cType CodeType, pkgPath string) ([][]byte, error)
 	return templates, nil
 }
 
+//nolint:wsl_v5
 func camelName(arg []string) string {
 	name := ""
 

@@ -73,6 +73,7 @@ func optsFromConfigOrDefault(opt *LokiHandlerOptions) *LokiHandlerOptions {
 	return opt
 }
 
+//nolint:wsl_v5
 func retryLokiConnection(handler *LokiHandler) {
 	const lokiRetryInterval = 15 * time.Second
 	t := time.NewTicker(lokiRetryInterval)

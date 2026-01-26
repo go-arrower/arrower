@@ -311,7 +311,7 @@ func buildAndAppendGueJob(
 	opts ...JobOption,
 ) ([]*gue.Job, error) {
 	var userID string
-	userID, _ = ctx.Value(auth.CtxUserID).(string)
+	userID, _ = ctx.Value(auth.CtxUserID).(string) //nolint:wsl_v5
 
 	args, err := json.Marshal(PersistencePayload{
 		JobStructPath:    fullPath,

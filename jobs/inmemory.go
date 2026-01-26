@@ -152,7 +152,7 @@ func (q *MemoryQueue) processFirstJob() {
 	}
 
 	var job Job
-	job, q.jobs = q.jobs[0], q.jobs[1:]
+	job, q.jobs = q.jobs[0], q.jobs[1:] //nolint:wsl_v5
 
 	jt, _, _ := getJobTypeFromType(reflect.TypeOf(job), q.modulePath)
 

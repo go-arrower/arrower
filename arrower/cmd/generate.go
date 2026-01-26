@@ -52,7 +52,7 @@ func newGenerateUsecase() *cobra.Command {
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			blue(cmd.OutOrStdout(), "New usecase generated")
-			for _, f := range files {
+			for _, f := range files { //nolint:wsl_v5
 				yellow(cmd.OutOrStdout(), f)
 			}
 
@@ -80,7 +80,7 @@ func newGenerateRequest() *cobra.Command {
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			blue(cmd.OutOrStdout(), "New request generated")
-			for _, f := range files {
+			for _, f := range files { //nolint:wsl_v5
 				yellow(cmd.OutOrStdout(), f)
 			}
 
@@ -108,7 +108,7 @@ func newGenerateCommand() *cobra.Command {
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			blue(cmd.OutOrStdout(), "New command generated\n")
-			for _, f := range files {
+			for _, f := range files { //nolint:wsl_v5
 				yellow(cmd.OutOrStdout(), f)
 			}
 
@@ -135,6 +135,7 @@ func newGenerateQuery() *cobra.Command {
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			blue(cmd.OutOrStdout(), "New query generated\n")
+
 			for _, f := range files {
 				yellow(cmd.OutOrStdout(), f)
 			}
@@ -162,7 +163,7 @@ func newGenerateJob() *cobra.Command {
 			yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 			blue(cmd.OutOrStdout(), "New job generated\n")
-			for _, f := range files {
+			for _, f := range files { //nolint:wsl_v5
 				yellow(cmd.OutOrStdout(), f)
 			}
 

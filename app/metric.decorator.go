@@ -36,7 +36,7 @@ func (d *requestMeteringDecorator[Req, Res]) H(ctx context.Context, req Req) (Re
 	)
 
 	start := time.Now()
-	defer func() {
+	defer func() { //nolint:wsl_v5
 		end := time.Since(start)
 
 		d.counter.Add(ctx, 1, opt)
@@ -87,7 +87,7 @@ func (d *commandMeteringDecorator[C]) H(ctx context.Context, cmd C) error {
 	)
 
 	start := time.Now()
-	defer func() {
+	defer func() { //nolint:wsl_v5
 		end := time.Since(start)
 
 		d.counter.Add(ctx, 1, opt)
@@ -138,7 +138,7 @@ func (d *queryMeteringDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, e
 	)
 
 	start := time.Now()
-	defer func() {
+	defer func() { //nolint:wsl_v5
 		end := time.Since(start)
 
 		d.counter.Add(ctx, 1, opt)
@@ -189,7 +189,7 @@ func (d *jobMeteringDecorator[J]) H(ctx context.Context, job J) error {
 	)
 
 	start := time.Now()
-	defer func() {
+	defer func() { //nolint:wsl_v5
 		end := time.Since(start)
 
 		d.counter.Add(ctx, 1, opt)

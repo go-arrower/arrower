@@ -264,27 +264,28 @@ func InitialiseDefaultDependencies(
 			}
 		})
 
-		var r *renderer.EchoRenderer
+		var echoRenderer *renderer.EchoRenderer
+
 		if conf.Environment == LocalEnv {
 			router.Debug = true
-			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), funcs, true)
+			echoRenderer, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), funcs, true)
 
 			router.StaticFS("/static/", os.DirFS("public"))
 
 			router.Use(injectMW)
 		} else {
-			r, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, sharedViews, funcs, false)
+			echoRenderer, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, sharedViews, funcs, false)
 
 			router.StaticFS("/static/", publicAssets)
 		}
-		// err := r.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
+		// err := echoRenderer.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
 		//if err != nil {
 		//	return nil, fmt.Errorf("could not add default base data: %w", err)
 		//	// todo return shutdown, as some services like postgres are already started
 		//}
 
-		router.Renderer = r
-		dc.WebRenderer = r
+		router.Renderer = echoRenderer
+		dc.WebRenderer = echoRenderer
 
 		// router.Use(session.Middleware())
 		dc.WebRouter = router

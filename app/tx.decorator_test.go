@@ -110,7 +110,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`)
+		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 2)
 	})
@@ -146,7 +146,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`)
+		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 1)
 	})
@@ -228,7 +228,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`)
+		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 2)
 	})
@@ -264,7 +264,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`)
+		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 1)
 	})

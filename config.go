@@ -124,14 +124,14 @@ func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error
 
 	config, ok := rawVal.(*Config)
 	if !ok {
-		f := reflect.Indirect(reflect.ValueOf(rawVal))
+		val := reflect.Indirect(reflect.ValueOf(rawVal))
 
-		for i := range f.NumField() {
-			v := f.Field(i)
+		for i := range val.NumField() {
+			v := val.Field(i)
 
 			switch v.Kind() {
 			case reflect.Struct:
-				conf, ok := f.Field(i).Interface().(Config)
+				conf, ok := val.Field(i).Interface().(Config)
 				if !ok {
 					continue
 				}
@@ -181,10 +181,12 @@ func allowedEnvironmentHookFunc() mapstructure.DecodeHookFuncType {
 		}
 
 		env := Environments()
+
 		str, ok := data.(string)
 		if !ok {
 			return nil, fmt.Errorf("expected string, got %T", data)
 		}
+
 		if slices.Contains(env, Environment(str)) {
 			return data, nil
 		}

@@ -5,8 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/arepo"
@@ -15,18 +13,7 @@ import (
 
 var errStoreFailed = errors.New("store failed")
 
-var (
-	ctx = context.Background()
-
-	defaultTenant = testTenant()
-)
-
-func testTenant() Tenant {
-	return Tenant{
-		ID:   TenantID(uuid.New().String()),
-		Name: gofakeit.Name(),
-	}
-}
+var ctx = context.Background()
 
 type (
 	TenantID string

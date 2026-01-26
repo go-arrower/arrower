@@ -65,14 +65,14 @@ func main() { //nolint:funlen
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		p := map[string]interface{}{
+		page := map[string]interface{}{
 			"Title":   "Welcome to Arrower!",
 			"userID":  userID,
 			"Flashes": flashes,
 			"UserID":  userID,
 		}
 
-		return c.Render(http.StatusOK, "=>home", p)
+		return c.Render(http.StatusOK, "=>home", page)
 	})
 
 	arrower.ArrowerQueue.RegisterJobFunc(func(ctx context.Context, j ExampleCron) error {
@@ -175,11 +175,12 @@ type ExampleCron struct {
 
 type (
 	NamedJob        struct{ Name string }
-	namedJobHandler struct {
+	namedJobHandler struct { //nolint:unused // fp
 		Logger alog.Logger
 	}
 )
 
+//nolint:unused // fp
 func (h *namedJobHandler) H(ctx context.Context, job NamedJob) error {
 	h.Logger.InfoContext(ctx, "named job", slog.String("name", job.Name))
 

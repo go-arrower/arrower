@@ -21,14 +21,14 @@ func Test(
 	viewFS fs.FS,
 	funcMap template.FuncMap,
 ) (*TestRenderer, error) {
-	r, err := New(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), viewFS, funcMap, false)
+	renderer, err := New(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), viewFS, funcMap, false)
 	if err != nil {
 		return &TestRenderer{}, fmt.Errorf("could not create test renderer: %w", err)
 	}
 
 	return &TestRenderer{
 		mu:          sync.Mutex{},
-		renderer:    r,
+		renderer:    renderer,
 		shipResults: ping(), // todo add test case for this setting
 	}, nil
 }
@@ -90,7 +90,7 @@ func (r *TestRenderer) Render(
 		if err != nil {
 			return &RendererAssertions{}, fmt.Errorf("could not send testcase: %w", err)
 		}
-		resp.Body.Close() //nolint:errcheck // best effort close, test will fail anyway if POST failed
+		resp.Body.Close() //nolint:wsl_v5
 	}
 
 	return &RendererAssertions{
@@ -209,5 +209,5 @@ func (a *RendererAssertions) sendAssertion(assertion assertion) {
 	if err != nil {
 		panic("could not send testcase: " + err.Error())
 	}
-	resp.Body.Close() //nolint:errcheck // best effort close, panic will have already happened if POST failed
+	resp.Body.Close() //nolint:wsl_v5
 }

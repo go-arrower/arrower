@@ -190,6 +190,7 @@ linters:
       ignore-decls:
         - c echo.Context
         - w io.Writer
+        - w http.ResponseWriter
         - i int
     wrapcheck:
       # An array of strings that specify substrings of signatures to ignore.

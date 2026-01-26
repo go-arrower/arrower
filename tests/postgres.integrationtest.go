@@ -215,8 +215,8 @@ func (pd *PostgresDocker) PrepareDatabase(files ...string) {
 		cleaner := dbcleaner.New()
 		cleaner.SetEngine(engine.NewPostgresEngine(dsn))
 
-		var tables []string // get all tables, that will be truncated.
-		_ = pgxscan.Select(context.Background(), pd.PGx(), &tables,
+		var tables []string                                         // get all tables that will be truncated.
+		_ = pgxscan.Select(context.Background(), pd.PGx(), &tables, //nolint:wsl_v5
 			`SELECT table_schema || '.' || table_name 
 					FROM information_schema.tables 
 					WHERE table_schema NOT IN ('pg_catalog', 'information_schema') 

@@ -35,7 +35,6 @@ func (s *PostgresSettings) Register(ctx context.Context, settings map[Key]any) e
 	// a workaround with temporary tables, does not worj with sqlc,
 	// see: https://github.com/sqlc-dev/sqlc/issues/2165
 	// => use squirrel instead
-
 	query := psql.Insert("arrower.setting").Columns("key", "value")
 
 	for key, v := range settings {

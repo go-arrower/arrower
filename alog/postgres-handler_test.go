@@ -123,7 +123,7 @@ func TestPostgresHandler_Handle(t *testing.T) {
 			var wg sync.WaitGroup
 
 			wg.Add(maxRequests)
-			for range maxRequests {
+			for range maxRequests { //nolint:wsl_v5
 				go func() {
 					time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond) //nolint:gosec // no need for secure number, just spread logs
 					logger.Info("some msg")
@@ -190,7 +190,7 @@ func ensureLogTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.log;`).Scan(&c)
+	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.log;`).Scan(&c) //nolint:wsl_v5
 
 	assert.Equal(t, num, c)
 }
@@ -204,7 +204,7 @@ func getMostRecentLog(db *pgxpool.Pool) map[string]any {
 	log, _ := rawLog.MarshalJSON()
 
 	var logMap map[string]any
-	_ = json.Unmarshal(log, &logMap)
+	_ = json.Unmarshal(log, &logMap) //nolint:wsl_v5
 
 	return logMap
 }
