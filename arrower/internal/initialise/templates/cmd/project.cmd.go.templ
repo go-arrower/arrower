@@ -37,7 +37,13 @@ func {{ .NameSmall }}Cmd(ctx context.Context) *cobra.Command {
 			dc.RootCmd = cmd
 
 			go func() {
-				dc.Logger.InfoContext(ctx, "Starting server", slog.Int("port", dc.Config.HTTP.Port))
+				dc.Logger.InfoContext(ctx, "Starting server",
+					slog.Int("port", dc.Config.HTTP.Port),
+					slog.String("environment", string(dc.Config.Environment)),
+					slog.String("organisation_name", dc.Config.OrganisationName),
+					slog.String("application_name", dc.Config.ApplicationName),
+					slog.String("instance_name", dc.Config.InstanceName),
+				)
 
 				if svrErr := dc.Start(ctx); svrErr != nil && !errors.Is(svrErr, http.ErrServerClosed) {
 					panic(svrErr)

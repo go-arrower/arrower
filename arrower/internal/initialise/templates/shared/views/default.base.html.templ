@@ -6,7 +6,7 @@
 
     <base href="/" />
 
-    <title>{{ .Name }}</title>
+    <title>{{ "{{ with .Title }}{{ . }}{{ else }}" -}}Hello, {{ .Name }}!{{- "{{ end }}" }}</title>
     <meta name="description" content="{{ .Name }}" />
     <meta name="keywords" content="{{ .Name }}" />
 

@@ -39,6 +39,11 @@ func SharedDependencies(ctx context.Context, cfgFile string) (*Container, error)
 		return nil, fmt.Errorf("could not initialise dependencies: %w", err)
 	}
 
+    err = dc.WebRenderer.AddBaseData("default", views.DefaultBaseDataFunc())
+    if err != nil {
+        return nil, fmt.Errorf("could not add default base data: %w", err)
+    }
+
 	container := &Container{
 		Container:          dc,
 		{{ .NameSmall }}Controller: web.New{{ .Name }}Controller(),
