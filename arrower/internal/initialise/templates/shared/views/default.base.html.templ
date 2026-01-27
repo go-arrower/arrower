@@ -26,21 +26,22 @@
     <link rel="manifest" href="static/manifest.json" />
 
     <link rel="stylesheet" href="static/css/main.css" />
-    {{ block "layout-css" . }}{{ end }}
+    {{ "{{ block \"layout-css\" . }}{{ end }}" }}
+
 
     <script src="static/js/modules/htmx.min.js"></script>
     <script src="static/js/modules/head-support.min.js"></script>
     <script src="static/js/modules/preload.min.js"></script>
     <script src="static/js/modules/multi-swap.min.js"></script>
-    {{ block "layout-js" . }}{{ end }}
+    {{ "{{ block \"layout-js\" . }}{{ end }}" }}
   </head>
   <body hx-boost="true" hx-ext="head-support,preload" class="h-full" preload>
-    {{ "{{" }} block "layout" . {{ "}}" }}
+    {{ "{{ block \"layout\" . }}" }}
       <main>
-        {{ "{{" }} block "content" . {{ "}}" }}
+        {{ "{{ block \"content\" . }}" }}
           Fallback, if "content" is not defined elsewhere
-        {{ "{{" }} end {{ "}}" }}
+        {{ "{{ end }}" }}
       </main>
-    {{ "{{" }} end {{ "}}" }}
+    {{ "{{ end }}" }}
   </body>
 </html>
