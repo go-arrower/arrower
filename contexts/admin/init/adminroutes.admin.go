@@ -14,18 +14,18 @@ import (
 )
 
 func registerAdminRoutes(di *AdminContext) {
-	di.globalContainer.WebRouter.StaticFS("/static/admin/", echo.MustSubFS(views.PublicAssets, "static"))
+	di.shared.WebRouter.StaticFS("/static/admin/", echo.MustSubFS(views.PublicAssets, "static"))
 
-	di.globalContainer.AdminRouter.GET("", func(c echo.Context) error {
+	di.shared.AdminRouter.GET("", func(c echo.Context) error {
+		return c.Render(http.StatusOK, "admin.home", nil)
+	}).Name = "admin.home"
+
+	di.shared.AdminRouter.GET("/", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "admin.home", nil)
 	})
 
-	di.globalContainer.AdminRouter.GET("/", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "admin.home", nil)
-	})
-
-	di.globalContainer.AdminRouter.GET("/routes", func(c echo.Context) error {
-		routes := di.globalContainer.WebRouter.Routes()
+	di.shared.AdminRouter.GET("/routes", func(c echo.Context) error {
+		routes := di.shared.WebRouter.Routes()
 
 		// sort routes by path and then by method
 		sort.Slice(routes, func(i, j int) bool {
@@ -44,39 +44,41 @@ func registerAdminRoutes(di *AdminContext) {
 			"Flashes": nil,
 			"Routes":  routes,
 		})
-	})
+	}).Name = "admin.routes"
 
-	di.settingsController.List()
+	settings := di.shared.AdminRouter.Group("/settings")
+	settings.GET("", di.settingsController.List()).Name = "admin.settings"
+	settings.GET("/", di.settingsController.List()).Name = "admin.settings"
 
-	di.logsController.ShowLogs()
-	di.logsController.SettingLogs()
+	logs := di.shared.AdminRouter.Group("/logs")
+	logs.GET("", di.logsController.ShowLogs()).Name = "admin.logs"
+	logs.GET("/", di.logsController.ShowLogs())
+	logs.GET("/setting", di.logsController.SettingLogs()).Name = "admin.logs.setting"
 
-	{
-		jobs := di.globalContainer.AdminRouter.Group("/jobs")
-		jobs.GET("", di.jobsController.Index()).Name = "admin.jobs"
-		jobs.GET("/", di.jobsController.Index())
-		jobs.GET("/data/pending", di.jobsController.PendingJobsPieChartData())                // todo better htmx fruednly data URL
-		jobs.GET("/data/processed/:interval", di.jobsController.ProcessedJobsLineChartData()) // todo better htmx fruednly data URL
-		jobs.GET("/:queue", di.jobsController.ShowQueue()).Name = "admin.jobs.queue"
-		jobs.GET("/:queue/delete/:job_id", di.jobsController.DeleteJob())
-		jobs.GET("/:queue/reschedule/:job_id", di.jobsController.RescheduleJob())
-		jobs.GET("/schedule", di.jobsController.CreateJobs()).Name = "admin.jobs.schedule"
-		jobs.POST("/schedule", di.jobsController.ScheduleJobs()).Name = "admin.jobs.new"
-		jobs.GET("/jobTypes", di.jobsController.ShowJobTypes())
-		jobs.GET("/payloads", di.jobsController.PayloadExamples())
-		jobs.GET("/workers", di.jobsController.ListWorkers())
-		jobs.GET("/maintenance", di.jobsController.ShowMaintenance()).Name = "admin.jobs.maintenance"
-		jobs.POST("/vacuum/:table", di.jobsController.VacuumJobTables())
-		jobs.POST("/history", di.jobsController.DeleteHistory())
-		jobs.POST("/history/prune", di.jobsController.PruneHistory())
-		jobs.GET("/history/size/", di.jobsController.EstimateHistorySize())
-		jobs.GET("/history/payload/size/", di.jobsController.EstimateHistoryPayloadSize())
-		jobs.GET("/finished", di.jobsController.FinishedJobs()).Name = "admin.jobs.finished"
-		jobs.GET("/finished/total", di.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
-		jobs.GET("/job/:job_id", di.jobsController.JobShow()).Name = "admin.jobs.job.show"
-	}
+	jobs := di.shared.AdminRouter.Group("/jobs")
+	jobs.GET("", di.jobsController.Index()).Name = "admin.jobs"
+	jobs.GET("/", di.jobsController.Index())
+	jobs.GET("/data/pending", di.jobsController.PendingJobsPieChartData())                // todo better htmx fruednly data URL
+	jobs.GET("/data/processed/:interval", di.jobsController.ProcessedJobsLineChartData()) // todo better htmx fruednly data URL
+	jobs.GET("/:queue", di.jobsController.ShowQueue()).Name = "admin.jobs.queue"
+	jobs.GET("/:queue/delete/:job_id", di.jobsController.DeleteJob()).Name = "admin.jobs.delete"
+	jobs.GET("/:queue/reschedule/:job_id", di.jobsController.RescheduleJob()).Name = "admin.jobs.reschedule"
+	jobs.GET("/schedule", di.jobsController.CreateJobs()).Name = "admin.jobs.schedule"
+	jobs.POST("/schedule", di.jobsController.ScheduleJobs()).Name = "admin.jobs.new"
+	jobs.GET("/jobTypes", di.jobsController.ShowJobTypes()).Name = "admin.jobs.jobTypes"
+	jobs.GET("/payloads", di.jobsController.PayloadExamples()).Name = "admin.jobs.payloads"
+	jobs.GET("/workers", di.jobsController.ListWorkers()).Name = "admin.jobs.workers"
+	jobs.GET("/maintenance", di.jobsController.ShowMaintenance()).Name = "admin.jobs.maintenance"
+	jobs.POST("/vacuum/:table", di.jobsController.VacuumJobTables()).Name = "admin.jobs.vacuum"
+	jobs.POST("/history", di.jobsController.DeleteHistory()).Name = "admin.jobs.history"
+	jobs.POST("/history/prune", di.jobsController.PruneHistory()).Name = "admin.jobs.history.prune"
+	jobs.GET("/history/size/", di.jobsController.EstimateHistorySize()).Name = "admin.jobs.history.size"
+	jobs.GET("/history/payload/size/", di.jobsController.EstimateHistoryPayloadSize()).Name = "admin.jobs.history.payload-size"
+	jobs.GET("/finished", di.jobsController.FinishedJobs()).Name = "admin.jobs.finished"
+	jobs.GET("/finished/total", di.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
+	jobs.GET("/job/:job_id", di.jobsController.JobShow()).Name = "admin.jobs.job.show"
 
-	di.globalContainer.AdminRouter.GET("/charts/users", func(c echo.Context) error {
+	di.shared.AdminRouter.GET("/charts/users", func(c echo.Context) error {
 		chart := charts.NewGauge()
 		chart.SetGlobalOptions(
 			charts.WithTooltipOpts(opts.Tooltip{Formatter: "{b}: {c}"}),
@@ -106,5 +108,5 @@ func registerAdminRoutes(di *AdminContext) {
 		// page.SetAssetsHost() //todo
 
 		return page.Render(c.Response().Writer)
-	})
+	}).Name = "admin.charts.users"
 }

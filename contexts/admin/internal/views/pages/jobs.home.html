@@ -32,7 +32,7 @@
 
 <div class="{{ if .Queues }}md:mt-8 xl:mt-16{{ end }} overflow-x-auto">
   <table
-    hx-get="/admin/jobs"
+    hx-get="{{ route "admin.jobs" }}"
     hx-trigger="every 4.5s"
     hx-swap="outerHTML"
     hx-select="#queue-list"
@@ -55,7 +55,7 @@
       {{ range .Queues }}
         <tr>
           <td>
-            <a class="text-secondary" href="/admin/jobs/{{ .QueueName }}"
+            <a class="text-secondary" href="{{ route "admin.jobs.queue" .QueueName }}"
               >{{ .QueueName }}</a
             >
           </td>

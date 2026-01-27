@@ -10,7 +10,7 @@
         name="level"
         class="w-full rounded border-t-transparent bg-transparent text-sm focus:border-2 focus:border-green-200 focus:border-t-transparent focus:outline-0"
         autocomplete="off"
-        hx-get="/admin/logs/setting"
+        hx-get="{{ route "admin.logs.setting" }}"
       >
         {{ block "level-setting" .Settings }}
           <option value="0" {{ if eq .Level "INFO" }}selected{{ end }}>
@@ -44,7 +44,7 @@
         name="msg"
         value="{{ .SearchMsg }}"
         placeholder="Search Users..."
-        hx-get="/admin/logs/setting"
+        hx-get="{{ route "admin.logs.setting" }}"
         hx-trigger="keyup delay:100ms changed"
       />
     </div>
@@ -92,7 +92,7 @@
           name="range"
           class="w-full rounded text-sm focus:border-2 focus:border-green-200"
           autocomplete="off"
-          hx-get="/admin/logs/"
+          hx-get="{{ route "admin.logs" }}"
         >
           <option value="5" {{ if eq .Filter.Range 5 }}selected{{ end }}>
             Last 5 minutes
@@ -156,7 +156,7 @@
           name="msg"
           value="{{ .SearchMsg }}"
           placeholder="Search msg"
-          hx-get="/admin/logs/"
+          hx-get="{{ route "admin.logs" }}"
           hx-trigger="keyup delay:100ms changed"
         />
       </div>
@@ -174,7 +174,7 @@
         value="{{ .Filter.K0 }}"
         list="filterKeys"
         placeholder="Filer Key"
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:500ms changed"
       />
       <input
@@ -182,7 +182,7 @@
         name="f0"
         value="{{ .Filter.F0 }}"
         placeholder=""
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:100ms changed"
       />
 
@@ -192,7 +192,7 @@
         value="{{ .Filter.K1 }}"
         list="filterKeys"
         placeholder="Filer Key"
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:500ms changed"
       />
       <input
@@ -200,7 +200,7 @@
         name="f1"
         value="{{ .Filter.F1 }}"
         placeholder=""
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:100ms changed"
       />
 
@@ -210,7 +210,7 @@
         value="{{ .Filter.K2 }}"
         list="filterKeys"
         placeholder="Filer Key"
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:500ms changed"
       />
       <input
@@ -218,7 +218,7 @@
         name="f2"
         value="{{ .Filter.F2 }}"
         placeholder=""
-        hx-get="/admin/logs/"
+        hx-get="{{ route "admin.logs" }}"
         hx-trigger="keyup delay:100ms changed"
       />
 
@@ -242,7 +242,7 @@
           name="level"
           class="w-full rounded border-t-transparent bg-transparent text-sm focus:border-2 focus:border-green-200 focus:border-t-transparent focus:outline-0"
           autocomplete="off"
-          hx-get="/admin/logs/"
+          hx-get="{{ route "admin.logs" }}"
         >
           <option
             value="INFO"
@@ -296,7 +296,7 @@
         <tr
           class="odd:bg-white even:bg-slate-50"
           {{ if eq $last $i }}
-            hx-get="/admin/logs/?time={{ $log.Time.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
+            hx-get="{{ route "admin.logs" }}?time={{ $log.Time.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
             hx-trigger="intersect once delay:1s" hx-swap="afterend"
             hx-select="tbody > tr" hx-include="#filterForm"
           {{ end }}
@@ -325,7 +325,7 @@
         </tr>
       {{ else }}
         <tr
-          hx-get="/admin/logs/?time={{ .LastLogTime.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
+          hx-get="{{ route "admin.logs" }}?time={{ .LastLogTime.Format "2006-01-02T15:04:05.999999999" }}&msg={{ $.SearchMsg }}"
           hx-trigger="intersect once delay:1s"
           hx-swap="outerHTML"
           hx-select="tbody > tr"

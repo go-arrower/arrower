@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -21,13 +22,11 @@ func NewLogsController(
 	logger alog.Logger,
 	settings setting.Settings,
 	queries *models.Queries,
-	routes *echo.Group,
 ) *LogsController {
 	return &LogsController{
 		logger:   logger,
 		settings: settings,
 		queries:  queries,
-		r:        routes,
 	}
 }
 
@@ -39,7 +38,7 @@ type LogsController struct {
 }
 
 // ShowLogs pattern issue: how to add route with and without trailing slash?
-func (lc *LogsController) ShowLogs() {
+func (lc *LogsController) ShowLogs() func(c echo.Context) error {
 	const defaultLogs = 1000
 
 	type logFilter struct {
@@ -59,7 +58,8 @@ func (lc *LogsController) ShowLogs() {
 		UserID string
 	}
 
-	lc.r.GET("/", func(c echo.Context) error {
+	// todo refactor: this is a fat controller
+	return func(c echo.Context) error {
 		timeParam := c.QueryParam("time")
 		searchMsgParam := c.QueryParam("msg")
 
@@ -119,8 +119,8 @@ func (lc *LogsController) ShowLogs() {
 		}
 
 		settingLevel, err := lc.settings.Setting(c.Request().Context(), alog.SettingLogLevel)
-		if err != nil {
-			return c.String(http.StatusBadRequest, err.Error())
+		if err != nil && !errors.Is(err, setting.ErrNotFound) {
+			return c.String(http.StatusBadRequest, err.Error()+" HIER")
 		}
 
 		vals := echo.Map{
@@ -140,11 +140,11 @@ func (lc *LogsController) ShowLogs() {
 		}
 
 		return c.Render(http.StatusOK, "logs.show", vals)
-	}).Name = "admin.logs"
+	}
 }
 
-func (lc *LogsController) SettingLogs() {
-	lc.r.GET("/setting", func(c echo.Context) error {
+func (lc *LogsController) SettingLogs() func(c echo.Context) error {
+	return func(c echo.Context) error {
 		levelParam := c.QueryParam("level")
 
 		level, err := strconv.Atoi(levelParam)
@@ -160,7 +160,7 @@ func (lc *LogsController) SettingLogs() {
 		return c.Render(http.StatusOK, "logs.show#level-setting", echo.Map{
 			"Level": getLevelName(slog.Level(level)),
 		})
-	})
+	}
 }
 
 //nolint:misspell // leveler matches Go stdlib slog.Leveler naming

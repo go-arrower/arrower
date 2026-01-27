@@ -14,7 +14,7 @@ func (c *AuthContext) registerAdminRoutes(router *echo.Group, di localDI) {
 	router.GET("/as_user/:userID", sCont.AdminLoginAsUser())
 	router.GET("/leave_user", sCont.AdminLeaveUser())
 
-	router.GET("/settings", c.settingsController.List())
+	router.GET("/settings", c.settingsController.List()).Name = "admin.users.settings"
 
 	router.GET("/users", c.userController.List()).Name = "admin.users"
 	router.POST("/users", c.userController.Register())

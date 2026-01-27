@@ -51,7 +51,7 @@
 <div class="space-y-2">
   <div
     class="group flex w-fit"
-    hx-post="/admin/jobs/vacuum/jobs"
+    hx-post="{{ route "admin.jobs.vacuum" "jobs"}}"
     hx-confirm="This operation can take long as well as block the table. Proceed?"
     hx-select-oob="#table-size"
     hx-swap="none"
@@ -93,7 +93,7 @@
   </div>
   <div
     class="group flex w-fit"
-    hx-post="/admin/jobs/vacuum/history"
+    hx-post="{{ route "admin.jobs.vacuum" "history"}}"
     hx-confirm="This operation can take long as well as block the table. Proceed?"
     hx-select-oob="#table-size"
     hx-swap="none"
@@ -147,7 +147,7 @@
     >
       <span
         class="flex"
-        hx-post="/admin/jobs/history/prune"
+        hx-post="{{ route "admin.jobs.history.prune" }}"
         hx-confirm="This operation deletes data and can take long. Proceed?"
       >
         <svg
@@ -179,7 +179,7 @@
         {{ end }}
       </select>
       <span
-        hx-post="/admin/jobs/history/prune"
+        hx-post="{{ route "admin.jobs.history.prune" }}"
         hx-confirm="This operation deletes data and can take long. Proceed?"
       >
         queue's payload older than
@@ -216,7 +216,7 @@
       </svg>
       <span
         class="text-xs"
-        hx-get="/admin/jobs/history/payload/size/"
+        hx-get="{{ route "admin.jobs.history.payload-size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, input from:#prune-history-by-days, input from:#prune-history-by-queue, arrower:admin.jobs.history.deleted from:body"
       >
@@ -234,7 +234,7 @@
     >
       <span
         class="flex"
-        hx-post="/admin/jobs/history"
+        hx-post="{{ route "admin.jobs.history" }}"
         hx-confirm="This operation deletes data and can take long. Proceed?"
       >
         <svg
@@ -285,7 +285,7 @@
       </svg>
       <span
         class="text-xs"
-        hx-get="/admin/jobs/history/size/"
+        hx-get="{{ route "admin.jobs.history.size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, input from:#delete-history-by-days, arrower:admin.jobs.history.deleted from:body"
       >
@@ -300,7 +300,7 @@
     >
       <span
         class="flex"
-        hx-post="/admin/jobs/history"
+        hx-post="{{ route "admin.jobs.history" }}"
         hx-confirm="This operation deletes data and can take long. Proceed?"
       >
         <svg
@@ -339,7 +339,7 @@
       </svg>
       <span
         class="text-xs"
-        hx-get="/admin/jobs/history/size/"
+        hx-get="{{ route "admin.jobs.history.size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, arrower:admin.jobs.history.deleted from:body"
       >

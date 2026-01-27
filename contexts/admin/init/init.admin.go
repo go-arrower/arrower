@@ -1,8 +1,8 @@
 // Package init is the context's startup API.
 //
 // Put all initialisations here.
-// For example, load context-specific configuration, setup dependency injection,
-// register routes, workers and more.
+// For example, load context-specific configuration, set up dependency injection,
+// register routes, workers, and more.
 package init
 
 import (
@@ -43,8 +43,8 @@ func NewAdminContext(ctx context.Context, di *arrower.Container) (*AdminContext,
 }
 
 type AdminContext struct {
-	globalContainer *arrower.Container
-	logger          alog.Logger
+	shared *arrower.Container
+	logger alog.Logger
 
 	jobRepository jobs.Repository
 
@@ -93,18 +93,17 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 	appDI := setupApplication(di, jobRepository)
 
 	admin := &AdminContext{
-		globalContainer: di,
-		logger:          logger,
+		shared: di,
+		logger: logger,
 
 		jobRepository: jobRepository,
 
-		settingsController: web.NewSettingsController(di.AdminRouter),
+		settingsController: web.NewSettingsController(),
 		jobsController:     web.NewJobsController(logger, appDI, jobRepository, models.New(di.PGx)),
 		logsController: web.NewLogsController(
 			logger,
 			di.Settings,
 			alogmodels.New(di.PGx),
-			di.AdminRouter.Group("/logs"),
 		),
 	}
 
@@ -113,6 +112,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 		if di.Config.Environment == arrower.LocalEnv {
 			// ../arrower/ is to access the views from the skeleton project for local development
 			views = os.DirFS("../arrower/contexts/admin/internal/views")
+			// TODO: remove this or make the path more reliable
 		}
 
 		err := di.WebRenderer.AddContext(contextName, views)
@@ -122,7 +122,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 		err = di.WebRenderer.AddLayoutData(contextName, "default", func(_ context.Context) (map[string]any, error) {
 			return map[string]any{
-				"Title": "arrower admin",
+				"Title": "Arrower Admin",
 			}, nil
 		})
 		if err != nil {

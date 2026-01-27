@@ -11,7 +11,7 @@
 
 <div
   hx-ext="multi-swap"
-  hx-get="/admin/jobs/{{ .QueueName }}"
+  hx-get="{{ route "admin.jobs.queue" .QueueName }}"
   hx-trigger="every 1s"
   hx-swap="multi:#statistics,#jobs"
 >
@@ -130,7 +130,7 @@
           >
             <div class="flex">
               <span class="hover:text-success" title="Run now">
-                <a href="/admin/jobs/{{ .Queue }}/reschedule/{{ .ID }}">
+                <a href="{{ route "admin.jobs.reschedule" .Queue .ID }}">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -150,7 +150,7 @@
               {{ if ge .ErrorCount 0 }}
                 <span title="Logs">
                   <a
-                    href="/admin/logs/?level=DEBUG&range=15&k0=jobID&f0={{ .ID }}"
+                    href="{{ route "admin.logs" }}?level=DEBUG&range=15&k0=jobID&f0={{ .ID }}"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -170,7 +170,7 @@
                 </span>
               {{ end }}
               <span class="hover:text-error" title="Delete">
-                <a href="/admin/jobs/{{ .Queue }}/delete/{{ .ID }}">
+                <a href="{{ route "admin.jobs.delete" .Queue .ID }}">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"

@@ -4,7 +4,7 @@
 <div class="w-full max-w-5xl overflow-x-auto">
   <table
     class="table"
-    hx-get="/admin/jobs/workers"
+    hx-get="{{ route "admin.jobs.workers" }}"
     hx-trigger="every 10s"
     hx-target="#worker-list"
     hx-swap="outerHTML"
@@ -25,7 +25,7 @@
           <td>{{ .ID }}</td>
           <!--rowspan="2"-->
           <td>
-            <a class="text-secondary" href="/admin/jobs/{{ .Queue }}"
+            <a class="text-secondary" href="{{ route "admin.jobs.queue" .Queue }}"
               >{{ .Queue }}</a
             >
           </td>
@@ -79,7 +79,7 @@
       {{ range .schedules }}
         <tr>
           <td>
-            <a class="text-secondary" href="/admin/jobs/{{ .Queue }}"
+            <a class="text-secondary" href="{{ route "admin.jobs.queue" .Queue }}"
               >{{ .Queue }}</a
             >
           </td>

@@ -17,7 +17,7 @@
         list="known-queues"
         name="queue"
         value="Default"
-        hx-get="/admin/jobs/jobTypes"
+        hx-get="{{ route "admin.jobs.jobTypes" }}"
         hx-trigger="input"
         hx-target="#known-job-types"
       />
@@ -130,7 +130,7 @@
     <table
       id="payload-examples"
       class="table mt-16 lg:ml-16 lg:mt-0"
-      hx-get="/admin/jobs/payloads"
+      hx-get="{{ route "admin.jobs.payloads" }}"
       hx-include="#queues, #job-type"
       hx-trigger="input from:#job-type delay:200ms"
       hx-swap="outerHTML"

@@ -6,18 +6,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewSettingsController(routes *echo.Group) *SettingsController {
-	return &SettingsController{
-		r: routes,
-	}
+func NewSettingsController() *SettingsController {
+	return &SettingsController{}
 }
 
-type SettingsController struct {
-	r *echo.Group
-}
+type SettingsController struct{}
 
-func (sc *SettingsController) List() {
-	sc.r.GET("/settings", func(c echo.Context) error {
+func (sc *SettingsController) List() func(c echo.Context) error {
+	return func(c echo.Context) error {
 		return c.String(http.StatusOK, "not implemented")
-	}).Name = "admin.settings"
+	}
 }

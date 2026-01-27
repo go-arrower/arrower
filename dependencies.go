@@ -279,10 +279,10 @@ func InitialiseDefaultDependencies(
 			router.StaticFS("/static/", publicAssets)
 		}
 		// err := echoRenderer.AddBaseData("default", views.NewDefaultBaseDataFunc(dc.Settings))
-		//if err != nil {
+		// if err != nil {
 		//	return nil, fmt.Errorf("could not add default base data: %w", err)
 		//	// todo return shutdown, as some services like postgres are already started
-		//}
+		// }
 
 		router.Renderer = echoRenderer
 		dc.WebRenderer = echoRenderer

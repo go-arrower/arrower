@@ -1,12 +1,13 @@
 {{ define "layout-css" }}
 <link rel="stylesheet" href="static/admin/css/admin.css" />
 {{ end }}
+
 <div class="flex w-full flex-col flex-wrap sm:flex-row sm:flex-nowrap">
   <div class="mt-8 w-full grow-0 basis-2/12 px-4">
     <div class=""></div>
     <nav class="m-0 p-0">
       <a
-        href="/admin"
+        href="{{ route "admin.home" }}"
         class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
       >
         <svg
@@ -47,12 +48,12 @@
       </span>
 
       <a
-        href="/admin/auth/users"
+        href="{{ route "admin.users" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         >Users
       </a>
       <a
-        href="/admin/auth/settings"
+        href="{{ route "admin.users.settings" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         ><i>Settings</i>
       </a>
@@ -78,7 +79,7 @@
       </span>
 
       <a
-        href="/admin/jobs"
+        href="{{ route "admin.jobs" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         >Queues
       </a>
@@ -88,17 +89,17 @@
         >Finished Jobs
       </a>
       <a
-        href="/admin/jobs/schedule"
+        href="{{ route "admin.jobs.schedule" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         >Schedule Job
       </a>
       <a
-        href="/admin/jobs/workers"
+        href="{{ route "admin.jobs.workers" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         >Workers
       </a>
       <a
-        href="/admin/jobs/maintenance"
+        href="{{ route "admin.jobs.maintenance" }}"
         class="flex rounded px-3 py-2 pl-10 text-gray-500 hover:bg-base-200 hover:text-primary"
         >Maintenance
       </a>
@@ -106,7 +107,7 @@
       <hr class="w-3/4 rounded border-2 border-base-200" />
 
       <a
-        href="/admin/routes"
+        href="{{ route "admin.routes" }}"
         class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
       >
         <svg
@@ -126,7 +127,7 @@
         <span class="pl-1">Routes</span>
       </a>
       <a
-        href="/admin/settings"
+        href="{{ route "admin.settings" }}"
         class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
       >
         <svg
@@ -151,7 +152,7 @@
         <span class="pl-1">Settings</span>
       </a>
       <a
-        href="/admin/logs/"
+        href="{{ route "admin.logs" }}"
         class="flex rounded px-3 py-2 text-gray-500 hover:bg-base-200 hover:text-primary"
       >
         <svg
