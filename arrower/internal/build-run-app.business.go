@@ -61,7 +61,8 @@ func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath
 			cmd.Stdout = w // stream output to same io.Writer
 			cmd.Stderr = w // stream output to same io.Writer
 			cmd.Dir = appPath
-			err := cmd.Run()
+
+			err = cmd.Run()
 			if err != nil {
 				return nil, fmt.Errorf("%w: %v", ErrBuildFailed, err)
 			}
