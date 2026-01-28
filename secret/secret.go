@@ -25,7 +25,7 @@ type Secret struct {
 
 // Secret returns the actual value of the Secret.
 func (s Secret) Secret() string {
-	if s == *new(Secret) {
+	if s == (Secret{}) {
 		return ""
 	}
 

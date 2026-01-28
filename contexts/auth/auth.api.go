@@ -14,8 +14,8 @@ const contextName = "auth"
 //
 // SHOULD IT BE MORE TYPED? UserID instead of string, Credentials instead of string,string pair?
 type API interface {
-	FindUserByID(context.Context, UserID) (User, error)
-	SaveUser(context.Context, User) error
+	FindUserByID(ctx context.Context, userID UserID) (User, error)
+	SaveUser(ctx context.Context, user User) error
 	// User(ctx context.Context) User
 	// All() ([]User, error)
 	// UserByID(id string) (User, error)
@@ -76,7 +76,7 @@ type APIKey struct{}
 
 // func UserFromContext(ctx context.Context) User { // or just User()
 //	return User{}
-//}
+// }
 
 // --- --- ---
 // methods are part of auth api and not static auth package:

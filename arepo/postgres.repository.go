@@ -99,7 +99,7 @@ func (repo *PostgresRepository[E, ID]) Tx(ctx context.Context) pgx.Tx {
 
 var psql = squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) //nolint:gochecknoglobals,lll // squirrel recommends this
 
-func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) { //nolint:ireturn,lll // needs access to the type ID and fp, as it is not recognised even with "generic" setting
+func (repo *PostgresRepository[E, ID]) getID(t any) (ID, error) {
 	var id ID
 
 	val := reflect.ValueOf(t)
@@ -181,7 +181,7 @@ func (repo *PostgresRepository[E, ID]) Create(ctx context.Context, entity E) err
 	return nil
 }
 
-func (repo *PostgresRepository[E, ID]) Read(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
+func (repo *PostgresRepository[E, ID]) Read(ctx context.Context, id ID) (E, error) {
 	return repo.FindByID(ctx, id)
 }
 
@@ -309,7 +309,7 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query
 	return entities[0], nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
+func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, error) {
 	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).ToSql()
 	if err != nil {
 		return *new(E), fmt.Errorf("%w: could not build query: %v", errFindFailed, err)

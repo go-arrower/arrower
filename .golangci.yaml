@@ -148,6 +148,25 @@ linters:
       # Default: []
       disable:
         - fieldalignment # Prefer easier readability to optimal memory layout
+    ireturn:
+      # List of interfaces to allow.
+      # Lists of the keywords and regular expressions matched to interface or package names can be used.
+      # `allow` and `reject` settings cannot be used at the same time.
+      #
+      # Keywords:
+      # - `empty` for `interface{}`
+      # - `error` for errors
+      # - `stdlib` for standard library
+      # - `anon` for anonymous interfaces
+      # - `generic` for generic interfaces added in go 1.18
+      #
+      # Default: [anon, error, empty, stdlib]
+      allow:
+        - anon
+        - error
+        - empty
+        - stdlib
+        - ithub.com/jackc/pgx/v5.Tx
     misspell:
       locale: UK
     mnd:
@@ -295,6 +314,7 @@ linters:
           - forcetypeassert # Don't need to check in tests, simplifies e.g. the assertion of the jobs.queues.GetFirst() method
           - errcheck # Makes the 'setup' step of test cases much easier to read, e.g. repo initialisation and following Save() operation are on the same column width
           - wrapcheck # test helpers don't need a traceable error message stack
+          - ireturn # test helpers might need to return a dependency and not any concrete type
 
       # Partly exclude wsl when testing, to keep tests easier to read.
       - path: _test.go|testing.go
@@ -328,9 +348,9 @@ linters:
         # makes setup and shutdown steps easier to group together
         text: only cuddled expressions if assigning variable or using from line above
 
-        #
-        # General rules
-        #
+      #
+      # General rules
+      #
 
       # Exclude lll issues for long lines with go:generate
       - linters:
@@ -347,7 +367,13 @@ linters:
           - misspell
         text: Leveler
 
-    # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
+      # FP: ireturn does not recognise the type safety of generics
+      - path: .decorator.go|arepo/postgres.repository.go
+        linters:
+          - ireturn
+
+
+    # Which file paths to exclude: they will be analysed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.
     # Default: []
     paths:

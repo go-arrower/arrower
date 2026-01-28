@@ -7,7 +7,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth"
 )
 
-func NewMemoryAPI(opts ...arepo.Option) auth.API {
+func NewMemoryAPI(opts ...arepo.Option) *MemoryAPI {
 	return &MemoryAPI{
 		repo: arepo.NewMemoryRepository[auth.User, auth.UserID](opts...),
 	}

@@ -32,6 +32,7 @@ func (l *gueLogAdapter) Error(msg string, fields ...adapter.Field) {
 	l.l.Log(context.Background(), alog.LevelInfo, msg, l.slogFields(fields)...)
 }
 
+//nolint:ireturn // gueLogAdapter implements gue's adapter.Logger and that forces this signature.
 func (l *gueLogAdapter) With(fields ...adapter.Field) adapter.Logger {
 	return &gueLogAdapter{l: l.l.With(l.slogFields(fields)...)}
 }
