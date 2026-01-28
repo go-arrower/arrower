@@ -13,7 +13,7 @@ static-check: ## Run static code checks
 generate: ## Generate all code to run the service
 	go generate ./...
 	@# the experimental flag is required for pgx compatible code, see: https://docs.sqlc.dev/en/stable/guides/using-go-and-pgx.html?highlight=experimental#getting-started
-	sqlc generate --experimental
+	sqlc generate
 
 	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --write
 	npx tailwindcss -c contexts/admin/internal/views/tailwind.config.js -i contexts/admin/internal/views/input.css -o contexts/admin/internal/views/static/css/admin.css --minify
@@ -49,7 +49,7 @@ upgrade:
 install-tools: ## Initialise this machine with development dependencies
 	curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.8.0
 	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-	go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install github.com/nikolaydubina/go-cover-treemap@latest
 
 	npm ci
