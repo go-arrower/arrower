@@ -12,13 +12,19 @@
 
   <tbody>
     {{ range .Routes }}
-      <tr class="group">
-        <td>{{ .Path }}</td>
+      <tr class="group" style="color: {{ .Colour }}">
+        <td>
+          {{ if and (eq .Method "GET") (not .HasParams) }}
+            <a href="{{ .Path }}">{{ .Path }}</a>
+          {{ else }}
+            {{ .Path }}
+          {{ end }}
+        </td>
         <td>{{ .Method }}</td>
         <td
-          class="{{ if (contains ".func" .Name) }}
-            invisible group-hover:visible
-          {{ end }}"
+          {{ if (contains ".func" .Name) }}
+                class="invisible group-hover:visible"
+          {{ end }}
         >
           {{ .Name }}
         </td>

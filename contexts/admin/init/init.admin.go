@@ -48,8 +48,9 @@ type AdminContext struct {
 
 	jobRepository jobs.Repository
 
-	settingsController *web.SettingsController
 	jobsController     *web.JobsController
+	routesController   *web.RoutesController
+	settingsController *web.SettingsController
 	logsController     *web.LogsController
 }
 
@@ -98,8 +99,9 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 		jobRepository: jobRepository,
 
-		settingsController: web.NewSettingsController(),
 		jobsController:     web.NewJobsController(logger, appDI, jobRepository, models.New(di.PGx)),
+		routesController:   web.NewRoutesController(di.WebRouter),
+		settingsController: web.NewSettingsController(),
 		logsController: web.NewLogsController(
 			logger,
 			di.Settings,

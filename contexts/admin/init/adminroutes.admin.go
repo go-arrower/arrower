@@ -2,7 +2,6 @@ package init
 
 import (
 	"net/http"
-	"sort"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
@@ -23,37 +22,6 @@ func registerAdminRoutes(di *AdminContext) {
 	di.shared.AdminRouter.GET("/", func(c echo.Context) error {
 		return c.Render(http.StatusOK, "admin.home", nil)
 	})
-
-	di.shared.AdminRouter.GET("/routes", func(c echo.Context) error {
-		routes := di.shared.WebRouter.Routes()
-
-		// sort routes by path and then by method
-		sort.Slice(routes, func(i, j int) bool {
-			if routes[i].Path < routes[j].Path {
-				return true
-			}
-
-			if routes[i].Path == routes[j].Path {
-				return routes[i].Method < routes[j].Method
-			}
-
-			return false
-		})
-
-		return c.Render(http.StatusOK, "admin.routes", echo.Map{
-			"Flashes": nil,
-			"Routes":  routes,
-		})
-	}).Name = "admin.routes"
-
-	settings := di.shared.AdminRouter.Group("/settings")
-	settings.GET("", di.settingsController.List()).Name = "admin.settings"
-	settings.GET("/", di.settingsController.List()).Name = "admin.settings"
-
-	logs := di.shared.AdminRouter.Group("/logs")
-	logs.GET("", di.logsController.ShowLogs()).Name = "admin.logs"
-	logs.GET("/", di.logsController.ShowLogs())
-	logs.GET("/setting", di.logsController.SettingLogs()).Name = "admin.logs.setting"
 
 	jobs := di.shared.AdminRouter.Group("/jobs")
 	jobs.GET("", di.jobsController.Index()).Name = "admin.jobs"
@@ -77,6 +45,19 @@ func registerAdminRoutes(di *AdminContext) {
 	jobs.GET("/finished", di.jobsController.FinishedJobs()).Name = "admin.jobs.finished"
 	jobs.GET("/finished/total", di.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
 	jobs.GET("/job/:job_id", di.jobsController.JobShow()).Name = "admin.jobs.job.show"
+
+	routes := di.shared.AdminRouter.Group("/routes")
+	routes.GET("", di.routesController.Index()).Name = "admin.routes"
+	routes.GET("/", di.routesController.Index()).Name = "admin.routes"
+
+	settings := di.shared.AdminRouter.Group("/settings")
+	settings.GET("", di.settingsController.List()).Name = "admin.settings"
+	settings.GET("/", di.settingsController.List()).Name = "admin.settings"
+
+	logs := di.shared.AdminRouter.Group("/logs")
+	logs.GET("", di.logsController.ShowLogs()).Name = "admin.logs"
+	logs.GET("/", di.logsController.ShowLogs())
+	logs.GET("/setting", di.logsController.SettingLogs()).Name = "admin.logs.setting"
 
 	di.shared.AdminRouter.GET("/charts/users", func(c echo.Context) error {
 		chart := charts.NewGauge()
