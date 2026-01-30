@@ -12,8 +12,8 @@ func NewSettingsController() *SettingsController {
 
 type SettingsController struct{}
 
-func (sc *SettingsController) List() func(c echo.Context) error {
+func (ctrl *SettingsController) Index() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		return c.String(http.StatusOK, "not implemented")
+		return c.Render(http.StatusOK, "settings.index", nil)
 	}
 }

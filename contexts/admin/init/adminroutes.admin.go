@@ -51,13 +51,13 @@ func registerAdminRoutes(di *AdminContext) {
 	routes.GET("/", di.routesController.Index()).Name = "admin.routes"
 
 	settings := di.shared.AdminRouter.Group("/settings")
-	settings.GET("", di.settingsController.List()).Name = "admin.settings"
-	settings.GET("/", di.settingsController.List()).Name = "admin.settings"
+	settings.GET("", di.settingsController.Index()).Name = "admin.settings"
+	settings.GET("/", di.settingsController.Index()).Name = "admin.settings"
 
 	logs := di.shared.AdminRouter.Group("/logs")
-	logs.GET("", di.logsController.ShowLogs()).Name = "admin.logs"
-	logs.GET("/", di.logsController.ShowLogs())
-	logs.GET("/setting", di.logsController.SettingLogs()).Name = "admin.logs.setting"
+	logs.GET("", di.logsController.Index()).Name = "admin.logs"
+	logs.GET("/", di.logsController.Index())
+	logs.POST("/setting", di.logsController.Update()).Name = "admin.logs.setting"
 
 	di.shared.AdminRouter.GET("/charts/users", func(c echo.Context) error {
 		chart := charts.NewGauge()

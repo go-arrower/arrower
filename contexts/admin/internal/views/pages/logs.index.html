@@ -10,7 +10,7 @@
         name="level"
         class="w-full rounded border-t-transparent bg-transparent text-sm focus:border-2 focus:border-green-200 focus:border-t-transparent focus:outline-0"
         autocomplete="off"
-        hx-get="{{ route "admin.logs.setting" }}"
+        hx-post="{{ route "admin.logs.setting" }}"
       >
         {{ block "level-setting" .Settings }}
           <option value="0" {{ if eq .Level "INFO" }}selected{{ end }}>
@@ -22,10 +22,7 @@
           <option value="-8" {{ if eq .Level "ARROWER:INFO" }}selected{{ end }}>
             Arrower: Info
           </option>
-          <option
-            value="-12"
-            {{ if eq .Level "ARROWER:DEBUG" }}selected{{ end }}
-          >
+          <option value="-12" {{ if eq .Level "ARROWER:DEBUG" }}selected{{ end }}>
             Arrower: Debug
           </option>
         {{ end }}
@@ -44,7 +41,7 @@
         name="msg"
         value="{{ .SearchMsg }}"
         placeholder="Search Users..."
-        hx-get="{{ route "admin.logs.setting" }}"
+        hx-post="#"
         hx-trigger="keyup delay:100ms changed"
       />
     </div>

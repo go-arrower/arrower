@@ -1,3 +1,4 @@
+//nolint:mnd // the colour conversions naturally need a lot of values to work with.
 package web
 
 import (
@@ -19,7 +20,7 @@ type RoutesController struct {
 }
 
 func (ctrl *RoutesController) Index() func(e echo.Context) error {
-	type route struct {
+	type viewRoute struct {
 		*echo.Route
 		ColourCount int
 		Colour      string
@@ -28,7 +29,7 @@ func (ctrl *RoutesController) Index() func(e echo.Context) error {
 
 	return func(c echo.Context) error {
 		echoRoutes := ctrl.echo.Routes()
-		routes := make([]*route, len(echoRoutes))
+		routes := make([]*viewRoute, len(echoRoutes))
 
 		// sort routes by path and then by method
 		sort.Slice(echoRoutes, func(i, j int) bool {
@@ -49,14 +50,14 @@ func (ctrl *RoutesController) Index() func(e echo.Context) error {
 		)
 
 		// assign a colour group to all routs sharing the same initial path prefix
-		for i, r := range echoRoutes {
+		for i, route := range echoRoutes {
 			pathPrefix := strings.Split(echoRoutes[i].Path, "/")[1]
 			if lastPathPrefix != pathPrefix {
 				lastPathPrefix = pathPrefix
 				group++
 			}
 
-			routes[i] = &route{r, group, "", strings.Contains(r.Path, ":")}
+			routes[i] = &viewRoute{route, group, "", strings.Contains(route.Path, ":")}
 		}
 
 		// colours := generateColorsVibrant(group + 1)
@@ -66,15 +67,16 @@ func (ctrl *RoutesController) Index() func(e echo.Context) error {
 			routes[i].Colour = colours[routes[i].ColourCount]
 		}
 
-		return c.Render(http.StatusOK, "admin.routes", echo.Map{
+		return c.Render(http.StatusOK, "routes.index", echo.Map{
 			"Flashes": nil,
 			"Routes":  routes,
 		})
 	}
 }
 
+//nolint:varnamelen
 func hslToHex(h, s, l float64) string {
-	h = h / 360.0
+	h /= 360.0
 
 	var r, g, b float64
 
@@ -87,6 +89,7 @@ func hslToHex(h, s, l float64) string {
 		} else {
 			q = l + s - l*s
 		}
+
 		p := 2*l - q
 
 		r = hueToRGB(p, q, h+1.0/3.0)
@@ -101,22 +104,27 @@ func hslToHex(h, s, l float64) string {
 	)
 }
 
-func hueToRGB(p, q, t float64) float64 {
+func hueToRGB(p, q, t float64) float64 { //nolint:varnamelen
 	if t < 0 {
-		t += 1
+		t++
 	}
+
 	if t > 1 {
-		t -= 1
+		t--
 	}
+
 	if t < 1.0/6.0 {
 		return p + (q-p)*6*t
 	}
+
 	if t < 1.0/2.0 {
 		return q
 	}
+
 	if t < 2.0/3.0 {
 		return p + (q-p)*(2.0/3.0-t)*6
 	}
+
 	return p
 }
 
@@ -124,8 +132,8 @@ func rgbToHex(r, g, b uint8) string {
 	return fmt.Sprintf("#%02X%02X%02X", r, g, b)
 }
 
-func generateColorsMuted(n int) []string {
-	colors := make([]string, n)
+func generateColorsMuted(n int) []string { //nolint:varnamelen
+	colours := make([]string, n)
 
 	baseHues := []float64{
 		210, // Blue
@@ -138,19 +146,19 @@ func generateColorsMuted(n int) []string {
 		45,  // Brown
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		hue := baseHues[i%len(baseHues)]
 		saturation := 0.5 + float64(i%3)*0.05
 		lightness := 0.32 + float64(i%2)*0.03
 
-		colors[i] = hslToHex(hue, saturation, lightness)
+		colours[i] = hslToHex(hue, saturation, lightness)
 	}
 
-	return colors
+	return colours
 }
 
 func generateColorsVibrant(n int) []string {
-	colors := make([]string, n)
+	colours := make([]string, n)
 
 	baseHues := []float64{
 		0,   // Red
@@ -165,13 +173,13 @@ func generateColorsVibrant(n int) []string {
 		150, // Teal
 	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		hue := baseHues[i%len(baseHues)]
 		saturation := 0.8 + float64(i%2)*0.05
 		lightness := 0.35 + float64(i%3)*0.03
 
-		colors[i] = hslToHex(hue, saturation, lightness)
+		colours[i] = hslToHex(hue, saturation, lightness)
 	}
 
-	return colors
+	return colours
 }

@@ -52,9 +52,9 @@ type JobsController struct {
 	queries *models.Queries
 }
 
-func (jc *JobsController) Index() func(c echo.Context) error {
+func (ctrl *JobsController) Index() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		res, err := jc.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
+		res, err := ctrl.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -62,21 +62,21 @@ func (jc *JobsController) Index() func(c echo.Context) error {
 				WithInternal(err)
 		}
 
-		return c.Render(http.StatusOK, "jobs.home", echo.Map{
+		return c.Render(http.StatusOK, "jobs.index", echo.Map{
 			"Title":  "Queues",
 			"Queues": res.QueueStats,
 		})
 	}
 }
 
-func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
+func (ctrl *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 	type pieData struct {
 		Name  string `json:"name"`
 		Value int    `json:"value"`
 	}
 
 	return func(c echo.Context) error {
-		res, err := jc.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
+		res, err := ctrl.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -90,7 +90,7 @@ func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 			keys = append(keys, string(k))
 		}
 
-		sort.Sort(sort.StringSlice(keys))
+		sort.Strings(keys)
 
 		var json []pieData
 		for _, k := range keys {
@@ -104,7 +104,7 @@ func (jc *JobsController) PendingJobsPieChartData() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error { //nolint:funlen
+func (ctrl *JobsController) ProcessedJobsLineChartData() func(echo.Context) error { //nolint:funlen
 	type lineData struct {
 		XAxis  []string `json:"xAxis"`
 		Series []int    `json:"series"`
@@ -124,7 +124,7 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 		)
 
 		if interval == "hour" { // show last 60 minutes
-			jobData, err = jc.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{
+			jobData, err = ctrl.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{
 				DateBin: pgtype.Interval{Valid: true, Microseconds: int64(time.Minute * 5 / time.Microsecond)},
 				FinishedAt: pgtype.Timestamptz{
 					Valid:            true,
@@ -134,7 +134,7 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 				Limit: bucketsPerHour,
 			})
 		} else {
-			jobData, err = jc.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{ // show whole week
+			jobData, err = ctrl.queries.PendingJobs(c.Request().Context(), models.PendingJobsParams{ // show whole week
 				DateBin: pgtype.Interval{Valid: true, Days: 1},
 				FinishedAt: pgtype.Timestamptz{
 					Valid:            true,
@@ -174,11 +174,11 @@ func (jc *JobsController) ProcessedJobsLineChartData() func(echo.Context) error 
 	}
 }
 
-func (jc *JobsController) ShowQueue() func(c echo.Context) error {
+func (ctrl *JobsController) ShowQueue() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.Param("queue")
 
-		res, err := jc.appDI.GetQueue.H(c.Request().Context(), application.GetQueueQuery{QueueName: jobs.QueueName(queue)})
+		res, err := ctrl.appDI.GetQueue.H(c.Request().Context(), application.GetQueueQuery{QueueName: jobs.QueueName(queue)})
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -198,9 +198,9 @@ func (jc *JobsController) ShowQueue() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) ListWorkers() func(c echo.Context) error {
+func (ctrl *JobsController) ListWorkers() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		res, err := jc.appDI.GetWorkers.H(c.Request().Context(), application.GetWorkersQuery{})
+		res, err := ctrl.appDI.GetWorkers.H(c.Request().Context(), application.GetWorkersQuery{})
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -216,12 +216,12 @@ func (jc *JobsController) ListWorkers() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) DeleteJob() func(c echo.Context) error {
+func (ctrl *JobsController) DeleteJob() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.Param("queue")
 		jobID := c.Param("job_id")
 
-		err := jc.appDI.DeleteJob.H(c.Request().Context(), application.DeleteJobCommand{JobID: jobID})
+		err := ctrl.appDI.DeleteJob.H(c.Request().Context(), application.DeleteJobCommand{JobID: jobID})
 		if err != nil {
 			return c.NoContent(http.StatusBadRequest)
 		}
@@ -230,12 +230,12 @@ func (jc *JobsController) DeleteJob() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) RescheduleJob() func(c echo.Context) error {
+func (ctrl *JobsController) RescheduleJob() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.Param("queue")
 		jobID := c.Param("job_id")
 
-		err := jc.repo.RunJobAt(c.Request().Context(), jobID, time.Now())
+		err := ctrl.repo.RunJobAt(c.Request().Context(), jobID, time.Now())
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -248,11 +248,11 @@ func (jc *JobsController) RescheduleJob() func(c echo.Context) error {
 }
 
 // todo clean into proper application usecase.
-func (jc *JobsController) ShowMaintenance() func(c echo.Context) error {
+func (ctrl *JobsController) ShowMaintenance() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		size, _ := jc.queries.JobTableSize(c.Request().Context())
+		size, _ := ctrl.queries.JobTableSize(c.Request().Context())
 
-		res, _ := jc.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{}) // fixme: don't call existing use case, create own or call domain model
+		res, _ := ctrl.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{}) // fixme: don't call existing use case, create own or call domain model
 
 		var queues []string
 
@@ -276,11 +276,11 @@ func (jc *JobsController) ShowMaintenance() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) VacuumJobTables() func(echo.Context) error {
+func (ctrl *JobsController) VacuumJobTables() func(echo.Context) error {
 	return func(c echo.Context) error {
 		table := c.Param("table")
 
-		size, err := jc.appDI.VacuumJobTable.H(c.Request().Context(), application.VacuumJobTableRequest{Table: table})
+		size, err := ctrl.appDI.VacuumJobTable.H(c.Request().Context(), application.VacuumJobTableRequest{Table: table})
 		if err != nil {
 			return c.NoContent(http.StatusBadRequest)
 		}
@@ -295,7 +295,7 @@ func (jc *JobsController) VacuumJobTables() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) DeleteHistory() func(echo.Context) error {
+func (ctrl *JobsController) DeleteHistory() func(echo.Context) error {
 	return func(c echo.Context) error {
 		// valid days values: any number or "all", with "all" mapping to 0
 		days, err := strconv.Atoi(c.FormValue("days"))
@@ -303,7 +303,7 @@ func (jc *JobsController) DeleteHistory() func(echo.Context) error {
 			return c.NoContent(http.StatusBadRequest)
 		}
 
-		size, err := jc.appDI.PruneJobHistory.H(
+		size, err := ctrl.appDI.PruneJobHistory.H(
 			c.Request().Context(),
 			application.PruneJobHistoryRequest{Days: days},
 		)
@@ -324,7 +324,7 @@ func (jc *JobsController) DeleteHistory() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) PruneHistory() func(echo.Context) error {
+func (ctrl *JobsController) PruneHistory() func(echo.Context) error {
 	return func(c echo.Context) error {
 		days, _ := strconv.Atoi(c.FormValue("days"))
 		estimateBefore := time.Now().Add(-1 * time.Duration(days) * timeDay)
@@ -335,7 +335,7 @@ func (jc *JobsController) PruneHistory() func(echo.Context) error {
 		}
 
 		// todo check if pruneJobHistoryRequestHandler can be used here
-		_ = jc.queries.PruneHistoryPayload(c.Request().Context(), models.PruneHistoryPayloadParams{
+		_ = ctrl.queries.PruneHistoryPayload(c.Request().Context(), models.PruneHistoryPayloadParams{
 			Queue:     queue,
 			CreatedAt: pgtype.Timestamptz{Time: estimateBefore, Valid: true, InfinityModifier: pgtype.Finite},
 		})
@@ -346,13 +346,13 @@ func (jc *JobsController) PruneHistory() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) EstimateHistorySize() func(echo.Context) error {
+func (ctrl *JobsController) EstimateHistorySize() func(echo.Context) error {
 	return func(c echo.Context) error {
 		days, _ := strconv.Atoi(c.QueryParam("days"))
 
 		estimateBefore := time.Now().Add(-1 * time.Duration(days) * timeDay)
 
-		size, _ := jc.queries.JobHistorySize(c.Request().Context(), pgtype.Timestamptz{Time: estimateBefore, Valid: true})
+		size, _ := ctrl.queries.JobHistorySize(c.Request().Context(), pgtype.Timestamptz{Time: estimateBefore, Valid: true})
 
 		var fmtSize string
 		if size != "" {
@@ -363,7 +363,7 @@ func (jc *JobsController) EstimateHistorySize() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error {
+func (ctrl *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.QueryParam("queue")
 		if queue == "Default" {
@@ -373,7 +373,7 @@ func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error 
 		days, _ := strconv.Atoi(c.QueryParam("days"))
 		estimateBefore := time.Now().Add(-1 * time.Duration(days) * timeDay)
 
-		size, _ := jc.queries.JobHistoryPayloadSize(c.Request().Context(), models.JobHistoryPayloadSizeParams{
+		size, _ := ctrl.queries.JobHistoryPayloadSize(c.Request().Context(), models.JobHistoryPayloadSizeParams{
 			Queue:     queue,
 			CreatedAt: pgtype.Timestamptz{Time: estimateBefore, Valid: true, InfinityModifier: pgtype.Finite},
 		})
@@ -387,11 +387,11 @@ func (jc *JobsController) EstimateHistoryPayloadSize() func(echo.Context) error 
 	}
 }
 
-func (jc *JobsController) CreateJobs() func(c echo.Context) error {
+func (ctrl *JobsController) CreateJobs() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		queues, _ := jc.repo.FindAllQueueNames(c.Request().Context())
+		queues, _ := ctrl.repo.FindAllQueueNames(c.Request().Context())
 
-		jobType, _ := jc.appDI.JobTypesForQueue.H(
+		jobType, _ := ctrl.appDI.JobTypesForQueue.H(
 			c.Request().Context(),
 			application.JobTypesForQueueQuery{Queue: jobs.DefaultQueueName},
 		)
@@ -410,11 +410,11 @@ func (jc *JobsController) CreateJobs() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) ShowJobTypes() func(_ echo.Context) error {
+func (ctrl *JobsController) ShowJobTypes() func(_ echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.QueryParam("queue")
 
-		jobType, _ := jc.appDI.JobTypesForQueue.H(
+		jobType, _ := ctrl.appDI.JobTypesForQueue.H(
 			c.Request().Context(),
 			application.JobTypesForQueueQuery{Queue: jobs.QueueName(queue)},
 		)
@@ -425,7 +425,7 @@ func (jc *JobsController) ShowJobTypes() func(_ echo.Context) error {
 	}
 }
 
-func (jc *JobsController) PayloadExamples() func(_ echo.Context) error {
+func (ctrl *JobsController) PayloadExamples() func(_ echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.QueryParam("queue")
 		jobType := c.QueryParam("job-type")
@@ -434,7 +434,7 @@ func (jc *JobsController) PayloadExamples() func(_ echo.Context) error {
 			queue = ""
 		}
 
-		payloads, _ := jc.queries.LastHistoryPayloads(c.Request().Context(), models.LastHistoryPayloadsParams{
+		payloads, _ := ctrl.queries.LastHistoryPayloads(c.Request().Context(), models.LastHistoryPayloadsParams{
 			Queue:   queue,
 			JobType: jobType,
 		})
@@ -444,7 +444,7 @@ func (jc *JobsController) PayloadExamples() func(_ echo.Context) error {
 	}
 }
 
-func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
+func (ctrl *JobsController) ScheduleJobs() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		queue := c.FormValue("queue")
 		jt := c.FormValue("job-type")
@@ -478,7 +478,7 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 
 		runAt, _ := time.Parse(htmlDatetimeLayout, runAtParam)
 
-		err = jc.appDI.ScheduleJobs.H(c.Request().Context(), application.ScheduleJobsCommand{
+		err = ctrl.appDI.ScheduleJobs.H(c.Request().Context(), application.ScheduleJobsCommand{
 			Queue:    jq,
 			JobType:  jt,
 			Priority: int16(priority),
@@ -497,7 +497,7 @@ func (jc *JobsController) ScheduleJobs() func(c echo.Context) error {
 	}
 }
 
-func (jc *JobsController) FinishedJobs() func(echo.Context) error {
+func (ctrl *JobsController) FinishedJobs() func(echo.Context) error {
 	return func(c echo.Context) error {
 		if updateJobTypeSelectOptions := c.QueryParam("updateJobTypes"); updateJobTypeSelectOptions == "true" {
 			q := c.QueryParam("queue")
@@ -505,7 +505,7 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 				q = ""
 			}
 
-			jobTypes, err := jc.queries.JobTypes(c.Request().Context(), q)
+			jobTypes, err := ctrl.queries.JobTypes(c.Request().Context(), q)
 			if err != nil {
 				return echo.NewHTTPError(
 					http.StatusInternalServerError,
@@ -524,7 +524,7 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 			JobType: jobs.JobType(c.QueryParam("job-type")),
 		}
 
-		finishedJobs, err := jc.repo.FinishedJobs(c.Request().Context(), filter)
+		finishedJobs, err := ctrl.repo.FinishedJobs(c.Request().Context(), filter)
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -538,7 +538,7 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 			return c.Render(http.StatusOK, "jobs.finished#jobs.list", pages.NewFinishedJobs(finishedJobs, nil))
 		}
 
-		queues, err := jc.repo.FindAllQueueNames(c.Request().Context())
+		queues, err := ctrl.repo.FindAllQueueNames(c.Request().Context())
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -550,14 +550,14 @@ func (jc *JobsController) FinishedJobs() func(echo.Context) error {
 	}
 }
 
-func (jc *JobsController) FinishedJobsTotal() func(ctx echo.Context) error {
+func (ctrl *JobsController) FinishedJobsTotal() func(ctx echo.Context) error {
 	return func(c echo.Context) error {
 		filter := jobs.Filter{
 			Queue:   jobs.QueueName(c.QueryParam("queue")),
 			JobType: jobs.JobType(c.QueryParam("job-type")),
 		}
 
-		total, err := jc.repo.FinishedJobsTotal(c.Request().Context(), filter)
+		total, err := ctrl.repo.FinishedJobsTotal(c.Request().Context(), filter)
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -569,9 +569,9 @@ func (jc *JobsController) FinishedJobsTotal() func(ctx echo.Context) error {
 	}
 }
 
-func (jc *JobsController) JobShow() func(ctx echo.Context) error {
+func (ctrl *JobsController) JobShow() func(ctx echo.Context) error {
 	return func(c echo.Context) error {
-		job, err := jc.queries.GetJobHistory(c.Request().Context(), c.Param("job_id"))
+		job, err := ctrl.queries.GetJobHistory(c.Request().Context(), c.Param("job_id"))
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,

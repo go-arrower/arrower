@@ -34,11 +34,10 @@ type LogsController struct {
 	logger   alog.Logger
 	settings setting.Settings
 	queries  *models.Queries
-	r        *echo.Group
 }
 
-// ShowLogs pattern issue: how to add route with and without trailing slash?
-func (lc *LogsController) ShowLogs() func(c echo.Context) error {
+// Index pattern issue: how to add route with and without trailing slash?
+func (ctrl *LogsController) Index() func(c echo.Context) error {
 	const defaultLogs = 1000
 
 	type logFilter struct {
@@ -64,6 +63,7 @@ func (lc *LogsController) ShowLogs() func(c echo.Context) error {
 		searchMsgParam := c.QueryParam("msg")
 
 		var filter logFilter
+
 		err := c.Bind(&filter)
 		if err != nil {
 			return c.String(http.StatusBadRequest, "bad request")
@@ -95,30 +95,35 @@ func (lc *LogsController) ShowLogs() func(c echo.Context) error {
 		if filter.K0 != "" {
 			queryParams.F0 = fmt.Sprintf(`$.**.%s ? (@ like_regex "^.*%s.*" flag "i")`, filter.K0, filter.F0)
 		}
+
 		if filter.K1 != "" {
 			queryParams.F1 = fmt.Sprintf(`$.**.%s ? (@ like_regex "^.*%s.*" flag "i")`, filter.K1, filter.F1)
 		}
+
 		if filter.K2 != "" {
 			queryParams.F2 = fmt.Sprintf(`$.**.%s ? (@ like_regex "^.*%s.*" flag "i")`, filter.K2, filter.F2)
 		}
 
-		rawLogs, _ := lc.queries.GetRecentLogs(c.Request().Context(), queryParams)
+		rawLogs, _ := ctrl.queries.GetRecentLogs(c.Request().Context(), queryParams)
 
 		var logs []logLine
-		for _, l := range rawLogs {
+
+		for _, line := range rawLogs {
 			var log logLine
 
-			_ = json.Unmarshal(l.Log, &log.Log)
-			log.Time = l.Time.Time
-			log.UserID = l.UserID.UUID.String()
-			if (uuid.NullUUID{}) == l.UserID { //nolint:exhaustruct // checking if user ID is empty
+			_ = json.Unmarshal(line.Log, &log.Log)
+
+			log.Time = line.Time.Time
+			log.UserID = line.UserID.UUID.String()
+
+			if (uuid.NullUUID{}) == line.UserID { //nolint:exhaustruct // checking if user ID is empty
 				log.UserID = ""
 			}
 
 			logs = append(logs, log)
 		}
 
-		settingLevel, err := lc.settings.Setting(c.Request().Context(), alog.SettingLogLevel)
+		settingLevel, err := ctrl.settings.Setting(c.Request().Context(), alog.SettingLogLevel)
 		if err != nil && !errors.Is(err, setting.ErrNotFound) {
 			return c.String(http.StatusBadRequest, err.Error()+" HIER")
 		}
@@ -130,7 +135,7 @@ func (lc *LogsController) ShowLogs() func(c echo.Context) error {
 			"Filter":    filter,
 			"Settings": map[string]any{
 				// !!! assumes all loggers in all replicas are configured the same
-				"Enabled": alog.Unwrap(lc.logger).UsesSettings(),
+				"Enabled": alog.Unwrap(ctrl.logger).UsesSettings(),
 				"Level":   getLevelName(slog.Level(settingLevel.MustInt())),
 			},
 		}
@@ -139,25 +144,25 @@ func (lc *LogsController) ShowLogs() func(c echo.Context) error {
 			vals["LastLogTime"] = time.Now()
 		}
 
-		return c.Render(http.StatusOK, "logs.show", vals)
+		return c.Render(http.StatusOK, "logs.index", vals)
 	}
 }
 
-func (lc *LogsController) SettingLogs() func(c echo.Context) error {
+func (ctrl *LogsController) Update() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		levelParam := c.QueryParam("level")
+		levelParam := c.FormValue("level")
 
 		level, err := strconv.Atoi(levelParam)
 		if err != nil {
-			return c.String(http.StatusBadRequest, err.Error())
+			return c.String(http.StatusBadRequest, err.Error()+" "+levelParam)
 		}
 
-		err = lc.settings.Save(c.Request().Context(), alog.SettingLogLevel, setting.NewValue(level))
+		err = ctrl.settings.Save(c.Request().Context(), alog.SettingLogLevel, setting.NewValue(level))
 		if err != nil {
 			return c.String(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "logs.show#level-setting", echo.Map{
+		return c.Render(http.StatusOK, "logs.index#level-setting", echo.Map{
 			"Level": getLevelName(slog.Level(level)),
 		})
 	}
