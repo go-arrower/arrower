@@ -2,7 +2,6 @@ package renderer
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -42,7 +41,6 @@ type TestRenderer struct {
 
 func (r *TestRenderer) Render(
 	t *testing.T,
-	ctx context.Context,
 	context string,
 	name string,
 	data interface{},
@@ -58,7 +56,7 @@ func (r *TestRenderer) Render(
 
 	buf := &bytes.Buffer{}
 
-	err := r.renderer.Render(ctx, buf, context, name, data)
+	err := r.renderer.Render(t.Context(), buf, context, name, data)
 	if err != nil {
 		return &RendererAssertions{}, err
 	}
