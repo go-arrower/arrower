@@ -11,9 +11,9 @@ jobs:
           go-version-file: "go.mod"
       - run: go version
       - name: Run linters
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.64.8
+          version: v2.8.0
           args: --timeout=5m
 
   security-scan:
