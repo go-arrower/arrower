@@ -83,7 +83,7 @@ func TestNewRenderer(t *testing.T) {
 		// Note: Could be its own regression test,
 		// but mixed with custom funcs as it was discovered here spares the boilerplate of an identical test.
 
-		t.Run("in component", func(t *testing.T) {
+		t.Run("in component", func(t *testing.T) { //nolint:paralleltest // see explanation above
 			buf := &bytes.Buffer{}
 			err := render.Render(ctx, buf, renderer.SharedViews, "#use-func-map", nil)
 
@@ -91,7 +91,7 @@ func TestNewRenderer(t *testing.T) {
 			assert.Equal(t, "hello custom func", buf.String())
 		})
 
-		t.Run("in page", func(t *testing.T) {
+		t.Run("in page", func(t *testing.T) { //nolint:paralleltest // see explanation above
 			buf := &bytes.Buffer{}
 			err := render.Render(ctx, buf, renderer.SharedViews, "use-func-map", nil)
 

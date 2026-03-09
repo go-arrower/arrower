@@ -71,7 +71,7 @@ func TestNewHotReloadServer(t *testing.T) {
 
 		defer ws.Close()
 
-		t.Run("reload on view file change", func(t *testing.T) {
+		t.Run("reload on view file change", func(t *testing.T) { //nolint:paralleltest
 			ch <- "some.html"
 
 			msg := ""
@@ -80,7 +80,7 @@ func TestNewHotReloadServer(t *testing.T) {
 			assert.Equal(t, internal.ReloadCmd, msg)
 		})
 
-		t.Run("refresh css only", func(t *testing.T) {
+		t.Run("refresh css only", func(t *testing.T) { //nolint:paralleltest
 			ch <- "some.css"
 
 			msg := ""

@@ -165,8 +165,6 @@ func (p pgxTraceAdapter) TracePrepareEnd(ctx context.Context, _ *pgx.Conn, data 
 			))
 		}
 	}
-
-	return
 }
 
 //nolint:spancheck // span is closed in TraceConnectEnd. No memory leak

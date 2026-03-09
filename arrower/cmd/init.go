@@ -162,6 +162,7 @@ func newInitCommand() *cobra.Command {
 			err = errors.Join(err, cp("tests/e2e/cypress/e2e/status.cy.js"))
 			err = errors.Join(err, cp("tests/e2e/cypress/support/commands.js"))
 			err = errors.Join(err, cp("tests/e2e/cypress/support/e2e.js"))
+			// check if any command failed
 			if err != nil {
 				red(cmd.OutOrStdout(), "Failed to initialise project! Could not copy Arrower")
 
@@ -199,6 +200,7 @@ func newInitCommand() *cobra.Command {
 			acmd.Stdout = cmd.OutOrStdout()
 			acmd.Stderr = cmd.OutOrStderr()
 			err = errors.Join(err, acmd.Run())
+			// check if any command failed
 			if err != nil {
 				red(cmd.OutOrStdout(), "Failed to initialise project! Could not finish initialisation")
 
@@ -250,5 +252,10 @@ func cp(src string) error {
 		return fmt.Errorf("failed to read template file %q: %w", src, err)
 	}
 
-	return os.WriteFile(path.Join(".", src), source, filePerm)
+	err = os.WriteFile(path.Join(".", src), source, filePerm)
+	if err != nil {
+		return fmt.Errorf("failed to copy file %q: %w", src, err)
+	}
+
+	return nil
 }

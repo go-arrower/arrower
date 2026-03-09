@@ -149,7 +149,7 @@ func TestUserController_Login(t *testing.T) {
 		assert.Equal(t, "arrower.auth.known_device", result.Cookies()[1].Name)
 		assert.Equal(t, http.SameSiteStrictMode, result.Cookies()[1].SameSite)
 
-		t.Run("known device succeeds login", func(t *testing.T) {
+		t.Run("known device succeeds login", func(t *testing.T) { //nolint:paralleltest // depends on cookies from previous test
 			req := httptest.NewRequest(http.MethodPost, "/", loginPostPayload())
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.AddCookie(result.Cookies()[1])
