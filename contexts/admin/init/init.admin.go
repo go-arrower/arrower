@@ -22,6 +22,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/web"
 	"github.com/go-arrower/arrower/contexts/admin/internal/views"
+	"github.com/go-arrower/arrower/setting"
 )
 
 const contextName = "admin"
@@ -32,7 +33,7 @@ func NewAdminContext(ctx context.Context, di *arrower.Container) (*AdminContext,
 		return nil, fmt.Errorf("missing dependencies to initialise context admin: %w", err)
 	}
 
-	admin, err := setupAdminContext(di)
+	admin, err := setupAdminContext(ctx, di)
 	if err != nil {
 		return nil, fmt.Errorf("could not initialise context admin: %w", err)
 	}
@@ -86,12 +87,23 @@ func ensureRequiredDependencies(di *arrower.Container) error {
 	return nil
 }
 
-func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
+func setupAdminContext(ctx context.Context, di *arrower.Container) (*AdminContext, error) {
 	logger := di.Logger.With(slog.String("context", contextName))
 
 	jobRepository := repository.NewPostgresJobsRepository(di.PGx)
 
 	appDI := setupApplication(di, jobRepository)
+
+	err := di.Settings.Register(ctx, map[setting.Key]any{
+		application.SettingAutomaticallyPruneJobHistory: application.PruneJobHistoryCronSetting{
+			PruneHistoryEntriesValue: 1_000_000,
+			PruneHistoryAgeValue:     30,
+			PruneHistorySizeValue:    1,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("could not register settings: %w", err)
+	}
 
 	admin := &AdminContext{
 		shared: di,
@@ -99,7 +111,7 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 
 		jobRepository: jobRepository,
 
-		jobsController:     web.NewJobsController(logger, appDI, jobRepository, models.New(di.PGx)),
+		jobsController:     web.NewJobsController(logger, di.Settings, appDI, jobRepository, models.New(di.PGx)),
 		routesController:   web.NewRoutesController(di.WebRouter),
 		settingsController: web.NewSettingsController(),
 		logsController: web.NewLogsController(
@@ -132,7 +144,8 @@ func setupAdminContext(di *arrower.Container) (*AdminContext, error) {
 		}
 	}
 
-	registerAdminRoutes(admin)
+	admin.registerJobs()
+	admin.registerAdminRoutes()
 
 	return admin, nil
 }

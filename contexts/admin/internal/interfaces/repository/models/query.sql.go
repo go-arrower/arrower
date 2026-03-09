@@ -204,7 +204,7 @@ const getPendingJobs = `-- name: GetPendingJobs :many
 SELECT job_id, priority, run_at, job_type, args, error_count, last_error, queue, created_at, updated_at
 FROM arrower.gue_jobs
 WHERE queue = $1
-ORDER BY run_at,priority ASC
+ORDER BY run_at, priority ASC
 LIMIT 100
 `
 
@@ -269,7 +269,8 @@ func (q *Queries) GetQueues(ctx context.Context) ([]string, error) {
 }
 
 const getSchedules = `-- name: GetSchedules :many
-SELECT queue, spec, job_type, args, created_at, updated_at FROM arrower.gue_jobs_schedule
+SELECT queue, spec, job_type, args, created_at, updated_at
+FROM arrower.gue_jobs_schedule
 WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, spec, job_type, args
 `
@@ -672,6 +673,45 @@ func (q *Queries) TotalFinishedJobsByQueueAndType(ctx context.Context, arg Total
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const truncateHistoryEntries = `-- name: TruncateHistoryEntries :exec
+WITH cutoff AS (SELECT created_at
+                FROM arrower.gue_jobs_history
+                WHERE finished_at IS NOT NULL
+                ORDER BY created_at DESC
+                OFFSET $1 LIMIT 1)
+DELETE
+FROM arrower.gue_jobs_history
+WHERE finished_at IS NOT NULL
+  AND created_at <= (SELECT created_at FROM cutoff)
+`
+
+func (q *Queries) TruncateHistoryEntries(ctx context.Context, offset int32) error {
+	_, err := q.db.Exec(ctx, truncateHistoryEntries, offset)
+	return err
+}
+
+const truncateHistorySize = `-- name: TruncateHistorySize :exec
+WITH cutoff AS (SELECT created_at
+                FROM arrower.gue_jobs_history
+                WHERE finished_at IS NOT NULL
+                ORDER BY created_at DESC
+                OFFSET (SELECT FLOOR(
+                                       $1::INTEGER / pg_total_relation_size('arrower.gue_jobs_history')
+                                           * COUNT(*) * 0.9
+                               )::BIGINT
+                        FROM arrower.gue_jobs_history
+                        WHERE finished_at IS NOT NULL) LIMIT 1)
+DELETE
+FROM arrower.gue_jobs_history
+WHERE finished_at IS NOT NULL
+  AND created_at <= (SELECT created_at FROM cutoff)
+`
+
+func (q *Queries) TruncateHistorySize(ctx context.Context, dollar_1 int32) error {
+	_, err := q.db.Exec(ctx, truncateHistorySize, dollar_1)
+	return err
 }
 
 const updateRunAt = `-- name: UpdateRunAt :exec

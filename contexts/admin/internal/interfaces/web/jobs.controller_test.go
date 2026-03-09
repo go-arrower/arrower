@@ -27,7 +27,7 @@ func TestJobsController_Index(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{ListAllQueues: app.TestSuccessQueryHandler[application.ListAllQueuesQuery, application.ListAllQueuesResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{ListAllQueues: app.TestSuccessQueryHandler[application.ListAllQueuesQuery, application.ListAllQueuesResponse]()}, nil, nil)
 
 		if assert.NoError(t, handler.Index()(c)) {
 			assert.Equal(t, http.StatusOK, rec.Code)
@@ -40,7 +40,7 @@ func TestJobsController_Index(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{ListAllQueues: app.TestFailureQueryHandler[application.ListAllQueuesQuery, application.ListAllQueuesResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{ListAllQueues: app.TestFailureQueryHandler[application.ListAllQueuesQuery, application.ListAllQueuesResponse]()}, nil, nil)
 
 		assert.Error(t, handler.Index()(c))
 	})
@@ -58,7 +58,7 @@ func TestJobsController_ShowQueue(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{GetQueue: app.TestSuccessQueryHandler[application.GetQueueQuery, application.GetQueueResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{GetQueue: app.TestSuccessQueryHandler[application.GetQueueQuery, application.GetQueueResponse]()}, nil, nil)
 
 		if assert.NoError(t, handler.ShowQueue()(c)) {
 			assert.Equal(t, http.StatusOK, rec.Code)
@@ -71,7 +71,7 @@ func TestJobsController_ShowQueue(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{GetQueue: app.TestFailureQueryHandler[application.GetQueueQuery, application.GetQueueResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{GetQueue: app.TestFailureQueryHandler[application.GetQueueQuery, application.GetQueueResponse]()}, nil, nil)
 
 		assert.Error(t, handler.ShowQueue()(c))
 	})
@@ -89,7 +89,7 @@ func TestJobsController_ListWorkers(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{GetWorkers: app.TestSuccessQueryHandler[application.GetWorkersQuery, application.GetWorkersResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{GetWorkers: app.TestSuccessQueryHandler[application.GetWorkersQuery, application.GetWorkersResponse]()}, nil, nil)
 
 		if assert.NoError(t, handler.ListWorkers()(c)) {
 			assert.Equal(t, http.StatusOK, rec.Code)
@@ -102,7 +102,7 @@ func TestJobsController_ListWorkers(t *testing.T) { //nolint:dupl
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(req, rec)
 
-		handler := web.NewJobsController(nil, application.App{GetWorkers: app.TestFailureQueryHandler[application.GetWorkersQuery, application.GetWorkersResponse]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{GetWorkers: app.TestFailureQueryHandler[application.GetWorkersQuery, application.GetWorkersResponse]()}, nil, nil)
 
 		assert.Error(t, handler.ListWorkers()(c))
 	})
@@ -124,7 +124,7 @@ func TestJobsController_DeleteJob(t *testing.T) {
 		c.SetParamNames("queue", "job_id")
 		c.SetParamValues("Default", "1337")
 
-		handler := web.NewJobsController(nil, application.App{DeleteJob: app.TestSuccessCommandHandler[application.DeleteJobCommand]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{DeleteJob: app.TestSuccessCommandHandler[application.DeleteJobCommand]()}, nil, nil)
 
 		if assert.NoError(t, handler.DeleteJob()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
@@ -142,7 +142,7 @@ func TestJobsController_DeleteJob(t *testing.T) {
 		c.SetParamNames("queue", "job_id")
 		c.SetParamValues("Default", "1337")
 
-		handler := web.NewJobsController(nil, application.App{DeleteJob: app.TestFailureCommandHandler[application.DeleteJobCommand]()}, nil, nil)
+		handler := web.NewJobsController(nil, nil, application.App{DeleteJob: app.TestFailureCommandHandler[application.DeleteJobCommand]()}, nil, nil)
 
 		if assert.NoError(t, handler.DeleteJob()(c)) {
 			assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -169,7 +169,7 @@ func TestJobsController_DeleteHistory(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(validRequest, rec)
 
-		handler := web.NewJobsController(nil, application.App{
+		handler := web.NewJobsController(nil, nil, application.App{
 			PruneJobHistory: app.TestSuccessRequestHandler[application.PruneJobHistoryRequest, application.PruneJobHistoryResponse](),
 		}, nil, nil)
 
@@ -187,7 +187,7 @@ func TestJobsController_DeleteHistory(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := echoRouter.NewContext(validRequest, rec)
 
-		handler := web.NewJobsController(nil, application.App{
+		handler := web.NewJobsController(nil, nil, application.App{
 			PruneJobHistory: app.TestFailureRequestHandler[application.PruneJobHistoryRequest, application.PruneJobHistoryResponse](),
 		}, nil, nil)
 

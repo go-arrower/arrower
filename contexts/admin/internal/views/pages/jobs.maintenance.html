@@ -182,7 +182,7 @@
         hx-post="{{ route "admin.jobs.history.prune" }}"
         hx-confirm="This operation deletes data and can take long. Proceed?"
       >
-        queue's payload older than
+        queue history payload older than
       </span>
       <select
         id="prune-history-by-days"
@@ -215,7 +215,7 @@
         />
       </svg>
       <span
-        class="text-xs"
+        class="text-xs text-gray-500 italic"
         hx-get="{{ route "admin.jobs.history.payload-size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, input from:#prune-history-by-days, input from:#prune-history-by-queue, arrower:admin.jobs.history.deleted from:body"
@@ -226,7 +226,7 @@
 
   <div class="mt-8 space-y-2">
     <div
-      class="flex hover:text-error"
+      class="flex hover:text-error items-center"
       hx-select-oob="#table-size"
       hx-swap="none"
       hx-include="this"
@@ -284,7 +284,7 @@
         />
       </svg>
       <span
-        class="text-xs"
+        class="text-xs text-gray-500 italic"
         hx-get="{{ route "admin.jobs.history.size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, input from:#delete-history-by-days, arrower:admin.jobs.history.deleted from:body"
@@ -292,7 +292,7 @@
       </span>
     </div>
     <div
-      class="flex hover:text-error"
+      class="flex hover:text-error items-center"
       hx-select-oob="#table-size"
       hx-swap="none"
       hx-include="this"
@@ -338,7 +338,7 @@
         />
       </svg>
       <span
-        class="text-xs"
+        class="text-xs text-gray-500 italic"
         hx-get="{{ route "admin.jobs.history.size" }}"
         hx-swap="innerHTML"
         hx-trigger="load, arrower:admin.jobs.history.deleted from:body"
@@ -346,68 +346,73 @@
       </span>
     </div>
   </div>
+
+  <div class="mt-8 space-y-2">
+    <!-- FF needs autocomplete="off" for checked to work, see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input/checkbox, https://stackoverflow.com/questions/5985839/bug-with-firefox-disabled-attribute-of-input-not-resetting-when-refreshing  -->
+    <form autocomplete="off"
+          hx-trigger="change"
+          hx-post="{{ route "admin.jobs.cron" }}"
+    >
+      <fieldset class="space-y-2">
+        <legend class="flex gap-2">
+            Automatically scheduled
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <title>Runs at night, only!</title>
+                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+        </legend>
+
+        <div class="flex items-center gap-2">
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input type="checkbox" name="prune_history_entries" value="true" class="peer sr-only" {{ if .Cron.PruneHistoryEntries }}checked{{end}}/>
+            <span
+                    class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
+            ></span>
+            <span class="ml-2">Prune history larger than</span>
+          </label>
+
+          <label class="inline-flex items-center gap-2">
+            <input type="number" name="prune_history_entries_value" value="{{ .Cron.PruneHistoryEntriesValue }}"
+                   min="1"
+                   class="inline border-0 py-0 focus:ring-0 w-32" />
+            <span>Jobs</span>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input type="checkbox" name="prune_history_age" value="true" class="peer sr-only" {{ if .Cron.PruneHistoryAge }}checked{{end}}/>
+            <span
+                    class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
+            ></span>
+            <span class="ml-2">Prune history older than</span>
+          </label>
+
+          <label class="inline-flex items-center gap-2">
+            <input type="number" name="prune_history_age_value" value="{{ .Cron.PruneHistoryAgeValue }}"
+                   min="1"
+                   class="inline border-0 py-0 focus:ring-0 w-32" />
+            Days
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input type="checkbox" name="prune_history_size" value="true" class="peer sr-only" {{ if .Cron.PruneHistorySize }}checked{{end}}/>
+            <span
+                    class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
+            ></span>
+            <span class="ml-2">Prune history larger than</span>
+          </label>
+          <label class="inline-flex items-center gap-2">
+            <input type="number" name="prune_history_size_value" value="{{ .Cron.PruneHistorySizeValue }}"
+                   min="1"
+                   class="inline border-0 py-0 focus:ring-0 w-32" />
+            GB
+          </label>
+        </div>
+      </fieldset>
+    </form>
+  </div>
 </div>
 
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
-
-<hr />
-
-<!-- FF needs autocomplete="off" for checked to work, see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input/checkbox, https://stackoverflow.com/questions/5985839/bug-with-firefox-disabled-attribute-of-input-not-resetting-when-refreshing  -->
-<form autocomplete="off">
-  <fieldset>
-    <legend>Automatically scheduled</legend>
-
-    <div class="ml-4 flex p-1">
-      <label class="relative mb-4 inline-flex cursor-pointer items-center">
-        <input type="checkbox" value="" class="peer sr-only" />
-        <span
-          class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
-        ></span>
-        <span class="ml-3">Prune history larger than</span>
-      </label>
-      <label class="">
-        <input type="number" value="1000000" />
-        Jobs
-      </label>
-    </div>
-
-    <div class="ml-4 flex p-1">
-      <label class="relative mb-4 inline-flex cursor-pointer items-center">
-        <input type="checkbox" value="" class="peer sr-only" />
-        <span
-          class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
-        ></span>
-        <span class="ml-3">Prune history older than</span>
-      </label>
-      <label class="">
-        <input type="number" value="30" />
-        Days
-      </label>
-    </div>
-
-    <div class="ml-4 flex p-1">
-      <label class="relative mb-4 inline-flex cursor-pointer items-center">
-        <input type="checkbox" value="" class="peer sr-only" checked />
-        <span
-          class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-0.5 after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:ring-4 peer-focus:ring-blue-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-blue-800"
-        ></span>
-        <span class="ml-3">Prune history larger than</span>
-      </label>
-      <label class="">
-        <input type="number" value="1" />
-        GB
-      </label>
-    </div>
-  </fieldset>
-</form>

@@ -29,6 +29,7 @@ WHERE created_at <= $1;
 DELETE
 FROM arrower.gue_jobs_history
 WHERE created_at <= $1;
+VACUUM arrower.gue_jobs_history;
 
 -- name: JobHistoryPayloadSize :one
 SELECT COALESCE(pg_size_pretty(SUM(pg_column_size(arrower.gue_jobs_history.args))), '')
@@ -67,7 +68,7 @@ ORDER BY queue;
 SELECT *
 FROM arrower.gue_jobs
 WHERE queue = $1
-ORDER BY run_at,priority ASC
+ORDER BY run_at, priority ASC
 LIMIT 100;
 
 -- name: GetFinishedJobs :many
@@ -156,7 +157,8 @@ ON CONFLICT (id, queue) DO UPDATE SET updated_at = STATEMENT_TIMESTAMP(),
                                       workers    = $3;
 
 -- name: GetSchedules :many
-SELECT * FROM arrower.gue_jobs_schedule
+SELECT *
+FROM arrower.gue_jobs_schedule
 WHERE updated_at > NOW() - INTERVAL '2 minutes'
 ORDER BY queue, spec, job_type, args;
 
@@ -183,3 +185,32 @@ SELECT *
 FROM arrower.gue_jobs_history
 WHERE job_id = $1
 ORDER BY created_at DESC;
+
+-- name: TruncateHistoryEntries :exec
+WITH cutoff AS (SELECT created_at
+                FROM arrower.gue_jobs_history
+                WHERE finished_at IS NOT NULL
+                ORDER BY created_at DESC
+                OFFSET $1 LIMIT 1)
+DELETE
+FROM arrower.gue_jobs_history
+WHERE finished_at IS NOT NULL
+  AND created_at <= (SELECT created_at FROM cutoff);
+VACUUM arrower.gue_jobs_history;
+
+-- name: TruncateHistorySize :exec
+WITH cutoff AS (SELECT created_at
+                FROM arrower.gue_jobs_history
+                WHERE finished_at IS NOT NULL
+                ORDER BY created_at DESC
+                OFFSET (SELECT FLOOR(
+                                       $1::INTEGER / pg_total_relation_size('arrower.gue_jobs_history')
+                                           * COUNT(*) * 0.9
+                               )::BIGINT
+                        FROM arrower.gue_jobs_history
+                        WHERE finished_at IS NOT NULL) LIMIT 1)
+DELETE
+FROM arrower.gue_jobs_history
+WHERE finished_at IS NOT NULL
+  AND created_at <= (SELECT created_at FROM cutoff);
+VACUUM FULL arrower.gue_jobs_history;

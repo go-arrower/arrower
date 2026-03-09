@@ -16,6 +16,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/admin/internal/views/pages"
+	"github.com/go-arrower/arrower/setting"
 )
 
 const (
@@ -32,20 +33,23 @@ const (
 
 func NewJobsController(
 	logger alog.Logger,
+	settings setting.Settings,
 	appDI application.App,
 	repo jobs.Repository,
 	queries *models.Queries,
 ) *JobsController {
 	return &JobsController{
-		logger:  logger,
-		appDI:   appDI,
-		repo:    repo,
-		queries: queries,
+		logger:   logger,
+		settings: settings,
+		appDI:    appDI,
+		repo:     repo,
+		queries:  queries,
 	}
 }
 
 type JobsController struct {
-	logger alog.Logger
+	logger   alog.Logger
+	settings setting.Settings
 
 	appDI   application.App
 	repo    jobs.Repository
@@ -252,7 +256,25 @@ func (ctrl *JobsController) ShowMaintenance() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		size, _ := ctrl.queries.JobTableSize(c.Request().Context())
 
-		res, _ := ctrl.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{}) // fixme: don't call existing use case, create own or call domain model
+		// fixme: don't call existing use case, create own or call domain model
+		res, _ := ctrl.appDI.ListAllQueues.H(c.Request().Context(), application.ListAllQueuesQuery{})
+
+		val, err := ctrl.settings.Setting(c.Request().Context(), application.SettingAutomaticallyPruneJobHistory)
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not get cron settings").
+				WithInternal(err)
+		}
+
+		settings := application.PruneJobHistoryCronSetting{}
+		err = val.Unmarshal(&settings)
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not parse cron settings").
+				WithInternal(err)
+		}
 
 		var queues []string
 
@@ -271,6 +293,7 @@ func (ctrl *JobsController) ShowMaintenance() func(c echo.Context) error {
 				"Jobs":    size.Jobs,
 				"History": size.History,
 				"Queues":  queues,
+				"Cron":    settings,
 			},
 		)
 	}
@@ -384,6 +407,37 @@ func (ctrl *JobsController) EstimateHistoryPayloadSize() func(echo.Context) erro
 		}
 
 		return c.String(http.StatusOK, fmtSize)
+	}
+}
+
+func (ctrl *JobsController) UpdateCron() func(c echo.Context) error {
+	return func(c echo.Context) error {
+		settings := application.PruneJobHistoryCronSetting{}
+		err := c.Bind(&settings)
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not parse settings").
+				WithInternal(err)
+		}
+
+		err = c.Validate(&settings)
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusBadRequest,
+				"could not validate settings").
+				WithInternal(err)
+		}
+
+		err = ctrl.settings.Save(c.Request().Context(), application.SettingAutomaticallyPruneJobHistory, settings)
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusInternalServerError,
+				"could not save settings").
+				WithInternal(err)
+		}
+
+		return c.NoContent(http.StatusNoContent)
 	}
 }
 
