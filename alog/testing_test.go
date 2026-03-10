@@ -42,7 +42,7 @@ func TestTest(t *testing.T) {
 
 		logger := alog.Test(t)
 
-		logger.DebugContext(context.Background(), "msg 0")
+		logger.DebugContext(t.Context(), "msg 0")
 
 		simulateComponentWorkingWithLogger(logger)
 
@@ -60,8 +60,8 @@ func TestTestLogger_Lines(t *testing.T) {
 	t.Parallel()
 
 	logger := alog.Test(t)
-	logger.DebugContext(ctx, "line 0")
-	logger.DebugContext(ctx, "line 1")
+	logger.DebugContext(t.Context(), "line 0")
+	logger.DebugContext(t.Context(), "line 1")
 
 	assert.Len(t, logger.Lines(), 2)
 	assert.Contains(t, logger.Lines()[0], `level=DEBUG msg="line 0"`)
@@ -206,7 +206,7 @@ func TestTestLogger_Concurrent(t *testing.T) {
 	t.Run("concurrent", func(t *testing.T) {
 		t.Parallel()
 
-		logger.DebugContext(ctx, "debug msg")
+		logger.DebugContext(t.Context(), "debug msg")
 	})
 
 	t.Run("concurrent", func(t *testing.T) {

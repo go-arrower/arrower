@@ -16,7 +16,7 @@ func TestAuthenticationService_Authenticate(t *testing.T) {
 
 		authenticator := domain.NewAuthenticationService(settingsService(false))
 
-		auth := authenticator.Authenticate(ctx, newVerifiedUser(), rawPassword)
+		auth := authenticator.Authenticate(t.Context(), newVerifiedUser(), rawPassword)
 		assert.False(t, auth)
 	})
 
@@ -25,7 +25,7 @@ func TestAuthenticationService_Authenticate(t *testing.T) {
 
 		authenticator := domain.NewAuthenticationService(settingsService(true))
 
-		auth := authenticator.Authenticate(ctx, newUser(), "")
+		auth := authenticator.Authenticate(t.Context(), newUser(), "")
 		assert.False(t, auth)
 	})
 
@@ -36,7 +36,7 @@ func TestAuthenticationService_Authenticate(t *testing.T) {
 		usr.Blocked = domain.BoolFlag{}.SetTrue()
 		authenticator := domain.NewAuthenticationService(settingsService(true))
 
-		auth := authenticator.Authenticate(ctx, usr, "")
+		auth := authenticator.Authenticate(t.Context(), usr, "")
 		assert.False(t, auth)
 	})
 
@@ -45,7 +45,7 @@ func TestAuthenticationService_Authenticate(t *testing.T) {
 
 		authenticator := domain.NewAuthenticationService(settingsService(true))
 
-		auth := authenticator.Authenticate(ctx, newVerifiedUser(), "wrong-password")
+		auth := authenticator.Authenticate(t.Context(), newVerifiedUser(), "wrong-password")
 		assert.False(t, auth)
 	})
 
@@ -54,7 +54,7 @@ func TestAuthenticationService_Authenticate(t *testing.T) {
 
 		authenticator := domain.NewAuthenticationService(settingsService(true))
 
-		auth := authenticator.Authenticate(ctx, newVerifiedUser(), rawPassword)
+		auth := authenticator.Authenticate(t.Context(), newVerifiedUser(), rawPassword)
 		assert.True(t, auth)
 	})
 }

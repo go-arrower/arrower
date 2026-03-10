@@ -13,8 +13,6 @@ import (
 	"go.opentelemetry.io/otel/trace/embedded"
 )
 
-var ctx = context.Background()
-
 const (
 	applicationMsg = "application message"
 )

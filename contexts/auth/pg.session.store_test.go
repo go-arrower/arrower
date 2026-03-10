@@ -21,10 +21,7 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var (
-	ctx       = context.Background()
-	pgHandler *tests.PostgresDocker
-)
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
 	pgHandler = tests.GetPostgresDockerForIntegrationTestingInstance()
@@ -96,7 +93,7 @@ func TestPGSessionStore_New(t *testing.T) {
 
 		req.AddCookie(result.Cookies()[0]) // set cookie of existing session for next http call
 
-		err = queries.DeleteSessionByKey(ctx, []byte(sess0.ID))
+		err = queries.DeleteSessionByKey(t.Context(), []byte(sess0.ID))
 		assert.NoError(t, err)
 
 		// test
@@ -131,7 +128,7 @@ func TestPGSessionStore_Save(t *testing.T) {
 
 		// assert db entry
 		queries := models.New(pg)
-		sessions, _ := queries.AllSessions(ctx)
+		sessions, _ := queries.AllSessions(t.Context())
 		assert.Len(t, sessions, 1, "session with MaxAge 0, is deleted by browser on close")
 	})
 }
@@ -167,7 +164,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 
 		// assert db entry
 		queries := models.New(pg)
-		sessions, _ := queries.AllSessions(ctx)
+		sessions, _ := queries.AllSessions(t.Context())
 
 		assert.Len(t, sessions, 1)
 		// cookie and session expire at the same time, allow 1 second of diff to make sure different granulates
@@ -192,7 +189,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 
 		// assert db entry
 		queries := models.New(pg)
-		sessions, _ := queries.AllSessions(ctx)
+		sessions, _ := queries.AllSessions(t.Context())
 
 		assert.Len(t, sessions, 1)
 		assert.NotEmpty(t, sessions[0].UserID)
@@ -219,7 +216,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 
 		// assert db entry
 		queries := models.New(pg)
-		sessions, _ := queries.AllSessions(ctx)
+		sessions, _ := queries.AllSessions(t.Context())
 
 		assert.Empty(t, sessions)
 	})
@@ -303,7 +300,7 @@ func newTestRouter(pg *pgxpool.Pool) *echo.Echo {
 	})
 
 	// seed db with example user
-	_, _ = pg.Exec(ctx, `INSERT INTO auth.user (id, login) VALUES ($1, $2);`, userID, "login")
+	_, _ = pg.Exec(context.Background(), `INSERT INTO auth.user (id, login) VALUES ($1, $2);`, userID, "login")
 
 	return echoRouter
 }

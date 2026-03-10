@@ -20,7 +20,6 @@ import (
 var (
 	errUseCaseFailed = errors.New("usecase failed")
 	pgHandler        *tests.PostgresDocker
-	ctx              = context.Background()
 )
 
 func TestMain(m *testing.M) {
@@ -52,10 +51,10 @@ func TestRequestTxDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		_, err := handler.H(ctx, request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
-		_, err = pgHandler.Query(ctx, `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
+		_, err = pgHandler.Query(t.Context(), `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
 		assert.NoError(t, err, "table should exist")
 	})
 
@@ -74,10 +73,10 @@ func TestRequestTxDecorator_H(t *testing.T) {
 			return response{}, errUseCaseFailed
 		}))
 
-		_, err := handler.H(ctx, request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
-		_, err = pgHandler.Query(ctx, `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
+		_, err = pgHandler.Query(t.Context(), `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
 		assert.Error(t, err, "table should not exist, as tx is rolled back")
 	})
 
@@ -85,7 +84,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 		t.Parallel()
 
 		pgHandler := pgHandler.NewTestDatabase()
-		_, err := pgHandler.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
+		_, err := pgHandler.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
 		assert.NoError(t, err)
 
 		handler := app.NewTxRequest(pgHandler, app.TestRequestHandler(func(ctx context.Context, req request) (response, error) {
@@ -103,14 +102,14 @@ func TestRequestTxDecorator_H(t *testing.T) {
 				return response{}, nil
 			}))
 
-			return innerHandler.H(ctx, req)
+			return innerHandler.H(t.Context(), req)
 		}))
 
-		_, err = handler.H(ctx, request{})
+		_, err = handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
+		err = pgxscan.Select(t.Context(), pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 2)
 	})
@@ -119,7 +118,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 		t.Parallel()
 
 		pgHandler := pgHandler.NewTestDatabase()
-		_, err := pgHandler.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
+		_, err := pgHandler.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
 		assert.NoError(t, err)
 
 		handler := app.NewTxRequest(pgHandler, app.TestRequestHandler(func(ctx context.Context, req request) (response, error) {
@@ -137,16 +136,16 @@ func TestRequestTxDecorator_H(t *testing.T) {
 				return response{}, errUseCaseFailed
 			}))
 
-			_, _ = innerHandler.H(ctx, req)
+			_, _ = innerHandler.H(t.Context(), req)
 
 			return response{}, nil
 		}))
 
-		_, err = handler.H(ctx, request{})
+		_, err = handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
+		err = pgxscan.Select(t.Context(), pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 1)
 	})
@@ -170,10 +169,10 @@ func TestCommandTxDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(ctx, command{})
+		err := handler.H(t.Context(), command{})
 		assert.NoError(t, err)
 
-		_, err = pgHandler.Query(ctx, `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
+		_, err = pgHandler.Query(t.Context(), `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
 		assert.NoError(t, err, "table should exist")
 	})
 
@@ -192,10 +191,10 @@ func TestCommandTxDecorator_H(t *testing.T) {
 			return errUseCaseFailed
 		}))
 
-		err := handler.H(ctx, command{})
+		err := handler.H(t.Context(), command{})
 		assert.Error(t, err)
 
-		_, err = pgHandler.Query(ctx, `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
+		_, err = pgHandler.Query(t.Context(), `SELECT * FROM some_table;`) //nolint:sqlclosecheck // ignore connection pool exhaustion
 		assert.Error(t, err, "table should not exist, as tx is rolled back")
 	})
 
@@ -203,7 +202,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 		t.Parallel()
 
 		pgHandler := pgHandler.NewTestDatabase()
-		_, err := pgHandler.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
+		_, err := pgHandler.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
 		assert.NoError(t, err)
 
 		handler := app.NewTxCommand(pgHandler, app.TestCommandHandler(func(ctx context.Context, cmd command) error {
@@ -221,14 +220,14 @@ func TestCommandTxDecorator_H(t *testing.T) {
 				return nil
 			}))
 
-			return innerHandler.H(ctx, cmd)
+			return innerHandler.H(t.Context(), cmd)
 		}))
 
-		err = handler.H(ctx, command{})
+		err = handler.H(t.Context(), command{})
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
+		err = pgxscan.Select(t.Context(), pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 2)
 	})
@@ -237,7 +236,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 		t.Parallel()
 
 		pgHandler := pgHandler.NewTestDatabase()
-		_, err := pgHandler.Exec(ctx, `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
+		_, err := pgHandler.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS some_table(id SERIAL PRIMARY KEY);`)
 		assert.NoError(t, err)
 
 		handler := app.NewTxCommand(pgHandler, app.TestCommandHandler(func(ctx context.Context, cmd command) error {
@@ -255,16 +254,16 @@ func TestCommandTxDecorator_H(t *testing.T) {
 				return errUseCaseFailed
 			}))
 
-			_ = innerHandler.H(ctx, cmd)
+			_ = innerHandler.H(t.Context(), cmd)
 
 			return nil
 		}))
 
-		err = handler.H(ctx, command{})
+		err = handler.H(t.Context(), command{})
 		assert.NoError(t, err)
 
 		var ids []int
-		err = pgxscan.Select(ctx, pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
+		err = pgxscan.Select(t.Context(), pgHandler, &ids, `SELECT * FROM some_table;`) //nolint:wsl_v5
 		assert.NoError(t, err, "table should exist")
 		assert.Len(t, ids, 1)
 	})

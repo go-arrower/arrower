@@ -1,7 +1,6 @@
 package arepo_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -12,8 +11,6 @@ import (
 )
 
 var errStoreFailed = errors.New("store failed")
-
-var ctx = context.Background()
 
 type (
 	TenantID string

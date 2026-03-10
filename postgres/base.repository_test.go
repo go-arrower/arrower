@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 func TestBaseRepository(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("use base repository connection", func(t *testing.T) {
 		t.Parallel()
@@ -69,7 +69,7 @@ func TestBaseRepository(t *testing.T) {
 		t.Parallel()
 
 		repo := postgres.NewPostgresBaseRepository(models.New(pgHandler.PGx()))
-		ctx := context.Background()
+		ctx := t.Context()
 
 		tx, err := pgHandler.PGx().Begin(ctx)
 		assert.NoError(t, err)

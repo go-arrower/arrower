@@ -32,8 +32,8 @@ func TestTestQueue_Jobs(t *testing.T) {
 	t.Parallel()
 
 	jq := jobs.Test(t)
-	_ = jq.Enqueue(ctx, simpleJob{})
-	_ = jq.Enqueue(ctx, simpleJob{})
+	_ = jq.Enqueue(t.Context(), simpleJob{})
+	_ = jq.Enqueue(t.Context(), simpleJob{})
 
 	assert.Len(t, jq.Jobs(), 2)
 }
@@ -53,7 +53,7 @@ func TestTestQueue_GetFirst(t *testing.T) {
 		t.Parallel()
 
 		jq := jobs.Test(t)
-		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: gofakeit.Name()}})
+		_ = jq.Enqueue(t.Context(), []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: gofakeit.Name()}})
 
 		j := jq.GetFirst().(jobWithArgs)
 		assert.Equal(t, argName, j.Name)
@@ -76,7 +76,7 @@ func TestTestQueue_Get(t *testing.T) {
 		t.Parallel()
 
 		jq := jobs.Test(t)
-		_ = jq.Enqueue(ctx, []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
+		_ = jq.Enqueue(t.Context(), []jobs.Job{jobWithArgs{Name: argName}, jobWithArgs{Name: "otherName"}})
 
 		j := jq.Get(2).(jobWithArgs)
 		assert.Equal(t, "otherName", j.Name)
@@ -99,7 +99,7 @@ func TestTestQueue_GetFirstOf(t *testing.T) {
 		t.Parallel()
 
 		jq := jobs.Test(t)
-		_ = jq.Enqueue(ctx, []jobs.Job{simpleJob{}, jobWithArgs{Name: argName}})
+		_ = jq.Enqueue(t.Context(), []jobs.Job{simpleJob{}, jobWithArgs{Name: argName}})
 
 		j := jq.GetFirstOf(jobWithArgs{}).(jobWithArgs)
 		assert.Equal(t, argName, j.Name)
@@ -122,7 +122,7 @@ func TestTestQueue_GetOf(t *testing.T) {
 		t.Parallel()
 
 		jq := jobs.Test(t)
-		_ = jq.Enqueue(ctx, []jobs.Job{
+		_ = jq.Enqueue(t.Context(), []jobs.Job{
 			simpleJob{},
 			simpleJob{},
 			jobWithArgs{Name: "someArg"},
@@ -152,7 +152,7 @@ func TestTestAssertions_Empty(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(t.Context(), simpleJob{})
 
 		pass := jq.Empty()
 		assert.False(t, pass)
@@ -176,7 +176,7 @@ func TestTestAssertions_NotEmpty(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(t.Context(), simpleJob{})
 
 		pass := jq.NotEmpty()
 		assert.True(t, pass)
@@ -203,7 +203,7 @@ func TestTestAssertions_Total(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		err := jq.Enqueue(ctx, simpleJob{})
+		err := jq.Enqueue(t.Context(), simpleJob{})
 		assert.NoError(t, err)
 
 		pass := jq.Total(1, "not empty queue -> passes")
@@ -231,8 +231,8 @@ func TestTestAssertions_Contains(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		_ = jq.Enqueue(ctx, simpleJob{})
-		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(t.Context(), simpleJob{})
+		_ = jq.Enqueue(t.Context(), simpleJob{})
 
 		pass := jq.Contains(simpleJob{})
 		assert.True(t, pass)
@@ -256,7 +256,7 @@ func TestTestAssertions_NotContains(t *testing.T) {
 
 		jq := jobs.Test(new(testing.T))
 
-		_ = jq.Enqueue(ctx, simpleJob{})
+		_ = jq.Enqueue(t.Context(), simpleJob{})
 
 		pass := jq.NotContains(simpleJob{})
 		assert.False(t, pass)

@@ -18,11 +18,11 @@ func TestRegistrationService_RegisterNewUser(t *testing.T) {
 		t.Parallel()
 
 		settings := setting.NewInMemorySettings()
-		settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(false))
+		settings.Save(t.Context(), auth.SettingAllowRegistration, setting.NewValue(false))
 
 		rs := domain.NewRegistrationService(settings, nil)
 
-		_, err := rs.RegisterNewUser(ctx, "", "")
+		_, err := rs.RegisterNewUser(t.Context(), "", "")
 		assert.ErrorIs(t, err, domain.ErrRegistrationFailed)
 	})
 
@@ -30,14 +30,14 @@ func TestRegistrationService_RegisterNewUser(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		_ = repo.Save(ctx, userVerified)
+		_ = repo.Save(t.Context(), userVerified)
 
 		settings := setting.NewInMemorySettings()
-		settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(true))
+		settings.Save(t.Context(), auth.SettingAllowRegistration, setting.NewValue(true))
 
 		rs := domain.NewRegistrationService(settings, repo)
 
-		_, err := rs.RegisterNewUser(ctx, userLogin, "")
+		_, err := rs.RegisterNewUser(t.Context(), userLogin, "")
 		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 	})
 
@@ -47,11 +47,11 @@ func TestRegistrationService_RegisterNewUser(t *testing.T) {
 		repo := repository.NewUserMemoryRepository()
 
 		settings := setting.NewInMemorySettings()
-		settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(true))
+		settings.Save(t.Context(), auth.SettingAllowRegistration, setting.NewValue(true))
 
 		rs := domain.NewRegistrationService(settings, repo)
 
-		usr, err := rs.RegisterNewUser(ctx, userLogin, rawPassword)
+		usr, err := rs.RegisterNewUser(t.Context(), userLogin, rawPassword)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, usr)
 	})

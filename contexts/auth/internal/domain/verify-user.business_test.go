@@ -19,18 +19,18 @@ func TestVerificationService_NewVerificationToken(t *testing.T) {
 
 		usr := newUser()
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, usr)
+		repo.Save(t.Context(), usr)
 
 		// action
 		verifier := domain.NewVerificationService(repo)
-		token, err := verifier.NewVerificationToken(ctx, usr)
+		token, err := verifier.NewVerificationToken(t.Context(), usr)
 		assert.NoError(t, err)
 		assert.Equal(t, usr.ID, token.UserID())
 		assert.NotEmpty(t, token.Token())
 		assert.NotEmpty(t, token.ValidUntilUTC())
 
 		// assert against the db
-		tok, err := repo.VerificationTokenByToken(ctx, token.Token())
+		tok, err := repo.VerificationTokenByToken(t.Context(), token.Token())
 		assert.NoError(t, err)
 		assert.Equal(t, token.Token(), tok.Token())
 	})
@@ -45,17 +45,17 @@ func TestVerificationService_Verify(t *testing.T) {
 		// setup
 		usr := newUser()
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, usr)
+		repo.Save(t.Context(), usr)
 		verifier := domain.NewVerificationService(repo)
-		token, _ := verifier.NewVerificationToken(ctx, usr)
+		token, _ := verifier.NewVerificationToken(t.Context(), usr)
 
 		// action
-		err := verifier.Verify(ctx, &usr, token.Token())
+		err := verifier.Verify(t.Context(), &usr, token.Token())
 		assert.NoError(t, err)
 		assert.True(t, usr.IsVerified())
 
 		// assert against the db
-		u, _ := repo.FindByID(ctx, usr.ID)
+		u, _ := repo.FindByID(t.Context(), usr.ID)
 		assert.True(t, u.IsVerified())
 	})
 
@@ -65,19 +65,19 @@ func TestVerificationService_Verify(t *testing.T) {
 		// setup
 		usr := newUser()
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, usr)
+		repo.Save(t.Context(), usr)
 		verifier := domain.NewVerificationService(
 			repo,
 			domain.WithValidFor(time.Nanosecond), // expire almost immediately
 		)
-		token, _ := verifier.NewVerificationToken(ctx, usr)
+		token, _ := verifier.NewVerificationToken(t.Context(), usr)
 
 		// action
-		err := verifier.Verify(ctx, &usr, token.Token())
+		err := verifier.Verify(t.Context(), &usr, token.Token())
 		assert.ErrorIs(t, err, domain.ErrVerificationFailed)
 
 		// verify against the db
-		u, _ := repo.FindByID(ctx, usr.ID)
+		u, _ := repo.FindByID(t.Context(), usr.ID)
 		assert.False(t, u.IsVerified())
 	})
 
@@ -86,10 +86,10 @@ func TestVerificationService_Verify(t *testing.T) {
 
 		usr := newUser()
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, usr)
+		repo.Save(t.Context(), usr)
 		verifier := domain.NewVerificationService(repo)
 
-		err := verifier.Verify(ctx, &usr, uuid.New())
+		err := verifier.Verify(t.Context(), &usr, uuid.New())
 		assert.ErrorIs(t, err, domain.ErrVerificationFailed)
 		assert.False(t, usr.IsVerified())
 	})

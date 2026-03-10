@@ -32,7 +32,7 @@ func TestNewEchoRenderer(t *testing.T) {
 		router := echo.New()
 		router.GET("/", func(c echo.Context) error { return c.NoContent(http.StatusOK) }).Name = "named-route"
 
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 		r, err := renderer.NewEchoRenderer(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), router, testdata.FilesEcho, nil, true)
 		assert.NoError(t, err)
 

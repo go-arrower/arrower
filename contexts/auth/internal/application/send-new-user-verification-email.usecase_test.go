@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 	"time"
@@ -20,11 +19,11 @@ func TestSendNewUserVerificationEmailJobHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, userNotVerified)
+		repo.Save(t.Context(), userNotVerified)
 
 		handler := application.NewSendNewUserVerificationEmailJobHandler(slog.New(slog.DiscardHandler), repo)
 
-		err := handler.H(context.Background(), application.NewUserVerificationEmail{
+		err := handler.H(t.Context(), application.NewUserVerificationEmail{
 			UserID:     userNotVerifiedUserID,
 			OccurredAt: time.Now().UTC(),
 			IP:         resolvedIP,

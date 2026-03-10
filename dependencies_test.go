@@ -1,7 +1,6 @@
 package arrower_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,12 +11,10 @@ import (
 func TestInitialiseDefaultDependencies(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
-
 	t.Run("empty config", func(t *testing.T) {
 		t.Parallel()
 
-		app, err := arrower.InitialiseDefaultDependencies(ctx, &arrower.Config{}, nil, nil, nil, nil)
+		app, err := arrower.InitialiseDefaultDependencies(t.Context(), &arrower.Config{}, nil, nil, nil, nil)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, app)
 		assert.Nil(t, app.PGx)

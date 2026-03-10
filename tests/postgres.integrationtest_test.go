@@ -3,7 +3,6 @@
 package tests_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -117,7 +116,7 @@ func assertTableNumberOfRows(t *testing.T, db *pgxpool.Pool, table string, num i
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(context.Background(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c)
+	_ = db.QueryRow(t.Context(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c)
 
 	assert.Equal(t, num, c)
 }

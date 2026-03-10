@@ -17,10 +17,7 @@ import (
 	"github.com/go-arrower/arrower/renderer/testdata"
 )
 
-var (
-	ctx          = context.Background()
-	errSomeError = errors.New("some-error")
-)
+var errSomeError = errors.New("some-error")
 
 func TestNewRenderer(t *testing.T) {
 	t.Parallel()
@@ -85,7 +82,7 @@ func TestNewRenderer(t *testing.T) {
 
 		t.Run("in component", func(t *testing.T) { //nolint:paralleltest // see explanation above
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "#use-func-map", nil)
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "#use-func-map", nil)
 
 			assert.NoError(t, err)
 			assert.Equal(t, "hello custom func", buf.String())
@@ -93,7 +90,7 @@ func TestNewRenderer(t *testing.T) {
 
 		t.Run("in page", func(t *testing.T) { //nolint:paralleltest // see explanation above
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "use-func-map", nil)
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "use-func-map", nil)
 
 			assert.NoError(t, err)
 			assert.Contains(t, buf.String(), "hello custom func")
@@ -118,7 +115,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "#c0", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "#c0", nil)
 				assert.NoError(t, err)
 
 				assert.Equal(t, testdata.C0Content, buf.String())
@@ -128,7 +125,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "#non-existing", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "#non-existing", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 				assert.ErrorIs(t, err, renderer.ErrNotExistsComponent) // FIXME this test fails sometimes, very rarely (1/30 or fewer)
@@ -146,7 +143,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.P0Content)
@@ -159,7 +156,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p1", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p1", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.P1Content)
@@ -175,7 +172,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "non-existing", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "non-existing", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 				assert.ErrorIs(t, err, renderer.ErrNotExistsPage)
@@ -189,7 +186,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				assert.NoError(t, err)
 
 				buf := &bytes.Buffer{}
-				err = render.Render(ctx, buf, renderer.SharedViews, "p1", nil)
+				err = render.Render(t.Context(), buf, renderer.SharedViews, "p1", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.P1Content)
@@ -210,7 +207,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p2", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p2", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.P2Content)
@@ -222,7 +219,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p2#f0", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p2#f0", nil)
 				assert.NoError(t, err)
 
 				assert.Equal(t, testdata.F0Content, buf.String())
@@ -232,7 +229,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p2#f1", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p2#f1", nil)
 				assert.NoError(t, err)
 
 				assert.Equal(t, testdata.F1Content, buf.String())
@@ -242,7 +239,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "p1#f1", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "p1#f1", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 				assert.ErrorIs(t, err, renderer.ErrNotExistsFragment)
@@ -260,7 +257,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "global=>p1", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "global=>p1", nil)
 				assert.NoError(t, err)
 
 				t.Log(buf.String())
@@ -270,7 +267,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				assert.NotContains(t, buf.String(), testdata.C1Content)
 
 				buf.Reset()
-				err = render.Render(ctx, buf, renderer.SharedViews, "other=>p1", nil)
+				err = render.Render(t.Context(), buf, renderer.SharedViews, "other=>p1", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), "otherBase")
@@ -284,7 +281,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				t.Parallel()
 
 				buf := &bytes.Buffer{}
-				err := render.Render(ctx, buf, renderer.SharedViews, "nonExisting=>p0", nil)
+				err := render.Render(t.Context(), buf, renderer.SharedViews, "nonExisting=>p0", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 				assert.ErrorIs(t, err, renderer.ErrNotExistsLayout)
@@ -298,7 +295,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				assert.NoError(t, err)
 
 				buf := &bytes.Buffer{}
-				err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+				err = render.Render(t.Context(), buf, renderer.SharedViews, "p0", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
@@ -312,7 +309,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				assert.NoError(t, err)
 
 				buf := &bytes.Buffer{}
-				err = render.Render(ctx, buf, renderer.SharedViews, "default=>p0", nil)
+				err = render.Render(t.Context(), buf, renderer.SharedViews, "default=>p0", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
@@ -327,7 +324,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				assert.NoError(t, err)
 
 				buf := &bytes.Buffer{}
-				err = render.Render(ctx, buf, renderer.SharedViews, "default=>p0", nil)
+				err = render.Render(t.Context(), buf, renderer.SharedViews, "default=>p0", nil)
 				assert.NoError(t, err)
 
 				assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
@@ -351,7 +348,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "#c1", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "#c1", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), testdata.C1Content)
@@ -365,7 +362,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "#c0", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "#c0", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), testdata.C0ContextContent, "context component overwrites shared component with same name")
@@ -379,7 +376,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 			t.Log(buf.String())
 			assert.Contains(t, buf.String(), testdata.P0ContextContent)
@@ -412,7 +409,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "p1#f", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "p1#f", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "fragment")
@@ -431,7 +428,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, "/admin/"+testdata.ExampleContext, "p0", nil)
+			err = render.Render(t.Context(), buf, "/admin/"+testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -451,7 +448,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "shared", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "shared", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -470,7 +467,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "conflict-page", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "conflict-page", nil)
 			assert.NoError(t, err)
 
 			// todo recheck all assertions
@@ -493,7 +490,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NoError(t, err)
 
 			buf := &bytes.Buffer{}
-			err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+			err = render.Render(t.Context(), buf, testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 			t.Log(buf.String())
 			assert.Contains(t, buf.String(), testdata.P0ContextContent)
@@ -516,7 +513,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 	//	assert.NoError(t, err)
 	//
 	//	buf := &bytes.Buffer{}
-	//	err := render.Render(ctx, buf, "", "p0", nil)
+	//	err := render.Render(t.Context(), buf, "", "p0", nil)
 	//	assert.NoError(t, err)
 	//	assert.Contains(t, buf.String(), "p0")
 	// })
@@ -573,7 +570,7 @@ func TestRenderer_AddContext(t *testing.T) {
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = render.Render(ctx, buf, testdata.ExampleContext, "default=>other=>p0", nil)
+		err = render.Render(t.Context(), buf, testdata.ExampleContext, "default=>other=>p0", nil)
 		assert.NoError(t, err)
 
 		assert.Contains(t, buf.String(), testdata.P0ContextContent)
@@ -605,7 +602,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+		err = render.Render(t.Context(), buf, renderer.SharedViews, "p0", nil)
 		assert.NoError(t, err)
 
 		assert.Contains(t, buf.String(), "baseTitle")
@@ -636,7 +633,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", nil)
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "baseTitle 1")
@@ -647,7 +644,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0", map[string]any{
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", map[string]any{
 				"baseTitle": "baseTitle 2",
 			})
 			assert.NoError(t, err)
@@ -661,7 +658,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0", map[string]string{
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", map[string]string{
 				"baseTitle": "baseTitle 2",
 			})
 			assert.NoError(t, err)
@@ -679,7 +676,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0", someType{Name: "someName"})
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", someType{Name: "someName"})
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "someName")
@@ -691,7 +688,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0", []someType{{Name: "someName"}})
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0", []someType{{Name: "someName"}})
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "<li>someName</li>")
@@ -703,7 +700,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 			t.Parallel()
 
 			buf := &bytes.Buffer{}
-			err := render.Render(ctx, buf, renderer.SharedViews, "p0#f0", someType{Name: "someName"})
+			err := render.Render(t.Context(), buf, renderer.SharedViews, "p0#f0", someType{Name: "someName"})
 			assert.NoError(t, err)
 
 			assert.Contains(t, buf.String(), "someName")
@@ -722,7 +719,7 @@ func TestRenderer_AddBaseData(t *testing.T) {
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = render.Render(ctx, buf, renderer.SharedViews, "p0", nil)
+		err = render.Render(t.Context(), buf, renderer.SharedViews, "p0", nil)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 		assert.Empty(t, buf.String())
@@ -806,7 +803,7 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 
 				buf := &bytes.Buffer{}
 
-				err := render.Render(ctx, buf, testdata.ExampleContext, tt.templateName, map[string]any{
+				err := render.Render(t.Context(), buf, testdata.ExampleContext, tt.templateName, map[string]any{
 					"baseTitle": "baseTitle 2",
 				})
 				assert.NoError(t, err)
@@ -853,7 +850,7 @@ func TestRenderer_AddLayoutData(t *testing.T) {
 		assert.NoError(t, err)
 
 		buf := &bytes.Buffer{}
-		err = render.Render(ctx, buf, testdata.ExampleContext, "p0", nil)
+		err = render.Render(t.Context(), buf, testdata.ExampleContext, "p0", nil)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, renderer.ErrRenderFailed)
 		assert.Empty(t, buf.String())
@@ -900,7 +897,7 @@ func TestRenderInParallel(t *testing.T) {
 			page := pageNames[n]
 			buf := &bytes.Buffer{}
 
-			err := render.Render(ctx, buf, testdata.ExampleContext, page, nil)
+			err := render.Render(t.Context(), buf, testdata.ExampleContext, page, nil)
 			assert.NoError(t, err, page)
 			assert.Contains(t, buf.String(), page)
 			assert.Contains(t, buf.String(), "layout-content")

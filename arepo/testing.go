@@ -16,8 +16,6 @@ import (
 	"github.com/go-arrower/arrower/arepo/testdata"
 )
 
-var ctx = context.Background()
-
 // Test returns a MemoryRepository tuned for unit testing.
 func Test[E any, ID id](t *testing.T, opts ...Option) *TestRepository[E, ID] {
 	repo := NewMemoryRepository[E, ID](opts...)
@@ -65,7 +63,7 @@ type TestAssertions[E any, ID id] struct {
 func (a *TestAssertions[E, ID]) Empty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	if c, _ := a.repo.Count(ctx); c != 0 {
+	if c, _ := a.repo.Count(a.t.Context()); c != 0 {
 		return assert.Fail(a.t, "repository is not empty, has "+strconv.Itoa(c)+" entities", msgAndArgs...)
 	}
 
@@ -76,7 +74,7 @@ func (a *TestAssertions[E, ID]) Empty(msgAndArgs ...any) bool {
 func (a *TestAssertions[E, ID]) NotEmpty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	if c, _ := a.repo.Count(ctx); c == 0 {
+	if c, _ := a.repo.Count(a.t.Context()); c == 0 {
 		return assert.Fail(a.t, "repository is empty, should not be ", msgAndArgs...)
 	}
 
@@ -148,7 +146,7 @@ type TestTenantAssertions[tID id, E any, eID id] struct {
 func (a *TestTenantAssertions[tID, E, eID]) Empty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	if c, _ := a.repo.Count(ctx); c != 0 {
+	if c, _ := a.repo.Count(a.t.Context()); c != 0 {
 		return assert.Fail(a.t, "repository is not empty, has "+strconv.Itoa(c)+" entities", msgAndArgs...)
 	}
 
@@ -159,7 +157,7 @@ func (a *TestTenantAssertions[tID, E, eID]) Empty(msgAndArgs ...any) bool {
 func (a *TestTenantAssertions[tID, E, eID]) NotEmpty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
-	if c, _ := a.repo.Count(ctx); c == 0 {
+	if c, _ := a.repo.Count(a.t.Context()); c == 0 {
 		return assert.Fail(a.t, "repository is empty, should not be ", msgAndArgs...)
 	}
 
@@ -198,7 +196,7 @@ func TestSuite(
 		t.Fatal("entity constructor is nil")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	//
 	// The assertions of the Repository start below.

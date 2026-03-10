@@ -16,14 +16,14 @@ func TestUnblockUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, userBlocked)
+		repo.Save(t.Context(), userBlocked)
 
 		handler := application.NewUnblockUserRequestHandler(repo)
-		_, err := handler.H(ctx, application.UnblockUserRequest{UserID: userBlockedUserID})
+		_, err := handler.H(t.Context(), application.UnblockUserRequest{UserID: userBlockedUserID})
 		assert.NoError(t, err)
 
 		// verify
-		usr, err := repo.FindByID(ctx, userBlockedUserID)
+		usr, err := repo.FindByID(t.Context(), userBlockedUserID)
 		assert.NoError(t, err)
 		assert.False(t, usr.IsBlocked())
 	})

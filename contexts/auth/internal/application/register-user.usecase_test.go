@@ -37,7 +37,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 
-				_, err := handler.H(ctx, tc.in)
+				_, err := handler.H(t.Context(), tc.in)
 				assert.Error(t, err)
 				t.Log(name, err)
 			})
@@ -48,16 +48,16 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		_ = repo.Save(ctx, userVerified)
+		_ = repo.Save(t.Context(), userVerified)
 
-		registrator := registrator(repo)
+		registrator := registrator(t.Context(), repo)
 
 		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
 		handler := application.NewRegisterUserRequestHandler(logger, repo, registrator, nil)
 
-		_, err := handler.H(ctx, registerUserRequest(with("RegisterEmail", user0Login)))
+		_, err := handler.H(t.Context(), registerUserRequest(with("RegisterEmail", user0Login)))
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 
@@ -71,24 +71,24 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 
 		repo := repository.NewUserMemoryRepository()
 		queue := jobs.Test(t)
-		registrator := registrator(repo)
+		registrator := registrator(t.Context(), repo)
 
 		handler := application.NewRegisterUserRequestHandler(slog.New(slog.DiscardHandler), repo, registrator, queue)
 
-		usr, err := handler.H(ctx, registerUserRequest(
+		usr, err := handler.H(t.Context(), registerUserRequest(
 			with("RegisterEmail", newUserLogin),
 			with("UserAgent", userAgent),
 			with("IP", ip)))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, usr.User.ID)
 
-		dbUser, err := repo.FindByLogin(ctx, newUserLogin)
+		dbUser, err := repo.FindByLogin(t.Context(), newUserLogin)
 		assert.NoError(t, err)
 		assert.Empty(t, dbUser.Verified)
 		assert.Empty(t, dbUser.Blocked)
 
 		// assert session got updated with device info
-		dbUser, _ = repo.FindByID(ctx, usr.User.ID)
+		dbUser, _ = repo.FindByID(t.Context(), usr.User.ID)
 		assert.Len(t, dbUser.Sessions, 1)
 		assert.Equal(t, domain.NewDevice(userAgent), dbUser.Sessions[0].Device)
 

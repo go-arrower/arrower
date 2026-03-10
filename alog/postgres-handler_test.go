@@ -64,9 +64,9 @@ func TestPostgresHandler_Handle(t *testing.T) {
 		)
 		ensureLogTableRows(t, pg, 0)
 
-		logger.InfoContext(ctx, "logged msg")
-		logger.InfoContext(ctx, "logged msg")
-		logger.InfoContext(ctx, "logged msg")
+		logger.InfoContext(t.Context(), "logged msg")
+		logger.InfoContext(t.Context(), "logged msg")
+		logger.InfoContext(t.Context(), "logged msg")
 
 		ensureLogTableRows(t, pg, 3)
 	})
@@ -84,7 +84,7 @@ func TestPostgresHandler_Handle(t *testing.T) {
 				})),
 			)
 
-			logger.InfoContext(ctx, "logged msg")
+			logger.InfoContext(t.Context(), "logged msg")
 
 			time.Sleep(150 * time.Millisecond)
 			ensureLogTableRows(t, pg, 1)
@@ -101,9 +101,9 @@ func TestPostgresHandler_Handle(t *testing.T) {
 				})),
 			)
 
-			logger.InfoContext(ctx, "logged msg")
-			logger.InfoContext(ctx, "logged msg")
-			logger.InfoContext(ctx, "logged msg")
+			logger.InfoContext(t.Context(), "logged msg")
+			logger.InfoContext(t.Context(), "logged msg")
+			logger.InfoContext(t.Context(), "logged msg")
 			ensureLogTableRows(t, pg, 0)
 
 			time.Sleep(150 * time.Millisecond)
@@ -153,10 +153,10 @@ func TestPostgresHandler_WithAttrs(t *testing.T) {
 		)
 
 		logger = logger.With(slog.String("some", "attr"))
-		logger.InfoContext(ctx, "logged msg")
+		logger.InfoContext(t.Context(), "logged msg")
 
 		ensureLogTableRows(t, pg, 1)
-		log := getMostRecentLog(pg)
+		log := getMostRecentLog(t, pg)
 
 		assert.Equal(t, "logged msg", log["msg"])
 		assert.Equal(t, "attr", log["some"])
@@ -176,10 +176,10 @@ func TestPostgresHandler_WithGroup(t *testing.T) {
 		)
 
 		logger = logger.WithGroup("someGroup")
-		logger.With("some", "attr").InfoContext(ctx, "logged msg")
+		logger.With("some", "attr").InfoContext(t.Context(), "logged msg")
 
 		ensureLogTableRows(t, pg, 1)
-		log := getMostRecentLog(pg)
+		log := getMostRecentLog(t, pg)
 
 		assert.Equal(t, "logged msg", log["msg"])
 		assert.Equal(t, map[string]any{"some": "attr"}, log["someGroup"])
@@ -190,21 +190,26 @@ func ensureLogTableRows(t *testing.T, db *pgxpool.Pool, num int) {
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(ctx, `SELECT COUNT(*) FROM arrower.log;`).Scan(&c) //nolint:wsl_v5
+	_ = db.QueryRow(t.Context(), `SELECT COUNT(*) FROM arrower.log;`).Scan(&c) //nolint:wsl_v5
 
 	assert.Equal(t, num, c)
 }
 
-func getMostRecentLog(db *pgxpool.Pool) map[string]any {
+func getMostRecentLog(t *testing.T, db *pgxpool.Pool) map[string]any {
+	t.Helper()
+
 	var rawLog json.RawMessage
 
-	row := db.QueryRow(ctx, `SELECT log FROM arrower.log ORDER BY time DESC LIMIT 1;`)
-	_ = row.Scan(&rawLog)
+	row := db.QueryRow(t.Context(), `SELECT log FROM arrower.log ORDER BY time DESC LIMIT 1;`)
+	err := row.Scan(&rawLog)
+	assert.NoError(t, err)
 
-	log, _ := rawLog.MarshalJSON()
+	log, err := rawLog.MarshalJSON()
+	assert.NoError(t, err)
 
 	var logMap map[string]any
-	_ = json.Unmarshal(log, &logMap) //nolint:wsl_v5
+	err = json.Unmarshal(log, &logMap) //nolint:wsl_v5
+	assert.NoError(t, err)
 
 	return logMap
 }

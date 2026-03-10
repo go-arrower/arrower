@@ -3,7 +3,6 @@
 package application_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -14,10 +13,7 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var (
-	ctx       = context.Background()
-	pgHandler *tests.PostgresDocker
-)
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
 	pgHandler = tests.GetPostgresDockerForIntegrationTestingInstance()
@@ -34,7 +30,7 @@ func assertTableNumberOfRows(t *testing.T, db *pgxpool.Pool, table string, num i
 	t.Helper()
 
 	var c int
-	_ = db.QueryRow(context.Background(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c) //nolint:wsl_v5
+	_ = db.QueryRow(t.Context(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c) //nolint:wsl_v5
 
 	assert.Equal(t, num, c)
 }

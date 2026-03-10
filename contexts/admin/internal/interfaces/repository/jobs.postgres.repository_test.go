@@ -20,10 +20,7 @@ import (
 	"github.com/go-arrower/arrower/tests"
 )
 
-var (
-	ctx       = context.Background()
-	pgHandler *tests.PostgresDocker
-)
+var pgHandler *tests.PostgresDocker
 
 func TestMain(m *testing.M) {
 	pgHandler = tests.GetPostgresDockerForIntegrationTestingInstance()
@@ -51,7 +48,7 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 		assert.NoError(t, err)
 		err = jq0.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
 		assert.NoError(t, err)
-		err = jq0.Enqueue(ctx, testdata.SimpleJob{})
+		err = jq0.Enqueue(t.Context(), testdata.SimpleJob{})
 		assert.NoError(t, err)
 
 		// And given a different job queue run in the future, meaning: this queue does not have a history yet
@@ -61,14 +58,14 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 		assert.NoError(t, err)
 		err = jq1.RegisterJobFunc(func(_ context.Context, _ testdata.SimpleJob) error { return nil })
 		assert.NoError(t, err)
-		err = jq1.Enqueue(ctx, testdata.SimpleJob{}, ajobs.WithRunAt(time.Now().Add(1*time.Hour)))
+		err = jq1.Enqueue(t.Context(), testdata.SimpleJob{}, ajobs.WithRunAt(time.Now().Add(1*time.Hour)))
 		assert.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond) // wait for job to finish
 
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		q, err := repo.FindAllQueueNames(ctx)
+		q, err := repo.FindAllQueueNames(t.Context())
 		assert.NoError(t, err)
 		assert.Len(t, q, 2, "should have two different queues")
 		assert.Equal(t, jobs.DefaultQueueName, q[0])
@@ -81,7 +78,7 @@ func TestPostgresJobsRepository_FindAllQueueNames(t *testing.T) {
 		pg := pgHandler.NewTestDatabase("testdata/fixtures/findAllQueueNames.yaml")
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		q, err := repo.FindAllQueueNames(ctx)
+		q, err := repo.FindAllQueueNames(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, jobs.QueueNames{"Default", "Q0", "Q1"}, q)
 	})
@@ -96,14 +93,14 @@ func TestPostgresJobsRepository_PendingJobs(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		pendingJobs, err := repo.PendingJobs(ctx, jobs.DefaultQueueName)
+		pendingJobs, err := repo.PendingJobs(t.Context(), jobs.DefaultQueueName)
 		assert.NoError(t, err)
 		assert.Empty(t, pendingJobs, "queue needs to be empty, as no jobs got enqueued yet")
 
 		jq, _ := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
-		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
+		_ = jq.Enqueue(t.Context(), testdata.SimpleJob{})
 
-		pendingJobs, err = repo.PendingJobs(ctx, jobs.DefaultQueueName)
+		pendingJobs, err = repo.PendingJobs(t.Context(), jobs.DefaultQueueName)
 		assert.NoError(t, err)
 		assert.Len(t, pendingJobs, 1, "one job is enqueued")
 	})
@@ -119,7 +116,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		stats, err := repo.QueueKPIs(context.Background(), jobs.DefaultQueueName)
+		stats, err := repo.QueueKPIs(t.Context(), jobs.DefaultQueueName)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, stats.PendingJobs)
 		assert.Equal(t, 0, stats.FailedJobs)
@@ -136,7 +133,7 @@ func TestPostgresJobsRepository_QueueKPIs(t *testing.T) {
 
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		stats, err := repo.QueueKPIs(context.Background(), jobs.DefaultQueueName)
+		stats, err := repo.QueueKPIs(t.Context(), jobs.DefaultQueueName)
 		assert.NoError(t, err)
 		assert.Equal(t, 3, stats.PendingJobs)
 		assert.Equal(t, 1, stats.FailedJobs)
@@ -161,17 +158,17 @@ func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 		jq, err := ajobs.NewPostgresJobs(slog.New(slog.DiscardHandler), mnoop.NewMeterProvider(), tnoop.NewTracerProvider(), pg)
 		assert.NoError(t, err)
 
-		err = jq.Enqueue(ctx, testdata.SimpleJob{})
+		err = jq.Enqueue(t.Context(), testdata.SimpleJob{})
 		assert.NoError(t, err)
 
-		pending, err := repo.PendingJobs(ctx, "")
+		pending, err := repo.PendingJobs(t.Context(), "")
 		assert.NoError(t, err)
 		assert.Len(t, pending, 1, "a job should be enqueued")
 
-		err = repo.DeleteByID(ctx, pending[0].ID)
+		err = repo.DeleteByID(t.Context(), pending[0].ID)
 		assert.NoError(t, err)
 
-		pending, err = repo.PendingJobs(ctx, "")
+		pending, err = repo.PendingJobs(t.Context(), "")
 		assert.NoError(t, err)
 		assert.Empty(t, pending, "should be empty")
 	})
@@ -182,10 +179,10 @@ func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 		repo := repository.NewPostgresJobsRepository(pg)
 
-		err := repo.DeleteByID(ctx, "non-existing-id")
+		err := repo.DeleteByID(t.Context(), "non-existing-id")
 		assert.NoError(t, err)
 
-		pending, err := repo.PendingJobs(ctx, "")
+		pending, err := repo.PendingJobs(t.Context(), "")
 		assert.NoError(t, err)
 		assert.Empty(t, pending)
 	})
@@ -207,20 +204,20 @@ func TestPostgresJobsRepository_DeleteByID(t *testing.T) {
 			return nil
 		})
 		assert.NoError(t, err)
-		err = jq.Enqueue(ctx, testdata.SimpleJob{})
+		err = jq.Enqueue(t.Context(), testdata.SimpleJob{})
 		assert.NoError(t, err)
 
-		pending, err := repo.PendingJobs(ctx, "")
+		pending, err := repo.PendingJobs(t.Context(), "")
 		assert.NoError(t, err)
 		assert.Len(t, pending, 1)
 
 		time.Sleep(100 * time.Millisecond) // start the worker
 
-		err = repo.DeleteByID(ctx, pending[0].ID)
+		err = repo.DeleteByID(t.Context(), pending[0].ID)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready, "started jobs can not be deleted")
 
-		pending, err = repo.PendingJobs(ctx, "")
+		pending, err = repo.PendingJobs(t.Context(), "")
 		assert.NoError(t, err)
 		assert.Len(t, pending, 1+1, "delete should fail, as the job is currently processed and thus locked by the db") // +1 is gueron job
 	})
@@ -240,16 +237,16 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 
 		newJobTime := time.Now().Add(time.Minute)
 
-		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
+		_ = jq.Enqueue(t.Context(), testdata.SimpleJob{})
 
-		pending, _ := repo.PendingJobs(ctx, "")
+		pending, _ := repo.PendingJobs(t.Context(), "")
 		assert.Len(t, pending, 1)
 		assert.NotEqual(t, newJobTime.Format(time.RFC3339), pending[0].RunAt.Format(time.RFC3339))
 
-		err := repo.RunJobAt(ctx, pending[0].ID, newJobTime)
+		err := repo.RunJobAt(t.Context(), pending[0].ID, newJobTime)
 		assert.NoError(t, err)
 
-		pending, _ = repo.PendingJobs(ctx, "")
+		pending, _ = repo.PendingJobs(t.Context(), "")
 		assert.Equal(t, newJobTime.Format(time.RFC3339), pending[0].RunAt.Format(time.RFC3339))
 	})
 
@@ -269,14 +266,14 @@ func TestPostgresJobsRepository_RunJobAt(t *testing.T) {
 			return nil
 		})
 
-		_ = jq.Enqueue(ctx, testdata.SimpleJob{})
-		pending, _ := repo.PendingJobs(ctx, "")
+		_ = jq.Enqueue(t.Context(), testdata.SimpleJob{})
+		pending, _ := repo.PendingJobs(t.Context(), "")
 
 		time.Sleep(100 * time.Millisecond) // start the worker
 
 		newJobTime := time.Now().Add(time.Minute)
 
-		err := repo.RunJobAt(ctx, pending[0].ID, newJobTime)
+		err := repo.RunJobAt(t.Context(), pending[0].ID, newJobTime)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, jobs.ErrJobLockedAlready)
 	})

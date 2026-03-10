@@ -18,22 +18,22 @@ func TestVerifyUserCommandHandler_H(t *testing.T) {
 
 		// setup
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, userNotVerified)
+		repo.Save(t.Context(), userNotVerified)
 
-		usr, _ := repo.FindByID(ctx, userNotVerifiedUserID)
+		usr, _ := repo.FindByID(t.Context(), userNotVerifiedUserID)
 		verify := domain.NewVerificationService(repo)
-		token, _ := verify.NewVerificationToken(ctx, usr)
+		token, _ := verify.NewVerificationToken(t.Context(), usr)
 
 		handler := application.NewVerifyUserCommandHandler(repo)
 
 		// action
-		err := handler.H(ctx, application.VerifyUserCommand{
+		err := handler.H(t.Context(), application.VerifyUserCommand{
 			Token:  token.Token(),
 			UserID: userNotVerifiedUserID,
 		})
 		assert.NoError(t, err)
 
-		usr, _ = repo.FindByID(ctx, userNotVerifiedUserID)
+		usr, _ = repo.FindByID(t.Context(), userNotVerifiedUserID)
 		assert.True(t, usr.IsVerified())
 	})
 }

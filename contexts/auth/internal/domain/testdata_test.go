@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	ctx                   = context.Background()
 	rawPassword           = "0Secret!"
 	strongPasswordHash, _ = domain.NewPasswordHash(rawPassword)
 )
@@ -38,7 +37,7 @@ var userVerified = domain.User{
 // used by AuthenticationService.
 func settingsService(active bool) *setting.InMemorySettings {
 	settings := setting.NewInMemorySettings()
-	settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(active))
+	settings.Save(context.Background(), auth.SettingAllowLogin, setting.NewValue(active))
 
 	return settings
 }

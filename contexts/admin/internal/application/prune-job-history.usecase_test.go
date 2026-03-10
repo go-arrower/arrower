@@ -20,7 +20,7 @@ func TestPruneJobHistoryRequestHandler_H(t *testing.T) {
 		pg := pgHandler.NewTestDatabase("testdata/fixtures/prune_history.yaml")
 		app := application.NewPruneJobHistoryRequestHandler(models.New(pg))
 
-		res, err := app.H(ctx, application.PruneJobHistoryRequest{Days: 7})
+		res, err := app.H(t.Context(), application.PruneJobHistoryRequest{Days: 7})
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, res.Jobs)
@@ -34,7 +34,7 @@ func TestPruneJobHistoryRequestHandler_H(t *testing.T) {
 		pg := pgHandler.NewTestDatabase("testdata/fixtures/prune_history.yaml")
 		app := application.NewPruneJobHistoryRequestHandler(models.New(pg))
 
-		res, err := app.H(ctx, application.PruneJobHistoryRequest{Days: 0})
+		res, err := app.H(t.Context(), application.PruneJobHistoryRequest{Days: 0})
 		assert.NoError(t, err)
 
 		assert.NotEmpty(t, res.Jobs)

@@ -56,7 +56,7 @@ func TestTestAssertions_Empty(t *testing.T) {
 
 		repo := arepo.Test[testdata.Entity, testdata.EntityID](new(testing.T))
 
-		err := repo.Add(ctx, testdata.DefaultEntity)
+		err := repo.Add(t.Context(), testdata.DefaultEntity)
 		assert.NoError(t, err)
 
 		pass := repo.Empty()
@@ -81,7 +81,7 @@ func TestTestAssertions_NotEmpty(t *testing.T) {
 
 		repo := arepo.Test[testdata.Entity, testdata.EntityID](new(testing.T))
 
-		err := repo.Add(ctx, testdata.DefaultEntity)
+		err := repo.Add(t.Context(), testdata.DefaultEntity)
 		assert.NoError(t, err)
 
 		pass := repo.NotEmpty()
@@ -109,7 +109,7 @@ func TestTestAssertions_Total(t *testing.T) {
 
 		repo := arepo.Test[testdata.Entity, testdata.EntityID](new(testing.T))
 
-		err := repo.Add(ctx, testdata.DefaultEntity)
+		err := repo.Add(t.Context(), testdata.DefaultEntity)
 		assert.NoError(t, err)
 
 		pass := repo.Total(1, "not empty repo -> pass")

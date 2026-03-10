@@ -23,7 +23,7 @@ func TestRequestValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), passingValidationValue)
+		res, err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})
@@ -36,7 +36,7 @@ func TestRequestValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), structWithValidationTags{})
+		res, err := handler.H(t.Context(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
 		errors.As(err, &validationErrors)
 
@@ -53,7 +53,7 @@ func TestRequestValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), passingValidationValue)
+		res, err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})
@@ -70,7 +70,7 @@ func TestCommandValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), passingValidationValue)
+		err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 	})
 
@@ -82,7 +82,7 @@ func TestCommandValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), structWithValidationTags{})
+		err := handler.H(t.Context(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
 		errors.As(err, &validationErrors)
 
@@ -98,7 +98,7 @@ func TestCommandValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), passingValidationValue)
+		err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 	})
 }
@@ -115,7 +115,7 @@ func TestQueryValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), passingValidationValue)
+		res, err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})
@@ -128,7 +128,7 @@ func TestQueryValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), structWithValidationTags{})
+		res, err := handler.H(t.Context(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
 		errors.As(err, &validationErrors)
 
@@ -145,7 +145,7 @@ func TestQueryValidatingDecorator_H(t *testing.T) {
 			return response{}, nil
 		}))
 
-		res, err := handler.H(context.Background(), passingValidationValue)
+		res, err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})
@@ -162,7 +162,7 @@ func TestJobValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), passingValidationValue)
+		err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 	})
 
@@ -174,7 +174,7 @@ func TestJobValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), structWithValidationTags{})
+		err := handler.H(t.Context(), structWithValidationTags{})
 		validationErrors := validator.ValidationErrors{}
 		errors.As(err, &validationErrors)
 
@@ -190,7 +190,7 @@ func TestJobValidatingDecorator_H(t *testing.T) {
 			return nil
 		}))
 
-		err := handler.H(context.Background(), passingValidationValue)
+		err := handler.H(t.Context(), passingValidationValue)
 		assert.NoError(t, err)
 	})
 }

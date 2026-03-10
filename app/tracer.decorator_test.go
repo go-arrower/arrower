@@ -21,7 +21,7 @@ func TestRequestTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedRequest(newFakeTracer(t), app.TestSuccessRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 	})
 
@@ -30,7 +30,7 @@ func TestRequestTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedRequest(newFakeTracer(t), app.TestFailureRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 	})
 }
@@ -43,7 +43,7 @@ func TestCommandTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedCommand(newFakeTracer(t), app.TestSuccessCommandHandler[command]())
 
-		err := handler.H(context.Background(), command{})
+		err := handler.H(t.Context(), command{})
 		assert.NoError(t, err)
 	})
 
@@ -52,7 +52,7 @@ func TestCommandTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedCommand(newFakeTracer(t), app.TestFailureCommandHandler[command]())
 
-		err := handler.H(context.Background(), command{})
+		err := handler.H(t.Context(), command{})
 		assert.Error(t, err)
 	})
 }
@@ -65,7 +65,7 @@ func TestQueryTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedQuery(newFakeTracer(t), app.TestSuccessQueryHandler[query, response]())
 
-		_, err := handler.H(context.Background(), query{})
+		_, err := handler.H(t.Context(), query{})
 		assert.NoError(t, err)
 	})
 
@@ -74,7 +74,7 @@ func TestQueryTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedQuery(newFakeTracer(t), app.TestFailureQueryHandler[query, response]())
 
-		_, err := handler.H(context.Background(), query{})
+		_, err := handler.H(t.Context(), query{})
 		assert.Error(t, err)
 		assert.Error(t, err)
 	})
@@ -88,7 +88,7 @@ func TestJobTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedJob(newFakeTracer(t), app.TestSuccessJobHandler[job]())
 
-		err := handler.H(context.Background(), job{})
+		err := handler.H(t.Context(), job{})
 		assert.NoError(t, err)
 	})
 
@@ -97,7 +97,7 @@ func TestJobTracingDecorator_H(t *testing.T) {
 
 		handler := app.NewTracedJob(newFakeTracer(t), app.TestFailureJobHandler[job]())
 
-		err := handler.H(context.Background(), job{})
+		err := handler.H(t.Context(), job{})
 		assert.Error(t, err)
 	})
 }

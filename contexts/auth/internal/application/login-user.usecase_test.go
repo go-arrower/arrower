@@ -4,13 +4,12 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/jobs"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoginUserRequestHandler_H(t *testing.T) {
@@ -20,14 +19,14 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		_ = repo.Save(ctx, userVerified)
+		_ = repo.Save(t.Context(), userVerified)
 
 		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
-		handler := application.NewLoginUserRequestHandler(logger, repo, nil, authentificator())
+		handler := application.NewLoginUserRequestHandler(logger, repo, nil, authentificator(t.Context()))
 
-		_, err := handler.H(ctx, application.LoginUserRequest{
+		_, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail: user0Login,
 			Password:   "wrong-password",
 			IP:         ip,
@@ -43,12 +42,12 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		_ = repo.Save(ctx, userVerified)
+		_ = repo.Save(t.Context(), userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator())
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()))
 
-		res, err := handler.H(ctx, application.LoginUserRequest{
+		res, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail: validUserLogin,
 			Password:   strongPassword,
 			UserAgent:  userAgent,
@@ -62,7 +61,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		assert.NotEmpty(t, validUserLogin, res.User.ID)
 
 		// assert session got updated with device info // todo IF repo gets methods to retrieve sessions directly: use them instead
-		usr, _ := repo.FindByID(ctx, userVerified.ID)
+		usr, _ := repo.FindByID(t.Context(), userVerified.ID)
 		assert.Len(t, usr.Sessions, 2)
 		assert.Equal(t, domain.NewDevice(userAgent), usr.Sessions[1].Device)
 
@@ -74,12 +73,12 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		t.Skip("FIXME: skip for now, ip2location is not available in this repo")
 
 		repo := repository.NewUserMemoryRepository()
-		_ = repo.Save(ctx, userVerified)
+		_ = repo.Save(t.Context(), userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator())
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()))
 
-		_, err := handler.H(ctx, application.LoginUserRequest{
+		_, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail:  validUserLogin,
 			Password:    strongPassword,
 			UserAgent:   userAgent,

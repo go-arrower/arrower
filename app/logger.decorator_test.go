@@ -1,7 +1,6 @@
 package app_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ func TestRequestLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedRequest(logger, app.TestSuccessRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		logger.Contains(`msg="executing request"`)
@@ -34,7 +33,7 @@ func TestRequestLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedRequest(logger, app.TestFailureRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
 		logger.Contains(`msg="executing request"`)
@@ -53,7 +52,7 @@ func TestCommandLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedCommand(logger, app.TestSuccessCommandHandler[command]())
 
-		err := handler.H(context.Background(), command{})
+		err := handler.H(t.Context(), command{})
 		assert.NoError(t, err)
 
 		logger.Contains(`msg="executing command"`)
@@ -67,7 +66,7 @@ func TestCommandLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedCommand(logger, app.TestFailureCommandHandler[command]())
 
-		err := handler.H(context.Background(), command{})
+		err := handler.H(t.Context(), command{})
 		assert.Error(t, err)
 
 		logger.Contains(`msg="executing command"`)
@@ -87,7 +86,7 @@ func TestQueryLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedQuery(logger, app.TestSuccessQueryHandler[query, response]())
 
-		_, err := handler.H(context.Background(), query{})
+		_, err := handler.H(t.Context(), query{})
 		assert.NoError(t, err)
 
 		logger.Contains(`msg="executing query"`)
@@ -101,7 +100,7 @@ func TestQueryLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedQuery(logger, app.TestFailureQueryHandler[query, response]())
 
-		_, err := handler.H(context.Background(), query{})
+		_, err := handler.H(t.Context(), query{})
 		assert.Error(t, err)
 
 		logger.Contains(`msg="executing query"`)
@@ -120,7 +119,7 @@ func TestJobLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedJob(logger, app.TestSuccessJobHandler[job]())
 
-		err := handler.H(context.Background(), job{})
+		err := handler.H(t.Context(), job{})
 		assert.NoError(t, err)
 
 		logger.Contains(`msg="executing job"`)
@@ -134,7 +133,7 @@ func TestJobLoggingDecorator_H(t *testing.T) {
 		logger := alog.Test(t)
 		handler := app.NewLoggedJob(logger, app.TestFailureJobHandler[job]())
 
-		err := handler.H(context.Background(), job{})
+		err := handler.H(t.Context(), job{})
 		assert.Error(t, err)
 
 		logger.Contains(`msg="executing job"`)

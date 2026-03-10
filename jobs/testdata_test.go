@@ -2,12 +2,10 @@
 package jobs_test
 
 import (
-	"context"
 	"time"
 )
 
 var (
-	ctx        = context.Background()
 	argName    = "testName"
 	payloadJob = jobWithArgs{Name: argName}
 )

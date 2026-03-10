@@ -2,7 +2,6 @@ package app_test
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,12 +48,12 @@ func TestRequestMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredRequest(meterProvider, app.TestSuccessRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -78,12 +77,12 @@ func TestRequestMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredRequest(meterProvider, app.TestFailureRequestHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -111,12 +110,12 @@ func TestCommandMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredCommand(meterProvider, app.TestSuccessCommandHandler[request]())
 
-		err := handler.H(context.Background(), request{})
+		err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -140,12 +139,12 @@ func TestCommandMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredCommand(meterProvider, app.TestFailureCommandHandler[request]())
 
-		err := handler.H(context.Background(), request{})
+		err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -174,12 +173,12 @@ func TestQueryMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredQuery(meterProvider, app.TestSuccessQueryHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -203,12 +202,12 @@ func TestQueryMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredQuery(meterProvider, app.TestFailureQueryHandler[request, response]())
 
-		_, err := handler.H(context.Background(), request{})
+		_, err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -236,12 +235,12 @@ func TestJobMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredJob(meterProvider, app.TestSuccessJobHandler[request]())
 
-		err := handler.H(context.Background(), request{})
+		err := handler.H(t.Context(), request{})
 		assert.NoError(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -265,12 +264,12 @@ func TestJobMeteringDecorator_H(t *testing.T) {
 
 		handler := app.NewMeteredJob(meterProvider, app.TestFailureJobHandler[request]())
 
-		err := handler.H(context.Background(), request{})
+		err := handler.H(t.Context(), request{})
 		assert.Error(t, err)
 
 		// call the prometheus endpoint to scrape all metrics
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 
 		handlerFunc.ServeHTTP(rec, req)
 		assert.Equal(t, http.StatusOK, rec.Code)

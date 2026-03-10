@@ -63,7 +63,7 @@ func Example_postgresJobsHandler() {
 func Example_inMemoryAssertionsForTesting() {
 	jq := jobs.Test(new(testing.T))
 
-	_ = jq.Enqueue(ctx, myJob{})
+	_ = jq.Enqueue(context.Background(), myJob{})
 
 	jq.NotEmpty()
 	jq.Total(1, "queue should have one Job enqueued")

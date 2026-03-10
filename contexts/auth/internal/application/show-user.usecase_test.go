@@ -18,7 +18,7 @@ func TestShowUserQueryHandler_H(t *testing.T) {
 		repo := repository.NewUserMemoryRepository()
 
 		handler := application.NewShowUserQueryHandler(repo)
-		res, err := handler.H(ctx, application.ShowUserQuery{})
+		res, err := handler.H(t.Context(), application.ShowUserQuery{})
 		assert.Error(t, err)
 		assert.Empty(t, res)
 	})
@@ -27,10 +27,10 @@ func TestShowUserQueryHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, userVerified)
+		repo.Save(t.Context(), userVerified)
 
 		handler := application.NewShowUserQueryHandler(repo)
-		res, err := handler.H(ctx, application.ShowUserQuery{
+		res, err := handler.H(t.Context(), application.ShowUserQuery{
 			UserID: userIDZero,
 		})
 		assert.NoError(t, err)

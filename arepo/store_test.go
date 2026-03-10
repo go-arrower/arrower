@@ -23,7 +23,7 @@ func TestStore(t *testing.T) {
 	t.Run("load from empty folder", func(t *testing.T) {
 		repo := testEntityMemoryRepository(store)
 
-		count, err := repo.Count(ctx)
+		count, err := repo.Count(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, count)
 	})
@@ -31,7 +31,7 @@ func TestStore(t *testing.T) {
 	t.Run("store", func(t *testing.T) {
 		repo := testEntityMemoryRepository(store)
 
-		err := repo.Save(ctx, testdata.DefaultEntity)
+		err := repo.Save(t.Context(), testdata.DefaultEntity)
 		assert.NoError(t, err)
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
 	})
@@ -39,11 +39,11 @@ func TestStore(t *testing.T) {
 	t.Run("load", func(t *testing.T) {
 		repo := testEntityMemoryRepository(store)
 
-		count, err := repo.Count(ctx)
+		count, err := repo.Count(t.Context())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, count)
 
-		e, err := repo.FindByID(ctx, testdata.DefaultEntity.ID)
+		e, err := repo.FindByID(t.Context(), testdata.DefaultEntity.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, testdata.DefaultEntity, e)
 	})
@@ -53,7 +53,7 @@ func TestStore(t *testing.T) {
 			arepo.WithStore(store),
 			arepo.WithStoreFilename("Entity2.json"),
 		)
-		err := repo.Save(ctx, testdata.DefaultEntity)
+		err := repo.Save(t.Context(), testdata.DefaultEntity)
 		assert.NoError(t, err)
 
 		assert.FileExists(t, path.Join(dir, "Entity.json"))
@@ -71,7 +71,7 @@ func TestStore(t *testing.T) {
 
 		for range routines {
 			go func() {
-				err := repo.Save(ctx, testdata.DefaultEntity)
+				err := repo.Save(t.Context(), testdata.DefaultEntity)
 				assert.NoError(t, err)
 
 				wg.Done()

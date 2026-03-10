@@ -16,14 +16,14 @@ func TestBlockUserRequestHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		repo.Save(ctx, userVerified)
+		repo.Save(t.Context(), userVerified)
 
 		handler := application.NewBlockUserRequestHandler(repo)
-		_, err := handler.H(ctx, application.BlockUserRequest{UserID: userIDZero})
+		_, err := handler.H(t.Context(), application.BlockUserRequest{UserID: userIDZero})
 		assert.NoError(t, err)
 
 		// verify
-		usr, err := repo.FindByID(ctx, userIDZero)
+		usr, err := repo.FindByID(t.Context(), userIDZero)
 		assert.NoError(t, err)
 		assert.True(t, usr.IsBlocked())
 	})

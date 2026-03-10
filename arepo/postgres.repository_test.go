@@ -89,9 +89,9 @@ func TestPostgresRepositoryWithIDField(t *testing.T) {
 
 	name := gofakeit.Name()
 
-	err = repo.Create(ctx, testdata.EntityWithoutID{Name: name})
+	err = repo.Create(t.Context(), testdata.EntityWithoutID{Name: name})
 	assert.NoError(t, err)
-	_, err = repo.Read(ctx, name)
+	_, err = repo.Read(t.Context(), name)
 	assert.NoError(t, err)
 }
 
@@ -105,10 +105,10 @@ func TestPostgresRepository_Create(t *testing.T) {
 	assert.NotNil(t, repo)
 	assert.NoError(t, err)
 
-	err = repo.Create(ctx, testdata.DefaultEntity)
+	err = repo.Create(t.Context(), testdata.DefaultEntity)
 	assert.NoError(t, err)
 
-	got, err := repo.Read(ctx, testdata.DefaultEntity.ID)
+	got, err := repo.Read(t.Context(), testdata.DefaultEntity.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, testdata.DefaultEntity, got)
 }
@@ -134,28 +134,28 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		myType := MyType{ID: id, MyName: gofakeit.Name()}
 
-		err = repo.Create(ctx, myType)
+		err = repo.Create(t.Context(), myType)
 		assert.NoError(t, err)
 
-		entity, err := repo.FindByID(ctx, id)
+		entity, err := repo.FindByID(t.Context(), id)
 		assert.NoError(t, err)
 		assert.Equal(t, myType, entity)
 
 		entity.MyName = gofakeit.Name()
-		err = repo.Update(ctx, entity)
+		err = repo.Update(t.Context(), entity)
 		assert.NoError(t, err)
 
 		entity.MyName = gofakeit.Name()
-		err = repo.Save(ctx, entity)
+		err = repo.Save(t.Context(), entity)
 		assert.NoError(t, err)
 
-		err = repo.AddAll(ctx, []MyType{
+		err = repo.AddAll(t.Context(), []MyType{
 			{ID: gofakeit.UUID(), MyName: gofakeit.Name()},
 			{ID: gofakeit.UUID(), MyName: gofakeit.Name()},
 		})
 		assert.NoError(t, err)
 
-		all, err := repo.FindAll(ctx)
+		all, err := repo.FindAll(t.Context())
 		assert.NoError(t, err)
 		assert.Len(t, all, 3)
 	})
@@ -177,7 +177,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		myType := NestedStruct{ID: id, MyName: gofakeit.Name()}
 
-		err = repo.Create(ctx, myType)
+		err = repo.Create(t.Context(), myType)
 		assert.NoError(t, err)
 	})
 
@@ -202,12 +202,12 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		myType := NestedStruct{ID: id, MyName: Name{Name: gofakeit.Name()}}
 
-		err = repo.Create(ctx, myType)
+		err = repo.Create(t.Context(), myType)
 		assert.NoError(t, err)
 
 		//
 		myType.MyName.Name = gofakeit.Name()
-		err = repo.Update(ctx, myType)
+		err = repo.Update(t.Context(), myType)
 		assert.NoError(t, err)
 	})
 
@@ -232,7 +232,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		myType := NestedStruct{ID: id, Name: Name{Name: gofakeit.Name()}}
 
-		err = repo.Create(ctx, myType)
+		err = repo.Create(t.Context(), myType)
 		assert.NoError(t, err)
 	})
 }
@@ -240,19 +240,19 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 func initTestSchema(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
-	_, err := pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
+	_, err := pgx.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT);`)
 	assert.NoError(t, err)
 
-	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithnamepk(name TEXT PRIMARY KEY, description TEXT);`)
+	_, err = pgx.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS entitywithnamepk(name TEXT PRIMARY KEY, description TEXT);`)
 	assert.NoError(t, err)
 
-	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)
+	_, err = pgx.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS entitywithoutid(name TEXT PRIMARY KEY);`)
 	assert.NoError(t, err)
 
-	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uint_id INTEGER, name TEXT);`)
+	_, err = pgx.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS entitywithintpk(id SERIAL PRIMARY KEY, uint_id INTEGER, name TEXT);`)
 	assert.NoError(t, err)
 
-	_, err = pgx.Exec(ctx, `CREATE TABLE IF NOT EXISTS nestedstruct(id TEXT PRIMARY KEY, "custom.name" TEXT);`)
+	_, err = pgx.Exec(t.Context(), `CREATE TABLE IF NOT EXISTS nestedstruct(id TEXT PRIMARY KEY, "custom.name" TEXT);`)
 	assert.NoError(t, err)
 }
 
@@ -263,14 +263,14 @@ func TestPostgresRepository_All(t *testing.T) {
 
 	for i := range 100 {
 		_ = i
-		_, err := pgHandler.PGx().Exec(ctx, `INSERT INTO entity (id, name) VALUES (uuid_generate_v4(),uuid_generate_v4());`)
+		_, err := pgHandler.PGx().Exec(t.Context(), `INSERT INTO entity (id, name) VALUES (uuid_generate_v4(),uuid_generate_v4());`)
 		assert.NoError(t, err)
 	}
 
 	repo, err := arepo.NewPostgresRepository[testdata.Entity, testdata.EntityID](pgHandler.PGx())
 	assert.NoError(t, err)
 
-	iter := repo.AllIter(ctx)
+	iter := repo.AllIter(t.Context())
 	_ = iter
 
 	start := time.Now()

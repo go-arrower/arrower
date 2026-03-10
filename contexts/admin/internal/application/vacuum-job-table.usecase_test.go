@@ -3,7 +3,6 @@
 package application_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -49,7 +48,7 @@ func TestVacuumJobTableRequestHandler_H(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := app.H(context.Background(), application.VacuumJobTableRequest{Table: tc.table})
+			res, err := app.H(t.Context(), application.VacuumJobTableRequest{Table: tc.table})
 
 			assert.ErrorIs(t, err, tc.err)
 			assert.NotEmpty(t, res.Jobs)
@@ -61,7 +60,7 @@ func TestVacuumJobTableRequestHandler_H(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := app.H(context.Background(), application.VacuumJobTableRequest{Table: tc.table})
+			res, err := app.H(t.Context(), application.VacuumJobTableRequest{Table: tc.table})
 			assert.ErrorIs(t, err, tc.err)
 			assert.Empty(t, res)
 		})

@@ -5,12 +5,11 @@ package application_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/setting"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
@@ -32,7 +31,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 			}))
 		app := application.NewPruneJobHistoryCronCommandHandler(alog.Test(t), settings, models.New(pg))
 
-		err := app.H(ctx, application.PruneJobHistoryCronCommand{})
+		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
 		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
@@ -54,7 +53,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 			}))
 		app := application.NewPruneJobHistoryCronCommandHandler(alog.Test(t), settings, models.New(pg))
 
-		err := app.H(ctx, application.PruneJobHistoryCronCommand{})
+		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
 		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
@@ -76,7 +75,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 			}))
 		app := application.NewPruneJobHistoryCronCommandHandler(alog.Test(t), settings, models.New(pg))
 
-		err := app.H(ctx, application.PruneJobHistoryCronCommand{})
+		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
 		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
@@ -98,7 +97,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 			}))
 		app := application.NewPruneJobHistoryCronCommandHandler(alog.Test(t), settings, models.New(pg))
 
-		err := app.H(ctx, application.PruneJobHistoryCronCommand{})
+		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
 		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)

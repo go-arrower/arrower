@@ -38,8 +38,6 @@ const (
 )
 
 var (
-	ctx = context.Background()
-
 	userVerified = domain.User{
 		ID:           userIDZero,
 		Login:        user0Login,
@@ -74,14 +72,14 @@ var (
 	}
 )
 
-func registrator(repo domain.Repository) *domain.RegistrationService {
+func registrator(ctx context.Context, repo domain.Repository) *domain.RegistrationService {
 	settings := setting.NewInMemorySettings()
 	settings.Save(ctx, auth.SettingAllowRegistration, setting.NewValue(true))
 
 	return domain.NewRegistrationService(settings, repo)
 }
 
-func authentificator() *domain.AuthenticationService {
+func authentificator(ctx context.Context) *domain.AuthenticationService {
 	settings := setting.NewInMemorySettings()
 	settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(true))
 

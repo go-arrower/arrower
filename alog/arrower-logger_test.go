@@ -29,9 +29,9 @@ func TestNew(t *testing.T) {
 
 		logger := alog.New(alog.WithHandler(h))
 
-		logger.Log(ctx, alog.LevelInfo, "arrower debug")
-		logger.Log(ctx, alog.LevelDebug, "arrower trance")
-		logger.Log(ctx, slog.LevelDebug, "application debug msg")
+		logger.Log(t.Context(), alog.LevelInfo, "arrower debug")
+		logger.Log(t.Context(), alog.LevelDebug, "arrower trance")
+		logger.Log(t.Context(), slog.LevelDebug, "application debug msg")
 		assert.Empty(t, buf.String())
 
 		logger.Info("application info msg")
@@ -105,7 +105,7 @@ func TestDefaultHandlerAndOutputFormat(t *testing.T) { //nolint:paralleltest,wsl
 	// NewDevelopment is not tested, and assumed it just works, if New works.
 	logger := alog.New()
 	alog.Unwrap(logger).SetLevel(alog.LevelDebug)
-	logger.Log(ctx, alog.LevelDebug, applicationMsg)
+	logger.Log(t.Context(), alog.LevelDebug, applicationMsg)
 
 	_ = pipeWrite.Close()
 
@@ -231,17 +231,17 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 				alog.WithSettings(settings),
 			)
 
-			settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(slog.LevelInfo))
-			logger.Log(ctx, slog.LevelInfo, "info")
-			logger.Log(ctx, slog.LevelDebug, "debug")
+			settings.Save(t.Context(), alog.SettingLogLevel, setting.NewValue(slog.LevelInfo))
+			logger.Log(t.Context(), slog.LevelInfo, "info")
+			logger.Log(t.Context(), slog.LevelDebug, "debug")
 
 			assert.Contains(t, buf.String(), "info")
 			assert.NotContains(t, buf.String(), "debug")
 
 			// dynamically change log level via settings
-			settings.Save(ctx, alog.SettingLogLevel, setting.NewValue(alog.LevelDebug))
-			logger.Log(ctx, slog.LevelInfo, "info")
-			logger.Log(ctx, slog.LevelDebug, "debug")
+			settings.Save(t.Context(), alog.SettingLogLevel, setting.NewValue(alog.LevelDebug))
+			logger.Log(t.Context(), slog.LevelInfo, "info")
+			logger.Log(t.Context(), slog.LevelDebug, "debug")
 
 			assert.Contains(t, buf.String(), "info")
 			assert.Contains(t, buf.String(), "debug")
@@ -259,13 +259,13 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 				alog.WithSettings(settings),
 			)
 
-			logger.Log(ctx, slog.LevelDebug, "debug")
+			logger.Log(t.Context(), slog.LevelDebug, "debug")
 			assert.NotContains(t, buf.String(), "debug")
 
 			// dynamically add userID to the setting of users to log
-			settings.Save(ctx, alog.SettingLogUsers, setting.NewValue([]string{userID}))
+			settings.Save(t.Context(), alog.SettingLogUsers, setting.NewValue([]string{userID}))
 
-			newCtx := context.WithValue(ctx, auth.CtxUserID, userID)
+			newCtx := context.WithValue(t.Context(), auth.CtxUserID, userID)
 			logger.Log(newCtx, slog.LevelDebug, "debug")
 
 			assert.Contains(t, buf.String(), "debug")
@@ -293,7 +293,7 @@ func TestArrowerHandler_Enabled(t *testing.T) {
 		// fakeNoSettingsSpan will panic if TracerProvider() is called and fail this test.
 		// The meaning is: this logger should return early in Enabled() and never call Handle().
 		// If Handle() is not called, the overhead if creating the record is saved.
-		ctx := trace.ContextWithSpan(ctx, fakeNoSettingsSpan{}) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := trace.ContextWithSpan(t.Context(), fakeNoSettingsSpan{}) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		logger.DebugContext(ctx, applicationMsg)
 		assert.NotContains(t, buf0.String(), applicationMsg)
@@ -343,7 +343,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			logger := alog.Test(t)
-			ctx := trace.ContextWithSpan(ctx, &fakeSpan{t: t, ID: 1}) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &fakeSpan{t: t, ID: 1}) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger.Info(applicationMsg)
 			logger.NotContains("trace_id")
@@ -359,7 +359,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, &span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &span) //nolint:govet // shadow ctx to not overwrite it for other tests
 			logger.ErrorContext(ctx, applicationMsg)
 
 			assert.Equal(t, "log", span.eventName)
@@ -379,7 +379,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := &fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), span) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger.InfoContext(ctx, applicationMsg)
 		})
@@ -396,7 +396,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 
 			logger := alog.New(alog.WithHandler(h))
 
-			logger.InfoContext(ctx, applicationMsg)
+			logger.InfoContext(t.Context(), applicationMsg)
 			assert.Contains(t, buf.String(), applicationMsg)
 		})
 
@@ -409,7 +409,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoContext(alog.AddAttrs(
-				ctx, []slog.Attr{
+				t.Context(), []slog.Attr{
 					slog.String("some", "attr"),
 					slog.Int("other", 1337),
 				}...,
@@ -427,7 +427,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.New(alog.WithHandler(h))
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(ctx, &span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &span) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoContext(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)

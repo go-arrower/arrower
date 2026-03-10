@@ -40,7 +40,7 @@ func TestConnect(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
-				handler, err := postgres.Connect(context.Background(), postgres.Config{
+				handler, err := postgres.Connect(t.Context(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "arrower",
@@ -74,7 +74,7 @@ func TestConnect(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
-				handler, err := postgres.Connect(context.Background(), postgres.Config{
+				handler, err := postgres.Connect(t.Context(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "arrower",
@@ -114,7 +114,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
+				handler, err := postgres.ConnectAndMigrate(t.Context(), postgres.Config{
 					Host:     "localhost",
 					Port:     port,
 					User:     "arrower",
@@ -144,7 +144,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			port, _ := strconv.Atoi(resource.GetPort("5432/tcp"))
 
 			return func() error {
-				handler, err := postgres.ConnectAndMigrate(context.Background(), postgres.Config{
+				handler, err := postgres.ConnectAndMigrate(t.Context(), postgres.Config{
 					Host:       "localhost",
 					Port:       port,
 					User:       "arrower",
@@ -188,7 +188,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			}
 
 			return func() error {
-				_, err := postgres.ConnectAndMigrate(context.Background(), config, noop.NewTracerProvider())
+				_, err := postgres.ConnectAndMigrate(t.Context(), config, noop.NewTracerProvider())
 				if err != nil {
 					return err
 				}
@@ -198,7 +198,7 @@ func TestConnectAndMigrate(t *testing.T) {
 		})
 
 		// container is up and running => connect a second time to run migrations again
-		_, err := postgres.ConnectAndMigrate(context.Background(), config, noop.NewTracerProvider())
+		_, err := postgres.ConnectAndMigrate(t.Context(), config, noop.NewTracerProvider())
 		assert.NoError(t, err)
 
 		_ = cleanup()

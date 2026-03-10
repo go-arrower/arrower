@@ -16,7 +16,7 @@ func TestAddAttr(t *testing.T) {
 	t.Run("add first attribute", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := alog.AddAttr(t.Context(), slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 1)
@@ -25,7 +25,7 @@ func TestAddAttr(t *testing.T) {
 	t.Run("add additional attribute", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(ctx, slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := alog.AddAttr(t.Context(), slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		ctx = alog.AddAttr(ctx, slog.String("some", "attr"))
 
@@ -40,7 +40,7 @@ func TestAddAttrs(t *testing.T) {
 	t.Run("add first attributes", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := alog.AddAttrs(t.Context(), slog.String("some", "attr"), slog.String("other", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		attr := alog.FromContext(ctx)
 		assert.Len(t, attr, 2)
@@ -49,7 +49,7 @@ func TestAddAttrs(t *testing.T) {
 	t.Run("add additional attributes ", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := alog.AddAttr(ctx, slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := alog.AddAttr(t.Context(), slog.String("initial", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 		ctx = alog.AddAttrs(ctx, slog.String("some", "attr"), slog.String("other", "attr"))
 
@@ -61,7 +61,7 @@ func TestAddAttrs(t *testing.T) {
 func TestClearAttrs(t *testing.T) {
 	t.Parallel()
 
-	ctx := alog.AddAttr(ctx, slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
+	ctx := alog.AddAttr(t.Context(), slog.String("some", "attr")) //nolint:govet // shadow ctx to not overwrite it for other tests
 
 	ctx = alog.ClearAttrs(ctx)
 
@@ -75,7 +75,7 @@ func TestFromContext(t *testing.T) {
 	t.Run("ensure empty ctx has no attr", func(t *testing.T) {
 		t.Parallel()
 
-		attrs := alog.FromContext(ctx)
+		attrs := alog.FromContext(t.Context())
 		assert.NotNil(t, attrs)
 		assert.Empty(t, attrs)
 	})

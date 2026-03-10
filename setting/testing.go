@@ -1,7 +1,6 @@
 package setting
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -18,7 +17,7 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel,m
 	}
 
 	var (
-		ctx         = context.Background()
+		ctx         = t.Context()
 		key         = NewKey("arrower", "test", "setting")
 		keyNotFound = NewKey("arrower", "test", "non-existing")
 		value       = NewValue("setting-value")

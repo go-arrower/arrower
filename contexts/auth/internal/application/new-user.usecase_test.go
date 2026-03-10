@@ -1,7 +1,6 @@
 package application_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -18,9 +17,9 @@ func TestNewUserCommandHandler_H(t *testing.T) {
 		t.Parallel()
 
 		repo := repository.NewUserMemoryRepository()
-		handler := application.NewNewUserCommandHandler(repo, registrator(repo))
+		handler := application.NewNewUserCommandHandler(repo, registrator(t.Context(), repo))
 
-		err := handler.H(context.Background(), application.NewUserCommand{
+		err := handler.H(t.Context(), application.NewUserCommand{
 			Email: gofakeit.Email(),
 		})
 		assert.NoError(t, err)

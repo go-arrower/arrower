@@ -3,7 +3,6 @@
 package q_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ import (
 )
 
 func TestExplore(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 
 	repo.AllBy(ctx, q.Filter(auth.User{}))
@@ -40,7 +39,7 @@ func TestPG(t *testing.T) {
 		Age  int
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	pg := tests.NewPostgresDockerForIntegrationTesting()
 	_, err := pg.PGx().Exec(ctx, `CREATE TABLE IF NOT EXISTS entity(id TEXT PRIMARY KEY, name TEXT, age INTEGER);`)
 	assert.NoError(t, err)

@@ -40,12 +40,12 @@ func TestNewInMemoryJobs(t *testing.T) {
 
 	wg.Add(2)
 
-	err = jq.Enqueue(ctx, []jobWithArgs{{Name: argName}, {Name: argName}})
+	err = jq.Enqueue(t.Context(), []jobWithArgs{{Name: argName}, {Name: argName}})
 	assert.NoError(t, err)
 
 	wg.Wait()
 
-	_ = jq.Shutdown(ctx)
+	_ = jq.Shutdown(t.Context())
 }
 
 // func TestInMemoryHandler_Enqueue(t *testing.T) {
