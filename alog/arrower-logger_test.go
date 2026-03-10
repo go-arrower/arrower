@@ -293,7 +293,7 @@ func TestArrowerHandler_Enabled(t *testing.T) {
 		// fakeNoSettingsSpan will panic if TracerProvider() is called and fail this test.
 		// The meaning is: this logger should return early in Enabled() and never call Handle().
 		// If Handle() is not called, the overhead if creating the record is saved.
-		ctx := trace.ContextWithSpan(t.Context(), fakeNoSettingsSpan{}) //nolint:govet // shadow ctx to not overwrite it for other tests
+		ctx := trace.ContextWithSpan(t.Context(), fakeNoSettingsSpan{})
 
 		logger.DebugContext(ctx, applicationMsg)
 		assert.NotContains(t, buf0.String(), applicationMsg)
@@ -343,7 +343,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			t.Parallel()
 
 			logger := alog.Test(t)
-			ctx := trace.ContextWithSpan(t.Context(), &fakeSpan{t: t, ID: 1}) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &fakeSpan{t: t, ID: 1})
 
 			logger.Info(applicationMsg)
 			logger.NotContains("trace_id")
@@ -359,7 +359,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(t.Context(), &span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &span)
 			logger.ErrorContext(ctx, applicationMsg)
 
 			assert.Equal(t, "log", span.eventName)
@@ -379,7 +379,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.Test(t)
 
 			span := &fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(t.Context(), span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), span)
 
 			logger.InfoContext(ctx, applicationMsg)
 		})
@@ -427,7 +427,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger := alog.New(alog.WithHandler(h))
 
 			span := fakeSpan{t: t, ID: 1}
-			ctx := trace.ContextWithSpan(t.Context(), &span) //nolint:govet // shadow ctx to not overwrite it for other tests
+			ctx := trace.ContextWithSpan(t.Context(), &span)
 
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoContext(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)

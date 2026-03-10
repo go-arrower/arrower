@@ -22,11 +22,7 @@ var ErrSessionStoreFailed = errors.New("creating session store failed")
 
 func NewPGSessionStore(pgx *pgxpool.Pool, keyPairs ...[]byte) (*PGSessionStore, error) {
 	if pgx == nil {
-		return nil, fmt.Errorf("missing postgres dependeny: %w", ErrSessionStoreFailed)
-	}
-
-	if err := pgx.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("%v: could not reach postgres: %w", ErrSessionStoreFailed, err) // todo check, if new go version can have multiple error verbs
+		return nil, fmt.Errorf("missing postgres dependency: %w", ErrSessionStoreFailed)
 	}
 
 	queries := models.New(pgx)

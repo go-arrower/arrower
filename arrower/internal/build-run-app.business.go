@@ -96,7 +96,7 @@ func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath
 	// run the app
 	yellow(w, "running...")
 
-	cmd = exec.CommandContext(context.Background(), binaryPath)
+	cmd = exec.CommandContext(noInherit(ctx), binaryPath)
 	cmd.Stdout = w // stream output to same io.Writer
 	cmd.Stderr = w // stream output to same io.Writer
 	cmd.Dir = appPath
@@ -187,4 +187,8 @@ func RandomBinaryPath() (string, error) {
 	}
 
 	return f.Name(), nil
+}
+
+func noInherit(_ context.Context) context.Context {
+	return context.Background()
 }

@@ -268,7 +268,14 @@ func InitialiseDefaultDependencies(
 
 		if conf.Environment == LocalEnv {
 			router.Debug = true
-			echoRenderer, _ = renderer.NewEchoRenderer(dc.Logger, dc.TraceProvider, router, os.DirFS("shared/views"), funcs, true)
+			echoRenderer, _ = renderer.NewEchoRenderer(
+				dc.Logger,
+				dc.TraceProvider,
+				router,
+				os.DirFS("shared/views"),
+				funcs,
+				true,
+			)
 
 			router.StaticFS("/static/", os.DirFS("public"))
 
@@ -396,7 +403,7 @@ func serveMetrics(ctx context.Context, di *Container) *http.Server {
 		w.WriteHeader(http.StatusOK) // todo in case of error: 500 code
 		// TODO disable cache
 
-		statusData := getSystemStatus(di, serverStartedAt)
+		statusData := getSystemStatus(ctx, di, serverStartedAt)
 
 		_ = json.NewEncoder(w).Encode(statusData)
 	})

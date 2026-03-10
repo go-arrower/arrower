@@ -87,6 +87,7 @@ func retryLokiConnection(handler *LokiHandler) {
 	}
 }
 
+//nolint:contextcheck,nolintlint // LokiHandler must only be used in development => keep API free of ctx.
 func pingLoki(opt *LokiHandlerOptions) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()

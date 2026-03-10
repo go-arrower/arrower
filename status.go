@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-func getSystemStatus(di *Container, serverStartedAt time.Time) interface{} {
+func getSystemStatus(ctx context.Context, di *Container, serverStartedAt time.Time) interface{} {
 	uptime := time.Since(serverStartedAt).Round(time.Second)
 
 	dbOnline := "online"
 
 	if di.PGx != nil {
-		err := di.PGx.Ping(context.Background())
+		err := di.PGx.Ping(ctx)
 		if err != nil {
 			dbOnline = fmt.Errorf("err: %w", err).Error()
 		}

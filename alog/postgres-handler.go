@@ -31,6 +31,8 @@ const (
 // All logs older than 30 days are deleted when this handler is constructed,
 // so the database stays pruned.
 // In case pgx is nil the handler returns nil.
+//
+//nolint:contextcheck,nolintlint // PostgresHandler must only be used in development => keep API free of ctx.
 func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *PostgresHandler {
 	if pgx == nil {
 		return nil
@@ -72,7 +74,7 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 				maxBatchSize = opt.MaxBatchSize
 			}
 
-			go processBatches(queries, records, maxBatchSize, maxTimeout)
+			go processBatches(context.Background(), queries, records, maxBatchSize, maxTimeout)
 		}
 	}
 
@@ -86,8 +88,14 @@ func NewPostgresHandler(pgx *pgxpool.Pool, opt *PostgresHandlerOptions) *Postgre
 	}
 }
 
-func processBatches(queries *models.Queries, records chan logRecord, maxBatchSite int, maxTimeout time.Duration) {
-	batch := []logRecord{}
+func processBatches(
+	ctx context.Context,
+	queries *models.Queries,
+	records chan logRecord,
+	maxBatchSite int,
+	maxTimeout time.Duration,
+) {
+	var batch []logRecord
 
 	expire := time.NewTicker(maxTimeout)
 
@@ -96,11 +104,11 @@ func processBatches(queries *models.Queries, records chan logRecord, maxBatchSit
 		case value := <-records:
 			batch = append(batch, value)
 			if len(batch) >= maxBatchSite {
-				_ = saveLogs(context.Background(), queries, batch)
+				_ = saveLogs(ctx, queries, batch)
 				batch = batch[:0]
 			}
 		case <-expire.C:
-			_ = saveLogs(context.Background(), queries, batch)
+			_ = saveLogs(ctx, queries, batch)
 			batch = batch[:0]
 		}
 	}

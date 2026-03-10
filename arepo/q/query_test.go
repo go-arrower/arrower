@@ -15,6 +15,8 @@ import (
 )
 
 func TestExplore(t *testing.T) {
+	t.Parallel()
+
 	ctx := t.Context()
 	repo := arepo.NewMemoryRepository[testdata.Entity, testdata.EntityID]()
 

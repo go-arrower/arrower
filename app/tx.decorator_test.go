@@ -102,7 +102,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 				return response{}, nil
 			}))
 
-			return innerHandler.H(t.Context(), req)
+			return innerHandler.H(ctx, req)
 		}))
 
 		_, err = handler.H(t.Context(), request{})
@@ -136,7 +136,7 @@ func TestRequestTxDecorator_H(t *testing.T) {
 				return response{}, errUseCaseFailed
 			}))
 
-			_, _ = innerHandler.H(t.Context(), req)
+			_, _ = innerHandler.H(ctx, req)
 
 			return response{}, nil
 		}))
@@ -220,7 +220,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 				return nil
 			}))
 
-			return innerHandler.H(t.Context(), cmd)
+			return innerHandler.H(ctx, cmd)
 		}))
 
 		err = handler.H(t.Context(), command{})
@@ -254,7 +254,7 @@ func TestCommandTxDecorator_H(t *testing.T) {
 				return errUseCaseFailed
 			}))
 
-			_ = innerHandler.H(t.Context(), cmd)
+			_ = innerHandler.H(ctx, cmd)
 
 			return nil
 		}))

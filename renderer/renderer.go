@@ -55,6 +55,8 @@ type (
 )
 
 // New prepares a renderer for HTML web views.
+//
+//nolint:contextcheck,nolintlint // New & Render share a helper, ctx is only required for Render with hot reload enabled
 func New(
 	logger alog.Logger,
 	traceProvider trace.TracerProvider,
@@ -79,7 +81,7 @@ func New(
 
 	views := map[string]viewTemplates{}
 
-	view, err := prepareViewTemplates(logger, viewFS, funcMap, false)
+	view, err := prepareViewTemplates(context.Background(), logger, viewFS, funcMap, false)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not load views: %w", ErrCreateRendererFailed, err)
 	}
@@ -149,7 +151,7 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 
 		for k, v := range r.views {
 			isCont, _, _ := isContext(k)
-			r.views[k], _ = prepareViewTemplates(r.logger, v.viewFS, r.funcMap, isCont)
+			r.views[k], _ = prepareViewTemplates(ctx, r.logger, v.viewFS, r.funcMap, isCont)
 		}
 
 		r.mu.Unlock()
@@ -351,7 +353,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 	return newTemplate, nil
 }
 
-func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.FuncMap, isContext bool) (viewTemplates, error) {
+func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS, funcMap template.FuncMap, isContext bool) (viewTemplates, error) {
 	components, err := fs.Glob(viewFS, "components/*.html")
 	if err != nil {
 		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:goerr113
@@ -378,7 +380,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 		}
 	}
 
-	logger.LogAttrs(context.TODO(), alog.LevelDebug,
+	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded components",
 		slog.Int("component_count", len(componentTemplates.Templates())),
 		slog.Any("component_templates", templateNames(componentTemplates)),
@@ -401,7 +403,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 		rawPages[pn] = file
 	}
 
-	logger.LogAttrs(context.TODO(), alog.LevelDebug,
+	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded pages",
 		// slog.Int("page_count", len(pageTemplates)),
 		slog.Int("page_count", len(rawPages)),
@@ -437,7 +439,7 @@ func prepareViewTemplates(logger alog.Logger, viewFS fs.FS, funcMap template.Fun
 		}
 	}
 
-	logger.LogAttrs(context.TODO(), alog.LevelDebug,
+	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded layouts",
 		slog.Int("layout_count", len(rawLayouts)),
 		slog.Any("layout_templates", rawTemplateNames(rawLayouts)),
@@ -625,7 +627,7 @@ func (r *Renderer) AddContext(name string, viewFS fs.FS) error {
 	}
 
 	// todo clean, not sure about original meaning of comment. BUT now the bool flag looks like a smell
-	view, err := prepareViewTemplates(r.logger, viewFS, r.funcMap, true)
+	view, err := prepareViewTemplates(context.Background(), r.logger, viewFS, r.funcMap, true)
 	if err != nil {
 		return fmt.Errorf("%w", err)
 	}
