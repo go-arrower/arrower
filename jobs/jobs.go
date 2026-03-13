@@ -21,6 +21,8 @@ import (
 const CTXJobID ctx2.CTXKey = "arrower.jobs"
 
 var (
+	ErrStartFailed           = errors.New("start failed")
+	ErrShutdownFailed        = errors.New("shutdown failed")
 	ErrRegisterJobFuncFailed = errors.New("register JobFunc failed")
 	ErrInvalidJobFunc        = fmt.Errorf("%w: invalid JobFunc func signature", ErrRegisterJobFuncFailed)
 	ErrEnqueueFailed         = errors.New("enqueue failed")

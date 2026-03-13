@@ -236,21 +236,60 @@ func (h *PostgresJobsHandler) Schedule(spec string, job Job) error {
 		return fmt.Errorf("%w: could not marshal cron: %v", ErrScheduleFailed, err)
 	}
 
+	return h.executeBetweenRestarts(context.Background(), func() error {
+		// all schedules have to be registered before the gue workers are run
+		h.schedules = append(h.schedules, schedule{
+			spec:    spec,
+			jobType: jobType,
+			args:    job,
+		})
+
+		_, err = h.scheduler.Add(spec, jobType, args)
+		if err != nil {
+			return fmt.Errorf("%w: could not schedule cron: %v", ErrScheduleFailed, err)
+		}
+
+		return nil
+	})
+}
+
+// executeBetweenRestarts waits for the workers to shut down, executes the fn, and restarts the queue.
+func (h *PostgresJobsHandler) executeBetweenRestarts(ctx context.Context, fn func() error) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.schedules = append(h.schedules, schedule{
-		spec:    spec,
-		jobType: jobType,
-		args:    job,
-	})
+	if h.hasStarted {
+		h.logger.Log(ctx, alog.LevelInfo, "restart workers",
+			slog.String("queue", h.queue), slog.String("pool_name", h.poolName))
 
-	_, err = h.scheduler.Add(spec, jobType, args)
-	if err != nil {
-		return fmt.Errorf("%w: could not schedule cron: %v", ErrScheduleFailed, err)
+		err := h.shutdown(ctx)
+		if err != nil {
+			return fmt.Errorf("could not shutdown after registration of new schedule: %w", err)
+		}
 	}
 
-	return nil
+	fnErr := fn()
+
+	needsToStartWorkers := !h.hasStarted
+	if needsToStartWorkers {
+		if h.isStartInProgress {
+			if ok := h.startTimer.Stop(); !ok { // timer expired => worker already started
+				return nil
+			}
+		}
+
+		// wait a bit to allow other JobFuncs and schedules to register, so the restart of gue is not happening on each call.
+		h.startTimer = time.AfterFunc(h.pollInterval, func() {
+			err := h.startWorkers() //nolint:contextcheck
+			if err != nil {
+				h.logger.InfoContext(ctx, "could not start workers after registration of new schedule",
+					slog.Any("err", err))
+			}
+		})
+		h.isStartInProgress = true
+	}
+
+	return fnErr
 }
 
 func (h *PostgresJobsHandler) gueJobsFromJob(
@@ -388,9 +427,6 @@ func ensureValidJobTypeForEnqueue(job Job) error {
 
 // RegisterJobFunc registers new worker functions for a given JobType.
 func (h *PostgresJobsHandler) RegisterJobFunc(jf JobFunc) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	ok := isValidJobFunc(jf)
 	if !ok {
 		return ErrInvalidJobFunc
@@ -401,42 +437,15 @@ func (h *PostgresJobsHandler) RegisterJobFunc(jf JobFunc) error {
 		return err
 	}
 
-	if _, ok := h.gueWorkMap[jobType]; ok {
-		return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrInvalidJobFunc, jobType)
-	}
-
-	if h.hasStarted { // all jobFuncs have to be registered before the gue workers are run
-		h.logger.Log(context.Background(), alog.LevelInfo, "restart workers",
-			slog.String("queue", h.queue), slog.String("pool_name", h.poolName))
-
-		err := h.shutdown(context.Background())
-		if err != nil {
-			return fmt.Errorf("could not shutdown after registration of new JobFunc: %w", err)
-		}
-	}
-
-	h.gueWorkMap[jobType] = h.gueWorkerAdapter(jf)
-
-	needsToStartWorkers := !h.hasStarted
-	if needsToStartWorkers {
-		if h.isStartInProgress {
-			if ok := h.startTimer.Stop(); !ok { // timer expired => worker already started
-				return nil
-			}
+	return h.executeBetweenRestarts(context.Background(), func() error {
+		if _, ok := h.gueWorkMap[jobType]; ok {
+			return fmt.Errorf("%w: could not register worker: JobType %s already registered", ErrInvalidJobFunc, jobType)
 		}
 
-		// wait a bit to allow other JobFuncs to register, so the restart of gue is not happening on each call.
-		h.startTimer = time.AfterFunc(h.pollInterval, func() {
-			err := h.startWorkers()
-			if err != nil {
-				h.logger.InfoContext(context.Background(), "could not start workers after registration of new JobFunc",
-					slog.Any("err", err))
-			}
-		})
-		h.isStartInProgress = true
-	}
+		h.gueWorkMap[jobType] = h.gueWorkerAdapter(jf)
 
-	return nil
+		return nil
+	})
 }
 
 func isValidJobFunc(f JobFunc) bool {
@@ -592,22 +601,17 @@ func (h *PostgresJobsHandler) startWorkers() error {
 	defer h.mu.Unlock()
 
 	if h.hasStarted {
-		return fmt.Errorf("%w: queue already started", ErrRegisterJobFuncFailed)
+		return fmt.Errorf("%w: queue already started", ErrStartFailed)
 	}
 
-	const defaultPanicStackBufSize = 4 * 1024 // 2 * gue's default
-
-	workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
-		gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
-		gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries, h.gitHash)),
-		gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger, h.queries)),
-		gue.WithPoolID(h.poolName),
-		gue.WithPoolLogger(h.gueLogger), gue.WithPoolMeter(h.meter), gue.WithPoolTracer(h.tracer),
-		gue.WithPoolPollStrategy(pollStrategyToGue(h.pollStrategy)),
-		gue.WithPoolPanicStackBufSize(defaultPanicStackBufSize),
-	)
+	// As gueron does not start a worker pool, it relies on the workers from gue.
+	// BUT gueron adds the scheduling-job to the WorkMap
+	// and this job must be available for gue.
+	//
+	// With poolSize == 0, gueron terminates immediately, but adds the job to the map
+	err := h.scheduler.Run(context.Background(), h.gueWorkMap, 0)
 	if err != nil {
-		return fmt.Errorf("%w: could not create gue worker pool: %v", ErrRegisterJobFuncFailed, err)
+		return fmt.Errorf("gueron load-through failed: %w", err)
 	}
 
 	ctx, shutdown := context.WithCancel(context.Background())
@@ -617,19 +621,24 @@ func (h *PostgresJobsHandler) startWorkers() error {
 
 	// work jobs in goroutine
 	group.Go(func() error {
-		err := workers.Run(gctx)
+		const defaultPanicStackBufSize = 4 * 1024 // 2 * gue's default
+
+		workers, err := gue.NewWorkerPool(h.gueClient, h.gueWorkMap, h.poolSize,
+			gue.WithPoolQueue(h.queue), gue.WithPoolPollInterval(h.pollInterval),
+			gue.WithPoolHooksJobLocked(recordStartedJobsToHistory(h.logger, h.queries, h.gitHash)),
+			gue.WithPoolHooksJobDone(recordFinishedJobsToHistory(h.logger, h.queries)),
+			gue.WithPoolID(h.poolName),
+			gue.WithPoolLogger(h.gueLogger), gue.WithPoolMeter(h.meter), gue.WithPoolTracer(h.tracer),
+			gue.WithPoolPollStrategy(pollStrategyToGue(h.pollStrategy)),
+			gue.WithPoolPanicStackBufSize(defaultPanicStackBufSize),
+		)
 		if err != nil {
-			return fmt.Errorf("gue worker failed: %w", err)
+			return fmt.Errorf("%w: could not create gue worker pool: %v", ErrStartFailed, err)
 		}
 
-		return nil
-	})
-
-	// start scheduler in goroutine
-	group.Go(func() error {
-		err := h.scheduler.Run(gctx, h.gueWorkMap, 0) // zero => use pool of queue above instead
+		err = workers.Run(gctx)
 		if err != nil {
-			return fmt.Errorf("gueron worker failed: %w", err)
+			return fmt.Errorf("gue worker failed: %w", err)
 		}
 
 		return nil
@@ -872,7 +881,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 	h.shutdownWorkerPool()
 
 	if err := h.groupWorkerPool.Wait(); err != nil {
-		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrRegisterJobFuncFailed, err)
+		return fmt.Errorf("%w: could not shutdown job workers: %v", ErrShutdownFailed, err)
 	}
 
 	if err := connOrTX(ctx, h.queries).UpsertWorkerToPool(ctx, models.UpsertWorkerToPoolParams{
@@ -883,7 +892,7 @@ func (h *PostgresJobsHandler) shutdown(ctx context.Context) error {
 		Workers:   0, // setting the number of workers to zero => indicator for the UI, that this pool has dropped out.
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	}); err != nil {
-		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrRegisterJobFuncFailed, err)
+		return fmt.Errorf("%w: could not unregister worker pool: %v", ErrShutdownFailed, err)
 	}
 
 	h.hasStarted = false
