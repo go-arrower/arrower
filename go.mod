@@ -10,7 +10,7 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fatih/color v1.18.0
 	github.com/georgysavva/scany/v2 v2.1.4
-	github.com/go-echarts/go-echarts/v2 v2.7.0
+	github.com/go-echarts/go-echarts/v2 v2.7.1
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/go-testfixtures/testfixtures/v3 v3.19.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
