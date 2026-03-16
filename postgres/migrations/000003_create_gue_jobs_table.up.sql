@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS arrower.gue_jobs_history
     pruned_at   TIMESTAMPTZ          DEFAULT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_gue_jobs_history_job_id ON arrower.gue_jobs_history (job_id) WHERE finished_at IS NULL;
+
 SELECT enable_automatic_updated_at('arrower.gue_jobs_history');
 
 
