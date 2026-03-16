@@ -282,7 +282,7 @@ func (h *PostgresJobsHandler) executeBetweenRestarts(ctx context.Context, fn fun
 		h.startTimer = time.AfterFunc(h.pollInterval, func() {
 			err := h.startWorkers() //nolint:contextcheck
 			if err != nil {
-				h.logger.InfoContext(ctx, "could not start workers after registration of new schedule",
+				h.logger.InfoContext(ctx, "could not start workers after registration of new jobFunc or schedule",
 					slog.Any("err", err))
 			}
 		})
@@ -667,12 +667,13 @@ func pollStrategyToGue(s PollStrategy) gue.PollStrategy {
 // Arrower admin dashboard.
 func (h *PostgresJobsHandler) continuouslyRegisterInstance(ctx context.Context) {
 	const refreshDuration = 30 * time.Second
+	ticker := time.NewTicker(refreshDuration)
 
 	h.registerInstance(ctx)
 
 	for {
 		select {
-		case <-time.NewTicker(refreshDuration).C:
+		case <-ticker.C:
 			h.registerInstance(ctx)
 		case <-ctx.Done():
 			return
