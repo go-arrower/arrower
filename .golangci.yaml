@@ -250,6 +250,9 @@ linters:
         linters:
           - funlen
           - lll
+          - gocyclo
+          - cyclop
+          - maintidx
 
       # Partly exclude wsl when initialising contexts, to keep allow assigning echo route names: echo.Get().Name = "route-name"
       - path: contexts/(.*)/init/(.*).go|shared/init/(.*).go
