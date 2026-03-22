@@ -8,7 +8,7 @@ require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/fatih/camelcase v1.0.0
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/go-echarts/go-echarts/v2 v2.7.0
 	github.com/go-playground/validator/v10 v10.30.1
