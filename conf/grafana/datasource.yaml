@@ -11,8 +11,7 @@ datasources:
     jsonData:
       derivedFields:
         - datasourceUid: Tempo
-          matcherRegex: .*\,\"traceID\":\"(\w+)\" # from https://community.grafana.com/t/override-url-label-for-loki-derivedfields/67596
-          #matcherRegex: "traceID=(\\w+)"
+          matcherRegex: \"trace_id\":\s*\"(\w+)\" # match trace_id in logs
           name: TraceID
           url: "$${__value.raw}" # url will be interpreted as query for the datasource
         # it looks like tempo can not search / filter for a spanIDs but only for traceIDs
