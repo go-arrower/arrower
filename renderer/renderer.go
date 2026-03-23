@@ -135,9 +135,7 @@ type viewTemplates struct {
 }
 
 func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, templateName string, data interface{}) error {
-	span := trace.SpanFromContext(ctx)
-
-	_, innerSpan := span.TracerProvider().Tracer("arrower.renderer").Start(ctx, "render")
+	ctx, innerSpan := r.tracer.Start(ctx, "render")
 	defer innerSpan.End()
 
 	if r.hotReload {
