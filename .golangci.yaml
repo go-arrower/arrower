@@ -127,6 +127,16 @@ linters:
       # even if all enum members are not listed.
       # Default: false
       default-signifies-exhaustive: true
+    exhaustruct:
+      # Allows empty structures, effectively excluding them from the check.
+      # Default: false
+      allow-empty: true
+      # Allows empty structures in return statements.
+      # Default: false
+      allow-empty-returns: true
+      # Allows empty structures in variable declarations.
+      # Default: false
+      allow-empty-declarations: true
     gocognit:
       # Minimal code complexity to report.
       # Default: 30 (but we recommend 10-20)
@@ -278,10 +288,16 @@ linters:
 
       # Prevent external errors to become part of the package API
       # At least one error needs to be wrapped, then other errors don't have to
-      # See: https://github.com/polyfloyd/go-errorlint/issues/68
+      # See: https://codeberg.org/polyfloyd/go-errorlint/issues/68
       - linters:
           - errorlint
         source: '.*%w.*: %v'
+      # The above assumes fmt.Errorf( and its format string are on the same line
+      # This accounts for them being on separate lines.
+      - linters:
+          - errorlint
+        source: "err,"
+        text: "non-wrapping format verb for fmt.Errorf. Use `%w`"
 
       # The function Test(t *testing.T) in testing.go is a constructor for test helpers, not a test itself
       # Thus it is not treated as a normal test function and the caller decides if it is a parallel test or not

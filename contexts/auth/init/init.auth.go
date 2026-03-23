@@ -6,10 +6,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
-	"strings"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/go-arrower/arrower"
 	"github.com/go-arrower/arrower/app"
@@ -55,7 +56,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 
 	err = di.WebRenderer.AddLayoutData(contextName, "default", func(_ context.Context) (map[string]any, error) {
 		return map[string]any{
-			"Title": strings.Title(contextName),
+			"Title": cases.Title(language.English).String(contextName),
 		}, nil
 	})
 	if err != nil {

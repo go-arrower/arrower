@@ -121,7 +121,7 @@ func migrateUp(db *sql.DB, dbName string, migrationsFS fs.FS) error {
 		return fmt.Errorf("%w: could not create migration file driver: %v", ErrMigrationFailed, err)
 	}
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{}) //nolint:exhaustruct // use default config
+	driver, err := postgres.WithInstance(db, &postgres.Config{}) // use default config
 	if err != nil {
 		return fmt.Errorf("%w: could not get database driver: %v", ErrMigrationFailed, err)
 	}

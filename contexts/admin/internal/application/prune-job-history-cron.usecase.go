@@ -43,20 +43,20 @@ type (
 	// PruneJobHistoryCronSetting belongs to SettingAutomaticallyPruneJobHistory.
 	// Annotations to keep it simple:
 	// - json for persistence
-	// - form, validate for HTML ui
+	// - form, validate for HTML UI.
 	PruneJobHistoryCronSetting struct {
-		PruneHistoryEntries      bool `json:"prune_history_entries" form:"prune_history_entries"`
-		PruneHistoryEntriesValue int  `json:"prune_history_entries_value" form:"prune_history_entries_value" validate:"min=1"`
+		PruneHistoryEntries      bool `form:"prune_history_entries"       json:"pruneHistoryEntries"`
+		PruneHistoryEntriesValue int  `form:"prune_history_entries_value" json:"pruneHistoryEntriesValue" validate:"min=1"`
 
-		PruneHistoryAge      bool `json:"prune_history_age" form:"prune_history_age"`
-		PruneHistoryAgeValue int  `json:"prune_history_age_value" form:"prune_history_age_value" validate:"min=1"`
+		PruneHistoryAge      bool `form:"prune_history_age"       json:"pruneHistoryAge"`
+		PruneHistoryAgeValue int  `form:"prune_history_age_value" json:"pruneHistoryAgeValue" validate:"min=1"`
 
-		PruneHistorySize      bool `json:"prune_history_size" form:"prune_history_size"`
-		PruneHistorySizeValue int  `json:"prune_history_size_value" form:"prune_history_size_value" validate:"min=1"`
+		PruneHistorySize      bool `form:"prune_history_size"       json:"pruneHistorySize"`
+		PruneHistorySizeValue int  `form:"prune_history_size_value" json:"pruneHistorySizeValue" validate:"min=1"`
 	}
 )
 
-func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, cmd PruneJobHistoryCronCommand) error {
+func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, _ PruneJobHistoryCronCommand) error {
 	val, err := h.settings.Setting(ctx, SettingAutomaticallyPruneJobHistory)
 	if err != nil {
 		return fmt.Errorf("could not get settings: %w", err)
@@ -76,6 +76,7 @@ func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, cmd PruneJobH
 
 	if pruneSetting.PruneHistoryAge {
 		const timeDay = time.Hour * 24
+
 		deleteBefore := time.Now().Add(-1 * time.Duration(pruneSetting.PruneHistoryAgeValue) * timeDay)
 
 		err = errors.Join(err, h.queries.PruneHistory(

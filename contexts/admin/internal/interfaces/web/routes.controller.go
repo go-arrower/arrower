@@ -156,30 +156,3 @@ func generateColorsMuted(n int) []string { //nolint:varnamelen
 
 	return colours
 }
-
-func generateColorsVibrant(n int) []string {
-	colours := make([]string, n)
-
-	baseHues := []float64{
-		0,   // Red
-		210, // Blue
-		120, // Green
-		280, // Purple
-		30,  // Orange
-		180, // Cyan
-		300, // Magenta
-		60,  // Yellow
-		330, // Pink
-		150, // Teal
-	}
-
-	for i := range n {
-		hue := baseHues[i%len(baseHues)]
-		saturation := 0.8 + float64(i%2)*0.05
-		lightness := 0.35 + float64(i%3)*0.03
-
-		colours[i] = hslToHex(hue, saturation, lightness)
-	}
-
-	return colours
-}

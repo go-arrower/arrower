@@ -568,7 +568,7 @@ func unmarshalArgsToJobPayload(paramType reflect.Type, rawArgs []byte) (Persiste
 	args := reflect.New(paramType)
 	argsP := args.Interface()
 
-	payload := PersistencePayload{} //nolint:exhaustruct
+	payload := PersistencePayload{}
 
 	if err := json.Unmarshal(rawArgs, &payload); err != nil {
 		return PersistencePayload{},
@@ -667,6 +667,7 @@ func pollStrategyToGue(s PollStrategy) gue.PollStrategy {
 // Arrower admin dashboard.
 func (h *PostgresJobsHandler) continuouslyRegisterInstance(ctx context.Context) {
 	const refreshDuration = 30 * time.Second
+
 	ticker := time.NewTicker(refreshDuration)
 
 	h.registerInstance(ctx)
@@ -788,7 +789,7 @@ func recordStartedJobsToHistory(
 
 // recordGitHashToArgs records the version of arrower when the job is processed for better debugging.
 func recordGitHashToArgs(args []byte, gitHash string) ([]byte, error) {
-	payload := PersistencePayload{} //nolint:exhaustruct
+	payload := PersistencePayload{}
 
 	if len(args) > 0 {
 		err := json.Unmarshal(args, &payload)

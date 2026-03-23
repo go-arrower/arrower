@@ -126,7 +126,7 @@ func (repo *PostgresJobsRepository) QueueKPIs(ctx context.Context, queue jobs.Qu
 
 	group.Go(func() error {
 		avg, err := repo.Conn().StatsAvgDurationOfJobs(newCtx, queueName)
-		if err != nil && !errors.As(err, &pgx.ScanArgError{}) { //nolint:exhaustruct // Scan() fails if history table is empty
+		if err != nil && !errors.As(err, &pgx.ScanArgError{}) { // Scan() fails if history table is empty
 			return fmt.Errorf("%w: could not query average job durration: %v", postgres.ErrQueryFailed, err)
 		}
 

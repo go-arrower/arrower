@@ -4,12 +4,13 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/jobs"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestLoginUserRequestHandler_H(t *testing.T) {

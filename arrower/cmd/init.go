@@ -16,6 +16,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"github.com/go-arrower/arrower/arrower/internal/initialise"
 )
@@ -51,7 +53,7 @@ func newInitCommand() *cobra.Command {
 
 			yellow(cmd.OutOrStdout(), "Existing folder content is ignored")
 
-			projectName := strings.Title(strings.TrimSpace(args[0]))
+			projectName := cases.Title(language.English).String(strings.TrimSpace(args[0]))
 			data := projectData{
 				Name:        projectName,
 				NameSmall:   strings.ToLower(projectName),

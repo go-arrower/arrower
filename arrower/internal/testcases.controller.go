@@ -92,7 +92,7 @@ func (cont TestCasesController) showTestCase() func(c echo.Context) error { //no
 
 		sort.Sort(sort.Reverse(sort.StringSlice(runNames))) // most recent first
 
-		if reflect.DeepEqual(curRun, run{}) { //nolint:exhaustruct // if no run is loaded, choose the first one
+		if reflect.DeepEqual(curRun, run{}) { // if no run is loaded, choose the first one
 			curRun = test.Runs[runNames[0]]
 			curRunName = runNames[0]
 		}

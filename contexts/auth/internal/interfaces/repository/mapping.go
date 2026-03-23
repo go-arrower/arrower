@@ -84,17 +84,17 @@ func sessionsFromModel(sess []models.AuthSession) []domain.Session {
 func userToModel(user domain.User) models.UpsertUserParams {
 	verifiedAt := pgtype.Timestamptz{Time: user.Verified.At(), Valid: true, InfinityModifier: pgtype.Finite}
 	if user.Verified.At().Equal((time.Time{})) {
-		verifiedAt = pgtype.Timestamptz{} //nolint:exhaustruct
+		verifiedAt = pgtype.Timestamptz{}
 	}
 
 	blockedAt := pgtype.Timestamptz{Time: user.Blocked.At(), Valid: true, InfinityModifier: pgtype.Finite}
 	if user.Blocked.At().Equal((time.Time{})) {
-		blockedAt = pgtype.Timestamptz{} //nolint:exhaustruct
+		blockedAt = pgtype.Timestamptz{}
 	}
 
 	superUserAt := pgtype.Timestamptz{Time: user.Superuser.At(), Valid: true, InfinityModifier: pgtype.Finite}
 	if user.Superuser.At().Equal((time.Time{})) {
-		superUserAt = pgtype.Timestamptz{} //nolint:exhaustruct
+		superUserAt = pgtype.Timestamptz{}
 	}
 
 	return models.UpsertUserParams{

@@ -116,7 +116,7 @@ func (ctrl *LogsController) Index() func(c echo.Context) error {
 			log.Time = line.Time.Time
 			log.UserID = line.UserID.UUID.String()
 
-			if (uuid.NullUUID{}) == line.UserID { //nolint:exhaustruct // checking if user ID is empty
+			if (uuid.NullUUID{}) == line.UserID {
 				log.UserID = ""
 			}
 

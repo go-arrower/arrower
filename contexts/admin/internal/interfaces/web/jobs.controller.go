@@ -268,6 +268,7 @@ func (ctrl *JobsController) ShowMaintenance() func(c echo.Context) error {
 		}
 
 		settings := application.PruneJobHistoryCronSetting{}
+
 		err = val.Unmarshal(&settings)
 		if err != nil {
 			return echo.NewHTTPError(
@@ -413,6 +414,7 @@ func (ctrl *JobsController) EstimateHistoryPayloadSize() func(echo.Context) erro
 func (ctrl *JobsController) UpdateCron() func(c echo.Context) error {
 	return func(c echo.Context) error {
 		settings := application.PruneJobHistoryCronSetting{}
+
 		err := c.Bind(&settings)
 		if err != nil {
 			return echo.NewHTTPError(

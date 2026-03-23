@@ -109,7 +109,7 @@ type Viper struct {
 	*viper.Viper
 }
 
-func (vip *Viper) Unmarshal(rawVal any, opts ...viper.DecoderConfigOption) error {
+func (vip *Viper) Unmarshal(rawVal any, _ ...viper.DecoderConfigOption) error {
 	err := vip.Viper.Unmarshal(rawVal, viper.DecodeHook(allowedEnvironmentHookFunc()))
 	if err != nil {
 		return fmt.Errorf("%w: could not decode configuration into struct: %v", errConfigLoadFailed, err)

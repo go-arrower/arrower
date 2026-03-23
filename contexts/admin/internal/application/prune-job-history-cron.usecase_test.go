@@ -5,11 +5,12 @@ package application_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/setting"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
