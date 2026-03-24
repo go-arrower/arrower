@@ -368,7 +368,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.Contains(t, buf.String(), testdata.C0ContextContent, "context component overwrites shared component with same name")
 		})
 
-		t.Run("context layout and page", func(t *testing.T) {
+		t.Run("context layout and page", func(t *testing.T) { //nolint:dupl
 			t.Parallel()
 
 			render, _ := renderer.New(nil, nil, testdata.FilesSharedViewsWithDefaultBase(), template.FuncMap{}, false)
@@ -482,6 +482,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 	t.Run("hot reload", func(t *testing.T) {
 		t.Parallel()
 
+		//nolint:dupl // this test is indeed a duplicate, only with hot reload enabled.
 		t.Run("context layout and page", func(t *testing.T) {
 			t.Parallel()
 

@@ -27,7 +27,7 @@ const (
 	timeYear = timeDay * 365
 )
 
-func TimeAgo(t time.Time) string {
+func TimeAgo(t time.Time) string { //nolint:cyclop
 	if t.IsZero() {
 		return "unclear"
 	}

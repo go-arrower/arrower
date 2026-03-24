@@ -183,7 +183,7 @@ func (a *TestTenantAssertions[tID, E, eID]) Total(total int, msgAndArgs ...any) 
 // TestSuite is a suite that ensures a Repository implementation
 // adheres to the intended behaviour.
 //
-//nolint:maintidx,tparallel // t.Parallel can only be called ones! The caller decides
+//nolint:maintidx,tparallel,dupl // t.Parallel can only be called ones! The caller decides
 func TestSuite(
 	t *testing.T,
 	newEntityRepo func(opts ...Option) Repository[testdata.Entity, testdata.EntityID],

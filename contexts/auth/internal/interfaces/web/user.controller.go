@@ -410,9 +410,11 @@ func (uc UserController) Store() func(echo.Context) error {
 }
 
 func (uc UserController) BlockUser() {
+	true := true
 	uc.r.POST("/:userID/block", func(c echo.Context) error {
 		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
-			UserID: domain.ID(c.Param("userID")),
+			UserID:     domain.ID(c.Param("userID")),
+			SetBlocked: &true,
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -426,9 +428,11 @@ func (uc UserController) BlockUser() {
 }
 
 func (uc UserController) UnBlockUser() {
+	false := false
 	uc.r.POST("/:userID/unblock", func(c echo.Context) error {
-		res, err := uc.app.UnblockUser.H(c.Request().Context(), application.UnblockUserRequest{
-			UserID: domain.ID(c.Param("userID")),
+		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
+			UserID:     domain.ID(c.Param("userID")),
+			SetBlocked: &false,
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())

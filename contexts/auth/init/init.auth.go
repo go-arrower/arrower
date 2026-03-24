@@ -90,8 +90,6 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 			application.NewVerifyUserCommandHandler(repo)),
 		BlockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
 			application.NewBlockUserRequestHandler(repo)),
-		UnblockUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
-			application.NewUnblockUserRequestHandler(repo)),
 	}
 
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"))

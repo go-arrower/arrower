@@ -608,13 +608,15 @@ func (v Value) MustFloat64() float64 {
 	return f
 }
 
-//nolint:gocyclo,nestif,cyclop,varnamelen,funlen,gocognit,wsl_v5,lll // the method has to consider all the cases for auto-casting.
+//nolint:gocyclo,nestif,cyclop,varnamelen,funlen,gocognit,wsl_v5,lll,contextcheck,nolintlint // the method has to consider all the cases for auto-casting and is as such long.  // signature should not have context; only used for logging
 func (v Value) Unmarshal(o any) error {
 	var applyValue reflect.Value
 
 	oKind := reflect.TypeOf(o).Elem().Kind()
 
-	slog.Log(context.Background(), alogLevelDebug, "Unmarshal setting.Value into object",
+	ctx := context.Background()
+
+	slog.Log(ctx, alogLevelDebug, "Unmarshal setting.Value into object",
 		slog.String("value", v.v),
 		slog.Any("object_kind", oKind),
 	)
@@ -622,7 +624,7 @@ func (v Value) Unmarshal(o any) error {
 	switch oKind {
 	case reflect.Bool:
 		if isTrue, err := v.Bool(); err == nil {
-			slog.Log(context.Background(), alogLevelDebug, "is bool", slog.Bool("value", isTrue))
+			slog.Log(ctx, alogLevelDebug, "is bool", slog.Bool("value", isTrue))
 			applyValue = reflect.ValueOf(isTrue)
 		} else {
 			return fmt.Errorf("%w", ErrInvalidValue)
@@ -637,24 +639,24 @@ func (v Value) Unmarshal(o any) error {
 				applyValue = reflect.ValueOf("false")
 			}
 		} else if iVal, err := v.Int(); err == nil {
-			slog.Log(context.Background(), alogLevelDebug, "is int")
+			slog.Log(ctx, alogLevelDebug, "is int")
 			applyValue = reflect.ValueOf(strconv.Itoa(iVal))
 		} else if fVal, err := v.Float64(); err == nil {
-			slog.Log(context.Background(), alogLevelDebug, "is float")
+			slog.Log(ctx, alogLevelDebug, "is float")
 			applyValue = reflect.ValueOf(fmt.Sprintf("%.2f", fVal))
 		} else if isSerialisedTime(v.v) {
 			if tNow, err := v.Time(); err == nil {
-				slog.Log(context.Background(), alogLevelDebug, "is time")
+				slog.Log(ctx, alogLevelDebug, "is time")
 				applyValue = reflect.ValueOf(tNow.Format(time.RFC3339Nano))
 			}
 		} else {
-			slog.Log(context.Background(), alogLevelDebug, "raw string")
+			slog.Log(ctx, alogLevelDebug, "raw string")
 			applyValue = reflect.ValueOf(v.v)
 		}
 	case reflect.Struct, reflect.Slice, reflect.Map:
 		if isSerialisedTime(v.v) {
 			if tNow, err := v.Time(); err == nil {
-				slog.Log(context.Background(), alogLevelDebug, "is time")
+				slog.Log(ctx, alogLevelDebug, "is time")
 
 				applyValue = reflect.ValueOf(tNow)
 			}

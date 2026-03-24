@@ -9,7 +9,10 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
-var ErrBlockUserFailed = errors.New("block user failed")
+var (
+	ErrBlockUserFailed   = errors.New("block user failed")
+	ErrUnblockUserFailed = errors.New("unblock user failed")
+)
 
 func NewBlockUserRequestHandler(repo domain.Repository) app.Request[BlockUserRequest, BlockUserResponse] {
 	return app.NewValidatedRequest[BlockUserRequest, BlockUserResponse](nil, &blockUserRequestHandler{repo: repo})
@@ -21,7 +24,8 @@ type blockUserRequestHandler struct {
 
 type (
 	BlockUserRequest struct {
-		UserID domain.ID `validate:"required"`
+		UserID     domain.ID `validate:"required"`
+		SetBlocked *bool     `validate:"required"`
 	}
 	BlockUserResponse struct {
 		Blocked domain.BoolFlag
@@ -35,7 +39,11 @@ func (h *blockUserRequestHandler) H(ctx context.Context, req BlockUserRequest) (
 		return BlockUserResponse{}, fmt.Errorf("could not get user: %w", err)
 	}
 
-	usr.Block()
+	if *req.SetBlocked {
+		usr.Block()
+	} else {
+		usr.Unblock()
+	}
 
 	err = h.repo.Save(ctx, usr)
 	if err != nil {

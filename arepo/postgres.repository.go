@@ -706,7 +706,7 @@ const batchSize = 1000
 
 type PostgresIterator[E any, ID id] struct {
 	repo *PostgresRepository[E, ID]
-	ctx  context.Context
+	ctx  context.Context // nolint:containedctx
 	tx   pgx.Tx
 
 	sql        string

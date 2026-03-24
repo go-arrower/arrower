@@ -109,6 +109,7 @@ type Viper struct {
 	*viper.Viper
 }
 
+//nolint:cyclop
 func (vip *Viper) Unmarshal(rawVal any, _ ...viper.DecoderConfigOption) error {
 	err := vip.Viper.Unmarshal(rawVal, viper.DecodeHook(allowedEnvironmentHookFunc()))
 	if err != nil {

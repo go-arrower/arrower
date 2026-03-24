@@ -9,6 +9,5 @@ type UserApplication struct {
 	ShowUser     app.Query[ShowUserQuery, ShowUserResponse]
 	NewUser      app.Command[NewUserCommand]
 	VerifyUser   app.Command[VerifyUserCommand]
-	BlockUser    app.Request[BlockUserRequest, BlockUserResponse]     // todo refactor to a command
-	UnblockUser  app.Request[UnblockUserRequest, UnblockUserResponse] // todo refactor to a command
+	BlockUser    app.Request[BlockUserRequest, BlockUserResponse] // todo refactor to a command
 }

@@ -241,7 +241,7 @@ func (l *tracedHandler) Enabled(ctx context.Context, level slog.Level) bool {
 			if err == nil {
 				var users []string
 
-				val.MustUnmarshal(&users) //nolint:contextcheck // fp
+				val.MustUnmarshal(&users)
 
 				if slices.Contains(users, userID) {
 					span.SetAttributes(

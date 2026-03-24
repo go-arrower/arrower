@@ -256,7 +256,7 @@ func TestSuite(t *testing.T, newSettings func() Settings) { //nolint:tparallel,m
 			assert.JSONEq(t, `{"key":{"0":{"Field":"field"}}}`, string(val.MustByte()))
 
 			var o map[string]map[int]someStruct
-			val.MustUnmarshal(&o) //nolint:contextcheck
+			val.MustUnmarshal(&o)
 			assert.Equal(t, mp, o)
 		})
 
