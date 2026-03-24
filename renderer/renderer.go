@@ -354,7 +354,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS, funcMap template.FuncMap, isContext bool) (viewTemplates, error) {
 	components, err := fs.Glob(viewFS, "components/*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:goerr113
+		return viewTemplates{}, fmt.Errorf("could not get components from fs: %v", err) //nolint:err113,errorlint
 	}
 
 	componentTemplates := template.New("<empty>").
@@ -374,7 +374,7 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 		_, err = componentTemplates.New(name).Parse(file)
 		if err != nil {
-			return viewTemplates{}, fmt.Errorf("could not parse component: %s: %v", file, err) //nolint:goerr113
+			return viewTemplates{}, fmt.Errorf("could not parse component: %s: %v", file, err) //nolint:err113,errorlint
 		}
 	}
 
@@ -386,7 +386,7 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 	pages, err := fs.Glob(viewFS, "pages/*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get pages from fs: %v", err) //nolint:goerr113
+		return viewTemplates{}, fmt.Errorf("could not get pages from fs: %v", err) //nolint:err113,errorlint
 	}
 
 	rawPages := make(map[string]string)
@@ -410,7 +410,7 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 	layouts, err := fs.Glob(viewFS, "*.html")
 	if err != nil {
-		return viewTemplates{}, fmt.Errorf("could not get layouts from fs: %v", err) //nolint:goerr113
+		return viewTemplates{}, fmt.Errorf("could not get layouts from fs: %v", err) //nolint:err113,errorlint
 	}
 
 	var defaultLayout string
@@ -488,14 +488,14 @@ func pageName(pageName string) string {
 func readFile(sfs fs.FS, name string) (string, error) {
 	file, err := sfs.Open(name)
 	if err != nil {
-		return "", fmt.Errorf("%v", err) //nolint:goerr113
+		return "", fmt.Errorf("%v", err) //nolint:err113,errorlint
 	}
 
 	var buf bytes.Buffer
 
 	_, err = io.Copy(&buf, file)
 	if err != nil {
-		return "", fmt.Errorf("could not read: %v", err) //nolint:goerr113
+		return "", fmt.Errorf("could not read: %v", err) //nolint:err113,errorlint
 	}
 
 	return buf.String(), nil

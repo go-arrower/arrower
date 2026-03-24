@@ -63,6 +63,7 @@ func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, _ PruneJobHis
 	}
 
 	pruneSetting := PruneJobHistoryCronSetting{}
+
 	err = val.Unmarshal(&pruneSetting)
 	if err != nil {
 		return fmt.Errorf("could not unmarshal settings: %w", err)

@@ -71,7 +71,7 @@ func prettyJobPayloadAsFormattedJSON(p []byte) string {
 }
 
 func prettyJobPayloadDataAsFormattedJSON(payload application.JobPayload) string {
-	b, _ := json.Marshal(payload.JobData)
+	b, _ := json.Marshal(payload.JobData) //nolint:errchkjson // assumes data is correct to showcase admin UI fast
 
 	return prettyJSON(b)
 }

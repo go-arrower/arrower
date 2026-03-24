@@ -23,6 +23,11 @@ import (
 	"github.com/go-arrower/arrower/postgres"
 )
 
+var (
+	errRepositoryInvalid = errors.New("could not initialise postgres repository")
+	errValueNil          = errors.New("value can not be nil")
+)
+
 // NewPostgresRepository
 //
 // If using the WithIDField option, it is required that the column in postgres has a unique or exclusion constraint,
@@ -50,14 +55,14 @@ func NewPostgresRepository[E any, ID id](pgx *pgxpool.Pool, opts ...Option) (*Po
 		err := opt(repo)
 		if err != nil {
 			name := reflect.TypeOf(*new(E)).Name()
-			return nil, fmt.Errorf("could not initialise %s postgres repository: option returned error: %w", name, err)
+			return nil, fmt.Errorf("%w: %s: option returned error: %w", errRepositoryInvalid, name, err)
 		}
 	}
 
 	idField := reflect.ValueOf(*new(E)).FieldByName(repo.IDFieldName)
 	if reflect.DeepEqual(idField, reflect.Value{}) { //nolint:govet,lll // is a fp and will be fixed, see: https://github.com/golang/go/issues/43993
 		name := reflect.TypeOf(*new(E)).Name()
-		return nil, fmt.Errorf("could not initialise %s postgres repository: entity does not have the ID field with name: %v", name, repo.IDFieldName)
+		return nil, fmt.Errorf("%w: %s: entity does not have the ID field with name: %v", errRepositoryInvalid, name, repo.IDFieldName) //nolint:lll
 	}
 
 	return repo, nil
@@ -674,7 +679,7 @@ func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (stri
 
 	for _, condition := range conditions {
 		if condition.Value == nil {
-			return "", nil, errors.New("value can not be nil")
+			return "", nil, errValueNil
 		}
 
 		query = query.Where(squirrel.Eq{
@@ -688,7 +693,7 @@ func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (stri
 
 		for _, condition := range g.Conditions {
 			if condition.Value == nil {
-				return "", nil, errors.New("value can not be nil")
+				return "", nil, errValueNil
 			}
 
 			inner = append(inner, squirrel.Eq{
@@ -706,7 +711,7 @@ const batchSize = 1000
 
 type PostgresIterator[E any, ID id] struct {
 	repo *PostgresRepository[E, ID]
-	ctx  context.Context // nolint:containedctx
+	ctx  context.Context //nolint:containedctx
 	tx   pgx.Tx
 
 	sql        string

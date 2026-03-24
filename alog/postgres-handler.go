@@ -193,19 +193,19 @@ func (l *PostgresHandler) render(ctx context.Context, record slog.Record) ([]byt
 
 	err := l.renderer.Handle(ctx, record)
 	if err != nil {
-		return nil, fmt.Errorf("could not handle: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+		return nil, fmt.Errorf("could not handle: %v", err) //nolint:errorlint,err113 // prevent err in api
 	}
 
 	var nmap map[string]interface{}
 
 	err = json.Unmarshal(l.output.Bytes(), &nmap)
 	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+		return nil, fmt.Errorf("could not unmarshal: %v", err) //nolint:errorlint,err113 // prevent err in api
 	}
 
 	output, err := json.Marshal(nmap)
 	if err != nil {
-		return nil, fmt.Errorf("could not marshal: %v", err) //nolint:errorlint,goerr113 // prevent err in api
+		return nil, fmt.Errorf("could not marshal: %v", err) //nolint:errorlint,err113 // prevent err in api
 	}
 
 	l.output.Reset()

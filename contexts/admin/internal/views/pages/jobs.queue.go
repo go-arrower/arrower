@@ -57,7 +57,7 @@ func prettyFormatPayload(pJobs []jobs.Job) []viewJob {
 		var m application.JobPayload
 
 		_ = json.Unmarshal([]byte(pJobs[i].Payload), &m)
-		data, _ := json.Marshal(m.JobData)
+		data, _ := json.Marshal(m.JobData) //nolint:errchkjson // assumes data is correct to showcase admin UI fast
 
 		var prettyJSON bytes.Buffer
 

@@ -70,7 +70,7 @@ func (s *Secret) Scan(value interface{}) error {
 
 	strValue, ok := value.(string)
 	if !ok {
-		return errors.New("failed to scan Secret: value is not a string")
+		return errors.New("failed to scan Secret: value is not a string") //nolint:err113
 	}
 
 	s.secret = &strValue

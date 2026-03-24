@@ -305,7 +305,7 @@ func TestPostgresJobs_RegisterJobFunc(t *testing.T) {
 			if retryCount < 1 {
 				retryCount++
 
-				return fmt.Errorf("some failure inside a job worker: %d", retryCount) //nolint:goerr113,err113
+				return fmt.Errorf("some failure inside a job worker: %d", retryCount) //nolint:err113,err113
 			}
 
 			assert.Equal(t, jobWithJobType{Name: argName}, job)
@@ -849,7 +849,7 @@ func TestPostgresJobs_History(t *testing.T) {
 			if count < 2 { // fail twice
 				count++
 
-				return errors.New("job returns with error") //nolint:goerr113,err113
+				return errors.New("job returns with error") //nolint:err113,err113
 			}
 
 			wg.Done()
@@ -1190,7 +1190,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 
 			wg.Done()
 
-			return errors.New("some-error") //nolint:goerr113,err113
+			return errors.New("some-error") //nolint:err113,err113
 		})
 		assert.NoError(t, err)
 
