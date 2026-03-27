@@ -502,46 +502,52 @@ func (ctrl *JobsController) PayloadExamples() func(_ echo.Context) error {
 
 func (ctrl *JobsController) ScheduleJobs() func(c echo.Context) error {
 	return func(c echo.Context) error {
-		queue := c.FormValue("queue")
-		jt := c.FormValue("job-type")
-		prio := c.FormValue("priority")
-		payload := c.FormValue("payload")
-		num := c.FormValue("count")
-		runAtParam := c.FormValue("runAt-time")
-
-		jq := queue
-		if queue == "Default" {
-			jq = ""
-		}
-
-		priority, err := strconv.Atoi(prio)
+		// manual binding to not extend echo. why not extend? TODO
+		tt, err := time.Parse(htmlDatetimeLayout, c.FormValue("runAt-time"))
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusBadRequest,
-				"could not parse priority").
+				"could not validate job").
 				WithInternal(err)
 		}
 
-		priority *= -1
-
-		count, err := strconv.Atoi(num)
+		priority, err := strconv.Atoi(c.FormValue("priority"))
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusBadRequest,
-				"could not parse count").
+				"could not validate job").
 				WithInternal(err)
 		}
 
-		runAt, _ := time.Parse(htmlDatetimeLayout, runAtParam)
+		count, err := strconv.Atoi(c.FormValue("count"))
+		if err != nil {
+			return echo.NewHTTPError(
+				http.StatusBadRequest,
+				"could not validate job").
+				WithInternal(err)
+		}
 
-		err = ctrl.appDI.ScheduleJobs.H(c.Request().Context(), application.ScheduleJobsCommand{
-			Queue:    jq,
-			JobType:  jt,
-			Priority: int16(priority),
-			Payload:  payload,
+		cmd := &application.ScheduleJobsCommand{
+			RunAt:    tt,
+			Queue:    c.QueryParam("queue"),
+			Priority: priority,
+			JobType:  c.FormValue("job-type"),
 			Count:    count,
-			RunAt:    runAt.Add(-1 * time.Hour), // todo needs to apply read tz, to prevent dirty hack, to overcome client and server times
-		})
+			Payload:  c.FormValue("payload"),
+		}
+
+		if cmd.Queue == "Default" {
+			cmd.Queue = ""
+		}
+
+		// UI shows an HTML range slider:
+		// to the right is positive number and means high priority.
+		// The jobs system follows the Linux philosophy:
+		// lower number equals higher priority.
+		cmd.Priority *= -1
+		cmd.RunAt.Add(-1 * time.Hour) // todo needs to apply read tz, to prevent dirty hack, to overcome client and server times
+
+		err = ctrl.appDI.ScheduleJobs.H(c.Request().Context(), *cmd)
 		if err != nil {
 			return echo.NewHTTPError(
 				http.StatusInternalServerError,
@@ -549,7 +555,7 @@ func (ctrl *JobsController) ScheduleJobs() func(c echo.Context) error {
 				WithInternal(err)
 		}
 
-		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+queue)
+		return c.Redirect(http.StatusSeeOther, "/admin/jobs/"+cmd.Queue)
 	}
 }
 

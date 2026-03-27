@@ -374,6 +374,7 @@ func (c *Container) Shutdown(ctx context.Context) error { // todo error handling
 	return nil
 }
 
+//nolint:mnd // allow server timeouts
 func serveMetrics(ctx context.Context, di *Container) *http.Server {
 	const (
 		metricPath = "/metrics"
@@ -382,23 +383,15 @@ func serveMetrics(ctx context.Context, di *Container) *http.Server {
 
 	serverStartedAt := time.Now()
 
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", di.Config.HTTP.StatusEndpointPort)}
-
-	di.Logger.InfoContext(ctx, "serving status endpoint",
-		slog.String("addr", srv.Addr),
-		slog.String("metric_path", metricPath),
-		slog.String("status_path", statusPath),
-	)
-
-	// http.Handle("/metrics", promhttp.Handler())
-	http.Handle(metricPath, promhttp.HandlerFor(
+	mux := http.NewServeMux()
+	mux.Handle(metricPath, promhttp.HandlerFor(
 		prometheusSDK.DefaultGatherer,
 		promhttp.HandlerOpts{ //nolint:exhaustruct
 			EnableOpenMetrics: true, // to enable Examplars in the export format
 		},
 	))
 
-	http.HandleFunc(statusPath, func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc(statusPath, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // todo in case of error: 500 code
 		// TODO disable cache
@@ -407,6 +400,21 @@ func serveMetrics(ctx context.Context, di *Container) *http.Server {
 
 		_ = json.NewEncoder(w).Encode(statusData)
 	})
+
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", di.Config.HTTP.StatusEndpointPort),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	di.Logger.InfoContext(ctx, "serving status endpoint",
+		slog.String("addr", srv.Addr),
+		slog.String("metric_path", metricPath),
+		slog.String("status_path", statusPath),
+	)
 
 	go func() {
 		err := srv.ListenAndServe()

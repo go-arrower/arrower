@@ -42,7 +42,7 @@ func (h *listUsersQueryHandler) H(ctx context.Context, query ListUsersQuery) (Li
 
 	users = searchUsersEXPENSIVE(users, query.Query)
 
-	filtered := uint(total)
+	filtered := uint(total) //nolint:gosec // negative number of users can not happen
 	if query.Query != "" {
 		filtered = uint(len(users))
 	}
@@ -50,7 +50,7 @@ func (h *listUsersQueryHandler) H(ctx context.Context, query ListUsersQuery) (Li
 	return ListUsersResponse{
 		Users:    users,
 		Filtered: filtered,
-		Total:    uint(total),
+		Total:    uint(total), //nolint:gosec // negative number of users can not happen
 	}, nil
 }
 

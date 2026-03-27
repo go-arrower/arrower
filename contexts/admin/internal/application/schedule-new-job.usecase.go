@@ -20,16 +20,16 @@ import (
 var ErrScheduleJobsFailed = errors.New("schedule jobs failed")
 
 func NewScheduleJobsCommandHandler(queries *models.Queries) app.Command[ScheduleJobsCommand] {
-	return &scheduleJobsCommandHandler{queries: queries}
+	return app.NewValidatedCommand(nil, &scheduleJobsCommandHandler{queries: queries})
 }
 
 type ScheduleJobsCommand struct {
-	RunAt    time.Time
 	Queue    string
-	JobType  string
-	Payload  string
-	Count    int
-	Priority int16
+	RunAt    time.Time `validate:"required"`
+	JobType  string    `validate:"required"`
+	Payload  string    `validate:"required"`
+	Count    int       `validate:"required"`
+	Priority int       `validate:"min=-32768,max=32767"`
 }
 
 type scheduleJobsCommandHandler struct {
@@ -83,7 +83,7 @@ func buildJobs(in ScheduleJobsCommand, carrier propagation.MapCarrier) ([]models
 			UpdatedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true, InfinityModifier: pgtype.Finite},
 			Queue:     in.Queue,
 			JobType:   in.JobType,
-			Priority:  in.Priority,
+			Priority:  int16(in.Priority), //nolint:gosec // input validation ensures no overflow
 			RunAt:     pgtype.Timestamptz{Time: in.RunAt, Valid: true, InfinityModifier: pgtype.Finite},
 			Args:      args,
 		}

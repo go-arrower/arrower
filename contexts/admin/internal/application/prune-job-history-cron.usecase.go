@@ -72,7 +72,7 @@ func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, _ PruneJobHis
 	h.logger.InfoContext(ctx, "prune job history", slog.Any("setting", pruneSetting))
 
 	if pruneSetting.PruneHistoryEntries {
-		err = errors.Join(err, h.queries.TruncateHistoryEntries(ctx, int32(pruneSetting.PruneHistoryEntriesValue)))
+		err = errors.Join(err, h.queries.TruncateHistoryEntries(ctx, int64(pruneSetting.PruneHistoryEntriesValue)))
 	}
 
 	if pruneSetting.PruneHistoryAge {
@@ -87,7 +87,9 @@ func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, _ PruneJobHis
 	}
 
 	if pruneSetting.PruneHistorySize {
-		err = errors.Join(err, h.queries.TruncateHistorySize(ctx, int32(pruneSetting.PruneHistorySizeValue*1024*1024*1024)))
+		const GB = 1024 * 1024 * 1024
+
+		err = errors.Join(err, h.queries.TruncateHistorySize(ctx, int64(pruneSetting.PruneHistorySizeValue*GB)))
 	}
 
 	if err != nil {

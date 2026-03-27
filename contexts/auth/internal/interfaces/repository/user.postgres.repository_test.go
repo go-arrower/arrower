@@ -3,10 +3,12 @@
 package repository_test
 
 import (
+	"math"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
@@ -75,6 +77,21 @@ func TestPostgresRepository_All(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, all, 1)
 		assert.Equal(t, domain.ID("00000000-0000-0000-0000-000000000002"), all[0].ID)
+	})
+
+	t.Run("limit too large", func(t *testing.T) {
+		t.Parallel()
+
+		pg := pgHandler.NewTestDatabase()
+		repo, _ := repository.NewUserPostgresRepository(pg)
+
+		_, err := repo.All(t.Context(), domain.Filter{
+			Limit: math.MaxInt,
+		})
+		assert.Error(t, err, "should return error if limit is too large")
+
+		var pgErr *pgconn.PgError
+		assert.NotErrorAs(t, err, &pgErr, "should validate the limit before it hits the database")
 	})
 }
 

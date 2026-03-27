@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrNotFound          = errors.New("not found")
+	ErrInvalidFilter     = errors.New("invalid filter")
 	ErrPersistenceFailed = errors.New("persistence operation failed")
 )
 

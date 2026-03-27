@@ -680,15 +680,15 @@ WITH cutoff AS (SELECT created_at
                 FROM arrower.gue_jobs_history
                 WHERE finished_at IS NOT NULL
                 ORDER BY created_at DESC
-                OFFSET $1 LIMIT 1)
+                OFFSET $1::BIGINT LIMIT 1)
 DELETE
 FROM arrower.gue_jobs_history
 WHERE finished_at IS NOT NULL
   AND created_at <= (SELECT created_at FROM cutoff)
 `
 
-func (q *Queries) TruncateHistoryEntries(ctx context.Context, offset int32) error {
-	_, err := q.db.Exec(ctx, truncateHistoryEntries, offset)
+func (q *Queries) TruncateHistoryEntries(ctx context.Context, dollar_1 int64) error {
+	_, err := q.db.Exec(ctx, truncateHistoryEntries, dollar_1)
 	return err
 }
 
@@ -698,7 +698,7 @@ WITH cutoff AS (SELECT created_at
                 WHERE finished_at IS NOT NULL
                 ORDER BY created_at DESC
                 OFFSET (SELECT FLOOR(
-                                       $1::INTEGER / pg_total_relation_size('arrower.gue_jobs_history')
+                                       $1::BIGINT / pg_total_relation_size('arrower.gue_jobs_history')
                                            * COUNT(*) * 0.9
                                )::BIGINT
                         FROM arrower.gue_jobs_history
@@ -709,7 +709,7 @@ WHERE finished_at IS NOT NULL
   AND created_at <= (SELECT created_at FROM cutoff)
 `
 
-func (q *Queries) TruncateHistorySize(ctx context.Context, dollar_1 int32) error {
+func (q *Queries) TruncateHistorySize(ctx context.Context, dollar_1 int64) error {
 	_, err := q.db.Exec(ctx, truncateHistorySize, dollar_1)
 	return err
 }

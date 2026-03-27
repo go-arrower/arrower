@@ -191,7 +191,7 @@ WITH cutoff AS (SELECT created_at
                 FROM arrower.gue_jobs_history
                 WHERE finished_at IS NOT NULL
                 ORDER BY created_at DESC
-                OFFSET $1 LIMIT 1)
+                OFFSET $1::BIGINT LIMIT 1)
 DELETE
 FROM arrower.gue_jobs_history
 WHERE finished_at IS NOT NULL
@@ -204,7 +204,7 @@ WITH cutoff AS (SELECT created_at
                 WHERE finished_at IS NOT NULL
                 ORDER BY created_at DESC
                 OFFSET (SELECT FLOOR(
-                                       $1::INTEGER / pg_total_relation_size('arrower.gue_jobs_history')
+                                       $1::BIGINT / pg_total_relation_size('arrower.gue_jobs_history')
                                            * COUNT(*) * 0.9
                                )::BIGINT
                         FROM arrower.gue_jobs_history

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -31,6 +32,10 @@ type PostgresRepository struct {
 }
 
 func (repo *PostgresRepository) All(ctx context.Context, filter domain.Filter) ([]domain.User, error) {
+	if filter.Limit > math.MaxInt32 {
+		return nil, fmt.Errorf("%w: limit cannot be greater than %d", domain.ErrInvalidFilter, math.MaxInt32)
+	}
+
 	limit := int32(filter.Limit)
 	if filter.Limit == 0 {
 		limit = 100
