@@ -1007,12 +1007,12 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = jq.Enqueue(context.Background(), simpleJob{})
+		err = jq.Enqueue(t.Context(), simpleJob{})
 		assert.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond) // wait a bit for the Job to start processing
 
-		err = jq.Shutdown(context.Background())
+		err = jq.Shutdown(t.Context())
 		assert.NoError(t, err)
 		ensureJobTableRows(t, pg, 1)
 		ensureJobHistoryTableRows(t, pg, 0)
@@ -1036,7 +1036,7 @@ func TestPostgresJobs_Shutdown(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = jq.Enqueue(context.Background(), simpleJob{})
+		err = jq.Enqueue(t.Context(), simpleJob{})
 		assert.NoError(t, err)
 
 		time.Sleep(time.Millisecond) // wait a bit for the Job to start processing
@@ -1066,7 +1066,7 @@ func TestPostgresJobs_Tx(t *testing.T) {
 		assert.NoError(t, err)
 
 		// create a new transaction and set it in the context
-		newCtx := context.Background()
+		newCtx := t.Context()
 		txHandle, err := pg.Begin(newCtx)
 		assert.NoError(t, err)
 		newCtx = context.WithValue(newCtx, postgres.CtxTX, txHandle)

@@ -17,7 +17,7 @@ func TestGetHelloWorldQueryHandler_H(t *testing.T) {
 
 		handler := application.NewGetHelloWorldQueryHandler()
 
-		res, err := handler.H(context.Background(), application.GetHelloWorldQuery{})
+		res, err := handler.H(t.Context(), application.GetHelloWorldQuery{})
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})

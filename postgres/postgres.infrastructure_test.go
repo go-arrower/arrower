@@ -3,7 +3,6 @@
 package postgres_test
 
 import (
-	"context"
 	"errors"
 	"strconv"
 	"testing"
@@ -57,7 +56,7 @@ func TestConnect(t *testing.T) {
 			}
 		})
 
-		err := pgHandler.PGx.Ping(context.Background())
+		err := pgHandler.PGx.Ping(t.Context())
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pgHandler.PGx)
 		assert.NotEmpty(t, pgHandler.DB)
@@ -91,13 +90,13 @@ func TestConnect(t *testing.T) {
 			}
 		})
 
-		err := pgHandler.PGx.Ping(context.Background())
+		err := pgHandler.PGx.Ping(t.Context())
 		assert.NoError(t, err)
 
-		err = pgHandler.Shutdown(context.Background())
+		err = pgHandler.Shutdown(t.Context())
 		assert.NoError(t, err)
 
-		err = pgHandler.PGx.Ping(context.Background())
+		err = pgHandler.PGx.Ping(t.Context())
 		assert.Error(t, err)
 
 		_ = cleanup()
@@ -162,7 +161,7 @@ func TestConnectAndMigrate(t *testing.T) {
 			}
 		})
 
-		err := pgHandler.PGx.Ping(context.Background())
+		err := pgHandler.PGx.Ping(t.Context())
 		assert.NoError(t, err)
 		ensureMigrationsRun(t, pgHandler.PGx)
 		ensureMigrationFilesLoadedAndApplied(t, pgHandler.PGx)
@@ -209,7 +208,7 @@ func ensureMigrationsRun(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
 	row := pgx.QueryRow(
-		context.Background(),
+		t.Context(),
 		`SELECT EXISTS (
 				SELECT FROM information_schema.tables
 					WHERE  table_schema = 'public'
@@ -227,7 +226,7 @@ func ensureMigrationFilesLoadedAndApplied(t *testing.T, pgx *pgxpool.Pool) {
 	t.Helper()
 
 	row := pgx.QueryRow(
-		context.Background(),
+		t.Context(),
 		`select pg_get_functiondef('set_updated_at()'::regprocedure);`)
 
 	var funcExists string

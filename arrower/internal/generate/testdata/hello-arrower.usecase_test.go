@@ -17,7 +17,7 @@ func TestHelloArrowerRequestHandler_H(t *testing.T) {
 
 		handler := application.NewHelloArrowerRequestHandler()
 
-		res, err := handler.H(context.Background(), application.HelloArrowerRequest{})
+		res, err := handler.H(t.Context(), application.HelloArrowerRequest{})
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})

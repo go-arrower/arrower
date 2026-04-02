@@ -138,7 +138,7 @@ func TestNewPGSessionStore_HTTPRequest(t *testing.T) {
 	t.Parallel()
 
 	pg := pgHandler.NewTestDatabase()
-	echoRouter := newTestRouter(pg)
+	echoRouter := newTestRouter(t.Context(), pg)
 
 	var cookie *http.Cookie // the cookie to use over all requests
 
@@ -229,7 +229,7 @@ var (
 	userID   = uuid.New()
 )
 
-func newTestRouter(pg *pgxpool.Pool) *echo.Echo {
+func newTestRouter(ctx context.Context, pg *pgxpool.Pool) *echo.Echo {
 	ss, _ := auth.NewPGSessionStore(pg, keyPairs)
 	echoRouter := echo.New()
 	echoRouter.Use(session.Middleware(ss))
@@ -252,7 +252,7 @@ func newTestRouter(pg *pgxpool.Pool) *echo.Echo {
 		return c.NoContent(http.StatusOK)
 	})
 
-	echoRouter.GET("/login", func(c echo.Context) error {
+	echoRouter.GET("/login", func(c echo.Context) error { //nolint:contextcheck // fp, controller must use http Context instead of ctx param
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -300,7 +300,7 @@ func newTestRouter(pg *pgxpool.Pool) *echo.Echo {
 	})
 
 	// seed db with example user
-	_, _ = pg.Exec(context.Background(), `INSERT INTO auth.user (id, login) VALUES ($1, $2);`, userID, "login")
+	_, _ = pg.Exec(ctx, `INSERT INTO auth.user (id, login) VALUES ($1, $2);`, userID, "login")
 
 	return echoRouter
 }

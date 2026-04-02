@@ -27,7 +27,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
@@ -55,7 +55,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		dir := t.TempDir()
 
@@ -76,7 +76,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File, 1)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		dir := t.TempDir()
 
@@ -104,7 +104,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File, 10)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		dir := t.TempDir()
 
@@ -137,7 +137,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File, 10)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		dir := t.TempDir()
 
@@ -170,7 +170,7 @@ func TestWatchFolder(t *testing.T) {
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File, 1)
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		dir := t.TempDir()
 

@@ -17,7 +17,7 @@ func TestGreetJobHandler_H(t *testing.T) {
 
 		handler := application.NewGreetJobHandler()
 
-		err := handler.H(context.Background(), application.GreetJob{})
+		err := handler.H(t.Context(), application.GreetJob{})
 		assert.NoError(t, err)
 	})
 }

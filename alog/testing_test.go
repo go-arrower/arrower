@@ -44,16 +44,16 @@ func TestTest(t *testing.T) {
 
 		logger.DebugContext(t.Context(), "msg 0")
 
-		simulateComponentWorkingWithLogger(logger)
+		simulateComponentWorkingWithLogger(t.Context(), logger)
 
 		logger.Contains("msg 0")
 		logger.Contains("GROUP.some=key")
 	})
 }
 
-func simulateComponentWorkingWithLogger(logger alog.Logger) {
+func simulateComponentWorkingWithLogger(ctx context.Context, logger alog.Logger) {
 	logger = logger.WithGroup("GROUP")
-	logger.DebugContext(context.Background(), "msg group", "some", "key")
+	logger.DebugContext(ctx, "msg group", "some", "key")
 }
 
 func TestTestLogger_Lines(t *testing.T) {

@@ -349,7 +349,7 @@ func Test{{- .ConstructorName -}}Handler_H(t *testing.T) {
 
 		handler := application.New{{- .ConstructorName -}}Handler()
 
-		res, err := handler.H(context.Background(), application.{{- .ParamType -}}{})
+		res, err := handler.H(t.Context(), application.{{- .ParamType -}}{})
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})
@@ -401,7 +401,7 @@ func Test{{- .ConstructorName -}}Handler_H(t *testing.T) {
 
 		handler := application.New{{- .ConstructorName -}}Handler()
 
-		err := handler.H(context.Background(), application.{{- .ParamType -}}{})
+		err := handler.H(t.Context(), application.{{- .ParamType -}}{})
 		assert.NoError(t, err)
 	})
 }

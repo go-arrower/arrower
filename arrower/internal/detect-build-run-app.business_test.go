@@ -70,7 +70,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
@@ -102,7 +102,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		copyDir(t, "./testdata/example-server", dir)
 		dir += exampleServer
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		hotReload := make(chan internal.File, 1)
 
 		wg.Add(1)

@@ -1,7 +1,6 @@
 package internal_test
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -49,7 +48,7 @@ func TestNewHotReloadServer(t *testing.T) {
 
 		wg.Wait()
 
-		err := server.Shutdown(context.Background())
+		err := server.Shutdown(t.Context())
 		assert.NoError(t, err)
 	})
 

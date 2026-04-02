@@ -17,7 +17,7 @@ func TestHelloWorldRequestHandler_H(t *testing.T) {
 
 		handler := application.NewHelloWorldRequestHandler()
 
-		res, err := handler.H(context.Background(), application.HelloWorldRequest{})
+		res, err := handler.H(t.Context(), application.HelloWorldRequest{})
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})

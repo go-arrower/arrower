@@ -17,7 +17,7 @@ func TestGetSomethingQueryHandler_H(t *testing.T) {
 
 		handler := application.NewGetSomethingQueryHandler()
 
-		res, err := handler.H(context.Background(), application.GetSomethingQuery{})
+		res, err := handler.H(t.Context(), application.GetSomethingQuery{})
 		assert.NoError(t, err)
 		assert.Empty(t, res)
 	})

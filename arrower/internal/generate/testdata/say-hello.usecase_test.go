@@ -17,7 +17,7 @@ func TestSayHelloCommandHandler_H(t *testing.T) {
 
 		handler := application.NewSayHelloCommandHandler()
 
-		err := handler.H(context.Background(), application.SayHelloCommand{})
+		err := handler.H(t.Context(), application.SayHelloCommand{})
 		assert.NoError(t, err)
 	})
 }
