@@ -35,7 +35,11 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 
 	logger := alog.New(
 		// alog.WithLevel(alog.LevelDebug),
-		alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: alog.MapLogLevelsToName})),
+		alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			AddSource:   false,
+			Level:       alog.LevelDebug,
+			ReplaceAttr: alog.MapLogLevelsToName,
+		})),
 	)
 
 	renderer, err := renderer.NewEchoRenderer(

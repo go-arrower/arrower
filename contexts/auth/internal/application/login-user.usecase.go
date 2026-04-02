@@ -85,7 +85,7 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 
 	// The session is not valid until the end of the controller.
 	// Thus, the session is created here and very short-lived, as the controller will update it with the right values.
-	usr.Sessions = append(usr.Sessions, domain.Session{
+	usr.Sessions = append(usr.Sessions, domain.Session{ //nolint:exhaustruct
 		ID:        req.SessionKey,
 		Device:    domain.NewDevice(req.UserAgent),
 		CreatedAt: time.Now().UTC(),

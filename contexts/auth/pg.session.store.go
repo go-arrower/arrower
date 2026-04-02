@@ -32,11 +32,13 @@ func NewPGSessionStore(pgx *pgxpool.Pool, keyPairs ...[]byte) (*PGSessionStore, 
 	return &PGSessionStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),
 		Options: &sessions.Options{
-			Path:     "/",
-			Domain:   "",
-			MaxAge:   oneMonth,
-			HttpOnly: true,
-			SameSite: http.SameSiteStrictMode,
+			Path:        "/",
+			Domain:      "",
+			MaxAge:      oneMonth,
+			HttpOnly:    true,
+			SameSite:    http.SameSiteStrictMode,
+			Partitioned: false,
+			Secure:      false,
 		},
 		queries: queries,
 	}, nil

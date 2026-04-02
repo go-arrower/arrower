@@ -60,6 +60,7 @@ func (c *AdminContext) registerAdminRoutes() {
 	logs.GET("/", c.logsController.Index())
 	logs.POST("/setting", c.logsController.Update()).Name = "admin.logs.setting"
 
+	//nolint:exhaustruct
 	c.shared.AdminRouter.GET("/charts/users", func(c echo.Context) error {
 		chart := charts.NewGauge()
 		chart.SetGlobalOptions(

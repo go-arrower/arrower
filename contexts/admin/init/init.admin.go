@@ -96,8 +96,11 @@ func setupAdminContext(ctx context.Context, di *arrower.Container) (*AdminContex
 
 	err := di.Settings.Register(ctx, map[setting.Key]any{
 		application.SettingAutomaticallyPruneJobHistory: application.PruneJobHistoryCronSetting{
+			PruneHistoryEntries:      false,
 			PruneHistoryEntriesValue: 1_000_000, //nolint:mnd
-			PruneHistoryAgeValue:     30,        //nolint:mnd
+			PruneHistoryAge:          false,
+			PruneHistoryAgeValue:     30, //nolint:mnd
+			PruneHistorySize:         false,
 			PruneHistorySizeValue:    1,
 		},
 	})

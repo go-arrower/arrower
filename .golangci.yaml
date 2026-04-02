@@ -128,6 +128,15 @@ linters:
       # Default: false
       default-signifies-exhaustive: true
     exhaustruct:
+      # List of regular expressions to match type names that should be excluded from processing.
+      # Anonymous structs can be matched by '<anonymous>' alias.
+      # Has precedence over `include`.
+      # Each regular expression must match the full type name, including package path.
+      # For example, to match type `net/http.Cookie` regular expression should be `.*/http\.Cookie`,
+      # but not `http\.Cookie`.
+      # Default: []
+      exclude:
+        - '.+/http\.Server$'
       # Allows empty structures, effectively excluding them from the check.
       # Default: false
       allow-empty: true

@@ -115,7 +115,8 @@ func (uc UserController) Login() func(echo.Context) error {
 			Secure:   false,
 			HttpOnly: true,
 			// cookies will not be sent, if the request originates from a third party, to prevent CSRF
-			SameSite: http.SameSiteStrictMode,
+			SameSite:    http.SameSiteStrictMode,
+			Partitioned: false,
 		}
 		sess.Values[auth.SessKeyLoggedIn] = true
 		sess.Values[auth.SessKeyUserID] = auth.UserID(response.User.ID)
@@ -154,7 +155,8 @@ func setKnownDeviceCookie(knownDeviceKeyPairs []securecookie.Codec, c echo.Conte
 		Secure:   false,
 		HttpOnly: true,
 		// cookies will not be sent, if the request originates from a third party, to prevent CSRF
-		SameSite: http.SameSiteStrictMode,
+		SameSite:    http.SameSiteStrictMode,
+		Partitioned: false,
 	}))
 
 	return nil
@@ -297,7 +299,8 @@ func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
 			Secure:   false,
 			HttpOnly: true,
 			// cookies will not be sent, if the request originates from a third party, to prevent CSRF
-			SameSite: http.SameSiteStrictMode,
+			SameSite:    http.SameSiteStrictMode,
+			Partitioned: false,
 		}
 		sess.Values[auth.SessKeyLoggedIn] = true
 		sess.Values[auth.SessKeyUserID] = auth.UserID(response.User.ID)

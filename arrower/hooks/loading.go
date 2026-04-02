@@ -23,7 +23,7 @@ var loadedHooks Hooks
 func Load(dir string) (Hooks, error) {
 	var interpreter *interp.Interpreter
 	{
-		interpreter = interp.New(interp.Options{GoPath: build.Default.GOPATH})
+		interpreter = interp.New(interp.Options{GoPath: build.Default.GOPATH}) //nolint:exhaustruct
 
 		err := interpreter.Use(stdlib.Symbols)
 		if err != nil {

@@ -122,9 +122,8 @@ func InitialiseDefaultDependencies(
 	sharedViews fs.FS,
 	funcs template.FuncMap,
 ) (*Container, error) {
-	dc := &Container{
-		Config: conf,
-	}
+	dc := &Container{}
+	dc.Config = conf
 
 	{ // observability
 		resource := resource.NewWithAttributes(
@@ -253,6 +252,8 @@ func InitialiseDefaultDependencies(
 					slog.String("request_id", rid)),
 				))
 			},
+			Skipper:   middleware.DefaultSkipper,
+			Generator: nil,
 		}))
 		router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
