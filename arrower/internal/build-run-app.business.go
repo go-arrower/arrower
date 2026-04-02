@@ -26,7 +26,7 @@ var (
 
 // BuildAndRunApp will build the developer's app at the given appPath to the destination binaryPath.
 // It returns a cleanup function, used to stop the app and leave a clean directory.
-func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath string) (func() error, error) {
+func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath string) (func() error, error) { //nolint:funlen,lll
 	yellow := color.New(color.FgYellow, color.Bold).FprintlnFunc()
 
 	if w == nil {
@@ -74,22 +74,14 @@ func BuildAndRunApp(ctx context.Context, w io.Writer, appPath string, binaryPath
 			cmd.Stderr = buf // show error message of the `go build` command
 
 			err = cmd.Run()
-			if err != nil {
-				err2 := os.Remove(binaryPath)
-				if err2 != nil {
-					return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
-				}
-
-				return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
-			}
-		} else {
-			err2 := os.Remove(binaryPath)
-			if err2 != nil {
-				return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, err2)
-			}
-
-			return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
 		}
+
+		errInner := os.Remove(binaryPath)
+		if errInner != nil {
+			return nil, fmt.Errorf("%w: %v", ErrBuildCleanFailed, errInner)
+		}
+
+		return nil, fmt.Errorf("%w: %v: %v", ErrBuildFailed, err, buf.String())
 	}
 
 	//

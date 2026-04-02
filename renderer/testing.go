@@ -84,11 +84,19 @@ func (r *TestRenderer) Render(
 			return &RendererAssertions{}, fmt.Errorf("could not marshal post body: %w", err)
 		}
 
-		resp, err := http.Post("http://localhost:3030/testcase", "application/json", bytes.NewBuffer(postData))
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://localhost:3030/testcase", bytes.NewBuffer(postData))
+		if err != nil {
+			return &RendererAssertions{}, fmt.Errorf("could not build request to send testcase: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := (&http.Client{}).Do(req)
 		if err != nil {
 			return &RendererAssertions{}, fmt.Errorf("could not send testcase: %w", err)
 		}
-		resp.Body.Close() //nolint:wsl_v5
+
+		resp.Body.Close()
 	}
 
 	return &RendererAssertions{
@@ -203,7 +211,14 @@ func (a *RendererAssertions) sendAssertion(assertion assertion) {
 		panic("could not marshal post body: " + err.Error())
 	}
 
-	resp, err := http.Post("http://localhost:3030/testcase/assertion", "application/json", bytes.NewBuffer(postData))
+	req, err := http.NewRequestWithContext(a.t.Context(), http.MethodPost, "http://localhost:3030/testcase", bytes.NewBuffer(postData))
+	if err != nil {
+		panic("could not build request to send testcase: " + err.Error())
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		panic("could not send testcase: " + err.Error())
 	}

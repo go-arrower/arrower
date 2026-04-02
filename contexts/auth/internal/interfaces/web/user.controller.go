@@ -410,7 +410,7 @@ func (uc UserController) Store() func(echo.Context) error {
 }
 
 func (uc UserController) BlockUser() {
-	true := true
+	true := true //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
 	uc.r.POST("/:userID/block", func(c echo.Context) error {
 		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
@@ -429,7 +429,7 @@ func (uc UserController) BlockUser() {
 }
 
 func (uc UserController) UnBlockUser() {
-	false := false
+	false := false //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
 	uc.r.POST("/:userID/unblock", func(c echo.Context) error {
 		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{

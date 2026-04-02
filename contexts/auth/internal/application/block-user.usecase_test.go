@@ -12,6 +12,7 @@ import (
 func TestBlockUserRequestHandler_H(t *testing.T) {
 	t.Parallel()
 
+	//nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 	true := true
 	false := false
 

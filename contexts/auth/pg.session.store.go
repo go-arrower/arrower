@@ -57,7 +57,9 @@ func (ss *PGSessionStore) Get(r *http.Request, name string) (*sessions.Session, 
 }
 
 // New returns a session for the given name without adding it to the registry.
-func (ss *PGSessionStore) New(r *http.Request, name string) (*sessions.Session, error) { //nolint:varnamelen
+//
+//nolint:varnamelen,nestif
+func (ss *PGSessionStore) New(r *http.Request, name string) (*sessions.Session, error) {
 	session := sessions.NewSession(ss, name)
 	opts := *ss.Options
 	session.Options = &opts

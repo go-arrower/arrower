@@ -42,9 +42,9 @@ func init() { //nolint:gochecknoinits // gob.Register must run before sessions a
 // It does set the User in the same way EnrichCtxWithUserInfoMiddleware does.
 // OR LoginRequired.
 func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	type passed struct {
-		loggedIn bool
-		userID   bool
+	type loginCheck struct {
+		isLoggedIn bool
+		hasUserID  bool
 	}
 
 	return func(c echo.Context) error {
@@ -53,7 +53,7 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return fmt.Errorf("%w", err)
 		}
 
-		passed := passed{}
+		login := loginCheck{}
 
 		if sess.Values[SessKeyLoggedIn] != nil {
 			lin, ok := sess.Values[SessKeyLoggedIn].(bool)
@@ -63,7 +63,7 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxLoggedIn, lin)))
 
-			passed.loggedIn = lin
+			login.isLoggedIn = lin
 		}
 
 		if sess.Values[SessKeyUserID] != nil {
@@ -74,10 +74,11 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxUserID, uID)))
 
-			passed.userID = true
+			login.hasUserID = true
 		}
 
-		if passed.loggedIn && passed.userID {
+		hasPassed := login.isLoggedIn && login.hasUserID
+		if hasPassed {
 			return next(c)
 		}
 
@@ -86,9 +87,9 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	type passed struct {
-		loggedIn    bool
-		userID      bool
+	type loginCheck struct {
+		isLoggedIn  bool
+		hasUserID   bool
 		isSuperuser bool
 	}
 
@@ -98,7 +99,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return fmt.Errorf("%w", err)
 		}
 
-		passed := passed{}
+		login := loginCheck{}
 
 		if sess.Values[SessKeyLoggedIn] != nil {
 			lin, ok := sess.Values[SessKeyLoggedIn].(bool)
@@ -108,7 +109,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxLoggedIn, lin)))
 
-			passed.loggedIn = lin
+			login.isLoggedIn = lin
 		}
 
 		if sess.Values[SessKeyUserID] != nil {
@@ -119,7 +120,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxUserID, uID)))
 
-			passed.userID = true
+			login.hasUserID = true
 		}
 
 		if sess.Values[SessKeyIsSuperuser] != nil {
@@ -130,10 +131,11 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), CtxIsSuperuser, su)))
 
-			passed.isSuperuser = su
+			login.isSuperuser = su
 		}
 
-		if passed.loggedIn && passed.userID && passed.isSuperuser {
+		hasPassed := login.isLoggedIn && login.hasUserID && login.isSuperuser
+		if hasPassed {
 			return next(c)
 		}
 

@@ -311,7 +311,7 @@ func randomDatabaseName() string {
 // This helper will find the files independent of the caller's path,
 // starting from the project root.
 func getProjectRoot() string {
-	cmdOut, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	cmdOut, err := exec.CommandContext(context.Background(), "git", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		panic(err)
 	}
