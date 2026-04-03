@@ -15,11 +15,11 @@ type SuperuserController struct {
 	Queries *models.Queries
 }
 
-func (cont SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
+func (ctrl *SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 
-		user, err := cont.Queries.FindUserByID(c.Request().Context(), uuid.MustParse(userID))
+		user, err := ctrl.Queries.FindUserByID(c.Request().Context(), uuid.MustParse(userID))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
@@ -46,7 +46,7 @@ func (cont SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 	}
 }
 
-func (cont SuperuserController) AdminLeaveUser() echo.HandlerFunc {
+func (ctrl *SuperuserController) AdminLeaveUser() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {

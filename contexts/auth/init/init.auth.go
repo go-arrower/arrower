@@ -115,7 +115,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 
 type AuthContext struct {
 	settingsController *web.SettingsController
-	userController     web.UserController
+	userController     *web.UserController
 
 	logger        *slog.Logger
 	traceProvider trace.TracerProvider

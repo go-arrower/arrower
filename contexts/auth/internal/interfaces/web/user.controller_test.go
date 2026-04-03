@@ -24,6 +24,8 @@ import (
 func TestUserController_Login(t *testing.T) {
 	t.Parallel()
 
+	ctrl := web.NewUserController(application.UserApplication{}, nil, nil)
+
 	t.Run("redirect if already logged in", func(t *testing.T) {
 		t.Parallel()
 
@@ -34,7 +36,7 @@ func TestUserController_Login(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
-		if assert.NoError(t, web.UserController{}.Login()(c)) {
+		if assert.NoError(t, ctrl.Login()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
 		}
 	})
@@ -48,7 +50,7 @@ func TestUserController_Login(t *testing.T) {
 		echoRouter := newTestRouter()
 		c := echoRouter.NewContext(req, rec)
 
-		if assert.NoError(t, web.UserController{}.Login()(c)) {
+		if assert.NoError(t, ctrl.Login()(c)) {
 			assert.Equal(t, http.StatusOK, rec.Code)
 			assert.Contains(t, rec.Body.String(), "login")
 		}
@@ -211,6 +213,7 @@ func TestUserController_Logout(t *testing.T) {
 	t.Parallel()
 
 	echoRouter := newTestRouter()
+	ctrl := web.NewUserController(application.UserApplication{}, echoRouter.Group(""), nil)
 
 	t.Run("not logged in", func(t *testing.T) {
 		t.Parallel()
@@ -221,7 +224,7 @@ func TestUserController_Logout(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 		// c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, false)))
 
-		if assert.NoError(t, web.UserController{}.Logout()(c)) {
+		if assert.NoError(t, ctrl.Logout()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
 		}
 	})
@@ -279,7 +282,8 @@ func TestUserController_Create(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
-		if assert.NoError(t, web.UserController{}.Create()(c)) {
+		ctrl := web.NewUserController(application.UserApplication{}, nil, nil)
+		if assert.NoError(t, ctrl.Create()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
 		}
 	})
@@ -298,7 +302,8 @@ func TestUserController_Register(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
-		if assert.NoError(t, web.UserController{}.Register()(c)) {
+		ctrl := web.NewUserController(application.UserApplication{}, echoRouter.Group(""), nil)
+		if assert.NoError(t, ctrl.Register()(c)) {
 			assert.Equal(t, http.StatusSeeOther, rec.Code)
 			assert.Equal(t, "/", rec.Header().Get(echo.HeaderLocation))
 		}
@@ -429,6 +434,7 @@ func (t *emptyRenderer) Render(w io.Writer, name string, data interface{}, c ech
 }
 
 // newTestRouter is a helper for unit tests, by returning a valid web router.
+// todo: provide a renderer globally to be used in many tests?
 func newTestRouter() *echo.Echo {
 	router := echo.New()
 	router.Renderer = &emptyRenderer{}

@@ -29,8 +29,8 @@ Proposal for naming conventions:
 	- delete
 */
 
-func NewUserController(app application.UserApplication, routes *echo.Group, secret []byte) UserController {
-	return UserController{
+func NewUserController(app application.UserApplication, routes *echo.Group, secret []byte) *UserController {
+	return &UserController{
 		r:                   routes,
 		knownDeviceKeyPairs: securecookie.CodecsFromPairs(secret),
 		app:                 app,
@@ -38,14 +38,14 @@ func NewUserController(app application.UserApplication, routes *echo.Group, secr
 }
 
 type UserController struct {
-	r       *echo.Group
-	app     application.UserApplication
-	Queries *models.Queries
+	r   *echo.Group
+	app application.UserApplication
+	//Queries *models.Queries
 
 	knownDeviceKeyPairs []securecookie.Codec
 }
 
-func (uc UserController) Login() func(echo.Context) error {
+func (ctrl *UserController) Login() func(echo.Context) error {
 	type loginCredentials struct {
 		application.LoginUserRequest
 		RememberMe bool `form:"remember_me"`
@@ -72,14 +72,14 @@ func (uc UserController) Login() func(echo.Context) error {
 				IP:          c.RealIP(), // see: https://echo.labstack.com/docs/ip-address
 				UserAgent:   c.Request().UserAgent(),
 				SessionKey:  sess.ID,
-				IsNewDevice: isUnknownDevice(uc.knownDeviceKeyPairs, c),
+				IsNewDevice: isUnknownDevice(ctrl.knownDeviceKeyPairs, c),
 			},
 		}
 		if err = c.Bind(&loginUser); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		response, err := uc.app.LoginUser.H(c.Request().Context(), loginUser.LoginUserRequest)
+		response, err := ctrl.app.LoginUser.H(c.Request().Context(), loginUser.LoginUserRequest)
 		if err != nil {
 			valErrs := make(map[string]string)
 
@@ -127,7 +127,7 @@ func (uc UserController) Login() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err = setKnownDeviceCookie(uc.knownDeviceKeyPairs, c) // set the Cookie always to renew the MaxAge
+		err = setKnownDeviceCookie(ctrl.knownDeviceKeyPairs, c) // set the Cookie always to renew the MaxAge
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func isUnknownDevice(knownDeviceKeyPairs []securecookie.Codec, c echo.Context) b
 	return true
 }
 
-func (uc UserController) Logout() func(echo.Context) error {
+func (ctrl *UserController) Logout() func(echo.Context) error {
 	return func(c echo.Context) error {
 		if !auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
@@ -209,14 +209,14 @@ func (uc UserController) Logout() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) List() func(echo.Context) error {
+func (ctrl *UserController) List() func(echo.Context) error {
 	const maxUsers = 50
 
 	return func(c echo.Context) error {
 		query := c.QueryParam("q")
 		offset := c.QueryParam("offset")
 
-		res, err := uc.app.ListUsers.H(c.Request().Context(), application.ListUsersQuery{
+		res, err := ctrl.app.ListUsers.H(c.Request().Context(), application.ListUsersQuery{
 			Query:  query,
 			Filter: domain.Filter{Offset: domain.Login(offset), Limit: maxUsers},
 		})
@@ -240,7 +240,7 @@ func (uc UserController) List() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) Create() func(echo.Context) error {
+func (ctrl *UserController) Create() func(echo.Context) error {
 	return func(c echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
@@ -250,7 +250,7 @@ func (uc UserController) Create() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
+func (ctrl *UserController) Register() func(echo.Context) error { //nolint:funlen
 	return func(c echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
@@ -271,7 +271,7 @@ func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		response, err := uc.app.RegisterUser.H(c.Request().Context(), newUser)
+		response, err := ctrl.app.RegisterUser.H(c.Request().Context(), newUser)
 		if err != nil {
 			valErrs := make(map[string]string)
 
@@ -312,7 +312,7 @@ func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err = setKnownDeviceCookie(uc.knownDeviceKeyPairs, c)
+		err = setKnownDeviceCookie(ctrl.knownDeviceKeyPairs, c)
 		if err != nil {
 			return err
 		}
@@ -321,7 +321,7 @@ func (uc UserController) Register() func(echo.Context) error { //nolint:funlen
 	}
 }
 
-func (uc UserController) Verify() func(echo.Context) error {
+func (ctrl *UserController) Verify() func(echo.Context) error {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 		t := c.Param("token")
@@ -331,7 +331,7 @@ func (uc UserController) Verify() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err = uc.app.VerifyUser.H(c.Request().Context(), application.VerifyUserCommand{
+		err = ctrl.app.VerifyUser.H(c.Request().Context(), application.VerifyUserCommand{
 			Token:  token,
 			UserID: domain.ID(userID),
 		})
@@ -343,11 +343,11 @@ func (uc UserController) Verify() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) Show() func(echo.Context) error {
+func (ctrl *UserController) Show() func(echo.Context) error {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 
-		res, err := uc.app.ShowUser.H(c.Request().Context(), application.ShowUserQuery{UserID: domain.ID(userID)})
+		res, err := ctrl.app.ShowUser.H(c.Request().Context(), application.ShowUserQuery{UserID: domain.ID(userID)})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
@@ -359,7 +359,7 @@ func (uc UserController) Show() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) DestroySession(queries *models.Queries) func(echo.Context) error {
+func (ctrl *UserController) DestroySession(queries *models.Queries) func(echo.Context) error {
 	return func(c echo.Context) error {
 		userID := c.Param("userID")
 		sessionID := c.Param("sessionKey")
@@ -373,13 +373,13 @@ func (uc UserController) DestroySession(queries *models.Queries) func(echo.Conte
 	}
 }
 
-func (uc UserController) New() func(echo.Context) error {
+func (ctrl *UserController) New() func(echo.Context) error {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "new", nil)
 	}
 }
 
-func (uc UserController) Store() func(echo.Context) error {
+func (ctrl *UserController) Store() func(echo.Context) error {
 	return func(c echo.Context) error {
 		newUser := application.NewUserCommand{}
 
@@ -387,7 +387,7 @@ func (uc UserController) Store() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		err := uc.app.NewUser.H(c.Request().Context(), newUser)
+		err := ctrl.app.NewUser.H(c.Request().Context(), newUser)
 		if err != nil {
 			valErrs := make(map[string]string)
 
@@ -412,11 +412,11 @@ func (uc UserController) Store() func(echo.Context) error {
 	}
 }
 
-func (uc UserController) BlockUser() {
+func (ctrl *UserController) BlockUser() {
 	true := true //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
-	uc.r.POST("/:userID/block", func(c echo.Context) error {
-		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
+	ctrl.r.POST("/:userID/block", func(c echo.Context) error {
+		res, err := ctrl.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
 			UserID:     domain.ID(c.Param("userID")),
 			SetBlocked: &true,
 		})
@@ -431,11 +431,11 @@ func (uc UserController) BlockUser() {
 	})
 }
 
-func (uc UserController) UnBlockUser() {
+func (ctrl *UserController) UnBlockUser() {
 	false := false //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
-	uc.r.POST("/:userID/unblock", func(c echo.Context) error {
-		res, err := uc.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
+	ctrl.r.POST("/:userID/unblock", func(c echo.Context) error {
+		res, err := ctrl.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
 			UserID:     domain.ID(c.Param("userID")),
 			SetBlocked: &false,
 		})
@@ -450,7 +450,7 @@ func (uc UserController) UnBlockUser() {
 	})
 }
 
-func (uc UserController) Profile() func(echo.Context) error {
+func (ctrl *UserController) Profile() func(echo.Context) error {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "profile", nil)
 	}

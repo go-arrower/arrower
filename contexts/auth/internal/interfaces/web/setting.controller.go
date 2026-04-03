@@ -27,7 +27,7 @@ type SettingsController struct {
 	queries *models.Queries
 }
 
-func (sc SettingsController) List() func(echo.Context) error {
+func (ctrl *SettingsController) List() func(echo.Context) error {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "settings", nil)
 	}
