@@ -1,0 +1,19 @@
+// Package logging is a dedicated package for logging attributes.
+//
+// It gives a broad view of what attributes are available,
+// useful when setting up indexes and queries in dashboards.
+// It enforces a consistent way of naming logging attributes,
+// and prevents traceID, trace_id, TraceID in the logs at the same time.
+package logging
+
+import (
+	"log/slog"
+
+	"github.com/go-arrower/arrower/alog/logging"
+)
+
+var (
+	Error   = logging.Error
+	Context = logging.Context
+	Attr    = logging.Attr
+)

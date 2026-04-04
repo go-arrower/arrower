@@ -122,6 +122,9 @@ func newInitCommand() *cobra.Command {
 			err = errors.Join(err, os.MkdirAll("shared/interfaces/web", dirPerm))
 			err = errors.Join(err, addFile("shared/interfaces/web/project.controller.go.templ", data))
 
+			err = errors.Join(err, os.MkdirAll("shared/logging", dirPerm))
+			err = errors.Join(err, addFile("shared/logging/attributes.go.templ", data))
+
 			err = errors.Join(err, os.MkdirAll("public/js/modules", dirPerm))
 			err = errors.Join(err, os.MkdirAll("public/css", dirPerm))
 			err = errors.Join(err, os.MkdirAll("public/icons", dirPerm))

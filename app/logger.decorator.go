@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 )
 
 func NewLoggedRequest[Req any, Res any](logger alog.Logger, req Request[Req, Res]) Request[Req, Res] {
@@ -23,18 +23,18 @@ func (d *requestLoggingDecorator[Req, Res]) H(ctx context.Context, req Req) (Res
 	cmdName := commandName(req)
 
 	d.logger.DebugContext(ctx, "executing request",
-		slog.String("command", cmdName),
+		logging.Command(cmdName),
 	)
 
 	res, err := d.base.H(ctx, req)
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute request",
-			slog.String("command", cmdName),
-			slog.String("error", err.Error()),
+			logging.Command(cmdName),
+			logging.Error(err),
 		)
 	} else {
 		d.logger.DebugContext(ctx, "request executed successfully",
-			slog.String("command", cmdName))
+			logging.Command(cmdName))
 	}
 
 	return res, err //nolint:wrapcheck // decorate but not change anything
@@ -56,18 +56,18 @@ func (d *commandLoggingDecorator[C]) H(ctx context.Context, cmd C) error {
 	cmdName := commandName(cmd)
 
 	d.logger.DebugContext(ctx, "executing command",
-		slog.String("command", cmdName),
+		logging.Command(cmdName),
 	)
 
 	err := d.base.H(ctx, cmd)
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute command",
-			slog.String("command", cmdName),
-			slog.String("error", err.Error()),
+			logging.Command(cmdName),
+			logging.Error(err),
 		)
 	} else {
 		d.logger.DebugContext(ctx, "command executed successfully",
-			slog.String("command", cmdName))
+			logging.Command(cmdName))
 	}
 
 	return err //nolint:wrapcheck // decorate but not change anything
@@ -89,18 +89,18 @@ func (d *queryLoggingDecorator[Q, Res]) H(ctx context.Context, query Q) (Res, er
 	cmdName := commandName(query)
 
 	d.logger.DebugContext(ctx, "executing query",
-		slog.String("command", cmdName),
+		logging.Command(cmdName),
 	)
 
 	res, err := d.base.H(ctx, query)
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute query",
-			slog.String("command", cmdName),
-			slog.String("error", err.Error()),
+			logging.Command(cmdName),
+			logging.Error(err),
 		)
 	} else {
 		d.logger.DebugContext(ctx, "query executed successfully",
-			slog.String("command", cmdName))
+			logging.Command(cmdName))
 	}
 
 	return res, err //nolint:wrapcheck // decorate but not change anything
@@ -122,18 +122,18 @@ func (d *jobLoggingDecorator[J]) H(ctx context.Context, job J) error {
 	cmdName := commandName(job)
 
 	d.logger.DebugContext(ctx, "executing job",
-		slog.String("command", cmdName),
+		logging.Command(cmdName),
 	)
 
 	err := d.base.H(ctx, job)
 	if err != nil {
 		d.logger.DebugContext(ctx, "failed to execute job",
-			slog.String("command", cmdName),
-			slog.String("error", err.Error()),
+			logging.Command(cmdName),
+			logging.Error(err),
 		)
 	} else {
 		d.logger.DebugContext(ctx, "job executed successfully",
-			slog.String("command", cmdName))
+			logging.Command(cmdName))
 	}
 
 	return err //nolint:wrapcheck // decorate but not change anything

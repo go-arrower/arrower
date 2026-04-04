@@ -36,6 +36,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/jobs"
 	"github.com/go-arrower/arrower/postgres"
@@ -220,11 +221,11 @@ func InitialiseDefaultDependencies(
 	{ // logger
 		logger := alog.New()
 		logger = logger.With(
-			slog.String("organisation_name", conf.OrganisationName),
-			slog.String("application_name", conf.ApplicationName),
-			slog.String("instance_name", conf.InstanceName),
-			slog.String("git_hash", gitHash()),
-			slog.String("environment", string(conf.Environment)),
+			logging.Organisation(conf.OrganisationName),
+			logging.Application(conf.ApplicationName),
+			logging.Instance(conf.InstanceName),
+			logging.GitHash(gitHash()),
+			logging.Environment(string(conf.Environment)),
 		)
 
 		if conf.Environment == LocalEnv {
@@ -249,7 +250,7 @@ func InitialiseDefaultDependencies(
 			RequestIDHandler: func(c echo.Context, rid string) {
 				c.SetRequest(c.Request().WithContext(alog.AddAttr(
 					c.Request().Context(),
-					slog.String("request_id", rid)),
+					logging.RequestID(rid)),
 				))
 			},
 			Skipper:   middleware.DefaultSkipper,
@@ -412,15 +413,15 @@ func serveMetrics(ctx context.Context, di *Container) *http.Server {
 	}
 
 	di.Logger.InfoContext(ctx, "serving status endpoint",
-		slog.String("addr", srv.Addr),
-		slog.String("metric_path", metricPath),
-		slog.String("status_path", statusPath),
+		logging.Addr(srv.Addr),
+		logging.MetricPath(metricPath),
+		logging.StatusPath(statusPath),
 	)
 
 	go func() {
 		err := srv.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			di.Logger.DebugContext(ctx, "error serving http", slog.String("err", err.Error()))
+			di.Logger.DebugContext(ctx, "error serving http", logging.Error(err))
 
 			return
 		}

@@ -83,7 +83,7 @@ func TestSecret_String(t *testing.T) {
 			assert.Equal(t, "******\n", buf.String(), "should be masked secret")
 
 			logger := alog.Test(t)
-			logger.Info("msg", slog.Any("secret", secret))
+			logger.Info("msg", slog.Any("secret", secret)) //nolint:forbidigo
 			// uncomment, to see masking of secrets in action:
 			// t.Log(logger.String())
 

@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/setting"
 )
@@ -150,15 +151,11 @@ func addTraceAndSpanIDsToLogs(span trace.Span, record slog.Record) slog.Record {
 	attrs := make([]slog.Attr, 0)
 
 	if sCtx.HasTraceID() {
-		attrs = append(attrs,
-			slog.Attr{Key: "trace_id", Value: slog.StringValue(sCtx.TraceID().String())},
-		)
+		attrs = append(attrs, logging.Trace(sCtx.TraceID()))
 	}
 
 	if sCtx.HasSpanID() {
-		attrs = append(attrs,
-			slog.Attr{Key: "span_id", Value: slog.StringValue(sCtx.SpanID().String())},
-		)
+		attrs = append(attrs, logging.Span(sCtx.SpanID()))
 	}
 
 	if len(attrs) > 0 {

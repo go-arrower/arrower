@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/jobs/models"
 	"github.com/go-arrower/arrower/postgres"
@@ -260,7 +261,8 @@ func (h *PostgresJobsHandler) executeBetweenRestarts(ctx context.Context, fn fun
 
 	if h.hasStarted {
 		h.logger.Log(ctx, alog.LevelInfo, "restart workers",
-			slog.String("queue", h.queue), slog.String("pool_name", h.poolName))
+			logging.Queue(h.queue),
+			logging.PoolName(h.poolName))
 
 		err := h.shutdown(ctx)
 		if err != nil {
@@ -283,7 +285,7 @@ func (h *PostgresJobsHandler) executeBetweenRestarts(ctx context.Context, fn fun
 			err := h.startWorkers() //nolint:contextcheck
 			if err != nil {
 				h.logger.InfoContext(ctx, "could not start workers after registration of new jobFunc or schedule",
-					slog.Any("err", err))
+					logging.Error(err))
 			}
 		})
 		h.isStartInProgress = true
@@ -521,7 +523,7 @@ func (h *PostgresJobsHandler) gueWorkerAdapter(workerFn JobFunc) gue.WorkFunc { 
 			attribute.String("run_at", job.RunAt.Format(time.RFC3339)),
 		)
 
-		ctx = alog.AddAttr(ctx, slog.String("job_id", job.ID.String()))
+		ctx = alog.AddAttr(ctx, slog.Group("job", logging.ID(job.ID.String())))
 		ctx = context.WithValue(ctx, CTXJobID, job.ID.String())
 		ctx = context.WithValue(ctx, postgres.CtxTX, txHandle)
 
@@ -694,7 +696,7 @@ func (h *PostgresJobsHandler) registerInstance(ctx context.Context) {
 		UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 	})
 	if err != nil {
-		h.logger.InfoContext(ctx, "could not save worker pool life probe to the database", slog.Any("err", err))
+		h.logger.InfoContext(ctx, "could not save worker pool life probe to the database", logging.Error(err))
 	}
 
 	h.mu.Lock()
@@ -703,7 +705,7 @@ func (h *PostgresJobsHandler) registerInstance(ctx context.Context) {
 	for _, schedule := range h.schedules {
 		args, err := json.Marshal(schedule.args)
 		if err != nil {
-			h.logger.InfoContext(ctx, "could not marshal schedule payload", slog.Any("err", err))
+			h.logger.InfoContext(ctx, "could not marshal schedule payload", logging.Error(err))
 		}
 
 		err = connOrTX(ctx, h.queries).UpsertSchedule(ctx, models.UpsertScheduleParams{
@@ -714,7 +716,7 @@ func (h *PostgresJobsHandler) registerInstance(ctx context.Context) {
 			UpdatedAt: pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true, InfinityModifier: pgtype.Finite},
 		})
 		if err != nil {
-			h.logger.InfoContext(ctx, "could not save schedule life probe to the database", slog.Any("err", err))
+			h.logger.InfoContext(ctx, "could not save schedule life probe to the database", logging.Error(err))
 		}
 	}
 }
@@ -741,18 +743,19 @@ func recordStartedJobsToHistory(
 		}
 
 		logger := logger.With(
-			slog.String("job_id", job.ID.String()),
-			slog.String("queue", job.Queue),
-			slog.String("job_type", job.Type),
-			slog.String("args", string(job.Args)),
-			slog.Int("run_count", int(job.ErrorCount)),
-			slog.Int("priority", int(job.Priority)),
-			slog.Time("run_at", job.RunAt),
-		)
+			slog.Group("job",
+				logging.ID(job.ID.String()),
+				logging.Queue(job.Queue),
+				logging.Type(job.Type),
+				logging.Args(string(job.Args)),
+				logging.RunCount(int(job.ErrorCount)),
+				logging.Priority(int(job.Priority)),
+				logging.RunAt(job.RunAt),
+			))
 
 		args, err := recordGitHashToArgs(job.Args, gitHash)
 		if err != nil {
-			logger.InfoContext(ctx, "recording job worker's git hash failed", slog.String("err", err.Error()))
+			logger.InfoContext(ctx, "recording job worker's git hash failed", logging.Error(err))
 
 			return
 		}
@@ -780,8 +783,8 @@ func recordStartedJobsToHistory(
 		})
 		if err != nil {
 			logger.InfoContext(ctx, "could not add started job to gue_jobs_history table",
-				slog.Any("err", err),
-				slog.String("run_error", job.LastError.String),
+				logging.Error(err),
+				logging.RunError(job.LastError.String),
 			)
 		}
 	}
@@ -815,15 +818,15 @@ func recordGitHashToArgs(args []byte, gitHash string) ([]byte, error) {
 // gue does delete finished jobs from the gue_jobs table, and the information would be lost otherwise.
 func recordFinishedJobsToHistory(logger alog.Logger, db *models.Queries) func(context.Context, *gue.Job, error) {
 	return func(ctx context.Context, job *gue.Job, jobErr error) {
-		logger := logger.With(
-			slog.String("job_id", job.ID.String()),
-			slog.String("queue", job.Queue),
-			slog.String("job_type", job.Type),
-			slog.String("args", string(job.Args)),
-			slog.Int("run_count", int(job.ErrorCount)),
-			slog.Int("priority", int(job.Priority)),
-			slog.Time("run_at", job.RunAt),
-		)
+		logger := logger.With(slog.Group("job",
+			logging.ID(job.ID.String()),
+			logging.Queue(job.Queue),
+			logging.Type(job.Type),
+			logging.Args(string(job.Args)),
+			logging.RunCount(int(job.ErrorCount)),
+			logging.Priority(int(job.Priority)),
+			logging.RunAt(job.RunAt),
+		))
 
 		tx, ok := pgxv5.UnwrapTx(job.Tx())
 		if !ok {
@@ -843,8 +846,8 @@ func recordFinishedJobsToHistory(logger alog.Logger, db *models.Queries) func(co
 			})
 			if err != nil {
 				logger.InfoContext(ctx, "could not add failed job to gue_jobs_history table",
-					slog.Any("err", err),
-					slog.String("run_error", jobErr.Error()),
+					logging.Error(err),
+					logging.RunError(jobErr.Error()),
 				)
 			}
 
@@ -859,8 +862,8 @@ func recordFinishedJobsToHistory(logger alog.Logger, db *models.Queries) func(co
 		})
 		if err != nil {
 			logger.InfoContext(ctx, "could not add succeeded job to gue_jobs_history table",
-				slog.Any("err", err),
-				slog.String("run_error", ""),
+				logging.Error(err),
+				logging.RunError(""),
 			)
 		}
 	}

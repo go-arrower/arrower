@@ -41,7 +41,7 @@ func (l *gueLogAdapter) slogFields(fields []adapter.Field) []any {
 	result := make([]any, len(fields))
 
 	for i, f := range fields {
-		result[i] = slog.Any(f.Key, f.Value)
+		result[i] = slog.Any(f.Key, f.Value) //nolint:forbidigo // raw slog is the only possibility
 	}
 
 	return result

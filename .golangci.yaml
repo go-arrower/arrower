@@ -146,6 +146,16 @@ linters:
       # Allows empty structures in variable declarations.
       # Default: false
       allow-empty-declarations: true
+    forbidigo:
+      # Forbid the following identifiers (list of regexp).
+      # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
+      forbid:
+        # Default pattern (must be added manually to preserve it)
+        - pattern: '^(fmt\.Print(|f|ln)|print|println)$'
+        # Use a dedicated logging package to have consistent key names in the log output.
+        # To make this work: logging package has to be exclusions, see excludes below
+        - pattern: '^slog\.(String|Int64|Int|Uint64|Float64|Bool|Time|Duration|Any)$'
+          msg: "direct use of slog attribute, use custom logging.XYZ() instead"
     gocognit:
       # Minimal code complexity to report.
       # Default: 30 (but we recommend 10-20)
@@ -283,6 +293,12 @@ linters:
       - linters:
           - gochecknoglobals
         text: Setting # If settings key is prefixed e.g. auth.SettingAllowRegistration
+
+      # Configure custom attribute logging
+      - path: alog/logging|contexts(.*)/internal/domain/logging
+        linters:
+          - forbidigo # Allow slog imports in logging packages
+          - gochecknoglobals # Allow mapping of attribute functions e.g. from a shared package
 
       # Allow the use of t as a translation shortcut in the web package
       - path: (.*)interfaces/web/(.*).go

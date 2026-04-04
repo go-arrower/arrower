@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"log/slog"
 	"os"
 
 	"github.com/go-arrower/arrower"
@@ -18,6 +17,7 @@ import (
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
+	"github.com/go-arrower/arrower/contexts/admin/internal/domain/logging"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/web"
@@ -88,7 +88,7 @@ func ensureRequiredDependencies(di *arrower.Container) error {
 }
 
 func setupAdminContext(ctx context.Context, di *arrower.Container) (*AdminContext, error) {
-	logger := di.Logger.With(slog.String("context", contextName))
+	logger := di.Logger.With(logging.Context(contextName))
 
 	jobRepository := repository.NewPostgresJobsRepository(di.PGx)
 

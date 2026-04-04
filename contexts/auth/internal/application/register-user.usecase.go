@@ -10,6 +10,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain/logging"
 	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/jobs"
 )
@@ -60,9 +61,9 @@ func (h *registerUserRequestHandler) H(ctx context.Context, req RegisterUserRequ
 	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			h.logger.Log(ctx, slog.LevelInfo, "register new user failed",
-				slog.String("email", req.RegisterEmail),
-				slog.String("ip", req.IP),
-				slog.String("err", err.Error()),
+				logging.Email(req.RegisterEmail),
+				logging.IP(req.IP),
+				logging.Error(err),
 			)
 		}
 

@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/setting"
 )
@@ -156,10 +157,10 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
 		logger2 := logger1.WithGroup("componentA")
 
-		logger1.Debug("hello0", slog.String("some", "attr"))
+		logger1.Debug("hello0", logging.Attr("some", "attr"))
 		assert.NotContains(t, buf0.String(), "hello0")
 
-		logger2.Debug("hello1", slog.String("some", "attr"))
+		logger2.Debug("hello1", logging.Attr("some", "attr"))
 		assert.NotContains(t, buf1.String(), "hello1")
 		assert.NotContains(t, buf1.String(), "componentA.some=attr")
 
@@ -187,7 +188,7 @@ func TestArrowerLogger_SetLevel(t *testing.T) {
 		h := slog.NewTextHandler(buf, nil)
 
 		logger1 := alog.New(alog.WithHandler(h))
-		logger2 := logger1.With(slog.String("some", "attr"))
+		logger2 := logger1.With(logging.Attr("some", "attr"))
 
 		logger1.Debug("hello")
 		logger2.Debug("hello")
@@ -410,8 +411,8 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			logger = logger.WithGroup("groupPrefix")
 			logger.InfoContext(alog.AddAttrs(
 				t.Context(), []slog.Attr{
-					slog.String("some", "attr"),
-					slog.Int("other", 1337),
+					logging.Attr("some", "attr"),
+					slog.Int("other", 1337), //nolint:forbidigo // logging.Attr is string only and the ctx should ensure different types
 				}...,
 			), applicationMsg)
 
@@ -430,7 +431,7 @@ func TestArrowerHandler_Handle(t *testing.T) {
 			ctx := trace.ContextWithSpan(t.Context(), &span)
 
 			logger = logger.WithGroup("groupPrefix")
-			logger.InfoContext(alog.AddAttr(ctx, slog.String("some", "attr")), applicationMsg)
+			logger.InfoContext(alog.AddAttr(ctx, logging.Attr("some", "attr")), applicationMsg)
 
 			assert.Contains(t, buf.String(), "some=attr")
 			assert.Contains(t, fmt.Sprint(span.eventOptions), "some")
@@ -451,7 +452,7 @@ func TestArrowerHandler_WithAttrs(t *testing.T) {
 		h1 := slog.NewTextHandler(buf1, nil)
 
 		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
-		logger2 := logger1.With(slog.String("some", "attr"))
+		logger2 := logger1.With(logging.Attr("some", "attr"))
 
 		logger1.Info("hello")
 		assert.NotContains(t, buf0.String(), "some")
@@ -477,10 +478,10 @@ func TestArrowerHandler_WithGroup(t *testing.T) {
 		logger1 := alog.New(alog.WithHandler(h0), alog.WithHandler(h1))
 		logger2 := logger1.WithGroup("componentA")
 
-		logger1.Info("hello0", slog.String("some", "attr"))
+		logger1.Info("hello0", logging.Attr("some", "attr"))
 		assert.NotContains(t, buf0.String(), "componentA")
 
-		logger2.Info("hello1", slog.String("some", "attr"))
+		logger2.Info("hello1", logging.Attr("some", "attr"))
 		assert.Contains(t, buf1.String(), "componentA.some=attr")
 	})
 }

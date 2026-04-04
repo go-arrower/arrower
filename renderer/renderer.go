@@ -26,6 +26,7 @@ import (
 	"golang.org/x/text/message"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/ctx"
 )
 
@@ -90,8 +91,8 @@ func New(
 
 	logger.LogAttrs(context.TODO(), alog.LevelInfo,
 		"renderer created",
-		slog.Bool("hot_reload", hotReload),
-		slog.String("default_layout", views[SharedViews].defaultLayout),
+		logging.HotReload(hotReload),
+		logging.DefaultLayout(views[SharedViews].defaultLayout),
 	)
 
 	return &Renderer{
@@ -162,8 +163,8 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 
 	r.logger.LogAttrs(ctx, alog.LevelInfo,
 		"render template",
-		slog.String("original_name", templateName),
-		slog.String("cache_key", parsedTempl.key()),
+		logging.OriginalName(templateName),
+		logging.CacheKey(parsedTempl.key()),
 	)
 
 	var templ *template.Template
@@ -184,9 +185,9 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 
 		r.logger.LogAttrs(ctx, alog.LevelInfo,
 			"template cached",
-			slog.String("original_name", templateName),
-			slog.String("cache_key", parsedTempl.key()),
-			slog.Any("templates", templateNames(templ)),
+			logging.OriginalName(templateName),
+			logging.CacheKey(parsedTempl.key()),
+			logging.Templates(templateNames(templ)...),
 		)
 	}
 
@@ -380,8 +381,8 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded components",
-		slog.Int("component_count", len(componentTemplates.Templates())),
-		slog.Any("component_templates", templateNames(componentTemplates)),
+		logging.ComponentCount(len(componentTemplates.Templates())),
+		logging.ComponentTemplates(templateNames(componentTemplates)...),
 	)
 
 	pages, err := fs.Glob(viewFS, "pages/*.html")
@@ -403,9 +404,8 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded pages",
-		// slog.Int("page_count", len(pageTemplates)),
-		slog.Int("page_count", len(rawPages)),
-		slog.Any("page_templates", rawTemplateNames(rawPages)),
+		logging.PageCount(len(rawPages)),
+		logging.PageTemplates(rawTemplateNames(rawPages)...),
 	)
 
 	layouts, err := fs.Glob(viewFS, "*.html")
@@ -439,8 +439,8 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 
 	logger.LogAttrs(ctx, alog.LevelDebug,
 		"loaded layouts",
-		slog.Int("layout_count", len(rawLayouts)),
-		slog.Any("layout_templates", rawTemplateNames(rawLayouts)),
+		logging.LayoutCount(len(rawLayouts)),
+		logging.LayoutTemplates(rawTemplateNames(rawLayouts)...),
 	)
 
 	return viewTemplates{

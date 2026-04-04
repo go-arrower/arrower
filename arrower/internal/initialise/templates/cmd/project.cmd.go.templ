@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/go-arrower/arrower/alog/logging"
 
 	initShared "{{ .ProjectPath }}/shared/init"
 )
@@ -38,11 +39,11 @@ func {{ .NameSmall }}Cmd(ctx context.Context) *cobra.Command {
 
 			go func() {
 				dc.Logger.InfoContext(ctx, "Starting server",
-					slog.Int("port", dc.Config.HTTP.Port),
-					slog.String("environment", string(dc.Config.Environment)),
-					slog.String("organisation_name", dc.Config.OrganisationName),
-					slog.String("application_name", dc.Config.ApplicationName),
-					slog.String("instance_name", dc.Config.InstanceName),
+					logging.Port(dc.Config.HTTP.Port),
+					logging.Environment(string(dc.Config.Environment)),
+					logging.Organisation(dc.Config.OrganisationName),
+					logging.Application(dc.Config.ApplicationName),
+					logging.Instance(dc.Config.InstanceName),
 				)
 
 				if svrErr := dc.Start(ctx); svrErr != nil && !errors.Is(svrErr, http.ErrServerClosed) {
@@ -63,7 +64,7 @@ func {{ .NameSmall }}Cmd(ctx context.Context) *cobra.Command {
 
 			err = dc.Shutdown(timeoutCtx)
 			if err != nil {
-				dc.Logger.InfoContext(timeoutCtx, "server shutdown exceeded timeout", slog.Duration("timeout", shutdownTimeout))
+				dc.Logger.InfoContext(timeoutCtx, "server shutdown exceeded timeout", logging.Timeout(shutdownTimeout))
 			}
 		},
 	}

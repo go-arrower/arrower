@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain/logging"
 )
 
 var ErrSendNewUserVerificationEmailFailed = errors.New("send new user verification email failed")
@@ -54,11 +54,11 @@ func (h *sendNewUserVerificationEmailJobHandler) H(ctx context.Context, job NewU
 	// later: instead of logging this => send it to an email output port
 	// later: assert the email has been sent via the email interface
 	h.logger.InfoContext(ctx, "send verification email to user",
-		slog.String("token", token.Token().String()),
-		slog.String("device", job.Device.String()),
-		slog.String("ip", job.IP.IP.String()),
-		slog.String("time", job.OccurredAt.String()),
-		slog.String("email", string(usr.Login)),
+		logging.Token(token.Token().String()),
+		logging.Device(job.Device.String()),
+		logging.IP(job.IP.IP.String()),
+		logging.Time(job.OccurredAt),
+		logging.Email(string(usr.Login)),
 	)
 
 	return nil

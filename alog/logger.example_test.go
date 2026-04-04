@@ -8,39 +8,35 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 )
 
 func Example_logOutputNestingWithTraces() {
-	// Manually create a custom traceID and spanID for the root span to ensure deterministic IDs for assertion.
-	traceID := trace.TraceID([16]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10})
-	spanID := trace.SpanID([8]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef})
-
-	newCtx := trace.ContextWithSpanContext(
+	ctx := trace.ContextWithSpanContext(
 		context.Background(),
 		trace.NewSpanContext(trace.SpanContextConfig{
-			TraceID: traceID,
-			SpanID:  spanID,
+			// Manually create IDs for the root span to ensure deterministic values for assertion.
+			TraceID: [16]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10},
+			SpanID:  [8]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
 		}),
 	)
 
-	logger := alog.New(alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		ReplaceAttr: removeTime,
-	})))
+	logger := alog.New(alog.WithHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{ReplaceAttr: removeTime})))
 
-	logger.InfoContext(newCtx, "")
-	logger.InfoContext(newCtx, "", slog.String("key", "val"))
+	logger.InfoContext(ctx, "")
+	logger.InfoContext(ctx, "", logging.Attr("key", "val"))
 
 	logger = logger.With("attr", "val")
-	logger.InfoContext(newCtx, "", slog.String("key", "val"))
+	logger.InfoContext(ctx, "", logging.Attr("key", "val"))
 
 	contextA := logger.WithGroup("context_a")
-	contextA.InfoContext(newCtx, "", slog.String("key", "val"))
+	contextA.InfoContext(ctx, "", logging.Attr("key", "val"))
 
 	contextB := logger.WithGroup("context_b")
-	contextB.InfoContext(newCtx, "", slog.String("key", "val"))
+	contextB.InfoContext(ctx, "", logging.Attr("key", "val"))
 
 	contextBA := contextB.WithGroup("context_a")
-	contextBA.InfoContext(newCtx, "", slog.String("key", "val"))
+	contextBA.InfoContext(ctx, "", logging.Attr("key", "val"))
 
 	// Output:
 	// level=INFO msg="" trace_id=0123456789abcdeffedcba9876543210 span_id=0123456789abcdef

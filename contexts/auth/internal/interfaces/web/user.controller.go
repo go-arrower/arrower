@@ -40,7 +40,7 @@ func NewUserController(app application.UserApplication, routes *echo.Group, secr
 type UserController struct {
 	r   *echo.Group
 	app application.UserApplication
-	//Queries *models.Queries
+	// Queries *models.Queries
 
 	knownDeviceKeyPairs []securecookie.Codec
 }

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/app"
+	"github.com/go-arrower/arrower/contexts/admin/internal/domain/logging"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/setting"
 )
@@ -69,7 +69,7 @@ func (h *pruneJobHistoryCronCommandHandler) H(ctx context.Context, _ PruneJobHis
 		return fmt.Errorf("could not unmarshal settings: %w", err)
 	}
 
-	h.logger.InfoContext(ctx, "prune job history", slog.Any("setting", pruneSetting))
+	h.logger.InfoContext(ctx, "prune job history", logging.JobHistorySetting(pruneSetting))
 
 	if pruneSetting.PruneHistoryEntries {
 		err = errors.Join(err, h.queries.TruncateHistoryEntries(ctx, int64(pruneSetting.PruneHistoryEntriesValue)))

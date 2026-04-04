@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-arrower/arrower/alog/logging"
 )
 
 var (
@@ -617,14 +619,14 @@ func (v Value) Unmarshal(o any) error {
 	ctx := context.Background()
 
 	slog.Log(ctx, alogLevelDebug, "Unmarshal setting.Value into object",
-		slog.String("value", v.v),
-		slog.Any("object_kind", oKind),
+		logging.ValueStr(v.v),
+		logging.Object(oKind),
 	)
 
 	switch oKind {
 	case reflect.Bool:
 		if isTrue, err := v.Bool(); err == nil {
-			slog.Log(ctx, alogLevelDebug, "is bool", slog.Bool("value", isTrue))
+			slog.Log(ctx, alogLevelDebug, "is bool", logging.ValueBool(isTrue))
 			applyValue = reflect.ValueOf(isTrue)
 		} else {
 			return fmt.Errorf("%w", ErrInvalidValue)

@@ -43,8 +43,8 @@ func MapLogLevelsToName(_ []string, attr slog.Attr) slog.Attr {
 	if attr.Key == slog.LevelKey {
 		level, _ := attr.Value.Any().(slog.Level)
 
-		levelLabel, exists := getLevelNames()[level]
-		if !exists {
+		levelLabel, exists := getArrowerLevelNames()[level]
+		if !exists { // use slog level name
 			levelLabel = level.String()
 		}
 
@@ -54,8 +54,8 @@ func MapLogLevelsToName(_ []string, attr slog.Attr) slog.Attr {
 	return attr
 }
 
-// getLevelNames maps the arrower log levels to human-readable names.
-func getLevelNames() map[slog.Leveler]string {
+// getArrowerLevelNames maps the arrower log levels to human-readable names.
+func getArrowerLevelNames() map[slog.Leveler]string {
 	return map[slog.Leveler]string{
 		LevelInfo:  "ARROWER:INFO",
 		LevelDebug: "ARROWER:DEBUG",
@@ -96,9 +96,4 @@ func FromContext(ctx context.Context) []slog.Attr {
 	}
 
 	return attrs
-}
-
-// Error returns an Attr for an error value.
-func Error(err error) slog.Attr {
-	return slog.String("err", err.Error())
 }

@@ -4,7 +4,6 @@ package alog_test
 
 import (
 	"encoding/json"
-	"log/slog"
 	"math/rand"
 	"os"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/alog"
+	"github.com/go-arrower/arrower/alog/logging"
 	"github.com/go-arrower/arrower/tests"
 )
 
@@ -152,7 +152,7 @@ func TestPostgresHandler_WithAttrs(t *testing.T) {
 			alog.WithHandler(alog.NewPostgresHandler(pg, nil)),
 		)
 
-		logger = logger.With(slog.String("some", "attr"))
+		logger = logger.With(logging.Attr("some", "attr"))
 		logger.InfoContext(t.Context(), "logged msg")
 
 		ensureLogTableRows(t, pg, 1)

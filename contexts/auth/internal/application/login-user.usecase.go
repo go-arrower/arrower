@@ -10,6 +10,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain/logging"
 	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/jobs"
 )
@@ -66,9 +67,9 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 	usr, err := h.repo.FindByLogin(ctx, domain.Login(req.LoginEmail))
 	if err != nil {
 		h.logger.Log(ctx, slog.LevelInfo, "login failed",
-			slog.String("email", req.LoginEmail),
-			slog.String("ip", req.IP),
-			slog.String("err", err.Error()),
+			logging.Email(req.LoginEmail),
+			logging.IP(req.IP),
+			logging.Error(err),
 		)
 
 		return LoginUserResponse{}, ErrLoginUserFailed
@@ -76,8 +77,8 @@ func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (
 
 	if !h.authenticator.Authenticate(ctx, usr, req.Password) {
 		h.logger.Log(ctx, slog.LevelInfo, "login failed",
-			slog.String("email", req.LoginEmail),
-			slog.String("ip", req.IP),
+			logging.Email(req.LoginEmail),
+			logging.IP(req.IP),
 		)
 
 		return LoginUserResponse{}, ErrLoginUserFailed
