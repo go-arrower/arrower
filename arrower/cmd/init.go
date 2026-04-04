@@ -142,6 +142,7 @@ func newInitCommand() *cobra.Command {
 			err = errors.Join(err, addFile("shared/views/views.go.templ", data))
 			err = errors.Join(err, addFile("shared/views/input.css", data))
 			err = errors.Join(err, addFile("shared/views/default.base.html.templ", data))
+			err = errors.Join(err, addFile("shared/views/default.base.go", data))
 
 			err = errors.Join(err, os.MkdirAll("devops/grafana", dirPerm))
 			err = errors.Join(err, addFile("devops/grafana/datasource.yaml.templ", data))
