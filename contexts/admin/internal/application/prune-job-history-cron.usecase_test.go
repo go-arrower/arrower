@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/aassert"
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
@@ -35,7 +36,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
 	})
 
 	t.Run("older than n days", func(t *testing.T) {
@@ -57,7 +58,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
 	})
 
 	t.Run("age setting not active", func(t *testing.T) {
@@ -79,7 +80,7 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 2)
 	})
 
 	t.Run("too large table", func(t *testing.T) {
@@ -101,6 +102,6 @@ func TestPruneJobHistoryCronCommandHandler_H(t *testing.T) {
 		err := app.H(t.Context(), application.PruneJobHistoryCronCommand{})
 		assert.NoError(t, err)
 
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
 	})
 }

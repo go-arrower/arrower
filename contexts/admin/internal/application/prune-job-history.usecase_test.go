@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/aassert"
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/interfaces/repository/models"
 )
@@ -25,7 +26,7 @@ func TestPruneJobHistoryRequestHandler_H(t *testing.T) {
 
 		assert.NotEmpty(t, res.Jobs)
 		assert.NotEmpty(t, res.History)
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 1)
 	})
 
 	t.Run("all", func(t *testing.T) {
@@ -39,6 +40,6 @@ func TestPruneJobHistoryRequestHandler_H(t *testing.T) {
 
 		assert.NotEmpty(t, res.Jobs)
 		assert.NotEmpty(t, res.History)
-		assertTableNumberOfRows(t, pg, "arrower.gue_jobs_history", 0)
+		aassert.TableNumberOfRows(t, pg, "arrower.gue_jobs_history", 0)
 	})
 }

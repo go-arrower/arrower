@@ -1231,7 +1231,8 @@ func TestPostgresJobs_Instrumentation(t *testing.T) {
 		err = jq.RegisterJobFunc(func(ctx context.Context, _ simpleJob) error {
 			attr := alog.FromContext(ctx)
 			assert.NotEmpty(t, attr)
-			assert.Equal(t, "job_id", attr[0].Key)
+			assert.Equal(t, "job", attr[0].Key)
+			assert.Equal(t, "id", attr[0].Value.Group()[0].Key)
 			assert.NotEmpty(t, attr[0].Value, "ctx needs a job_id as slog attribute")
 
 			jobID, exists := jobs.FromContext(ctx)

@@ -3,7 +3,6 @@
 package tests_test
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/go-arrower/arrower/aassert"
 	"github.com/go-arrower/arrower/tests"
 )
 
@@ -39,9 +39,8 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 			pg = pgHandler.NewTestDatabase()
 		})
 
-		assertTableNumberOfRows(t, pg, "arrower.log", 1)
-		assertTableNumberOfRows(t, pg, "1", 0)
-		assertTableNumberOfRows(t, pg, "public.2", 0)
+		aassert.TableNumberOfRows(t, pg, "arrower.log", 1)
+		aassert.TableNumberOfRows(t, pg, "public.some_table", 0, "should not have rows of other fixtures")
 	})
 
 	t.Run("load common file and multiple multi-table fixtures", func(t *testing.T) {
@@ -56,12 +55,12 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 			)
 		})
 
-		assertTableNumberOfRows(t, pg, "arrower.log", 1)
-		assertTableNumberOfRows(t, pg, "some_table", 2)
-		assertTableNumberOfRows(t, pg, "public.other_table", 2)
+		aassert.TableNumberOfRows(t, pg, "arrower.log", 1)
+		aassert.TableNumberOfRows(t, pg, "some_table", 2)
+		aassert.TableNumberOfRows(t, pg, "public.other_table", 2)
 	})
 
-	t.Run("run multiple tests in parallel", func(t *testing.T) {
+	t.Run("run against multiple databases in parallel", func(t *testing.T) {
 		t.Parallel()
 
 		const testNumber = 100
@@ -77,9 +76,7 @@ func TestPostgresDocker_NewTestDatabase(t *testing.T) {
 					pg = pgHandler.NewTestDatabase()
 				})
 
-				assertTableNumberOfRows(t, pg, "arrower.log", 1)
-				assertTableNumberOfRows(t, pg, "1", 0)
-				assertTableNumberOfRows(t, pg, "public.2", 0)
+				aassert.TableNumberOfRows(t, pg, "arrower.log", 1)
 
 				wg.Done()
 			}()
@@ -98,25 +95,15 @@ func TestPostgresDocker_PrepareDatabase(t *testing.T) {
 		pg := tests.NewPostgresDockerForIntegrationTesting()
 
 		pg.PrepareDatabase("testdata/fixtures/test_arrower.yaml")
-		assertTableNumberOfRows(t, pg.PGx(), "arrower.log", 2)
-		assertTableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 1)
+		aassert.TableNumberOfRows(t, pg.PGx(), "arrower.log", 2)
+		aassert.TableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 1)
 
 		pg.PrepareDatabase()
-		assertTableNumberOfRows(t, pg.PGx(), "arrower.log", 1)
-		assertTableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 0)
+		aassert.TableNumberOfRows(t, pg.PGx(), "arrower.log", 1)
+		aassert.TableNumberOfRows(t, pg.PGx(), "arrower.gue_jobs", 0)
 	})
 }
 
 func TestWithMigrations(t *testing.T) {
 	// path with migration at the end; arrower does search in a folder that is called "migrations" // TODO
-}
-
-//nolint:wsl_v5
-func assertTableNumberOfRows(t *testing.T, db *pgxpool.Pool, table string, num int) {
-	t.Helper()
-
-	var c int
-	_ = db.QueryRow(t.Context(), fmt.Sprintf(`SELECT COUNT(*) FROM %s;`, table)).Scan(&c)
-
-	assert.Equal(t, num, c)
 }
