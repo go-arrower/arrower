@@ -98,10 +98,10 @@ func getNumFields(elem reflect.Value) int {
 					m.SetMapIndex(reflect.ValueOf(""), reflect.New(field.Type().Elem()).Elem())
 
 					continue
-				} else {
-					m.SetMapIndex(reflect.ValueOf(0), reflect.New(field.Type().Elem()).Elem())
-					v = m.MapIndex(reflect.ValueOf(0))
 				}
+
+				m.SetMapIndex(reflect.ValueOf(0), reflect.New(field.Type().Elem()).Elem())
+				v = m.MapIndex(reflect.ValueOf(0))
 
 				fields += getNumFields(v)
 			default:

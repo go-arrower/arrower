@@ -100,13 +100,13 @@ func (f *WhereQuery) Is(value any) Query {
 }
 
 // TODO use this in the logical stements.
-func Field(field string) *FieldQuery {
+func Field(_ string) *FieldQuery {
 	return &FieldQuery{}
 }
 
 type FieldQuery struct{}
 
-func (f *FieldQuery) Is(value any) FieldQuery { return FieldQuery{} }
+func (f *FieldQuery) Is(_ any) FieldQuery { return FieldQuery{} }
 
 type orderBy struct {
 	field     string

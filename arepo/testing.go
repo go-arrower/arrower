@@ -100,7 +100,7 @@ func (a *TestAssertions[E, ID]) Total(total int, msgAndArgs ...any) bool {
 // TestTenant returns a MemoryTenantRepository tuned for unit testing.
 func TestTenant[tID id, E any, eID id](t *testing.T, repo TenantRepository[tID, E, eID]) *TestTenantRepository[tID, E, eID] {
 	if repo == nil {
-		// repo = NewMemoryTenantRepository[tID, E, eID]()
+		repo = NewMemoryTenantRepository[tID, E, eID]()
 	}
 
 	return &TestTenantRepository[tID, E, eID]{

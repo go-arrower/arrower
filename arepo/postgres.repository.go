@@ -476,7 +476,7 @@ func (repo *PostgresRepository[E, ID]) Save(ctx context.Context, entity E) error
 	return nil
 }
 
-func (repo *PostgresRepository[E, ID]) SaveAll(_ context.Context, entities []E) error {
+func (repo *PostgresRepository[E, ID]) SaveAll(_ context.Context, _ []E) error {
 	panic("implement me")
 }
 
@@ -896,7 +896,7 @@ func entitiesFieldNameByColumnName[E any](name string) string {
 	return ""
 }
 
-func pgFieldName(entity reflect.Type, name string) string {
+func pgFieldName(_ reflect.Type, name string) string {
 	isQuoted := strings.HasPrefix(name, `"`) && strings.HasSuffix(name, `"`)
 	if isQuoted {
 		return strings.TrimPrefix(strings.TrimSuffix(name, `"`), `"`)
