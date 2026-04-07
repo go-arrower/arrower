@@ -19,6 +19,8 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/web"
+	"github.com/go-arrower/arrower/contexts/auth/internal/views"
+	"github.com/go-arrower/arrower/renderer"
 )
 
 func TestUserController_Login(t *testing.T) {
@@ -32,7 +34,7 @@ func TestUserController_Login(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
@@ -47,7 +49,7 @@ func TestUserController_Login(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
 
 		if assert.NoError(t, ctrl.Login()(c)) {
@@ -77,7 +79,7 @@ func TestUserController_Login(t *testing.T) {
 			}),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/login", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -110,7 +112,7 @@ func TestUserController_Login(t *testing.T) {
 			}),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -138,7 +140,7 @@ func TestUserController_Login(t *testing.T) {
 			}),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -193,7 +195,7 @@ func TestUserController_Login(t *testing.T) {
 			LoginUser: app.TestSuccessRequestHandler[application.LoginUserRequest, application.LoginUserResponse](),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/", controller.Login())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -212,7 +214,7 @@ func TestUserController_Login(t *testing.T) {
 func TestUserController_Logout(t *testing.T) {
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 	ctrl := web.NewUserController(application.UserApplication{}, echoRouter.Group(""), nil)
 
 	t.Run("not logged in", func(t *testing.T) {
@@ -278,7 +280,7 @@ func TestUserController_Create(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
@@ -298,7 +300,7 @@ func TestUserController_Register(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
 		c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), auth.CtxLoggedIn, true)))
 
@@ -327,7 +329,7 @@ func TestUserController_Register(t *testing.T) {
 			}),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/", controller.Register())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -335,7 +337,7 @@ func TestUserController_Register(t *testing.T) {
 		defer result.Body.Close()
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Contains(t, rec.Body.String(), "create")
+		assert.Contains(t, rec.Body.String(), "Register")
 		assert.Empty(t, result.Cookies(), "failed registration should have no cookies")
 	})
 
@@ -362,7 +364,7 @@ func TestUserController_Register(t *testing.T) {
 			}),
 		}, nil, []byte(secret))
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		echoRouter.POST("/", controller.Register())
 		echoRouter.ServeHTTP(rec, req)
 
@@ -393,7 +395,7 @@ func TestUserController_Verify(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
 
-		echoRouter := newTestRouter()
+		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
 		c.SetParamNames("userID", "token")
 		c.SetParamValues(string(userID), validToken.String())
@@ -425,19 +427,13 @@ const (
 
 var validToken = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 
-type emptyRenderer struct{} // todo replace with renderer test helper
-
-func (t *emptyRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	_, _ = w.Write([]byte(name))
-
-	return nil
-}
-
 // newTestRouter is a helper for unit tests, by returning a valid web router.
-// todo: provide a renderer globally to be used in many tests?
-func newTestRouter() *echo.Echo {
+// todo make global di available. and replace newTestRouter helpers in other packages
+func newTestRouter(t *testing.T) *echo.Echo {
+	t.Helper()
+
 	router := echo.New()
-	router.Renderer = &emptyRenderer{}
+	router.Renderer = renderer.TestEcho(t, router, views.AuthViews, nil)
 
 	// router.Use(session.Middleware(sessions.NewFilesystemStore("", []byte("secret"))))
 	// use again, if fixed: https://github.com/gorilla/sessions/issues/267

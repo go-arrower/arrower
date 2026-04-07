@@ -19,7 +19,7 @@ import (
 func TestJobsController_Index(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	t.Run("success", func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestJobsController_Index(t *testing.T) { //nolint:dupl
 func TestJobsController_ShowQueue(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	t.Run("success", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestJobsController_ShowQueue(t *testing.T) { //nolint:dupl
 func TestJobsController_ListWorkers(t *testing.T) { //nolint:dupl
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	t.Run("success", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestJobsController_ListWorkers(t *testing.T) { //nolint:dupl
 func TestJobsController_DeleteJob(t *testing.T) {
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	t.Run("success", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestJobsController_DeleteJob(t *testing.T) {
 func TestJobsController_DeleteHistory(t *testing.T) {
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 
 	// set http POST payload
 	reqBody := url.Values{}
@@ -201,7 +201,7 @@ func TestJobsController_DeleteHistory(t *testing.T) {
 func TestJobsController_ScheduleJobs(t *testing.T) {
 	t.Parallel()
 
-	echoRouter := newTestRouter()
+	echoRouter := newTestRouter(t)
 
 	t.Run("validate", func(t *testing.T) {
 		t.Parallel()

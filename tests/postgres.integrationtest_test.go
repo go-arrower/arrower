@@ -105,5 +105,6 @@ func TestPostgresDocker_PrepareDatabase(t *testing.T) {
 }
 
 func TestWithMigrations(t *testing.T) {
+	t.Parallel()
 	// path with migration at the end; arrower does search in a folder that is called "migrations" // TODO
 }

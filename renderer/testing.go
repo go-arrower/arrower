@@ -5,18 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func Test(
+	t *testing.T,
 	viewFS fs.FS,
 	funcMap template.FuncMap,
 ) (*TestRenderer, error) {
@@ -26,6 +31,7 @@ func Test(
 	}
 
 	return &TestRenderer{
+		t:           t,
 		mu:          sync.Mutex{},
 		renderer:    renderer,
 		shipResults: ping(), // todo add test case for this setting
@@ -33,6 +39,7 @@ func Test(
 }
 
 type TestRenderer struct {
+	t        *testing.T
 	mu       sync.Mutex
 	renderer *Renderer
 
@@ -40,12 +47,12 @@ type TestRenderer struct {
 }
 
 func (r *TestRenderer) Render(
-	t *testing.T,
+	w io.Writer,
 	context string,
 	name string,
 	data interface{},
-) (*RendererAssertions, error) {
-	t.Helper()
+) (*TestRendererAssertions, error) {
+	r.t.Helper()
 
 	r.mu.Lock()
 
@@ -56,18 +63,23 @@ func (r *TestRenderer) Render(
 
 	buf := &bytes.Buffer{}
 
-	err := r.renderer.Render(t.Context(), buf, context, name, data)
+	err := r.renderer.Render(r.t.Context(), buf, context, name, data)
 	if err != nil {
-		return &RendererAssertions{}, err
+		return &TestRendererAssertions{}, err
+	}
+
+	_, err = io.Copy(w, buf)
+	if err != nil {
+		return &TestRendererAssertions{}, err
 	}
 
 	r.mu.Unlock()
 
-	testName := t.Name()
+	testName := r.t.Name()
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return &RendererAssertions{}, fmt.Errorf("could not marshal data: %w", err)
+		return &TestRendererAssertions{}, fmt.Errorf("could not marshal data: %w", err)
 	}
 
 	run := testRun{ // include: context
@@ -81,29 +93,102 @@ func (r *TestRenderer) Render(
 	if r.shipResults {
 		postData, err := json.Marshal(run)
 		if err != nil {
-			return &RendererAssertions{}, fmt.Errorf("could not marshal post body: %w", err)
+			return &TestRendererAssertions{}, fmt.Errorf("could not marshal post body: %w", err)
 		}
 
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://localhost:3030/testcase", bytes.NewBuffer(postData))
+		req, err := http.NewRequestWithContext(r.t.Context(), http.MethodPost, "http://localhost:3030/testcase", bytes.NewBuffer(postData))
 		if err != nil {
-			return &RendererAssertions{}, fmt.Errorf("could not build request to send testcase: %w", err)
+			return &TestRendererAssertions{}, fmt.Errorf("could not build request to send testcase: %w", err)
 		}
 
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := (&http.Client{}).Do(req)
 		if err != nil {
-			return &RendererAssertions{}, fmt.Errorf("could not send testcase: %w", err)
+			return &TestRendererAssertions{}, fmt.Errorf("could not send testcase: %w", err)
 		}
 
 		resp.Body.Close()
 	}
 
-	return &RendererAssertions{
+	return &TestRendererAssertions{
 		run:         run,
-		t:           t,
+		t:           r.t,
 		shipResults: r.shipResults,
 	}, nil
+}
+
+func TestEcho(
+	t *testing.T,
+	echo *echo.Echo,
+	viewFS fs.FS,
+	funcs template.FuncMap,
+) *TestEchoRenderer {
+	if viewFS == nil {
+		viewFS = fstest.MapFS{}
+	}
+
+	mergedFM := template.FuncMap{
+		"route": echo.Reverse,
+	}
+
+	for name, fn := range funcs {
+		mergedFM[name] = fn
+	}
+
+	renderer, err := Test(t, viewFS, mergedFM)
+	assert.NoError(t, err)
+
+	return &TestEchoRenderer{TestRenderer: renderer}
+}
+
+// EchoRenderer is a wrapper that makes the Renderer available for the echo router: https://echo.labstack.com/
+type TestEchoRenderer struct {
+	*TestRenderer
+}
+
+var _ echo.Renderer = (*TestEchoRenderer)(nil)
+
+func (r *TestEchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
+	_, _, context := r.isRegisteredContext(c) // todo test how it is split
+
+	_, err := r.TestRenderer.Render(w, context, templateName, data)
+
+	return err
+}
+
+// todo: see comments in EchoRenderer method of this.
+func (r *TestEchoRenderer) isRegisteredContext(c echo.Context) (bool, bool, string) {
+	paths := strings.Split(c.Path(), "/")
+
+	isAdmin := false
+
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+
+		if path == adminPathPrefix {
+			isAdmin = true
+
+			continue
+		}
+
+		_, exists := r.renderer.views[path]
+		if exists {
+			if isAdmin {
+				return true, true, "/" + adminPathPrefix + "/" + path
+			}
+
+			return true, false, path
+		}
+	}
+
+	if isAdmin {
+		return true, true, adminPathPrefix // todo return normal context name, as the flag isAdmin is returned already
+	}
+
+	return false, false, ""
 }
 
 // ping is a simplistic check if the developer has `arrower run` open locally.
@@ -130,12 +215,12 @@ type testRun struct {
 	HTML     template.HTML `json:"html"`
 }
 
-// RendererAssertions is a helper that exposes a lot of TestRenderer-specific assertions for the use in tests.
+// TestRendererAssertions is a helper that exposes a lot of TestRenderer-specific assertions for the use in tests.
 // The interface follows stretchr/testify as close as possible.
 //
 //   - Every assert func returns a bool indicating whether the assertion was successful or not,
 //     this is useful for if you want to go on making further assertions under certain conditions.
-type RendererAssertions struct {
+type TestRendererAssertions struct {
 	t   *testing.T
 	run testRun
 
@@ -143,7 +228,7 @@ type RendererAssertions struct {
 }
 
 // NotEmpty asserts that the html is not empty.
-func (a *RendererAssertions) NotEmpty(msgAndArgs ...any) bool {
+func (a *TestRendererAssertions) NotEmpty(msgAndArgs ...any) bool {
 	a.t.Helper()
 
 	ass := assertion{
@@ -169,7 +254,7 @@ func (a *RendererAssertions) NotEmpty(msgAndArgs ...any) bool {
 	return true
 }
 
-func (a *RendererAssertions) Contains(contains any, msgAndArgs ...any) bool {
+func (a *TestRendererAssertions) Contains(contains any, msgAndArgs ...any) bool {
 	a.t.Helper()
 
 	ass := assertion{
@@ -201,7 +286,7 @@ type assertion struct {
 	Pass bool   `json:"pass"`
 }
 
-func (a *RendererAssertions) sendAssertion(assertion assertion) {
+func (a *TestRendererAssertions) sendAssertion(assertion assertion) {
 	if !a.shipResults {
 		return
 	}
