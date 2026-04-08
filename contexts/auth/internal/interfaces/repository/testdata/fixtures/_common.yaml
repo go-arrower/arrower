@@ -1,12 +1,18 @@
 auth.user:
   - id: 00000000-0000-0000-0000-000000000000
     login: 0@test.com
+    birthday: '2026-01-01'
+    locale: 'en'
 
   - id: 00000000-0000-0000-0000-000000000001
     login: 1@test.com
+    birthday: '2026-01-01'
+    locale: 'en'
 
   - id: 00000000-0000-0000-0000-000000000002
     login: 2@test.com
+    birthday: '2026-01-01'
+    locale: 'en'
 
 auth.session:
   - key: session-key

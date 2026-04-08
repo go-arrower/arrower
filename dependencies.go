@@ -354,26 +354,26 @@ func (c *Container) Start(ctx context.Context) error {
 	return nil
 }
 
-func (c *Container) Shutdown(ctx context.Context) error { // todo error handling
+func (c *Container) Shutdown(ctx context.Context) error {
 	c.Logger.LogAttrs(ctx, alog.LevelInfo, "shutting down all servers")
 
-	_ = c.WebRouter.Shutdown(ctx)
+	err := c.WebRouter.Shutdown(ctx)
 
 	if c.Config.HTTP.StatusEndpointEnabled {
-		_ = c.metricsEndpoint.Shutdown(ctx)
+		err = errors.Join(err, c.metricsEndpoint.Shutdown(ctx))
 	}
 
-	_ = c.DefaultQueue.Shutdown(ctx)
-	_ = c.ArrowerQueue.Shutdown(ctx)
+	err = errors.Join(err, c.DefaultQueue.Shutdown(ctx))
+	err = errors.Join(err, c.ArrowerQueue.Shutdown(ctx))
 
 	if c.PGx != nil {
 		c.PGx.Close()
 	}
 
-	_ = c.TraceProvider.Shutdown(ctx)
-	_ = c.MeterProvider.Shutdown(ctx)
+	err = errors.Join(err, c.TraceProvider.Shutdown(ctx))
+	err = errors.Join(err, c.MeterProvider.Shutdown(ctx))
 
-	return nil
+	return err
 }
 
 //nolint:mnd // allow server timeouts
@@ -396,7 +396,6 @@ func serveMetrics(ctx context.Context, di *Container) *http.Server {
 	mux.HandleFunc(statusPath, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK) // todo in case of error: 500 code
-		// TODO disable cache
 
 		statusData := getSystemStatus(ctx, di, serverStartedAt)
 

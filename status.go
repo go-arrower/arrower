@@ -22,8 +22,8 @@ func getSystemStatus(ctx context.Context, di *Container, serverStartedAt time.Ti
 		"status":           "online", // later: maintenance mode, degraded etc.
 		"time":             time.Now(),
 		"uptime":           uptime.String(),
-		"gitCommit":        "", // todo what is the difference to the hash? Does it mean git tag instead?
-		"gitHash":          "", // todo
+		"gitCommit":        gitHash(), // todo what is the difference to the hash? Does it mean git tag instead?
+		"gitHash":          gitHash(),
 		"organisationName": di.Config.OrganisationName,
 		"applicationName":  di.Config.ApplicationName,
 		"instanceName":     di.Config.InstanceName,

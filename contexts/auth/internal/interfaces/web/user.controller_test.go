@@ -428,7 +428,7 @@ const (
 var validToken = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 
 // newTestRouter is a helper for unit tests, by returning a valid web router.
-// todo make global di available. and replace newTestRouter helpers in other packages
+// todo make global di available. and replace newTestRouter helpers in other packages.
 func newTestRouter(t *testing.T) *echo.Echo {
 	t.Helper()
 

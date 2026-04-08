@@ -82,7 +82,7 @@ type APIKey struct{}
 // methods are part of auth api and not static auth package:
 
 // Authenticate, if develoepr wants to do the auth himself, instead of the web route.
-// returns worked bool, validationErrs error
+// Returns worked bool, validationErrs error.
 func Authenticate(_ any) (bool, error) { return false, nil }
 
 func Logout(_ any) bool { return false }

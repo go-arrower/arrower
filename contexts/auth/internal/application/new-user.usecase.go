@@ -2,8 +2,10 @@ package application
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
@@ -36,8 +38,10 @@ type (
 	}
 )
 
+const passwordLength = 12
+
 func (h *newUserCommandHandler) H(ctx context.Context, cmd NewUserCommand) error {
-	usr, err := h.registrator.RegisterNewUser(ctx, cmd.Email, "RanDomS1cuP!") // todo set random pw
+	usr, err := h.registrator.RegisterNewUser(ctx, cmd.Email, generatePassword(passwordLength))
 	if err != nil {
 		return fmt.Errorf("%w", err)
 	}
@@ -54,4 +58,16 @@ func (h *newUserCommandHandler) H(ctx context.Context, cmd NewUserCommand) error
 	}
 
 	return nil
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+
+func generatePassword(length int) string {
+	password := make([]byte, length)
+	for i := range password {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		password[i] = charset[idx.Int64()]
+	}
+
+	return string(password)
 }

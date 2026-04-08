@@ -3,9 +3,9 @@ package testdata
 import (
 	"time"
 
-	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
-
 	"github.com/google/uuid"
+
+	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 )
 
 const (
@@ -24,9 +24,16 @@ const (
 )
 
 var (
+	Today, _ = domain.NewBirthday(
+		domain.Day(time.Now().Day()),
+		domain.Month(time.Now().Month()),
+		domain.Year(time.Now().Year()),
+	)
+
 	UserZero = domain.User{
-		ID:    UserIDZero,
-		Login: "0@test.com",
+		ID:       UserIDZero,
+		Login:    "0@test.com",
+		Birthday: Today,
 	}
 
 	ValidToken = domain.NewVerificationToken(

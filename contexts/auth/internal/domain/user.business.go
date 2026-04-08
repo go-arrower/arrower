@@ -256,11 +256,11 @@ func (name Name) DisplayName() string {
 
 func NewBirthday(day Day, month Month, year Year) (Birthday, error) {
 	if day < 1 || day > 31 {
-		return Birthday{}, ErrInvalidBirthday
+		return Birthday{}, fmt.Errorf("%w: day must be between 1 and 31", ErrInvalidBirthday)
 	}
 
 	if month < 1 || month > 12 {
-		return Birthday{}, ErrInvalidBirthday
+		return Birthday{}, fmt.Errorf("%w: month must be between 1 and 12", ErrInvalidBirthday)
 	}
 
 	const maxAge = 150 * 356 * 24 * time.Hour // 150 years
@@ -269,12 +269,13 @@ func NewBirthday(day Day, month Month, year Year) (Birthday, error) {
 	isInTheFuture := int(year) > time.Now().UTC().Year()
 
 	if isTooOld || isInTheFuture {
-		return Birthday{}, ErrInvalidBirthday
+		return Birthday{}, fmt.Errorf("%w: birthday can not be in the future or older than %d years",
+			ErrInvalidBirthday, maxAge/24/365/time.Hour) //nolint:mnd
 	}
 
 	_, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-%02d-%02d", year, month, day))
 	if err != nil {
-		return Birthday{}, ErrInvalidBirthday
+		return Birthday{}, fmt.Errorf("%w: date is not valid", ErrInvalidBirthday)
 	}
 
 	return Birthday{day: day, month: month, year: year}, nil
@@ -292,7 +293,9 @@ type (
 	}
 )
 
-func (b Birthday) String() string { return "" }
+func (b Birthday) String() string {
+	return time.Date(int(b.year), time.Month(b.month), int(b.day), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+}
 
 // func (b Birthday) Format(layout string) string { return "" }
 // func (b Birthday) Format(loc Locale) string { return "" }

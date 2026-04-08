@@ -228,7 +228,8 @@ func TestPostgresRepository_Save(t *testing.T) {
 		repo, _ := repository.NewUserPostgresRepository(pg)
 
 		err := repo.Save(t.Context(), domain.User{
-			ID: testdata.UserIDNew,
+			ID:       testdata.UserIDNew,
+			Birthday: testdata.Today,
 			Sessions: []domain.Session{
 				{
 					ID:        "some-new-session-key",
@@ -284,7 +285,7 @@ func TestPostgresRepository_SaveAll(t *testing.T) {
 		pg := pgHandler.NewTestDatabase()
 		repo, _ := repository.NewUserPostgresRepository(pg)
 
-		newUser := domain.User{ID: testdata.UserIDNew}
+		newUser := domain.User{ID: testdata.UserIDNew, Birthday: testdata.Today}
 		updatedUser := testdata.UserZero
 		updatedUser.Name = domain.NewName("firstName", "", "")
 
