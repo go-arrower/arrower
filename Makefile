@@ -34,7 +34,7 @@ test-integration:
 	go test -race --tags="integration" ./... -coverprofile cover.out
 
 .PHONY: test-update
-test-update:
+test-update: # Update golden-files testdata
 	go test --tags="integration" ./arrower/internal/generate/... -update
 
 
