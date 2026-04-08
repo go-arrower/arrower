@@ -45,16 +45,14 @@ type EchoRenderer struct {
 var _ echo.Renderer = (*EchoRenderer)(nil)
 
 func (r *EchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
-	_, _, context := r.isRegisteredContext(c) // todo test how it is split
+	context := r.isRegisteredContext(c) // todo test how it is split
 
 	return r.Renderer.Render(c.Request().Context(), w, context, templateName, data)
 }
 
 const adminPathPrefix = "admin"
 
-// isRegisteredContext returns if a call is to be rendered for a context registered via AddContext.
-// If false => it is a shared view. // TODO refactor.
-func (r *EchoRenderer) isRegisteredContext(c echo.Context) (bool, bool, string) {
+func (r *EchoRenderer) isRegisteredContext(c echo.Context) string {
 	paths := strings.Split(c.Path(), "/")
 
 	isAdmin := false
@@ -73,18 +71,18 @@ func (r *EchoRenderer) isRegisteredContext(c echo.Context) (bool, bool, string) 
 		_, exists := r.views[path]
 		if exists {
 			if isAdmin {
-				return true, true, "/" + adminPathPrefix + "/" + path
+				return "/" + adminPathPrefix + "/" + path
 			}
 
-			return true, false, path
+			return path
 		}
 	}
 
 	if isAdmin {
-		return true, true, adminPathPrefix // todo return normal context name, as the flag isAdmin is returned already
+		return adminPathPrefix
 	}
 
-	return false, false, ""
+	return ""
 }
 
 // --- --- ---

@@ -270,7 +270,7 @@ func NewBirthday(day Day, month Month, year Year) (Birthday, error) {
 
 	if isTooOld || isInTheFuture {
 		return Birthday{}, fmt.Errorf("%w: birthday can not be in the future or older than %d years",
-			ErrInvalidBirthday, maxAge/24/365/time.Hour) //nolint:mnd
+			ErrInvalidBirthday, maxAge/24/365/time.Hour)
 	}
 
 	_, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-%02d-%02d", year, month, day))

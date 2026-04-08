@@ -150,7 +150,7 @@ type TestEchoRenderer struct {
 var _ echo.Renderer = (*TestEchoRenderer)(nil)
 
 func (r *TestEchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
-	_, _, context := r.isRegisteredContext(c) // todo test how it is split
+	context := r.isRegisteredContext(c)
 
 	_, err := r.TestRenderer.Render(w, context, templateName, data)
 
@@ -158,7 +158,7 @@ func (r *TestEchoRenderer) Render(w io.Writer, templateName string, data interfa
 }
 
 // todo: see comments in EchoRenderer method of this.
-func (r *TestEchoRenderer) isRegisteredContext(c echo.Context) (bool, bool, string) {
+func (r *TestEchoRenderer) isRegisteredContext(c echo.Context) string {
 	paths := strings.Split(c.Path(), "/")
 
 	isAdmin := false
@@ -177,18 +177,18 @@ func (r *TestEchoRenderer) isRegisteredContext(c echo.Context) (bool, bool, stri
 		_, exists := r.renderer.views[path]
 		if exists {
 			if isAdmin {
-				return true, true, "/" + adminPathPrefix + "/" + path
+				return "/" + adminPathPrefix + "/" + path
 			}
 
-			return true, false, path
+			return path
 		}
 	}
 
 	if isAdmin {
-		return true, true, adminPathPrefix // todo return normal context name, as the flag isAdmin is returned already
+		return adminPathPrefix // todo return normal context name, as the flag isAdmin is returned already
 	}
 
-	return false, false, ""
+	return ""
 }
 
 // ping is a simplistic check if the developer has `arrower run` open locally.

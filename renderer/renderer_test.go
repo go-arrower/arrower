@@ -128,7 +128,7 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 				err := render.Render(t.Context(), buf, renderer.SharedViews, "#non-existing", nil)
 
 				assert.ErrorIs(t, err, renderer.ErrRenderFailed)
-				assert.ErrorIs(t, err, renderer.ErrNotExistsComponent) // FIXME this test fails sometimes, very rarely (1/30 or fewer)
+				assert.ErrorIs(t, err, renderer.ErrNotExistsComponent)
 				assert.Empty(t, buf.String())
 			})
 		})
@@ -431,13 +431,11 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			err = render.Render(t.Context(), buf, "/admin/"+testdata.ExampleContext, "p0", nil)
 			assert.NoError(t, err)
 
-			// todo recheck all assertions
 			assert.Contains(t, buf.String(), testdata.P0ContextContent)
+			assert.Contains(t, buf.String(), testdata.AdminContextLayoutPagePlaceholder)
 			assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
-			assert.Contains(t, buf.String(), "adminLayout")
-			// assert.NotContains(t, buf.String(), testdata.LDefaultContextContent)
+			assert.NotContains(t, buf.String(), testdata.AdminLayoutContentPlaceholder)
 			assert.NotContains(t, buf.String(), testdata.BaseLayoutContentPlaceholder)
-			assert.NotContains(t, buf.String(), "adminPlaceholder")
 		})
 
 		t.Run("shared page", func(t *testing.T) {
@@ -451,11 +449,12 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			err = render.Render(t.Context(), buf, testdata.ExampleContext, "shared", nil)
 			assert.NoError(t, err)
 
-			// todo recheck all assertions
 			assert.Contains(t, buf.String(), testdata.P0Content)
 			assert.Contains(t, buf.String(), testdata.C0ContextContent, "shared component got overwritten")
+			assert.Contains(t, buf.String(), testdata.ContextLayoutPagePlaceholder)
 			assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
-			// assert.Contains(t, buf.String(), testdata.LDefaultContextContent)
+			assert.NotContains(t, buf.String(), testdata.C0Content)
+			assert.NotContains(t, buf.String(), testdata.ContextLayoutContentPlaceholder)
 			assert.NotContains(t, buf.String(), testdata.BaseLayoutContentPlaceholder)
 		})
 
@@ -470,11 +469,11 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			err = render.Render(t.Context(), buf, testdata.ExampleContext, "conflict-page", nil)
 			assert.NoError(t, err)
 
-			// todo recheck all assertions
 			assert.Contains(t, buf.String(), `context conflict`)
-			assert.NotContains(t, buf.String(), testdata.P0Content)
+			assert.Contains(t, buf.String(), testdata.ContextLayoutPagePlaceholder)
 			assert.Contains(t, buf.String(), testdata.BaseDefaultLayoutContent)
-			// assert.Contains(t, buf.String(), testdata.LDefaultContextContent)
+			assert.NotContains(t, buf.String(), testdata.P0Content)
+			assert.NotContains(t, buf.String(), testdata.ContextLayoutContentPlaceholder)
 			assert.NotContains(t, buf.String(), testdata.BaseLayoutContentPlaceholder)
 		})
 	})
@@ -503,6 +502,30 @@ func TestRenderer_Render(t *testing.T) { //nolint:maintidx
 			assert.NotContains(t, buf.String(), testdata.BaseLayoutContentPlaceholder)
 			assert.NotContains(t, buf.String(), testdata.C0Content, "c0 is overwritten")
 		})
+	})
+
+	t.Run("parallel rendering", func(t *testing.T) {
+		t.Parallel()
+
+		render, err := renderer.New(nil, nil, testdata.FilesSharedViews(), template.FuncMap{}, false)
+		assert.NoError(t, err)
+
+		var wg sync.WaitGroup
+
+		wg.Add(100)
+
+		for range 100 {
+			go func() {
+				var buf bytes.Buffer
+
+				err := render.Render(t.Context(), &buf, "", "p0", nil)
+				assert.NoError(t, err)
+
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
 	})
 
 	// t.Run("no base", func(t *testing.T) {

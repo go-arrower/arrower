@@ -4,12 +4,16 @@ import "testing/fstest"
 
 const (
 	// LDefaultContextContent       = "defaultContextLayout"
-	C0ContextContent                = "context component 0"
-	P0ContextContent                = "context p0"
-	P1ContextContent                = "context p1"
+	C0ContextContent = "context component 0"
+	P0ContextContent = "context p0"
+	P1ContextContent = "context p1"
+
 	ContextLayoutPagePlaceholder    = "context layout placeholder"
 	ContextLayoutContentPlaceholder = "context content placeholder"
 	ContextLayoutContent            = "context other layout content"
+
+	AdminContextLayoutPagePlaceholder = "adminLayout"
+	AdminLayoutContentPlaceholder     = "adminPlaceholder"
 )
 
 var ExampleContext = "example"
@@ -58,9 +62,9 @@ var ContextViews = fstest.MapFS{
 var ContextAdmin = fstest.MapFS{
 	"default.layout.html": {Data: []byte(`
     {{define "layout"}}
-		adminLayout
+		` + AdminContextLayoutPagePlaceholder + `
         {{block "content" .}}
-			adminPlaceholder
+			` + AdminLayoutContentPlaceholder + `
         {{end}}
     {{end}}`)},
 }

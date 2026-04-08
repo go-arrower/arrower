@@ -37,7 +37,7 @@ var (
 	ErrNotExistsComponent = fmt.Errorf("%w: component does not exist", ErrRenderFailed)
 	ErrNotExistsPage      = fmt.Errorf("%w: page does not exist", ErrRenderFailed)
 	ErrNotExistsFragment  = fmt.Errorf("%w: fragment does not exist", ErrRenderFailed)
-	ErrNotExistsLayout    = fmt.Errorf("%w: layout does not exist", ErrRenderFailed) // todo new err for base as well?
+	ErrNotExistsLayout    = fmt.Errorf("%w: layout does not exist", ErrRenderFailed)
 	ErrContextNotAdded    = errors.New("context not added")
 )
 
@@ -145,15 +145,6 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 			r.cache.Delete(key)
 			return true
 		})
-
-		r.mu.Lock()
-
-		for k, v := range r.views {
-			isCont, _, _ := isContext(k)
-			r.views[k], _ = prepareViewTemplates(ctx, r.logger, v.viewFS, r.funcMap, isCont)
-		}
-
-		r.mu.Unlock()
 	}
 
 	parsedTempl, err := r.getParsedTemplate(contextName, templateName)
@@ -190,10 +181,6 @@ func (r *Renderer) Render(ctx context.Context, w io.Writer, contextName string, 
 			logging.Templates(templateNames(templ)...),
 		)
 	}
-
-	/*
-		(?) htmx support for partial rendering
-	*/
 
 	if nil == templ.Lookup(parsedTempl.templateName()) {
 		return ErrNotExistsFragment
@@ -241,9 +228,6 @@ func isContext(context string) (bool, bool, string) {
 }
 
 func (r *Renderer) getParsedTemplate(context string, templateName string) (parsedTemplate, error) {
-	r.mu.Lock() // todo this is in the "hot path" could this be removed?
-	defer r.mu.Unlock()
-
 	parsedTempl, err := parseTemplateName(templateName)
 	if err != nil {
 		return parsedTemplate{}, fmt.Errorf("could not parse template name: %w", err)
@@ -420,8 +404,7 @@ func prepareViewTemplates(ctx context.Context, logger alog.Logger, viewFS fs.FS,
 	for _, layout := range layouts {
 		file, err := readFile(viewFS, layout)
 		if err != nil {
-			// todo rename error from layout to base
-			return viewTemplates{}, fmt.Errorf("could not read layout file: %s: %w", file, err)
+			return viewTemplates{}, fmt.Errorf("could not read base file: %s: %w", file, err)
 		}
 
 		ln := baseName(layout)
@@ -548,7 +531,7 @@ func parseTemplateName(name string) (parsedTemplate, error) {
 	length := len(elem)
 
 	if length > maxCompositionSegments { // invalid pattern
-		return parsedTemplate{}, fmt.Errorf("%w", ErrRenderFailed) // todo make error more speaking, by adding context
+		return parsedTemplate{}, fmt.Errorf("%w", ErrRenderFailed)
 	}
 
 	var (
@@ -600,11 +583,13 @@ func parseTemplateName(name string) (parsedTemplate, error) {
 	}
 
 	return parsedTemplate{
-		baseLayout:    layout,
-		contextLayout: contextLayout,
-		page:          page,
-		fragment:      fragment,
-		isComponent:   isComponent,
+		context:           "",
+		baseLayout:        layout,
+		contextLayout:     contextLayout,
+		page:              page,
+		fragment:          fragment,
+		renderAsAdminPage: false,
+		isComponent:       isComponent,
 	}, nil
 }
 
@@ -624,7 +609,6 @@ func (r *Renderer) AddContext(name string, viewFS fs.FS) error {
 		return fmt.Errorf("%w: already added", ErrContextNotAdded)
 	}
 
-	// todo clean, not sure about original meaning of comment. BUT now the bool flag looks like a smell
 	view, err := prepareViewTemplates(context.Background(), r.logger, viewFS, r.funcMap, true)
 	if err != nil {
 		return fmt.Errorf("%w", err)
