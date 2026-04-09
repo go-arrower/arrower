@@ -19,7 +19,7 @@ import (
 func TestWatchFolders(t *testing.T) {
 	t.Parallel()
 
-	const debounceInterval = 20
+	const debounceInterval = 200 * time.Millisecond
 
 	t.Run("start and stop watching a folder for changes", func(t *testing.T) {
 		t.Parallel()
@@ -33,7 +33,7 @@ func TestWatchFolders(t *testing.T) {
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			pathInfos, err := internal.NewPathInfos([]string{"."})
 			assert.NoError(t, err)
-			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -56,7 +56,7 @@ func TestWatchFolders(t *testing.T) {
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			pathInfos, err := internal.NewPathInfos([]string{dir})
 			assert.NoError(t, err)
-			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -79,7 +79,7 @@ func TestWatchFolders(t *testing.T) {
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			pathInfos, err := internal.NewPathInfos([]string{dir})
 			assert.NoError(t, err)
-			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -95,7 +95,7 @@ func TestWatchFolders(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("debounce changes", func(t *testing.T) { //nolint:dupl // triggers the debounce
+	t.Run("debounce changes", func(t *testing.T) {
 		t.Parallel()
 
 		wg := sync.WaitGroup{}
@@ -118,19 +118,21 @@ func TestWatchFolders(t *testing.T) {
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
-		time.Sleep(debounceInterval / 2 * time.Millisecond) // wait to enforce order of filesChanged elements
+		time.Sleep(debounceInterval / 2) // wait to enforce order of filesChanged elements
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
 
 		const expected = 1
-		wait(filesChanged, expected)
-		assert.Len(t, filesChanged, expected)
+
+		assert.Eventually(t, func() bool {
+			return len(filesChanged) == expected
+		}, time.Second, time.Millisecond*100, "expected to receive one file change only")
 
 		cancel()
 		wg.Wait()
 	})
 
-	t.Run("debounce changes until interval", func(t *testing.T) { //nolint:dupl // doesn't trigger debounce
+	t.Run("debounce changes until interval", func(t *testing.T) {
 		t.Parallel()
 
 		wg := sync.WaitGroup{}
@@ -151,15 +153,19 @@ func TestWatchFolders(t *testing.T) {
 
 		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolders.
 
-		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
+		_, err := os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
+		assert.NoError(t, err)
 
-		time.Sleep(debounceInterval * 2 * time.Millisecond) // wait to enforce order of filesChanged elements
+		time.Sleep(debounceInterval * 2) // wait to enforce order of filesChanged elements
 
-		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
+		_, err = os.Create(fmt.Sprintf("%s/%s", dir, "test1.go"))
+		assert.NoError(t, err)
 
 		const expected = 2
-		wait(filesChanged, expected)
-		assert.Len(t, filesChanged, expected)
+
+		assert.Eventually(t, func() bool {
+			return len(filesChanged) == expected
+		}, time.Second, time.Millisecond*100, "expected to receive two file changes")
 
 		cancel()
 		wg.Wait()
@@ -179,7 +185,7 @@ func TestWatchFolders(t *testing.T) {
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			pathInfos, err := internal.NewPathInfos([]string{dir})
 			assert.NoError(t, err)
-			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -213,7 +219,7 @@ func TestWatchFolders(t *testing.T) {
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
 			pathInfos, err := internal.NewPathInfos([]string{dir1, dir2})
 			assert.NoError(t, err)
-			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -227,8 +233,10 @@ func TestWatchFolders(t *testing.T) {
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir2, "file2.go"))
 
 		const expected = 2
-		wait(filesChanged, expected)
-		assert.Len(t, filesChanged, expected)
+
+		assert.Eventually(t, func() bool {
+			return len(filesChanged) == expected
+		}, time.Second, time.Millisecond*100, "expected to receive two file changes")
 
 		// Verify both files were detected
 		detectedFiles := make(map[string]bool)
@@ -413,16 +421,5 @@ func TestFile_IsFrontendSource(t *testing.T) {
 			got := tt.file.IsFrontendSource()
 			assert.Equal(t, tt.observed, got)
 		})
-	}
-}
-
-// wait is a helper to pass time, until the watcher detects changes.
-func wait(filesChanged chan internal.File, expected int) {
-	for {
-		if len(filesChanged) == expected {
-			time.Sleep(10 * time.Millisecond)
-
-			break
-		}
 	}
 }

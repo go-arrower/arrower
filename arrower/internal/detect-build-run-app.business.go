@@ -8,6 +8,7 @@ import (
 	"io"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/fatih/color"
 
@@ -35,7 +36,7 @@ func WatchBuildAndRunApp( //nolint:funlen
 
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-		const interval = 350
+		const interval = 350 * time.Millisecond
 
 		err := WatchFolders(ctx, pathInfos, filesChanged, interval)
 		if err != nil {
