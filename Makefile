@@ -17,6 +17,8 @@ generate: ## Generate all code to run the service
 
 	npx prettier --config .config/.prettierrc --ignore-path .config/.prettierignore --ignore-path .gitignore . --write
 	npx tailwindcss -c contexts/admin/internal/views/tailwind.config.js -i contexts/admin/internal/views/input.css -o contexts/admin/internal/views/static/css/admin.css --minify
+	npx tailwindcss -c contexts/auth/internal/views/tailwind.config.js -i contexts/auth/internal/views/input.css -o contexts/auth/internal/views/static/css/auth.css --minify
+
 
 .PHONY: test
 test: static-check generate test-unit test-integration ## Run all tests

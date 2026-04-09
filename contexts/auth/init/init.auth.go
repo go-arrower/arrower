@@ -95,6 +95,7 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 	userController := web.NewUserController(uc, webRoutes, []byte("secret"))
 
 	authContext := AuthContext{
+		shared:             di,
 		settingsController: web.NewSettingsController(queries),
 		userController:     userController,
 		logger:             logger,
@@ -114,6 +115,8 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 }
 
 type AuthContext struct {
+	shared *arrower.Container
+
 	settingsController *web.SettingsController
 	userController     *web.UserController
 

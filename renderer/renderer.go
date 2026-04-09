@@ -288,7 +288,7 @@ func (r *Renderer) buildPageTemplate(isContext bool, parsedTempl parsedTemplate)
 		newTemplate, _ = newTemplate.New(parsedTempl.key()).Parse(`{{block "content" .}}{{end}}`)
 	} else {
 		if _, found := r.views[SharedViews].rawLayouts[parsedTempl.baseLayout]; !found {
-			return nil, fmt.Errorf("%w: default", ErrNotExistsLayout)
+			return nil, fmt.Errorf("%w: %s", ErrNotExistsLayout, parsedTempl.baseLayout)
 		}
 
 		newTemplate, err = newTemplate.New(parsedTempl.key()).Parse(r.views[SharedViews].rawLayouts[parsedTempl.baseLayout])

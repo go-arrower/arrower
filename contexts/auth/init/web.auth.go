@@ -6,10 +6,13 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/go-arrower/arrower/contexts/auth"
+	"github.com/go-arrower/arrower/contexts/auth/internal/views"
 )
 
 // registerWebRoutes initialises all routes of this Context.
 func (c *AuthContext) registerWebRoutes(router *echo.Group) {
+	c.shared.WebRouter.StaticFS("/static/auth/", echo.MustSubFS(views.PublicAssets, "static"))
+
 	router.GET("/login", c.userController.Login()).Name = auth.RouteLogin
 	router.POST("/login", c.userController.Login())
 	router.GET("/logout", c.userController.Logout()).Name = auth.RouteLogout // todo make POST to prevent CSRF
