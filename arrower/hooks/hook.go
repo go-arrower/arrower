@@ -35,8 +35,8 @@ type RunConfig struct {
 	// Arrower apps check in to this port as well, e.g. for hot reload signals.
 	Port int
 
-	// WatchPath is the directory that arrower watches all file changes from.
-	WatchPath string
+	// WatchPaths are the directories that arrower watches all file changes from.
+	WatchPaths []string
 }
 
 type Hook struct {

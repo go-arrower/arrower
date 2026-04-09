@@ -37,7 +37,10 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{},
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+
+			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{},
 				make(chan internal.File, 1),
 				func(_ context.Context, _ string) error {
 					browserStarted = true
@@ -74,7 +77,10 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, make(chan internal.File, 1), noBrowser)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+
+			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, make(chan internal.File, 1), noBrowser)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -107,7 +113,10 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchBuildAndRunApp(ctx, buf, dir, hooks.Hooks{}, hotReload, noBrowser)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+
+			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, hotReload, noBrowser)
 			assert.NoError(t, err)
 
 			wg.Done()

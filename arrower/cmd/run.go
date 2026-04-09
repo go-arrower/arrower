@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime/debug"
 	"sync"
 	"syscall"
@@ -52,8 +51,8 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 
 			const hotReloadPort = 3030
 			config := &hooks.RunConfig{ //nolint:wsl_v5
-				Port:      hotReloadPort,
-				WatchPath: ".",
+				Port:       hotReloadPort,
+				WatchPaths: []string{"."},
 			}
 
 			hooks, err := hooks.Load(".config")
@@ -68,10 +67,13 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 
 			hooks.OnConfigLoaded(config)
 
-			blue(cmd.OutOrStdout(), "watching %s\n", config.WatchPath)
-			path, err := filepath.Abs(config.WatchPath) //nolint:wsl_v5
+			pathInfos, err := internal.NewPathInfos(config.WatchPaths)
 			if err != nil {
 				panic(err)
+			}
+
+			for _, pi := range pathInfos {
+				blue(cmd.OutOrStdout(), "watching: %s (%s)\n", pi.DisplayPath, pi.AbsPath)
 			}
 
 			hooks.OnStart()
@@ -85,7 +87,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 				// log.Debug().Str("path", path).Msg("start to watch file system")
 
 				//nolint:govet // shadowing err prevents a race condition
-				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), path, hooks, hotReload, openBrowser)
+				err := internal.WatchBuildAndRunApp(ctx, cmd.OutOrStdout(), pathInfos, hooks, hotReload, openBrowser)
 				if err != nil {
 					panic(err)
 				}

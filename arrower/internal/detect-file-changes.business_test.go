@@ -16,7 +16,7 @@ import (
 // The file watcher library github.com/rjeczalik/notify does not operate on any fs abstraction, but takes a path string
 // as input. This means unit tests utilising abstractions like testing/fstest can not be used, and we have to fall back
 // to slower integration tests, operating on the real file system of the OS.
-func TestWatchFolder(t *testing.T) {
+func TestWatchFolders(t *testing.T) {
 	t.Parallel()
 
 	const debounceInterval = 20
@@ -31,7 +31,9 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, ".", filesChanged, 300)
+			pathInfos, err := internal.NewPathInfos([]string{"."})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -43,15 +45,6 @@ func TestWatchFolder(t *testing.T) {
 	t.Run("watch specific folder", func(t *testing.T) {
 		t.Parallel()
 
-		t.Skip()
-		/*
-			cases
-				* valid folder
-				* invalid folder
-				* relative path
-				* absolute path
-		*/
-
 		wg := sync.WaitGroup{}
 
 		filesChanged := make(chan internal.File)
@@ -61,7 +54,9 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -82,12 +77,14 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
 
-		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolders.
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test.go"))
 
@@ -110,12 +107,14 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
 
-		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		time.Sleep(100 * time.Millisecond) // wait until the goroutine has started WatchFolders.
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
@@ -143,12 +142,14 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, dir, filesChanged, debounceInterval)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, debounceInterval)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
 
-		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolders.
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "test0.go"))
 
@@ -176,12 +177,14 @@ func TestWatchFolder(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			err := internal.WatchFolder(ctx, dir, filesChanged, 300)
+			pathInfos, err := internal.NewPathInfos([]string{dir})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
 
-		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolder.
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolders.
 
 		_, _ = os.Create(fmt.Sprintf("%s/%s", dir, "something_test.go"))
 
@@ -190,6 +193,53 @@ func TestWatchFolder(t *testing.T) {
 			t.FailNow()
 		default: // No value ready, moving on
 		}
+
+		cancel()
+		wg.Wait()
+	})
+
+	t.Run("watch multiple folders and detect changes in both", func(t *testing.T) {
+		t.Parallel()
+
+		wg := sync.WaitGroup{}
+
+		filesChanged := make(chan internal.File, 2)
+		ctx, cancel := context.WithCancel(t.Context())
+
+		dir1 := t.TempDir()
+		dir2 := t.TempDir()
+
+		wg.Add(1)
+		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
+			pathInfos, err := internal.NewPathInfos([]string{dir1, dir2})
+			assert.NoError(t, err)
+			err = internal.WatchFolders(ctx, pathInfos, filesChanged, 300)
+			assert.NoError(t, err)
+			wg.Done()
+		}(&wg)
+
+		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolderss.
+
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir1, "file1.go"))
+
+		time.Sleep(350 * time.Millisecond) // wait for debounce interval to pass
+
+		_, _ = os.Create(fmt.Sprintf("%s/%s", dir2, "file2.go"))
+
+		const expected = 2
+		wait(filesChanged, expected)
+		assert.Len(t, filesChanged, expected)
+
+		// Verify both files were detected
+		detectedFiles := make(map[string]bool)
+
+		for range expected {
+			file := <-filesChanged
+			detectedFiles[string(file)] = true
+		}
+
+		assert.True(t, detectedFiles[dir1+"/file1.go"], "file1.go from dir1 should be detected")
+		assert.True(t, detectedFiles[dir2+"/file2.go"], "file2.go from dir2 should be detected")
 
 		cancel()
 		wg.Wait()

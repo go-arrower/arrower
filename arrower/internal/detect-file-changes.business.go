@@ -12,20 +12,22 @@ import (
 
 var ErrObserverFSFailed = errors.New("could not listen to file system changes")
 
-// File is a file name & path. It is expected to be always valid.
+// File is a file name and path. It is expected to be always valid.
 type File string
 
-// WatchFolder watches the folder of path and sends a File to fileChanged each time a IsObservedFile changed.
+// WatchFolders watches multiple folders and sends a File to fileChanged each time a IsObservedFile changed.
 // The debounceInterval is a time in ms in which no new changes will be sent to fileChanged.
 // It terminates once the ctx is cancelled.
-func WatchFolder(ctx context.Context, path string, fileChanged chan<- File, debounceInterval int) error {
+func WatchFolders(ctx context.Context, pathInfos PathInfos, fileChanged chan<- File, debounceInterval int) error {
 	fsEvents := make(chan notify.EventInfo, 1)
 
-	path += "/..."
-
-	if err := notify.Watch(path, fsEvents, notify.All); err != nil {
-		return fmt.Errorf("%w: %v", ErrObserverFSFailed, err)
+	for _, pi := range pathInfos {
+		p := pi.AbsPath + "/..."
+		if err := notify.Watch(p, fsEvents, notify.All); err != nil {
+			return fmt.Errorf("%w: %v", ErrObserverFSFailed, err)
+		}
 	}
+
 	defer notify.Stop(fsEvents)
 
 	var debounceActive bool
