@@ -1,6 +1,11 @@
 package domain
 
-import "net"
+import (
+	"errors"
+	"net"
+)
+
+var ErrResolveFailed = errors.New("resolving ip failed")
 
 type IPResolver interface {
 	ResolveIP(ip string) (ResolvedIP, error)

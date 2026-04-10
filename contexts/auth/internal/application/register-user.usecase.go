@@ -11,7 +11,6 @@ import (
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain/logging"
-	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/jobs"
 )
 
@@ -22,13 +21,14 @@ func NewRegisterUserRequestHandler(
 	repo domain.Repository,
 	registrator *domain.RegistrationService,
 	queue jobs.Enqueuer,
+	resolver domain.IPResolver,
 ) app.Request[RegisterUserRequest, RegisterUserResponse] {
 	return app.NewValidatedRequest[RegisterUserRequest, RegisterUserResponse](nil, &registerUserRequestHandler{
 		logger:      logger,
 		repo:        repo,
 		registrator: registrator,
 		queue:       queue,
-		ip:          infrastructure.NewIP2LocationService(""),
+		ip:          resolver,
 	})
 }
 

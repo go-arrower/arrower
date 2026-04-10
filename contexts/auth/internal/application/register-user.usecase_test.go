@@ -9,6 +9,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/jobs"
 )
@@ -31,7 +32,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 			"invalid ip":          {registerUserRequest(with("IP", "invalid-ip-format"))},
 		}
 
-		handler := application.NewRegisterUserRequestHandler(nil, nil, nil, nil)
+		handler := application.NewRegisterUserRequestHandler(nil, nil, nil, nil, nil)
 
 		for name, tc := range tests {
 			t.Run(name, func(t *testing.T) {
@@ -55,7 +56,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
-		handler := application.NewRegisterUserRequestHandler(logger, repo, registrator, nil)
+		handler := application.NewRegisterUserRequestHandler(logger, repo, registrator, jobs.Test(t), infrastructure.NewIPNoopResolver())
 
 		_, err := handler.H(t.Context(), registerUserRequest(with("RegisterEmail", user0Login)))
 		assert.Error(t, err)
@@ -73,7 +74,7 @@ func TestRegisterUserRequestHandler_H(t *testing.T) {
 		queue := jobs.Test(t)
 		registrator := registrator(t.Context(), repo)
 
-		handler := application.NewRegisterUserRequestHandler(slog.New(slog.DiscardHandler), repo, registrator, queue)
+		handler := application.NewRegisterUserRequestHandler(slog.New(slog.DiscardHandler), repo, registrator, queue, infrastructure.NewIPNoopResolver())
 
 		usr, err := handler.H(t.Context(), registerUserRequest(
 			with("RegisterEmail", newUserLogin),

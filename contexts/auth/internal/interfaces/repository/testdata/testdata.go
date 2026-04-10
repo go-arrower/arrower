@@ -21,6 +21,8 @@ const (
 
 	SessionKey = "session-key"
 	UserAgent  = "arrower/1"
+
+	RawPassword = "0Secret!"
 )
 
 var (

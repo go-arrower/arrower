@@ -18,6 +18,7 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/web"
@@ -68,6 +69,8 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 		_ = di.Settings.Save(ctx, auth.SettingAllowLogin, setting.NewValue(true))
 	}
 
+	resolver := infrastructure.NewIPNoopResolver()
+
 	queries := models.New(di.PGx)
 	repo, _ := repository.NewUserPostgresRepository(di.PGx)
 	registrator := domain.NewRegistrationService(di.Settings, repo)
@@ -77,9 +80,9 @@ func NewAuthContext(di *arrower.Container) (*AuthContext, error) {
 
 	uc := application.UserApplication{
 		RegisterUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
-			application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue)),
+			application.NewRegisterUserRequestHandler(logger, repo, registrator, di.ArrowerQueue, resolver)),
 		LoginUser: app.NewInstrumentedRequest(di.TraceProvider, di.MeterProvider, logger,
-			application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings))),
+			application.NewLoginUserRequestHandler(logger, repo, di.ArrowerQueue, domain.NewAuthenticationService(di.Settings), resolver)),
 		ListUsers: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,
 			application.NewListUsersQueryHandler(repo)),
 		ShowUser: app.NewInstrumentedQuery(di.TraceProvider, di.MeterProvider, logger,

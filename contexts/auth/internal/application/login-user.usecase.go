@@ -11,7 +11,6 @@ import (
 	"github.com/go-arrower/arrower/app"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain/logging"
-	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/jobs"
 )
 
@@ -22,13 +21,14 @@ func NewLoginUserRequestHandler(
 	repo domain.Repository,
 	queue jobs.Enqueuer,
 	authenticator *domain.AuthenticationService,
+	resolver domain.IPResolver,
 ) app.Request[LoginUserRequest, LoginUserResponse] {
 	return app.NewValidatedRequest[LoginUserRequest, LoginUserResponse](nil, &loginUserRequestHandler{
 		logger:        logger,
 		repo:          repo,
 		queue:         queue,
 		authenticator: authenticator,
-		ip:            infrastructure.NewIP2LocationService(""),
+		ip:            resolver,
 	})
 }
 
@@ -66,22 +66,22 @@ type (
 func (h *loginUserRequestHandler) H(ctx context.Context, req LoginUserRequest) (LoginUserResponse, error) {
 	usr, err := h.repo.FindByLogin(ctx, domain.Login(req.LoginEmail))
 	if err != nil {
-		h.logger.Log(ctx, slog.LevelInfo, "login failed",
+		h.logger.Log(ctx, slog.LevelInfo, "login failed: user not found",
 			logging.Email(req.LoginEmail),
 			logging.IP(req.IP),
 			logging.Error(err),
 		)
 
-		return LoginUserResponse{}, ErrLoginUserFailed
+		return LoginUserResponse{}, fmt.Errorf("%w: could not find user", ErrLoginUserFailed)
 	}
 
 	if !h.authenticator.Authenticate(ctx, usr, req.Password) {
-		h.logger.Log(ctx, slog.LevelInfo, "login failed",
+		h.logger.Log(ctx, slog.LevelInfo, "login failed: authentification failed",
 			logging.Email(req.LoginEmail),
 			logging.IP(req.IP),
 		)
 
-		return LoginUserResponse{}, ErrLoginUserFailed
+		return LoginUserResponse{}, fmt.Errorf("%w: could not authenticate user", ErrLoginUserFailed)
 	}
 
 	// The session is not valid until the end of the controller.

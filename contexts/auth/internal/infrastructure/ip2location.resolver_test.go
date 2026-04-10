@@ -10,14 +10,14 @@ import (
 	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 )
 
-func TestNewIp2LocationService(t *testing.T) {
+func TestNewIP2LocationResolver(t *testing.T) {
 	t.Parallel()
 	t.Skip("skip for now, ip2location is not available in this repo")
 
 	t.Run("get with default db path", func(t *testing.T) {
 		t.Parallel()
 
-		ip := infrastructure.NewIP2LocationService("")
+		ip := infrastructure.NewIP2LocationResolver("")
 		_, err := ip.ResolveIP("127.0.0.1")
 		assert.NoError(t, err)
 	})
@@ -25,7 +25,7 @@ func TestNewIp2LocationService(t *testing.T) {
 	t.Run("get with db path", func(t *testing.T) {
 		t.Parallel()
 
-		ip := infrastructure.NewIP2LocationService("data/IP-COUNTRY-REGION-CITY.BIN")
+		ip := infrastructure.NewIP2LocationResolver("data/IP-COUNTRY-REGION-CITY.BIN")
 		_, err := ip.ResolveIP("127.0.0.1")
 		assert.NoError(t, err)
 	})
@@ -45,13 +45,13 @@ func TestIP2Location_ResolveIP(t *testing.T) {
 			"empty ip",
 			"",
 			domain.ResolvedIP{},
-			infrastructure.ErrInvalidIP,
+			domain.ErrResolveFailed,
 		},
 		{
 			"invalid ip",
 			"this-is-not-an-ip-address",
 			domain.ResolvedIP{},
-			infrastructure.ErrInvalidIP,
+			domain.ErrResolveFailed,
 		},
 		{
 			"valid ip",
@@ -67,7 +67,7 @@ func TestIP2Location_ResolveIP(t *testing.T) {
 		},
 	}
 
-	ip := infrastructure.NewIP2LocationService("")
+	ip := infrastructure.NewIP2LocationResolver("")
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {

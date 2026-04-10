@@ -44,13 +44,19 @@ func userFromModelWithSession(dbUser models.AuthUser, sessions []models.AuthSess
 		profile[k] = *v
 	}
 
-	birthday, err := domain.NewBirthday(
-		domain.Day(dbUser.Birthday.Time.Day()),     //nolint:gosec // assume db does always only store valid dates
-		domain.Month(dbUser.Birthday.Time.Month()), //nolint:gosec // assume db does always only store valid dates
-		domain.Year(dbUser.Birthday.Time.Year()),   //nolint:gosec // assume db does always only store valid dates
-	)
-	if err != nil {
-		panic("could not map birthday to domain format: " + err.Error())
+	var birthday domain.Birthday
+
+	if dbUser.Birthday.Valid {
+		bd, err := domain.NewBirthday(
+			domain.Day(dbUser.Birthday.Time.Day()),     //nolint:gosec // assume db does always only store valid dates
+			domain.Month(dbUser.Birthday.Time.Month()), //nolint:gosec // assume db does always only store valid dates
+			domain.Year(dbUser.Birthday.Time.Year()),   //nolint:gosec // assume db does always only store valid dates
+		)
+		if err != nil {
+			panic("could not map birthday to domain format: " + err.Error())
+		}
+
+		birthday = bd
 	}
 
 	locale, err := language.Parse(dbUser.Locale)
@@ -111,9 +117,20 @@ func userToModel(user domain.User) models.UpsertUserParams {
 		superUserAt = pgtype.Timestamptz{}
 	}
 
-	birthday, err := time.Parse("2006-01-02", user.Birthday.String())
-	if err != nil {
-		panic("could not map birthday to database format: " + err.Error())
+	birthday := pgtype.Date{}
+	if bd, err := time.Parse("2006-01-02", user.Birthday.String()); err == nil {
+		birthday.Time = bd
+		birthday.Valid = true
+		birthday.InfinityModifier = 0
+	} else {
+		userHasUnsetBirthday := user.Birthday == domain.Birthday{}
+		if userHasUnsetBirthday {
+			birthday.Time = time.Time{}
+			birthday.Valid = false
+			birthday.InfinityModifier = 0
+		} else {
+			panic("could not map birthday to database format: " + err.Error())
+		}
 	}
 
 	profile := make(map[string]*string)
@@ -130,17 +147,13 @@ func userToModel(user domain.User) models.UpsertUserParams {
 		NameFirstname:   user.Name.FirstName(),
 		NameLastname:    user.Name.LastName(),
 		NameDisplayname: user.Name.DisplayName(),
-		Birthday: pgtype.Date{
-			Time:             birthday,
-			InfinityModifier: 0,
-			Valid:            true,
-		},
-		Locale:         language.Tag(user.Locale).String(),
-		TimeZone:       string(user.TimeZone),
-		PictureUrl:     string(user.ProfilePictureURL),
-		Profile:        profile,
-		VerifiedAtUtc:  verifiedAt,
-		BlockedAtUtc:   blockedAt,
-		SuperuserAtUtc: superUserAt,
+		Birthday:        birthday,
+		Locale:          language.Tag(user.Locale).String(),
+		TimeZone:        string(user.TimeZone),
+		PictureUrl:      string(user.ProfilePictureURL),
+		Profile:         profile,
+		VerifiedAtUtc:   verifiedAt,
+		BlockedAtUtc:    blockedAt,
+		SuperuserAtUtc:  superUserAt,
 	}
 }

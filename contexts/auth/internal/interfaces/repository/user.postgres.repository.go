@@ -135,7 +135,7 @@ func (repo *PostgresRepository) SaveAll(ctx context.Context, users []domain.User
 	return nil
 }
 
-// saveUser takes the user.User entity and persist it together with its user.Sessions.
+// saveUser takes the user.User entity and persists it together with its user.Sessions.
 func (repo *PostgresRepository) saveUser(ctx context.Context, usr domain.User) error {
 	_, err := repo.db.TxOrConn(ctx).UpsertUser(ctx, userToModel(usr))
 	if err != nil {

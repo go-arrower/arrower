@@ -9,6 +9,7 @@ import (
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
 	"github.com/go-arrower/arrower/contexts/auth/internal/domain"
+	"github.com/go-arrower/arrower/contexts/auth/internal/infrastructure"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository"
 	"github.com/go-arrower/arrower/jobs"
 )
@@ -25,7 +26,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		logger := alog.Test(t)
 		alog.Unwrap(logger).SetLevel(alog.LevelInfo)
 
-		handler := application.NewLoginUserRequestHandler(logger, repo, nil, authentificator(t.Context()))
+		handler := application.NewLoginUserRequestHandler(logger, repo, nil, authentificator(t.Context()), infrastructure.NewIPNoopResolver())
 
 		_, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail: user0Login,
@@ -46,7 +47,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(t.Context(), userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()))
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()), infrastructure.NewIPNoopResolver())
 
 		res, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail: validUserLogin,
@@ -77,7 +78,7 @@ func TestLoginUserRequestHandler_H(t *testing.T) {
 		_ = repo.Save(t.Context(), userVerified)
 		queue := jobs.Test(t)
 
-		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()))
+		handler := application.NewLoginUserRequestHandler(slog.New(slog.DiscardHandler), repo, queue, authentificator(t.Context()), infrastructure.NewIPNoopResolver())
 
 		_, err := handler.H(t.Context(), application.LoginUserRequest{
 			LoginEmail:  validUserLogin,

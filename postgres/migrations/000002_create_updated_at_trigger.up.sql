@@ -3,8 +3,15 @@ BEGIN;
 
 CREATE OR REPLACE FUNCTION enable_automatic_updated_at(_tbl regclass) RETURNS VOID AS $$
 BEGIN
-    EXECUTE FORMAT('CREATE TRIGGER set_updated_at BEFORE UPDATE ON %s FOR EACH ROW EXECUTE PROCEDURE set_updated_at()',
-        _tbl);
+    IF NOT EXISTS (SELECT 1
+                   FROM pg_trigger
+                   WHERE tgrelid = _tbl
+                     AND tgname = 'set_updated_at'
+    ) THEN
+        EXECUTE FORMAT(
+                'CREATE TRIGGER set_updated_at BEFORE UPDATE ON %s FOR EACH ROW EXECUTE PROCEDURE set_updated_at()',
+                _tbl);
+    END IF;
 END;
 $$ LANGUAGE PLPGSQL;
 

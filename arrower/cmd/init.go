@@ -114,6 +114,8 @@ func newInitCommand() *cobra.Command {
 			err = errors.Join(err, cp("shared/infrastructure/postgres/migrations/000004_create_log.up.sql"))
 			err = errors.Join(err, cp("shared/infrastructure/postgres/migrations/000005_create_setting.down.sql"))
 			err = errors.Join(err, cp("shared/infrastructure/postgres/migrations/000005_create_setting.up.sql"))
+			err = errors.Join(err, cp("shared/infrastructure/postgres/migrations/000006_create_schema_auth.down.sql"))
+			err = errors.Join(err, cp("shared/infrastructure/postgres/migrations/000006_create_schema_auth.up.sql"))
 
 			err = errors.Join(err, os.MkdirAll("shared/domain", dirPerm))
 			err = errors.Join(err, os.MkdirAll("shared/application", dirPerm))
