@@ -2,6 +2,7 @@ version: "2"
 run:
   build-tags:
     - integration
+    - e2e
 
 linters:
   default: none
@@ -197,7 +198,15 @@ linters:
         - stdlib
         - ithub.com/jackc/pgx/v5.Tx
     misspell:
+      # Correct spellings using locale preferences for US or UK.
+      # Setting locale to US will correct the British spelling of 'colour' to 'color'.
+      # Default is to use a neutral variety of English.
       locale: UK
+      # Typos to ignore.
+      # Should be in lower case.
+      # Default: []
+      ignore-rules:
+        - unauthorized # http 401 convention
     mnd:
       # List of file patterns to exclude from analysis.
       # Values always ignored: `.+_test.go`.
