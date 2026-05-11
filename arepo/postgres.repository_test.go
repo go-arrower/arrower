@@ -71,30 +71,6 @@ func TestPostgresRepository(t *testing.T) {
 	)
 }
 
-// todo test with and without tx
-
-func TestPostgresRepositoryWithIDField(t *testing.T) {
-	t.Parallel()
-
-	// TODO: what value does this TC add?
-	// TODO: is it different from "ID field overwrite" from the TestSuite?
-
-	pgx := pgHandler.NewTestDatabase()
-	initTestSchema(t, pgx)
-
-	repo, err := arepo.NewPostgresRepository[testdata.EntityWithoutID, string](pgx,
-		arepo.WithIDField("Name"),
-	)
-	assert.NoError(t, err)
-
-	name := gofakeit.Name()
-
-	err = repo.Create(t.Context(), testdata.EntityWithoutID{Name: name})
-	assert.NoError(t, err)
-	_, err = repo.Read(t.Context(), name)
-	assert.NoError(t, err)
-}
-
 func TestPostgresRepository_Create(t *testing.T) {
 	t.Parallel()
 

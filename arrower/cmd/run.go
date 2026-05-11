@@ -50,7 +50,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			waitUntilShutdownFinished := make(chan struct{})
 
 			const hotReloadPort = 3030
-			config := &hooks.RunConfig{ //nolint:wsl_v5
+			config := &hooks.RunConfig{
 				Port:       hotReloadPort,
 				WatchPaths: []string{"."},
 			}
@@ -83,7 +83,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			ctx, cancel := context.WithCancel(context.Background())
 
 			wg.Add(1)
-			go func(ctx context.Context, wg *sync.WaitGroup) { //nolint:wsl_v5
+			go func(ctx context.Context, wg *sync.WaitGroup) {
 				// log.Debug().Str("path", path).Msg("start to watch file system")
 
 				//nolint:govet // shadowing err prevents a race condition
@@ -101,7 +101,7 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			}
 
 			wg.Add(1)
-			go func() { //nolint:wsl_v5
+			go func() {
 				// log.Debug().Msg("start hot reload server")
 				_ = hotReloadServer.Start(fmt.Sprintf(":%d", config.Port))
 

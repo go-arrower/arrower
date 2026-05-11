@@ -84,9 +84,8 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	DeleteAll(ctx context.Context) error
 	Clear(ctx context.Context) error
 
-	// AllByIter
 	AllIter(ctx context.Context) Iterator[E, ID]
-	FindAllIter(ctx context.Context) Iterator[E, ID] // todo remove
+	// AllByIter
 }
 
 type Iterator[E any, ID id] interface {

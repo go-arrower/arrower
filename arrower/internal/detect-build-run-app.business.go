@@ -114,3 +114,5 @@ func OpenBrowser(ctx context.Context, url string) error {
 
 	return nil
 }
+
+func NoBrowser(_ context.Context, _ string) error { return nil }

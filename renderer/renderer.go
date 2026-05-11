@@ -128,7 +128,7 @@ type Renderer struct {
 type viewTemplates struct {
 	viewFS fs.FS
 
-	rawLayouts    map[string]string // todo can this be removed and read from viewFS on demand?
+	rawLayouts    map[string]string
 	rawPages      map[string]string
 	defaultLayout string
 
@@ -518,7 +518,7 @@ func (t parsedTemplate) templateName() string {
 }
 
 func parseTemplateName(name string) (parsedTemplate, error) {
-	const ( // todo combine with templateSeparator and fragmentSeparator
+	const (
 		isPage          = 1
 		isContextLayout = 2
 		isFullLayout    = 3

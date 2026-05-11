@@ -1,15 +1,12 @@
 package cmd_test
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/cmd"
+	"github.com/go-arrower/arrower/arrower/internal"
 )
 
-func NewTestArrowerCLI() *cobra.Command {
-	return cmd.NewArrowerCLI(cmd.NewInterruptSignalChannel(), noBrowser)
+func testArrowerCLI() *cobra.Command {
+	return cmd.NewArrowerCLI(cmd.NewInterruptSignalChannel(), internal.NoBrowser)
 }
-
-func noBrowser(_ context.Context, _ string) error { return nil } // todo func is redundant, because already defined somewhere else

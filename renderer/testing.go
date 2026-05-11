@@ -34,7 +34,7 @@ func Test(
 		t:           t,
 		mu:          sync.Mutex{},
 		renderer:    renderer,
-		shipResults: ping(), // todo add test case for this setting
+		shipResults: ping(),
 	}, nil
 }
 
@@ -240,7 +240,7 @@ func (a *TestRendererAssertions) NotEmpty(msgAndArgs ...any) bool {
 	}
 
 	if len(a.run.HTML) == 0 {
-		a.sendAssertion(ass) // todo can I use defer?
+		a.sendAssertion(ass)
 
 		return assert.Fail(a.t, "html is empty, should not be", msgAndArgs...)
 	}

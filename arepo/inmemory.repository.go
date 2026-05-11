@@ -657,10 +657,6 @@ func (repo *MemoryRepository[E, ID]) AllIter(_ context.Context) Iterator[E, ID] 
 	return MemoryIterator[E, ID]{repo: repo}
 }
 
-func (repo *MemoryRepository[E, ID]) FindAllIter(_ context.Context) Iterator[E, ID] {
-	return MemoryIterator[E, ID]{repo: repo}
-}
-
 type MemoryIterator[E any, ID id] struct {
 	repo *MemoryRepository[E, ID]
 }

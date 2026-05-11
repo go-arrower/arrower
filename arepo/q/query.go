@@ -20,7 +20,7 @@ import (
 */
 
 // Operator represents comparison operators.
-type Operator string // TODO does it have value and must it be exposed? OR just use internal strings directly from the WhereQuery functions
+type Operator string
 
 const (
 	Eq  Operator = "="
@@ -95,7 +95,7 @@ type WhereQuery struct {
 }
 
 func (f *WhereQuery) Is(value any) Query {
-	f.query.addCondition(f.field, "=", value) // TODO string or Operator
+	f.query.addCondition(f.field, Eq, value)
 	return *f.query
 }
 

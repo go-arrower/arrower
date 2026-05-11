@@ -206,7 +206,7 @@ func TestJobsController_ScheduleJobs(t *testing.T) {
 	t.Run("validate", func(t *testing.T) {
 		t.Parallel()
 
-		//nolint:nlreturn,wsl_v5
+		//nolint:nlreturn
 		tests := map[string]struct {
 			body        url.Values
 			errContains string

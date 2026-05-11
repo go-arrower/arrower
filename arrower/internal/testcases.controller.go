@@ -218,7 +218,7 @@ type (
 
 	assertion struct {
 		Name string
-		Args []any // TODO separate the Args / msgAndArgs from the failure message, to make an assertion more speaking in the UI
+		Args []any
 		Pass bool
 	}
 )

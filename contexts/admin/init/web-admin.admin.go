@@ -26,8 +26,8 @@ func (c *AdminContext) registerAdminRoutes() {
 	jobs := c.shared.AdminRouter.Group("/jobs")
 	jobs.GET("", c.jobsController.Index()).Name = "admin.jobs"
 	jobs.GET("/", c.jobsController.Index())
-	jobs.GET("/data/pending", c.jobsController.PendingJobsPieChartData())                // todo better htmx fruednly data URL
-	jobs.GET("/data/processed/:interval", c.jobsController.ProcessedJobsLineChartData()) // todo better htmx fruednly data URL
+	jobs.GET("/data/pending", c.jobsController.PendingJobsPieChartData())
+	jobs.GET("/data/processed/:interval", c.jobsController.ProcessedJobsLineChartData())
 	jobs.GET("/:queue", c.jobsController.ShowQueue()).Name = "admin.jobs.queue"
 	jobs.GET("/:queue/delete/:job_id", c.jobsController.DeleteJob()).Name = "admin.jobs.delete"
 	jobs.GET("/:queue/reschedule/:job_id", c.jobsController.RescheduleJob()).Name = "admin.jobs.reschedule"
@@ -88,7 +88,6 @@ func (c *AdminContext) registerAdminRoutes() {
 		page.AddCharts(chart)
 		page.SetPageTitle("Users Chart - Arrower")
 		page.SetLayout(components.PageNoneLayout)
-		// page.SetAssetsHost() //todo
 
 		return page.Render(c.Response().Writer)
 	}).Name = "admin.charts.users"

@@ -18,7 +18,7 @@ func TestGenerateCmd(t *testing.T) {
 		err := os.WriteFile("go.mod", []byte(`module example/app`), 0o600)
 		assert.NoError(t, err)
 
-		output, err := executeCommand(NewTestArrowerCLI(), "generate", "request", "some-test")
+		output, err := executeCommand(testArrowerCLI(), "generate", "request", "some-test")
 		assert.NoError(t, err)
 		assert.Contains(t, output, "New request generated")
 		assert.Contains(t, output, "some-test.usecase.go")

@@ -98,6 +98,7 @@ func (s *Suite) Post(url string, body any) Document {
 		SetContentType("application/json").
 		SetBody(body).
 		Post(url)
+
 	return NewJSON(s.t, s.c, resp, err)
 }
 
@@ -106,6 +107,7 @@ func (s *Suite) Put(url string, body any) Document {
 		SetContentType("application/json").
 		SetBody(body).
 		Put(url)
+
 	return NewJSON(s.t, s.c, resp, err)
 }
 
@@ -114,6 +116,7 @@ func (s *Suite) Patch(url string, body any) Document {
 		SetContentType("application/json").
 		SetBody(body).
 		Patch(url)
+
 	return NewJSON(s.t, s.c, resp, err)
 }
 

@@ -657,17 +657,6 @@ func (repo *PostgresRepository[E, ID]) AllIter(ctx context.Context) Iterator[E, 
 	}
 }
 
-func (repo *PostgresRepository[E, ID]) FindAllIter(ctx context.Context) Iterator[E, ID] {
-	return PostgresIterator[E, ID]{
-		repo: repo,
-		// context scoped to single iterator/request; enable Go 1.23+ iterator pattern without breaking loop semantics
-		ctx:        ctx,
-		tx:         nil,
-		sql:        "SELECT * FROM " + repo.Table,
-		cursorOpen: false,
-	}
-}
-
 //nolint:wrapcheck // caller wraps properly
 func (repo *PostgresRepository[E, ID]) buildFilteredSQL(dataQuery q.Query) (string, []any, error) {
 	query := psql.Select(repo.Columns...).From(repo.Table)

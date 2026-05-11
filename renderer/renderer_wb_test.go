@@ -33,7 +33,7 @@ func TestParsedTemplate(t *testing.T) {
 		"too many separators":      {"=>=>=>", parsedTemplate{}, ErrRenderFailed},
 		"too many fragments":       {"p#p#", parsedTemplate{}, ErrRenderFailed},
 		"separator after fragment": {"gl=>cl=>p#f=>", parsedTemplate{}, ErrRenderFailed},
-		"fragment in layouts":      {"gl#=>cl=>p#f", parsedTemplate{}, ErrRenderFailed}, // todo have own error if the template name is wrong?
+		"fragment in layouts":      {"gl#=>cl=>p#f", parsedTemplate{}, ErrRenderFailed},
 	}
 
 	for name, tt := range tests {

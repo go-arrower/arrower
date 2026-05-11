@@ -80,7 +80,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			pathInfos, err := internal.NewPathInfos([]string{dir})
 			assert.NoError(t, err)
 
-			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, make(chan internal.File, 1), noBrowser)
+			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, make(chan internal.File, 1), internal.NoBrowser)
 			assert.NoError(t, err)
 			wg.Done()
 		}(&wg)
@@ -116,7 +116,7 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 			pathInfos, err := internal.NewPathInfos([]string{dir})
 			assert.NoError(t, err)
 
-			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, hotReload, noBrowser)
+			err = internal.WatchBuildAndRunApp(ctx, buf, pathInfos, hooks.Hooks{}, hotReload, internal.NoBrowser)
 			assert.NoError(t, err)
 
 			wg.Done()
@@ -138,8 +138,6 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 		cancel()
 		wg.Wait()
 	})
-
-	// todo test the execution of OnChanged plugins
 }
 
 func copyDir(t *testing.T, oldDir string, newDir string) {

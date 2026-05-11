@@ -549,7 +549,7 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 		return assert.Fail(f.t, "field not found: "+name, msgAndArgs...)
 	}
 
-	var allValues []string
+	allValues := make([]string, len(fields.Nodes))
 
 	for i := range fields.Nodes {
 		field := fields.Eq(i)
@@ -580,7 +580,7 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 			fieldValue = field.AttrOr("value", "")
 		}
 
-		allValues = append(allValues, fieldValue)
+		allValues[i] = fieldValue
 
 		if fieldValue == value {
 			return true

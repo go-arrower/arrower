@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/arrower/cmd"
+	"github.com/go-arrower/arrower/arrower/internal"
 )
 
 func TestRunCmd(t *testing.T) {
@@ -25,7 +26,7 @@ func TestRunCmd(t *testing.T) {
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
-			output, err := executeCommand(cmd.NewArrowerCLI(osSignal, noBrowser), "run")
+			output, err := executeCommand(cmd.NewArrowerCLI(osSignal, internal.NoBrowser), "run")
 			output = strings.ToLower(output)
 
 			assert.NoError(t, err)
@@ -48,7 +49,7 @@ func TestRunCmd(t *testing.T) {
 	t.Run("don't allow sub commands", func(t *testing.T) {
 		t.Parallel()
 
-		output, err := executeCommand(NewTestArrowerCLI(), "run", "sub-command")
+		output, err := executeCommand(testArrowerCLI(), "run", "sub-command")
 		assert.Error(t, err)
 		assert.Contains(t, output, "unknown command")
 		assert.Contains(t, output, "Usage:")
@@ -57,11 +58,9 @@ func TestRunCmd(t *testing.T) {
 	t.Run("help message does not show use of flags", func(t *testing.T) {
 		t.Parallel()
 
-		output, err := executeCommand(NewTestArrowerCLI(), "run", "sub-command")
+		output, err := executeCommand(testArrowerCLI(), "run", "sub-command")
 		assert.Error(t, err)
 		assert.Contains(t, output, "unknown command")
 		assert.NotContains(t, output, "[flags]")
 	})
-
-	// todo test cases for hooks loaded
 }
