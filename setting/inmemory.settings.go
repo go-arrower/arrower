@@ -20,7 +20,7 @@ type InMemorySettings struct {
 
 func (s *InMemorySettings) Register(ctx context.Context, settings map[Key]any) error {
 	for k, v := range settings {
-		if exists, _ := s.repo.ExistsByID(ctx, k); !exists {
+		if exists, _ := s.repo.ExistByID(ctx, k); !exists {
 			_ = s.Save(ctx, k, v)
 		}
 	}

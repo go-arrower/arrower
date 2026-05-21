@@ -247,7 +247,16 @@ func (repo *MemoryRepository[E, ID]) Delete(_ context.Context, entity E) error {
 }
 
 func (repo *MemoryRepository[E, ID]) All(ctx context.Context) ([]E, error) {
-	return repo.FindAll(ctx)
+	repo.Lock()
+	defer repo.Unlock()
+
+	result := []E{}
+
+	for _, v := range repo.Data {
+		result = append(result, v)
+	}
+
+	return result, nil
 }
 
 func (repo *MemoryRepository[E, ID]) AllBy(_ context.Context, query q.Query) ([]E, error) {
@@ -328,88 +337,6 @@ func fieldName(entity reflect.Type, name string) string {
 }
 
 func (repo *MemoryRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
-	return repo.FindByIDs(ctx, ids)
-}
-
-func (repo *MemoryRepository[E, ID]) FindAll(_ context.Context) ([]E, error) {
-	repo.Lock()
-	defer repo.Unlock()
-
-	result := []E{}
-
-	for _, v := range repo.Data {
-		result = append(result, v)
-	}
-
-	return result, nil
-}
-
-func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) (E, error) {
-	entities, _ := repo.All(ctx)
-	if len(query.Conditions.Conditions) == 0 && len(query.Conditions.Groups) == 0 && len(entities) == 1 {
-		return entities[0], nil
-	}
-
-	filteredEntities := []E{}
-
-	// TODO REMOVE FILTERS AS ALLBY() OR RAW repo.DATA CAN BE USED INSTEAD
-	for _, entity := range entities {
-		fieldsThatMatch := 0
-
-		for _, cond := range query.Conditions.Conditions {
-			if cond.Value == nil {
-				return *new(E), fmt.Errorf("%w: value can not be nil", errInvalidQuery)
-			}
-
-			name := fieldName(reflect.TypeOf(entity), cond.Field)
-			if !reflect.ValueOf(entity).FieldByName(name).IsValid() {
-				return *new(E), fmt.Errorf("%w: entity does not have field: %s", errInvalidQuery, cond.Field)
-			}
-
-			if reflect.TypeOf(cond.Value).Kind() != reflect.ValueOf(entity).FieldByName(name).Kind() {
-				return *new(E), fmt.Errorf("%w: field %s is of type: %s but value of type: %s",
-					errInvalidQuery,
-					name,
-					reflect.ValueOf(entity).FieldByName(name).Kind().String(),
-					reflect.TypeOf(cond.Value).Kind().String(),
-				)
-			}
-
-			chVal := reflect.ValueOf(entity).FieldByName(name).Interface()
-			if chVal == cond.Value {
-				fieldsThatMatch++
-			}
-		}
-
-		entityMatches := fieldsThatMatch == len(query.Conditions.Conditions)
-		if entityMatches {
-			filteredEntities = append(filteredEntities, entity)
-		}
-	}
-
-	if len(filteredEntities) != 1 {
-		return *new(E), fmt.Errorf(
-			"%w: FindBy only returns one entity, but filter found: %d",
-			ErrNotFound,
-			len(filteredEntities),
-		)
-	}
-
-	return filteredEntities[0], nil
-}
-
-func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
-	repo.Lock()
-	defer repo.Unlock()
-
-	if e, ok := repo.Data[id]; ok {
-		return e, nil
-	}
-
-	return *new(E), ErrNotFound
-}
-
-func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -430,7 +357,35 @@ func (repo *MemoryRepository[E, ID]) FindByIDs(_ context.Context, ids []ID) ([]E
 	return result, nil
 }
 
-func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, error) {
+func (repo *MemoryRepository[E, ID]) FindBy(ctx context.Context, query q.Query) (E, error) {
+	entities, err := repo.AllBy(ctx, query)
+	if err != nil {
+		return *new(E), fmt.Errorf("%w: could not find entitiy: %w", ErrNotFound, err)
+	}
+
+	if len(entities) != 1 {
+		return *new(E), fmt.Errorf(
+			"%w: FindBy only returns one entity, but filter found: %d",
+			ErrNotFound,
+			len(entities),
+		)
+	}
+
+	return entities[0], nil
+}
+
+func (repo *MemoryRepository[E, ID]) FindByID(_ context.Context, id ID) (E, error) { //nolint:ireturn,lll // valid use of generics
+	repo.Lock()
+	defer repo.Unlock()
+
+	if e, ok := repo.Data[id]; ok {
+		return e, nil
+	}
+
+	return *new(E), ErrNotFound
+}
+
+func (repo *MemoryRepository[E, ID]) Exist(_ context.Context, id ID) (bool, error) {
 	repo.Lock()
 	defer repo.Unlock()
 
@@ -441,8 +396,8 @@ func (repo *MemoryRepository[E, ID]) Exists(_ context.Context, id ID) (bool, err
 	return false, nil
 }
 
-func (repo *MemoryRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (bool, error) {
-	return repo.Exists(ctx, id)
+func (repo *MemoryRepository[E, ID]) ExistByID(ctx context.Context, id ID) (bool, error) {
+	return repo.Exist(ctx, id)
 }
 
 func (repo *MemoryRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
@@ -467,11 +422,11 @@ func (repo *MemoryRepository[E, ID]) ExistAll(_ context.Context, ids []ID) (bool
 }
 
 func (repo *MemoryRepository[E, ID]) Contains(ctx context.Context, id ID) (bool, error) {
-	return repo.ExistsByID(ctx, id)
+	return repo.ExistByID(ctx, id)
 }
 
 func (repo *MemoryRepository[E, ID]) ContainsID(ctx context.Context, id ID) (bool, error) {
-	return repo.ExistsByID(ctx, id)
+	return repo.ExistByID(ctx, id)
 }
 
 func (repo *MemoryRepository[E, ID]) ContainsIDs(ctx context.Context, ids []ID) (bool, error) {
@@ -579,7 +534,7 @@ func (repo *MemoryRepository[E, ID]) Add(ctx context.Context, entity E) error {
 
 func (repo *MemoryRepository[E, ID]) AddAll(ctx context.Context, entities []E) error {
 	for _, e := range entities {
-		ex, _ := repo.Exists(ctx, repo.getID(e))
+		ex, _ := repo.Exist(ctx, repo.getID(e))
 		if ex {
 			return fmt.Errorf("at least one %w", ErrAlreadyExists)
 		}

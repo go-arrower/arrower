@@ -114,7 +114,7 @@ func TestMemoryRepository(t *testing.T) {
 			err = repo.Delete(t.Context(), testdata.DefaultEntity)
 			assert.Error(t, err)
 
-			ex, err := repo.ExistsByID(t.Context(), testdata.DefaultEntity.ID)
+			ex, err := repo.ExistByID(t.Context(), testdata.DefaultEntity.ID)
 			assert.NoError(t, err)
 			assert.True(t, ex, "delete should not happen if store fails")
 		})

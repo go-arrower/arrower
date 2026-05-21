@@ -239,33 +239,6 @@ func (repo *PostgresRepository[E, ID]) Delete(ctx context.Context, entity E) err
 }
 
 func (repo *PostgresRepository[E, ID]) All(ctx context.Context) ([]E, error) {
-	return repo.FindAll(ctx)
-}
-
-func (repo *PostgresRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
-	return repo.FindByIDs(ctx, ids)
-}
-
-func (repo *PostgresRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
-	sql, args, err := repo.buildFilteredSQL(query)
-	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
-	}
-
-	entities := []E{}
-
-	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
-	}
-	if err != nil { //nolint:wsl_v5 // error handling belongs together
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
-	}
-
-	return entities, nil
-}
-
-func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error) {
 	query := psql.Select(repo.Columns...).From(repo.Table)
 
 	if slices.Contains(repo.Columns, "created_at") {
@@ -280,6 +253,49 @@ func (repo *PostgresRepository[E, ID]) FindAll(ctx context.Context) ([]E, error)
 	entities := []E{}
 
 	err = pgxscan.Select(ctx, repo.PGx, &entities, sql, args...)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
+	}
+	if err != nil { //nolint:wsl_v5 // error handling belongs together
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
+	}
+
+	return entities, nil
+}
+
+func (repo *PostgresRepository[E, ID]) AllByIDs(ctx context.Context, ids []ID) ([]E, error) {
+	if ids == nil || reflect.DeepEqual(ids, []ID{}) {
+		return []E{}, nil
+	}
+
+	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: ids}).ToSql()
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
+	}
+
+	entities := []E{}
+
+	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
+	}
+
+	if len(entities) != len(ids) {
+		return []E{}, fmt.Errorf("some ids: %w", ErrNotFound)
+	}
+
+	return entities, nil
+}
+
+func (repo *PostgresRepository[E, ID]) AllBy(ctx context.Context, query q.Query) ([]E, error) {
+	sql, args, err := repo.buildFilteredSQL(query)
+	if err != nil {
+		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
+	}
+
+	entities := []E{}
+
+	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []E{}, fmt.Errorf("entities %w: %v", ErrNotFound, err)
 	}
@@ -306,7 +322,6 @@ func (repo *PostgresRepository[E, ID]) FindBy(ctx context.Context, query q.Query
 		return *new(E), fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
 	}
 
-	// todo verify this via test
 	if len(entities) != 1 {
 		return *new(E), fmt.Errorf("%w: FindBy only returns one entity, but filter found: %d", ErrNotFound, len(entities))
 	}
@@ -333,31 +348,7 @@ func (repo *PostgresRepository[E, ID]) FindByID(ctx context.Context, id ID) (E, 
 	return *entity, nil
 }
 
-func (repo *PostgresRepository[E, ID]) FindByIDs(ctx context.Context, ids []ID) ([]E, error) {
-	if ids == nil || reflect.DeepEqual(ids, []ID{}) {
-		return []E{}, nil
-	}
-
-	sql, args, err := psql.Select(repo.Columns...).From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: ids}).ToSql()
-	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not build query: %v", errFindFailed, err)
-	}
-
-	entities := []E{}
-
-	err = pgxscan.Select(ctx, repo.TxOrConn(ctx), &entities, sql, args...)
-	if err != nil {
-		return []E{}, fmt.Errorf("%w: could not scan entities: %v", errFindFailed, err)
-	}
-
-	if len(entities) != len(ids) {
-		return []E{}, fmt.Errorf("some ids: %w", ErrNotFound)
-	}
-
-	return entities, nil
-}
-
-func (repo *PostgresRepository[E, ID]) Exists(ctx context.Context, id ID) (bool, error) {
+func (repo *PostgresRepository[E, ID]) Exist(ctx context.Context, id ID) (bool, error) {
 	sql, args, err := psql.Select("1").
 		Prefix("SELECT EXISTS (").
 		From(repo.Table).Where(squirrel.Eq{repo.IDFieldName: id}).
@@ -376,8 +367,8 @@ func (repo *PostgresRepository[E, ID]) Exists(ctx context.Context, id ID) (bool,
 	return exists, nil
 }
 
-func (repo *PostgresRepository[E, ID]) ExistsByID(ctx context.Context, id ID) (bool, error) {
-	return repo.Exists(ctx, id)
+func (repo *PostgresRepository[E, ID]) ExistByID(ctx context.Context, id ID) (bool, error) {
+	return repo.Exist(ctx, id)
 }
 
 func (repo *PostgresRepository[E, ID]) ExistByIDs(ctx context.Context, ids []ID) (bool, error) {
@@ -389,7 +380,7 @@ func (repo *PostgresRepository[E, ID]) ExistAll(_ context.Context, _ []ID) (bool
 }
 
 func (repo *PostgresRepository[E, ID]) Contains(ctx context.Context, id ID) (bool, error) {
-	return repo.ExistsByID(ctx, id)
+	return repo.ExistByID(ctx, id)
 }
 
 func (repo *PostgresRepository[E, ID]) ContainsID(ctx context.Context, id ID) (bool, error) {
@@ -559,7 +550,7 @@ func (repo *PostgresRepository[E, ID]) AddAll(ctx context.Context, entities []E)
 			return fmt.Errorf("%w: could not get id for entity %v: %w", errCreateFailed, entity, err)
 		}
 
-		exists, err := repo.Exists(ctx, id)
+		exists, err := repo.Exist(ctx, id)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}

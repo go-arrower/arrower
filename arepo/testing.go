@@ -713,7 +713,7 @@ func TestSuite(
 			assert.Equal(t, 4, c)
 
 			entity, err := repo.FindBy(ctx, q.Query{})
-			assert.Error(t, err, "FindBy should filter to one entity only")
+			assert.Error(t, err, "FindBy should filter to one entity only or fail, AllBy returns multiple entities")
 			assert.Empty(t, entity)
 
 			entity, err = repo.FindBy(ctx, q.Filter(testdata.Entity{Name: name}))

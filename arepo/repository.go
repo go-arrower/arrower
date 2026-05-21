@@ -35,6 +35,8 @@ func WithIDField(idFieldName string) Option {
 	}
 }
 
+// TODO extend Query struct to support pagination like,  q.Where("Name").Is("Bob").Limit(10).Offset(20)
+
 // Repository is a general purpose interface documenting which methods are available by the generic MemoryRepository.
 // ID is the primary key and needs to be of one of the underlying types.
 // If your repository needs additional methods, you can extend your own repository easily to tune it to your use case.
@@ -50,16 +52,14 @@ type Repository[E any, ID id] interface { //nolint:interfacebloat // showcase of
 	All(ctx context.Context) ([]E, error)
 	AllBy(ctx context.Context, query q.Query) ([]E, error)
 	AllByIDs(ctx context.Context, ids []ID) ([]E, error)
-	// FindAll(ctx context.Context) ([]E, error) // todo remove
 
 	FindByID(ctx context.Context, id ID) (E, error)
 	FindBy(ctx context.Context, query q.Query) (E, error)
-	// FindByIDs(ctx context.Context, ids []ID) ([]E, error) // todo remove
 
-	Exists(ctx context.Context, id ID) (bool, error)
-	ExistsByID(ctx context.Context, id ID) (bool, error)
+	Exist(ctx context.Context, id ID) (bool, error)     // TODO redundant take entity instead of ID?
+	ExistByID(ctx context.Context, id ID) (bool, error) // TODO redundant
 	ExistByIDs(ctx context.Context, ids []ID) (bool, error)
-	ExistAll(ctx context.Context, ids []ID) (bool, error)
+	ExistAll(ctx context.Context, ids []ID) (bool, error) // TODO remove for consistency as ExistsByIDs is there?
 	Contains(ctx context.Context, id ID) (bool, error)
 	ContainsID(ctx context.Context, id ID) (bool, error)
 	ContainsIDs(ctx context.Context, ids []ID) (bool, error)

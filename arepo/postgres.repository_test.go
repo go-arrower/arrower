@@ -131,7 +131,7 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		all, err := repo.FindAll(t.Context())
+		all, err := repo.All(t.Context())
 		assert.NoError(t, err)
 		assert.Len(t, all, 3)
 	})
