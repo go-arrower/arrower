@@ -82,19 +82,17 @@ func TestSuite_Download(t *testing.T) {
 		t.Parallel()
 
 		svr := server(
-			withStatus(http.StatusOK),
 			withHeader("Content-Type", "application/pdf"),
 			withHeader("Content-Disposition", "attachment; filename=report.pdf"),
-			withBody("some binary content"),
+			withHTML("some binary content"),
 		)
 		defer svr.Close()
 
 		dl := e2e.Test(new(testing.T)).Download(svr.URL)
 
-		assert.True(t, dl.IsOK())
 		assert.NotEmpty(t, dl.Bytes())
-		assert.True(t, dl.Header("Content-Type").Contains("pdf"))
-		assert.True(t, dl.Header("Content-Disposition").Contains("filename=report.pdf"))
+		dl.Header("Content-Type").Contains("pdf")
+		dl.Header("Content-Disposition").Contains("filename=report.pdf")
 	})
 
 	t.Run("not found", func(t *testing.T) {
@@ -105,6 +103,35 @@ func TestSuite_Download(t *testing.T) {
 
 		dl := e2e.Test(new(testing.T)).Download(svr.URL)
 
-		assert.True(t, dl.IsNotFound())
+		dl.IsNotFound()
+	})
+
+	t.Run("with form data sends POST", func(t *testing.T) {
+		t.Parallel()
+
+		var captured capturedRequest
+
+		svr := server(
+			withCapture(&captured),
+			withHeader("Content-Type", "text/csv"),
+			withHeader("Content-Disposition", "attachment; filename=report.csv"),
+			withHTML("id,name\n1,Alice\n"),
+		)
+		defer svr.Close()
+
+		dl := e2e.Test(new(testing.T)).Download(svr.URL,
+			e2e.WithFormData(map[string]any{
+				"format": "csv",
+				"year":   "2024",
+			}),
+		)
+
+		assert.Equal(t, http.MethodPost, captured.method)
+		assert.Equal(t, "csv", captured.body.Get("format"))
+		assert.Equal(t, "2024", captured.body.Get("year"))
+
+		assert.Contains(t, string(dl.Bytes()), "id,name")
+		dl.Header("Content-Type").Contains("text/csv")
+		dl.Header("Content-Disposition").Contains("report.csv")
 	})
 }

@@ -269,7 +269,7 @@ func jsonEqual(actual, expected any) bool {
 		return true
 	}
 
-	// JSON numbers are float64 — coerce integer types
+	// JSON numbers are float64: coerce integer types
 	if af, ok := actual.(float64); ok {
 		if ef, ok := toFloat64(expected); ok {
 			return af == ef

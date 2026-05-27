@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"context"
+	"net/http"
 	"os/exec"
 	"strings"
 	"testing"
@@ -133,10 +134,44 @@ func (s *Suite) Delete(url string, body ...any) Document {
 	return NewJSON(s.t, s.c, resp, err)
 }
 
+type downloadConfig struct {
+	method   string
+	formData map[string]any
+}
+
+type DownloadOption func(*downloadConfig)
+
+// WithFormData makes the download request a POST request and submits the given data.
+func WithFormData(data map[string]any) DownloadOption {
+	return func(cfg *downloadConfig) {
+		cfg.method = http.MethodPost
+		cfg.formData = data
+	}
+}
+
 // Download makes a GET request and returns a Download for asserting on binary responses.
 // It clones the client (fresh session, no cookies).
-func (s *Suite) Download(url string) Download {
-	resp, err := s.c.Clone().R().Get(url)
+func (s *Suite) Download(url string, opts ...DownloadOption) Download {
+	cfg := downloadConfig{method: http.MethodGet, formData: map[string]any{}}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	var (
+		resp *req.Response
+		err  error
+	)
+
+	req := s.c.Clone().R()
+
+	switch cfg.method {
+	case http.MethodPost:
+		req.SetFormDataAnyType(cfg.formData)
+		resp, err = req.Post(url)
+	default:
+		resp, err = req.Get(url)
+	}
+
 	return NewDownload(s.t, s.c, resp, err)
 }
 

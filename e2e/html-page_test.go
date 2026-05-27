@@ -1624,9 +1624,9 @@ func withHTML(html string) serverOption {
 	}
 }
 
-func withBody(html string) serverOption {
+func withBody(body string) serverOption {
 	return func(cfg *serverConfig) {
-		cfg.html = `<html><body>` + html + `</body></html>`
+		cfg.html = `<html><body>` + body + `</body></html>`
 	}
 }
 

@@ -1243,8 +1243,27 @@ func (p Page) DumpHTML() string {
 
 // Download makes a GET request and returns a Download for asserting on binary responses.
 // It reuses the page's client (preserves cookies, same session).
-func (p Page) Download(url string) Download {
-	resp, err := p.client.R().Get(url)
+func (p Page) Download(url string, opts ...DownloadOption) Download {
+	cfg := downloadConfig{method: http.MethodGet, formData: map[string]any{}}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	var (
+		resp *req.Response
+		err  error
+	)
+
+	req := p.client.R()
+
+	switch cfg.method {
+	case http.MethodPost:
+		req.SetFormDataAnyType(cfg.formData)
+		resp, err = req.Post(url)
+	default:
+		resp, err = req.Get(url)
+	}
+
 	return NewDownload(p.t, p.client, resp, err)
 }
 
