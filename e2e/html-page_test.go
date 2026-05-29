@@ -831,6 +831,15 @@ func TestForm_Submit(t *testing.T) {
 				assert.Equal(t, "test@example.com", got.body.Get("email"))
 			},
 		},
+		"post multiple values": {
+			`<form name="my-form" method="post" action="/submit"><input name="email"></form>`,
+			map[string]any{"emails": []string{"0@example.com", "1@example.com"}},
+			func(t *testing.T, got *capturedRequest) {
+				assert.Equal(t, http.MethodPost, got.method)
+				assert.Equal(t, "/submit", got.path)
+				assert.Equal(t, []string{"0@example.com", "1@example.com"}, got.body["emails"])
+			},
+		},
 		"get method": {
 			`<form name="my-form" method="get" action="/submit"><input name="search"></form>`,
 			map[string]any{"search": "test"},

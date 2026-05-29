@@ -372,37 +372,69 @@ func (f Form) Submit(data map[string]any, opts ...SubmitOption) Page { //nolint:
 
 	switch strings.ToUpper(method) {
 	case http.MethodGet:
-		req.SetQueryParamsAnyType(data)
+		setAnyTypeQueryParams(req, data)
 		resp, err = req.Get(fullURL)
 	case http.MethodPut:
 		if enc == "multipart/form-data" {
 			req.EnableForceMultipart()
 		}
 
-		req.SetFormDataAnyType(data)
+		setAnyTypeFormData(req, data)
 		resp, err = req.Put(fullURL)
 	case http.MethodDelete:
-		req.SetQueryParamsAnyType(data)
+		setAnyTypeQueryParams(req, data)
 		resp, err = req.Delete(fullURL)
 	case http.MethodPatch:
 		if enc == "multipart/form-data" {
 			req.EnableForceMultipart()
 		}
 
-		req.SetFormDataAnyType(data)
+		setAnyTypeFormData(req, data)
 		resp, err = req.Patch(fullURL)
 	default:
 		if enc == "multipart/form-data" {
 			req.EnableForceMultipart()
 		}
 
-		req.SetFormDataAnyType(data)
+		setAnyTypeFormData(req, data)
 		resp, err = req.Post(fullURL)
 	}
 
 	assert.NoError(f.t, err)
 
 	return NewPage(f.t, f.page.client, resp, err)
+}
+
+func setAnyTypeFormData(r *req.Request, data map[string]any) { //nolint:varnamelen
+	if r.FormData == nil {
+		r.FormData = url.Values{}
+	}
+
+	for k, v := range data {
+		if slice, ok := v.([]string); ok {
+			for _, s := range slice {
+				r.FormData.Add(k, s)
+			}
+		} else {
+			r.FormData.Set(k, fmt.Sprint(v))
+		}
+	}
+}
+
+func setAnyTypeQueryParams(r *req.Request, data map[string]any) { //nolint:varnamelen
+	if r.QueryParams == nil {
+		r.QueryParams = url.Values{}
+	}
+
+	for k, v := range data {
+		if slice, ok := v.([]string); ok {
+			for _, s := range slice {
+				r.QueryParams.Add(k, s)
+			}
+		} else {
+			r.QueryParams.Set(k, fmt.Sprint(v))
+		}
+	}
 }
 
 //nolint:gochecknoglobals // shared error selector configuration
@@ -839,6 +871,10 @@ func (s Scripts) extractLibraryName(src string) string {
 type Element struct {
 	t         *testing.T
 	selection *goquery.Selection
+}
+
+func (e Element) String() string {
+	return strings.TrimSpace(e.selection.Text())
 }
 
 func (e Element) Exists(msgAndArgs ...any) bool {
