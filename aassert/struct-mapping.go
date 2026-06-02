@@ -56,11 +56,28 @@ func NumFields(t *testing.T, expected int, object any, msgAndArgs ...any) bool {
 }
 
 func getNumFields(elem reflect.Value) int {
-	if elem.Kind() == reflect.Uint ||
+	if elem.Kind() == reflect.Bool ||
+		elem.Kind() == reflect.Uint ||
 		elem.Kind() == reflect.Uint8 ||
 		elem.Kind() == reflect.Uint16 ||
 		elem.Kind() == reflect.Uint32 ||
-		elem.Kind() == reflect.Uint64 {
+		elem.Kind() == reflect.Uint64 ||
+		elem.Kind() == reflect.Int ||
+		elem.Kind() == reflect.Int8 ||
+		elem.Kind() == reflect.Int16 ||
+		elem.Kind() == reflect.Int32 ||
+		elem.Kind() == reflect.Int64 ||
+		elem.Kind() == reflect.Float32 ||
+		elem.Kind() == reflect.Float64 ||
+		elem.Kind() == reflect.Complex64 ||
+		elem.Kind() == reflect.Complex128 ||
+		elem.Kind() == reflect.String ||
+		elem.Kind() == reflect.Array ||
+		elem.Kind() == reflect.Chan ||
+		elem.Kind() == reflect.Func ||
+		elem.Kind() == reflect.Interface {
+		// elem.Kind() == reflect.Pointer ||
+		// elem.Kind() == reflect.UnsafePointer ||{
 		return 0
 	}
 

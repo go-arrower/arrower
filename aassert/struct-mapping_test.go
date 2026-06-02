@@ -28,7 +28,7 @@ func TestNumFields(t *testing.T) {
 		"ptr to struct":                {&StructA{}, 1, true},
 		"with slice":                   {slice{}, 3, true},
 		"with map":                     {dictionary{}, 3, true},
-		"complex struct":               {complexStruct{}, 13, true},
+		"complex struct":               {complexStruct{}, 17, true},
 		"complex nested":               {complexNested{}, 8, true},
 		"regression map[string]string": {RegressionMapString{}, 1, true},
 		"regression net.IP":            {RegressionNetIP{}, 1, true},
@@ -59,6 +59,10 @@ type (
 		A structB
 		B []StructA
 		C map[int]StructA
+		D []string
+		E []complex128
+		F bool
+		G chan struct{}
 	}
 	dictionary struct {
 		Str string
