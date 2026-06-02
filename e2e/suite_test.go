@@ -50,11 +50,25 @@ func TestSuite_Goto(t *testing.T) {
 func TestSuite_Get(t *testing.T) {
 	t.Parallel()
 
-	svr := server(withJSON(`{}`))
-	defer svr.Close()
+	tests := map[string]struct {
+		json string
+	}{
+		"empty": {``},
+		"obj":   {`{}`},
+		"array": {`[]`},
+	}
 
-	page := e2e.Test(new(testing.T)).Get(svr.URL)
-	page.IsOK()
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withJSON(tt.json))
+			defer svr.Close()
+
+			page := e2e.Test(new(testing.T)).Get(svr.URL)
+			page.IsOK()
+		})
+	}
 }
 
 func TestSuite_Delete(t *testing.T) {

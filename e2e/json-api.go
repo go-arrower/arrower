@@ -36,8 +36,11 @@ func NewJSON(t *testing.T, client *req.Client, resp *req.Response, err error) Do
 	assert.NotEmpty(t, resp, "response is nil")
 	assert.NoError(t, err)
 
-	raw := json.RawMessage(resp.String())
-	assert.NoError(t, json.Unmarshal(raw, &raw), "response body is not valid JSON")
+	var raw json.RawMessage
+	if resp.String() != "" {
+		raw = json.RawMessage(resp.String())
+		assert.NoError(t, json.Unmarshal(raw, &raw), "response body is not valid JSON")
+	}
 
 	return Document{
 		response: response{
