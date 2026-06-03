@@ -71,6 +71,35 @@ func TestSuite_Get(t *testing.T) {
 	}
 }
 
+func TestSuite_Post(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		payload any
+		exp     string
+	}{
+		"empty":  {"", ""},
+		"string": {`{"key": "value"}`, `{"key": "value"}`},
+		"map":    {map[string]any{"key": "value"}, `{"key":"value"}`},
+		"struct": {struct{ Key string }{Key: "value"}, `{"Key":"value"}`},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var captured capturedRequest
+
+			svr := server(withCapture(&captured))
+			defer svr.Close()
+
+			doc := e2e.Test(new(testing.T)).Post(svr.URL, tt.payload)
+			doc.IsOK()
+			assert.Contains(t, captured.rawBody, tt.exp)
+		})
+	}
+}
+
 func TestSuite_Delete(t *testing.T) {
 	t.Parallel()
 
@@ -84,7 +113,7 @@ func TestSuite_Delete(t *testing.T) {
 
 		doc := e2e.Test(new(testing.T)).Delete(svr.URL, map[string]any{"id": "123"})
 		doc.IsOK()
-		assert.Contains(t, captured.body.Encode(), "123")
+		assert.Contains(t, captured.rawBody, "123")
 		assert.Contains(t, captured.headers.Get("Content-Type"), "application/json")
 	})
 }

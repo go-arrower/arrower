@@ -1585,8 +1585,9 @@ type capturedRequest struct {
 	method            string
 	path              string
 	headers           http.Header
-	body              url.Values
-	fileNameToCapture string // set to capture file values
+	body              url.Values // populated only for application/x-www-form-urlencoded
+	rawBody           string     // always populated for non-GET requests
+	fileNameToCapture string     // set to capture file values
 	fileName          string
 	fileSize          int64
 	fileHeader        textproto.MIMEHeader
@@ -1694,9 +1695,13 @@ func server(opts ...serverOption) *httptest.Server { //nolint:gocognit,gocyclo,c
 					panic(err)
 				}
 
-				cfg.captured.body, err = url.ParseQuery(string(body))
-				if err != nil {
-					panic(err)
+				cfg.captured.rawBody = string(body)
+
+				if req.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+					cfg.captured.body, err = url.ParseQuery(cfg.captured.rawBody)
+					if err != nil {
+						panic(err)
+					}
 				}
 			}
 		}
