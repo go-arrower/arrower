@@ -53,6 +53,21 @@ func NewPage(t *testing.T, client *req.Client, resp *req.Response, err error) Pa
 	}
 }
 
+// Goto navigates to a URL, preserving the page's client and cookies
+// This allows cookie persistence across page navigations (simulating same browser tab)
+// Use suite.Goto() for a fresh session (new client, no cookies).
+func (p Page) Goto(url string, opts ...GotoOption) Page {
+	p.t.Helper()
+
+	for _, opt := range opts {
+		p.client = opt(p.client)
+	}
+
+	resp, err := p.client.R().Get(url)
+
+	return NewPage(p.t, p.client, resp, err)
+}
+
 func (p Page) IsRedirected(msgAndArgs ...any) bool {
 	p.t.Helper()
 
@@ -116,6 +131,87 @@ func (p Page) TestID(id string) Element {
 	assert.Fail(p.t, "no element found with test id: "+id)
 
 	return Element{t: p.t, selection: nil}
+}
+
+func (p Page) HasQueryParam(key, value string, msgAndArgs ...any) bool {
+	p.t.Helper()
+
+	if p.httpResp.Response.Request.URL.Query().Get(key) != value {
+		return assert.Fail(p.t,
+			fmt.Sprintf("query param %s is: %s, should be: %s",
+				key, fmtEmpty(p.httpResp.Response.Request.URL.Query().Get(key)), value),
+			msgAndArgs...)
+	}
+
+	return true
+}
+
+// Title asserts the page's <title> equals the expected value.
+func (p Page) Title(title string, msgAndArgs ...any) bool {
+	p.t.Helper()
+	actual := p.document.Find("title").Text()
+
+	if actual != title {
+		return assert.Fail(p.t, fmt.Sprintf("page title is: %s, should be: %s", fmtEmpty(actual), title), msgAndArgs...)
+	}
+
+	return true
+}
+
+// HasLink asserts that an anchor with the given text content and href exists.
+func (p Page) HasLink(text, href string, msgAndArgs ...any) bool {
+	p.t.Helper()
+
+	links := p.document.Find("a")
+	for i := range links.Nodes {
+		link := links.Eq(i)
+		linkText := strings.TrimSpace(link.Text())
+		linkHref, _ := link.Attr("href")
+
+		if linkText == text && linkHref == href {
+			return true
+		}
+	}
+
+	return assert.Fail(p.t, fmt.Sprintf("page has no link with text %q and href %q", text, href), msgAndArgs...)
+}
+
+// DumpHTML returns the full HTML of the page for debugging.
+func (p Page) DumpHTML() string {
+	p.t.Helper()
+
+	html, err := p.document.Html()
+	if err != nil {
+		return ""
+	}
+
+	return html
+}
+
+// Download makes a GET request and returns a Download for asserting on binary responses.
+// It reuses the page's client (preserves cookies, same session).
+func (p Page) Download(url string, opts ...DownloadOption) Download {
+	cfg := downloadConfig{method: http.MethodGet, formData: map[string]any{}}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	var (
+		resp *req.Response
+		err  error
+	)
+
+	req := p.client.R()
+
+	switch cfg.method {
+	case http.MethodPost:
+		req.SetFormDataAnyType(cfg.formData)
+		resp, err = req.Post(url)
+	default:
+		resp, err = req.Get(url)
+	}
+
+	return NewDownload(p.t, p.client, resp, err)
 }
 
 type Form struct {
@@ -274,167 +370,6 @@ func (f Form) HasSubmit(msgAndArgs ...any) bool {
 	}
 
 	return true
-}
-
-type SubmitOption func(request *req.Request)
-
-func WithFileReader(paramName string, filename string, reader io.Reader) SubmitOption {
-	return func(req *req.Request) {
-		req.SetFileReader(paramName, filename, reader)
-		req.EnableForceMultipart()
-	}
-}
-
-func WithFileBytes(paramName string, filename string, content []byte) SubmitOption {
-	return func(req *req.Request) {
-		req.SetFileBytes(paramName, filename, content)
-		req.EnableForceMultipart()
-	}
-}
-
-func (f Form) Submit(data map[string]any, opts ...SubmitOption) Page { //nolint:gocognit,gocyclo,cyclop,funlen
-	f.t.Helper()
-
-	if f.selection == nil {
-		return Page{}
-	}
-
-	action := strings.TrimSpace(f.selection.AttrOr("action", ""))
-	action = strings.TrimSpace(f.selection.AttrOr("hx-get", action))
-	action = strings.TrimSpace(f.selection.AttrOr("hx-post", action))
-	action = strings.TrimSpace(f.selection.AttrOr("hx-put", action))
-	action = strings.TrimSpace(f.selection.AttrOr("hx-patch", action))
-	action = strings.TrimSpace(f.selection.AttrOr("hx-delete", action))
-
-	method := f.selection.AttrOr("method", http.MethodPost)
-	if v := strings.TrimSpace(f.selection.AttrOr("hx-get", "")); v != "" { //nolint:nestif
-		method = http.MethodGet
-	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-post", "")); v != "" {
-		method = http.MethodPost
-	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-put", "")); v != "" {
-		method = http.MethodPut
-	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-patch", "")); v != "" {
-		method = http.MethodPatch
-	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-delete", "")); v != "" {
-		method = http.MethodDelete
-	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-method", "")); v != "" {
-		method = strings.ToUpper(v)
-	}
-
-	baseURL, err := url.Parse(f.page.httpResp.Request.URL.String())
-	assert.NoError(f.t, err)
-
-	actionURL, err := url.Parse(action)
-	assert.NoError(f.t, err)
-
-	fullURL := baseURL.ResolveReference(actionURL).String()
-
-	// merge hx-vals into data
-	if valsJSON := strings.TrimSpace(f.selection.AttrOr("hx-vals", "")); valsJSON != "" {
-		var vals map[string]string
-		if err = json.Unmarshal([]byte(valsJSON), &vals); err == nil {
-			for k, v := range vals {
-				if _, exists := data[k]; !exists {
-					data[k] = v
-				}
-			}
-		}
-	}
-
-	var resp *req.Response
-
-	req := f.page.client.R()
-
-	// hx-headers: parse and set custom headers.
-	if headersJSON := strings.TrimSpace(f.selection.AttrOr("hx-headers", "")); headersJSON != "" {
-		var headers map[string]string
-		if err = json.Unmarshal([]byte(headersJSON), &headers); err == nil {
-			req = req.SetHeaders(headers)
-		}
-	}
-
-	if f.selection.AttrOr("hx-post", "") != "" ||
-		f.selection.AttrOr("hx-get", "") != "" ||
-		f.selection.AttrOr("hx-put", "") != "" ||
-		f.selection.AttrOr("hx-patch", "") != "" ||
-		f.selection.AttrOr("hx-delete", "") != "" {
-		req = req.SetHeader("HX-Request", "true")
-	}
-
-	enc := strings.TrimSpace(f.selection.AttrOr("hx-encoding", ""))
-	if enc == "" {
-		enc = strings.TrimSpace(f.selection.AttrOr("enctype", ""))
-	}
-
-	for _, opt := range opts {
-		opt(req)
-	}
-
-	switch strings.ToUpper(method) {
-	case http.MethodGet:
-		setAnyTypeQueryParams(req, data)
-		resp, err = req.Get(fullURL)
-	case http.MethodPut:
-		if enc == "multipart/form-data" {
-			req.EnableForceMultipart()
-		}
-
-		setAnyTypeFormData(req, data)
-		resp, err = req.Put(fullURL)
-	case http.MethodDelete:
-		setAnyTypeQueryParams(req, data)
-		resp, err = req.Delete(fullURL)
-	case http.MethodPatch:
-		if enc == "multipart/form-data" {
-			req.EnableForceMultipart()
-		}
-
-		setAnyTypeFormData(req, data)
-		resp, err = req.Patch(fullURL)
-	default:
-		if enc == "multipart/form-data" {
-			req.EnableForceMultipart()
-		}
-
-		setAnyTypeFormData(req, data)
-		resp, err = req.Post(fullURL)
-	}
-
-	assert.NoError(f.t, err)
-
-	return NewPage(f.t, f.page.client, resp, err)
-}
-
-func setAnyTypeFormData(r *req.Request, data map[string]any) { //nolint:varnamelen
-	if r.FormData == nil {
-		r.FormData = url.Values{}
-	}
-
-	for k, v := range data {
-		if slice, ok := v.([]string); ok {
-			for _, s := range slice {
-				r.FormData.Add(k, s)
-			}
-		} else {
-			r.FormData.Set(k, fmt.Sprint(v))
-		}
-	}
-}
-
-func setAnyTypeQueryParams(r *req.Request, data map[string]any) { //nolint:varnamelen
-	if r.QueryParams == nil {
-		r.QueryParams = url.Values{}
-	}
-
-	for k, v := range data {
-		if slice, ok := v.([]string); ok {
-			for _, s := range slice {
-				r.QueryParams.Add(k, s)
-			}
-		} else {
-			r.QueryParams.Set(k, fmt.Sprint(v))
-		}
-	}
 }
 
 //nolint:gochecknoglobals // shared error selector configuration
@@ -629,6 +564,167 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 		msgAndArgs...)
 }
 
+type SubmitOption func(request *req.Request)
+
+func WithFileReader(paramName string, filename string, reader io.Reader) SubmitOption {
+	return func(req *req.Request) {
+		req.SetFileReader(paramName, filename, reader)
+		req.EnableForceMultipart()
+	}
+}
+
+func WithFileBytes(paramName string, filename string, content []byte) SubmitOption {
+	return func(req *req.Request) {
+		req.SetFileBytes(paramName, filename, content)
+		req.EnableForceMultipart()
+	}
+}
+
+func (f Form) Submit(data map[string]any, opts ...SubmitOption) Page { //nolint:gocognit,gocyclo,cyclop,funlen
+	f.t.Helper()
+
+	if f.selection == nil {
+		return Page{}
+	}
+
+	action := strings.TrimSpace(f.selection.AttrOr("action", ""))
+	action = strings.TrimSpace(f.selection.AttrOr("hx-get", action))
+	action = strings.TrimSpace(f.selection.AttrOr("hx-post", action))
+	action = strings.TrimSpace(f.selection.AttrOr("hx-put", action))
+	action = strings.TrimSpace(f.selection.AttrOr("hx-patch", action))
+	action = strings.TrimSpace(f.selection.AttrOr("hx-delete", action))
+
+	method := f.selection.AttrOr("method", http.MethodPost)
+	if v := strings.TrimSpace(f.selection.AttrOr("hx-get", "")); v != "" { //nolint:nestif
+		method = http.MethodGet
+	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-post", "")); v != "" {
+		method = http.MethodPost
+	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-put", "")); v != "" {
+		method = http.MethodPut
+	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-patch", "")); v != "" {
+		method = http.MethodPatch
+	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-delete", "")); v != "" {
+		method = http.MethodDelete
+	} else if v := strings.TrimSpace(f.selection.AttrOr("hx-method", "")); v != "" {
+		method = strings.ToUpper(v)
+	}
+
+	baseURL, err := url.Parse(f.page.httpResp.Request.URL.String())
+	assert.NoError(f.t, err)
+
+	actionURL, err := url.Parse(action)
+	assert.NoError(f.t, err)
+
+	fullURL := baseURL.ResolveReference(actionURL).String()
+
+	// merge hx-vals into data
+	if valsJSON := strings.TrimSpace(f.selection.AttrOr("hx-vals", "")); valsJSON != "" {
+		var vals map[string]string
+		if err = json.Unmarshal([]byte(valsJSON), &vals); err == nil {
+			for k, v := range vals {
+				if _, exists := data[k]; !exists {
+					data[k] = v
+				}
+			}
+		}
+	}
+
+	var resp *req.Response
+
+	req := f.page.client.R()
+
+	// hx-headers: parse and set custom headers.
+	if headersJSON := strings.TrimSpace(f.selection.AttrOr("hx-headers", "")); headersJSON != "" {
+		var headers map[string]string
+		if err = json.Unmarshal([]byte(headersJSON), &headers); err == nil {
+			req = req.SetHeaders(headers)
+		}
+	}
+
+	if f.selection.AttrOr("hx-post", "") != "" ||
+		f.selection.AttrOr("hx-get", "") != "" ||
+		f.selection.AttrOr("hx-put", "") != "" ||
+		f.selection.AttrOr("hx-patch", "") != "" ||
+		f.selection.AttrOr("hx-delete", "") != "" {
+		req = req.SetHeader("HX-Request", "true")
+	}
+
+	enc := strings.TrimSpace(f.selection.AttrOr("hx-encoding", ""))
+	if enc == "" {
+		enc = strings.TrimSpace(f.selection.AttrOr("enctype", ""))
+	}
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	switch strings.ToUpper(method) {
+	case http.MethodGet:
+		setAnyTypeQueryParams(req, data)
+		resp, err = req.Get(fullURL)
+	case http.MethodPut:
+		if enc == "multipart/form-data" {
+			req.EnableForceMultipart()
+		}
+
+		setAnyTypeFormData(req, data)
+		resp, err = req.Put(fullURL)
+	case http.MethodDelete:
+		setAnyTypeQueryParams(req, data)
+		resp, err = req.Delete(fullURL)
+	case http.MethodPatch:
+		if enc == "multipart/form-data" {
+			req.EnableForceMultipart()
+		}
+
+		setAnyTypeFormData(req, data)
+		resp, err = req.Patch(fullURL)
+	default:
+		if enc == "multipart/form-data" {
+			req.EnableForceMultipart()
+		}
+
+		setAnyTypeFormData(req, data)
+		resp, err = req.Post(fullURL)
+	}
+
+	assert.NoError(f.t, err)
+
+	return NewPage(f.t, f.page.client, resp, err)
+}
+
+func setAnyTypeFormData(r *req.Request, data map[string]any) { //nolint:varnamelen
+	if r.FormData == nil {
+		r.FormData = url.Values{}
+	}
+
+	for k, v := range data {
+		if slice, ok := v.([]string); ok {
+			for _, s := range slice {
+				r.FormData.Add(k, s)
+			}
+		} else {
+			r.FormData.Set(k, fmt.Sprint(v))
+		}
+	}
+}
+
+func setAnyTypeQueryParams(r *req.Request, data map[string]any) { //nolint:varnamelen
+	if r.QueryParams == nil {
+		r.QueryParams = url.Values{}
+	}
+
+	for k, v := range data {
+		if slice, ok := v.([]string); ok {
+			for _, s := range slice {
+				r.QueryParams.Add(k, s)
+			}
+		} else {
+			r.QueryParams.Set(k, fmt.Sprint(v))
+		}
+	}
+}
+
 // func (f Form) HasEnctype(type_ string) bool         { panic("implement me") }
 // func (f Form) Target(target string) bool         { panic("implement me") }
 // func (f Form) HasNoValidate() bool                  { panic("implement me") } // form novalidate property
@@ -644,13 +740,6 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 // func (f Form) HasHXSwap(swap string) bool           { panic("implement me") }
 // func (f Form) SubmitButtonCount() int               { panic("implement me") }
 // func (f Form) HasCSRFToken() bool                   { panic("implement me") }
-
-// === Tables ===
-
-// func (p Page) Table(selector string) *Table { panic("not implemented") }
-// func (p Page) TableWithCaption(text string) *Table {
-// 	panic("not implemented")
-// }
 
 // === Modals/Dialogues ===
 
@@ -669,34 +758,6 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 // === Navigation/URL ===
 
 // func (p Page) IsURL(url string, msgAndArgs ...any) bool { panic("not implemented") }
-
-// Goto navigates to a URL, preserving the page's client and cookies
-// This allows cookie persistence across page navigations (simulating same browser tab)
-// Use suite.Goto() for a fresh session (new client, no cookies).
-func (p Page) Goto(url string, opts ...GotoOption) Page {
-	p.t.Helper()
-
-	for _, opt := range opts {
-		p.client = opt(p.client)
-	}
-
-	resp, err := p.client.R().Get(url)
-
-	return NewPage(p.t, p.client, resp, err)
-}
-
-func (p Page) HasQueryParam(key, value string, msgAndArgs ...any) bool {
-	p.t.Helper()
-
-	if p.httpResp.Response.Request.URL.Query().Get(key) != value {
-		return assert.Fail(p.t,
-			fmt.Sprintf("query param %s is: %s, should be: %s",
-				key, fmtEmpty(p.httpResp.Response.Request.URL.Query().Get(key)), value),
-			msgAndArgs...)
-	}
-
-	return true
-}
 
 // === HTMX Specific ===
 
@@ -873,6 +934,11 @@ type Element struct {
 	selection *goquery.Selection
 }
 
+func (e Element) Find(selector string) Element {
+	sel := e.selection.Find(selector)
+	return Element{t: e.t, selection: sel}
+}
+
 func (e Element) String() string {
 	return strings.TrimSpace(e.selection.Text())
 }
@@ -885,11 +951,6 @@ func (e Element) Exists(msgAndArgs ...any) bool {
 	}
 
 	return true
-}
-
-func (e Element) Find(selector string) Element {
-	sel := e.selection.Find(selector)
-	return Element{t: e.t, selection: sel}
 }
 
 // Total asserts that the selection matches exactly the expected number of elements.
@@ -1192,7 +1253,16 @@ func (e Element) AttrIs(attrName string, value string, msgAndArgs ...any) bool {
 	return assert.Fail(e.t, "selection does not contain attribute: "+attrName+"="+value, msgAndArgs...)
 }
 
-// === Table Helper ===
+// type Table struct {
+// 	t     *testing.T
+// 	table *goquery.Selection
+// }
+//
+// func (p Page) Table(selector string) Table { panic("not implemented") }
+
+// func (p Page) TableWithCaption(text string) *Table {
+// 	panic("not implemented")
+// }
 
 // type Table struct {
 // 	*Element
@@ -1232,76 +1302,6 @@ func (e Element) AttrIs(attrName string, value string, msgAndArgs ...any) bool {
 // func (pg *Pagination) HasTotalPages(n int) bool {
 // 	panic("not implemented")
 // }
-
-// === Page-Level Assertions ===
-
-// Title asserts the page's <title> equals the expected value.
-func (p Page) Title(title string, msgAndArgs ...any) bool {
-	p.t.Helper()
-	actual := p.document.Find("title").Text()
-
-	if actual != title {
-		return assert.Fail(p.t, fmt.Sprintf("page title is: %s, should be: %s", fmtEmpty(actual), title), msgAndArgs...)
-	}
-
-	return true
-}
-
-// HasLink asserts that an anchor with the given text content and href exists.
-func (p Page) HasLink(text, href string, msgAndArgs ...any) bool {
-	p.t.Helper()
-
-	links := p.document.Find("a")
-	for i := range links.Nodes {
-		link := links.Eq(i)
-		linkText := strings.TrimSpace(link.Text())
-		linkHref, _ := link.Attr("href")
-
-		if linkText == text && linkHref == href {
-			return true
-		}
-	}
-
-	return assert.Fail(p.t, fmt.Sprintf("page has no link with text %q and href %q", text, href), msgAndArgs...)
-}
-
-// DumpHTML returns the full HTML of the page for debugging.
-func (p Page) DumpHTML() string {
-	p.t.Helper()
-
-	html, err := p.document.Html()
-	if err != nil {
-		return ""
-	}
-
-	return html
-}
-
-// Download makes a GET request and returns a Download for asserting on binary responses.
-// It reuses the page's client (preserves cookies, same session).
-func (p Page) Download(url string, opts ...DownloadOption) Download {
-	cfg := downloadConfig{method: http.MethodGet, formData: map[string]any{}}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-
-	var (
-		resp *req.Response
-		err  error
-	)
-
-	req := p.client.R()
-
-	switch cfg.method {
-	case http.MethodPost:
-		req.SetFormDataAnyType(cfg.formData)
-		resp, err = req.Post(url)
-	default:
-		resp, err = req.Get(url)
-	}
-
-	return NewDownload(p.t, p.client, resp, err)
-}
 
 func assertHTMLIsValid(t *testing.T, htmlBody *bytes.Buffer) {
 	t.Helper()
