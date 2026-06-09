@@ -1253,29 +1253,222 @@ func (e Element) AttrIs(attrName string, value string, msgAndArgs ...any) bool {
 	return assert.Fail(e.t, "selection does not contain attribute: "+attrName+"="+value, msgAndArgs...)
 }
 
-// type Table struct {
-// 	t     *testing.T
-// 	table *goquery.Selection
-// }
+type Table struct {
+	t     *testing.T
+	table *goquery.Selection
+}
+
+func (p Page) Table(idOrCaption string) Table {
+	for _, selector := range []string{
+		"table#" + idOrCaption,
+		"table:has(caption:contains('" + idOrCaption + "'))",
+		"table[data-testid='" + idOrCaption + "']",
+		"table[data-cy='" + idOrCaption + "']",
+		idOrCaption,
+	} {
+		s := p.document.Find(selector)
+		if s.Length() == 1 {
+			return Table{t: p.t, table: s}
+		}
+	}
+
+	p.t.Helper()
+	assert.Fail(p.t, "no unique table found with id, testid, or caption: "+idOrCaption)
+
+	return Table{t: p.t, table: nil}
+}
+
+func (t Table) Exists(msgAndArgs ...any) bool {
+	t.t.Helper()
+
+	if t.table == nil || t.table.Length() == 0 {
+		return assert.Fail(t.t, "table does not exist", msgAndArgs...)
+	}
+
+	return true
+}
+
+func (t Table) Empty(msgAndArgs ...any) bool {
+	t.t.Helper()
+
+	if rows := t.table.Find("tr"); rows.Length() >= 0 {
+		if strings.TrimSpace(rows.Text()) == "" {
+			return true
+		}
+
+		td := rows.Find("td")
+		if _, ok := td.Attr("colspan"); ok && td.Length() == 1 {
+			return true
+		}
+	}
+
+	return assert.Fail(t.t, "table is not empty, should not be", msgAndArgs...)
+}
+
+func (t Table) NotEmpty(msgAndArgs ...any) bool {
+	t.t.Helper()
+
+	if rows := t.table.Find("tr"); rows.Length() >= 0 {
+		if strings.TrimSpace(rows.Text()) == "" {
+			return assert.Fail(t.t, "table is empty, should not be", msgAndArgs...)
+		}
+
+		td := rows.Find("td")
+		if _, ok := td.Attr("colspan"); ok && td.Length() == 1 {
+			return assert.Fail(t.t, "table is empty, should not be", msgAndArgs...)
+		}
+	}
+
+	return true
+}
+
+// Headers asserts that the table's column headers match exactly.
+// Looks in <thead> first, falls back to first <tr> with <th> cells.
+// Does NOT consider <th scope="row"> in <tbody>, those are row labels.
 //
-// func (p Page) Table(selector string) Table { panic("not implemented") }
+// For convenience at the call site, it does not accept msgAndArgs parameter,
+// so wrapping the headers in a slice is not required.
+func (t Table) Headers(headers ...string) bool {
+	t.t.Helper()
 
-// func (p Page) TableWithCaption(text string) *Table {
-// 	panic("not implemented")
-// }
+	if t.table == nil {
+		return false
+	}
 
-// type Table struct {
-// 	*Element
-// }
-// func (t *Table) HasRowCount(count int) bool  { panic("not implemented") }
-// func (t *Table) HasRow(texts ...string) bool { panic("not implemented") }
-// func (t *Table) Row(index int) Element      { panic("not implemented") }
-// func (t *Table) Cell(row, col int) Element  { panic("not implemented") }
-// func (t *Table) HasHeader(text string) bool  { panic("not implemented") }
-// func (t *Table) HasHeaders(headers ...string) bool {
-// 	panic("not implemented")
-// }
-// func (t *Table) HasColumnCount(count int) bool { panic("not implemented") }
+	headerCells := t.table.Find("thead tr:first-child").Find("th, td")
+	if headerCells.Length() == 0 { // fallback: if no thead first row is header
+		headerCells = t.table.Find("tr:first-child").Find("th")
+	}
+
+	if headerCells.Length() != len(headers) {
+		return assert.Fail(t.t,
+			fmt.Sprintf("table has %d header cells, expected %d", headerCells.Length(), len(headers)))
+	}
+
+	for i, expected := range headers {
+		actual := strings.TrimSpace(headerCells.Eq(i).Text())
+		if actual != expected {
+			return assert.Fail(t.t, fmt.Sprintf("header[%d] is %q, expected %q", i, actual, expected))
+		}
+	}
+
+	return true
+}
+
+// Rows asserts the table has exactly n data rows.
+// Counts <tbody><tr> only. Excludes <thead> and <tfoot>.
+// Falls back to <tr> when no <tbody> present.
+func (t Table) Rows(n int, msgAndArgs ...any) bool { //nolint:varnamelen
+	t.t.Helper()
+
+	if t.table == nil {
+		return n == 0
+	}
+
+	rows := t.table.Find("tbody tr")
+	if rows.Length() == 0 && t.table.Find("thead").Length() == 0 {
+		rows = t.table.Find("tr")
+	}
+
+	if rows.Length() != n {
+		return assert.Fail(t.t, fmt.Sprintf("table has %d rows, expected %d", rows.Length(), n), msgAndArgs...)
+	}
+
+	return true
+}
+
+// Cols asserts the table has exactly n columns.
+// Counts from <thead> cells first, falls back to first data row cells.
+// Colspan cells count as 1, not the spanned value.
+func (t Table) Cols(n int, msgAndArgs ...any) bool { //nolint:varnamelen
+	t.t.Helper()
+
+	if t.table == nil {
+		return n == 0
+	}
+
+	cells := t.table.Find("thead tr:first-child").Find("th, td")
+	if cells.Length() == 0 {
+		cells = t.table.Find("tr:first-child").Find("th, td")
+	}
+
+	if cells.Length() != n {
+		return assert.Fail(t.t, fmt.Sprintf("table has %d columns, expected %d", cells.Length(), n), msgAndArgs...)
+	}
+
+	return true
+}
+
+func (t Table) RowCount() int {
+	if t.table == nil {
+		return 0
+	}
+
+	rows := t.table.Find("tbody tr")
+	if rows.Length() == 0 && t.table.Find("thead").Length() == 0 {
+		rows = t.table.Find("tr")
+	}
+
+	return rows.Length()
+}
+
+func (t Table) ColCount() int {
+	if t.table == nil {
+		return 0
+	}
+
+	cells := t.table.Find("thead tr:first-child").Find("th, td")
+	if cells.Length() == 0 {
+		cells = t.table.Find("tr:first-child").Find("th, td")
+	}
+
+	return cells.Length()
+}
+
+func (t Table) Row(index int) Row {
+	if t.table == nil {
+		return Row{Element: Element{t: t.t, selection: nil}}
+	}
+
+	rows := t.table.Find("tbody tr")
+	if rows.Length() == 0 && t.table.Find("thead").Length() == 0 {
+		rows = t.table.Find("tr")
+	}
+
+	if index < 0 || index >= rows.Length() {
+		return Row{Element: Element{t: t.t, selection: nil}}
+	}
+
+	return Row{
+		Element: Element{
+			t:         t.t,
+			selection: rows.Eq(index),
+		},
+	}
+}
+
+type Row struct {
+	Element
+}
+
+func (r Row) Col(col int) Element {
+	if r.selection == nil {
+		return Element{t: r.t, selection: nil}
+	}
+
+	cells := r.selection.Find("th, td")
+	if col < 0 || col >= cells.Length() {
+		return Element{t: r.t, selection: nil}
+	}
+
+	return Element{t: r.t, selection: cells.Eq(col)}
+}
+
+// func (t Table) HasRow(texts ...string) bool { panic("not implemented") }
+// func (t Table) HasHeader(text string) bool  { panic("not implemented") }
+// func (t Table) HasHeader
+// func (t Table) HasBody
+// func (t Table) HasFoot
 
 // === Modal Helper ===
 

@@ -1581,6 +1581,389 @@ func TestElement_Equals(t *testing.T) {
 	}
 }
 
+func TestPage_Table(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		selector string
+		html     string
+		exists   bool
+	}{
+		"no table":                  {"", `<p></p>`, false},
+		"empty selector":            {"", `<table name="my-table"></table>`, false},
+		"by id":                     {"my-table", `<table id="my-table"></table>`, true},
+		"by wrong id":               {"my-table-2", `<table id="my-table"></table>`, false},
+		"by test id":                {"my-table", `<table data-testid="my-table"></table>`, true},
+		"by cypress id":             {"my-table", `<table data-cy="my-table"></table>`, true},
+		"by caption":                {"My Table", `<table id="my-table"><caption>My Table</caption></table>`, true},
+		"by css selector":           {"div table", `<div><table id="my-table"><caption>My Table</caption></table></div>`, true},
+		"by css selector missing":   {"div table", `<table id="my-table"><caption>My Table</caption></table>`, false},
+		"multiple tables":           {"my-table", `<table id="my-table"></table><table id="my-table-2"></table>`, true},
+		"multiple tables same name": {"my-table", `<table id="my-table"></table><table id="my-table"></table>`, false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			page := e2e.Test(new(testing.T)).Goto(svr.URL)
+			table := page.Table(tt.selector)
+
+			assert.Equal(t, tt.exists, table.Exists())
+		})
+	}
+}
+
+func TestTable_Empty(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		html string
+		pass bool
+	}{
+		"empty table":                 {`<table></table>`, true},
+		"empty table content":         {`<table><tr><td></td><td></td></tr></table>`, true},
+		"empty table with whitespace": {`<table><tr><td> </td></tr></table>`, true},
+		"empty table with message":    {`<table><tr><td colspan="3">No data</td></tr></table>`, true},
+		"not empty":                   {`<table><tr><td>hello</td></tr></table>`, false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			assert.Equal(t, tt.pass, table.Empty())
+			assert.Equal(t, !tt.pass, table.NotEmpty())
+		})
+	}
+}
+
+func TestTable_Headers(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		headers []string
+		html    string
+		pass    bool
+	}{
+		"single header":                      {[]string{"Name"}, `<table><thead><tr><th>Name</th></tr></thead></table>`, true},
+		"multiple headers":                   {[]string{"Name", "Email", "Role"}, `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead></table>`, true},
+		"wrong header text":                  {[]string{"Name", "Phone"}, `<table><thead><tr><th>Name</th><th>Email</th></tr></thead></table>`, false},
+		"wrong header count too many":        {[]string{"Name", "Email", "Role"}, `<table><thead><tr><th>Name</th><th>Email</th></tr></thead></table>`, false},
+		"wrong header count too few":         {[]string{"Name"}, `<table><thead><tr><th>Name</th><th>Email</th></tr></thead></table>`, false},
+		"td in thead still header":           {[]string{"Name"}, `<table><thead><tr><td>Name</td></tr></thead></table>`, true},
+		"header from first row no thead":     {[]string{"Name", "Email"}, `<table><tr><th>Name</th><th>Email</th></tr><tr><td>Alice</td><td>a@b.com</td></tr></table>`, true},
+		"no table content":                   {[]string{"Name"}, `<table></table>`, false},
+		"empty headers empty table":          {nil, `<table></table>`, true},
+		"empty headers expected empty table": {nil, `<table><thead><tr><th>Name</th></tr></thead></table>`, false},
+		"headers with whitespace":            {[]string{"Name", "Email"}, `<table><thead><tr><th> Name </th><th> Email </th></tr></thead></table>`, true},
+		"header case mismatch":               {[]string{"name", "email"}, `<table><thead><tr><th>Name</th><th>Email</th></tr></thead></table>`, false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			pass := table.Headers(tt.headers...)
+			assert.Equal(t, tt.pass, pass)
+		})
+	}
+}
+
+func TestTable_Rows(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		n    int
+		html string
+		pass bool
+	}{
+		"empty table":                {0, `<table></table>`, true},
+		"only thead":                 {0, `<table><thead><tr><th>Name</th></tr></thead></table>`, true},
+		"single row":                 {1, `<table><tbody><tr><td>Alice</td></tr></tbody></table>`, true},
+		"multiple rows":              {2, `<table><tbody><tr><td>Alice</td></tr><tr><td>Bob</td></tr></tbody></table>`, true},
+		"wrong count":                {2, `<table><tbody><tr><td>Alice</td></tr></tbody></table>`, false},
+		"excludes tfoot":             {1, `<table><tbody><tr><td>Alice</td></tr></tbody><tfoot><tr><td>Total</td></tr></tfoot></table>`, true},
+		"excludes thead":             {1, `<table><thead><tr><th>Name</th></tr></thead><tbody><tr><td>Alice</td></tr></tbody></table>`, true},
+		"no tbody counts tr":         {1, `<table><tr><td>Alice</td></tr></table>`, true},
+		"th scope row is row":        {2, `<table><thead><tr><th>Items</th><th>Cost</th></tr></thead><tbody><tr><th scope="row">Donuts</th><td>3,000</td></tr><tr><th scope="row">Stationery</th><td>18,000</td></tr></tbody></table>`, true},
+		"colspan row counts":         {1, `<table><tbody><tr><td colspan="3">No data</td></tr></tbody></table>`, true},
+		"row fewer cols than header": {1, `<table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>a</td><td>b</td></tr></tbody></table>`, true},
+		"row more cols than header":  {1, `<table><thead><tr><th>A</th></tr></thead><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`, true},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			pass := table.Rows(tt.n)
+			assert.Equal(t, tt.pass, pass)
+		})
+	}
+}
+
+func TestTable_Cols(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		n    int
+		html string
+		pass bool
+	}{
+		"empty table":                           {0, `<table></table>`, true},
+		"from thead":                            {3, `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead></table>`, true},
+		"wrong count":                           {2, `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead></table>`, false},
+		"from first tr":                         {2, `<table><tr><th>Name</th><th>Email</th></tr><tr><td>Alice</td><td>a@b.com</td></tr></table>`, true},
+		"from data row":                         {3, `<table><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`, true},
+		"colspan ignored":                       {1, `<table><tbody><tr><td colspan="3">No data</td></tr></tbody></table>`, true},
+		"mixed th td thead":                     {2, `<table><thead><tr><th>Name</th><td>Extra</td></tr></thead></table>`, true},
+		"cols from header ignores row mismatch": {3, `<table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead><tbody><tr><td>a</td></tr></tbody></table>`, true},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			pass := table.Cols(tt.n)
+			assert.Equal(t, tt.pass, pass)
+		})
+	}
+}
+
+func TestTable_RowCount(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		expected int
+		html     string
+	}{
+		"empty table":    {0, `<table></table>`},
+		"only thead":     {0, `<table><thead><tr><th>Name</th></tr></thead></table>`},
+		"single row":     {1, `<table><tbody><tr><td>Alice</td></tr></tbody></table>`},
+		"multiple rows":  {3, `<table><tbody><tr><td>a</td></tr><tr><td>b</td></tr><tr><td>c</td></tr></tbody></table>`},
+		"excludes tfoot": {1, `<table><tbody><tr><td>Alice</td></tr></tbody><tfoot><tr><td>Total</td></tr></tfoot></table>`},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			assert.Equal(t, tt.expected, table.RowCount())
+		})
+	}
+}
+
+func TestTable_ColCount(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		expected int
+		html     string
+	}{
+		"empty table":   {0, `<table></table>`},
+		"from thead":    {3, `<table><thead><tr><th>A</th><th>B</th><th>C</th></tr></thead></table>`},
+		"from first tr": {2, `<table><tr><th>A</th><th>B</th></tr><tr><td>a</td><td>b</td></tr></table>`},
+		"from data row": {3, `<table><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			svr := server(withBody(tt.html))
+			defer svr.Close()
+
+			table := e2e.Test(new(testing.T)).
+				Goto(svr.URL).
+				Table("table")
+
+			assert.Equal(t, tt.expected, table.ColCount())
+		})
+	}
+}
+
+func TestTable_Row(t *testing.T) {
+	t.Parallel()
+
+	html := `<table>
+		<thead><tr><th>Name</th><th>Email</th></tr></thead>
+		<tbody>
+			<tr><td>Alice</td><td>alice@example.com</td></tr>
+			<tr><td>Bob</td><td>bob@example.com</td></tr>
+		</tbody>
+		<tfoot><tr><td>Total</td><td>2</td></tr></tfoot>
+	</table>`
+
+	t.Run("returns row element", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		row := table.Row(0)
+		assert.True(t, row.Exists())
+		assert.Contains(t, row.Text(), "Alice")
+		assert.Contains(t, row.Text(), "alice@example.com")
+	})
+
+	t.Run("second row", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		row := table.Row(1)
+		assert.Contains(t, row.Text(), "Bob")
+		assert.Contains(t, row.Text(), "bob@example.com")
+	})
+
+	t.Run("out of range returns empty element", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		row := table.Row(99)
+		assert.False(t, row.Exists())
+	})
+
+	t.Run("th scope row accessible", func(t *testing.T) {
+		t.Parallel()
+
+		scopeHTML := `<table>
+			<thead><tr><th>Items</th><th>Cost</th></tr></thead>
+			<tbody><tr><th scope="row">Donuts</th><td>3,000</td></tr></tbody>
+		</table>`
+
+		svr := server(withBody(scopeHTML))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		row := table.Row(0)
+		assert.Contains(t, row.Text(), "Donuts")
+	})
+}
+
+func TestTable_Col(t *testing.T) {
+	t.Parallel()
+
+	html := `<table>
+		<thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+		<tbody>
+			<tr><td>Alice</td><td>alice@example.com</td><td>Admin</td></tr>
+			<tr><th scope="row">Bob</th><td>bob@example.com</td><td>User</td></tr>
+		</tbody>
+	</table>`
+
+	t.Run("access col by index on row", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		assert.Equal(t, "Alice", table.Row(0).Col(0).Text())
+		assert.Equal(t, "alice@example.com", table.Row(0).Col(1).Text())
+		assert.Equal(t, "Admin", table.Row(0).Col(2).Text())
+	})
+
+	t.Run("th scope row is col 0", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		assert.Equal(t, "Bob", table.Row(1).Col(0).Text())
+		assert.Equal(t, "bob@example.com", table.Row(1).Col(1).Text())
+	})
+
+	t.Run("out of range col returns empty element", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		assert.False(t, table.Row(0).Col(99).Exists())
+	})
+
+	t.Run("out of range row returns empty element", func(t *testing.T) {
+		t.Parallel()
+
+		svr := server(withBody(html))
+		defer svr.Close()
+
+		table := e2e.Test(new(testing.T)).
+			Goto(svr.URL).
+			Table("table")
+
+		assert.False(t, table.Row(99).Col(0).Exists())
+	})
+}
+
 type capturedRequest struct {
 	method            string
 	path              string
