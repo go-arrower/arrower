@@ -613,6 +613,7 @@ func TestPage_Form(t *testing.T) {
 		"by action":                   {"/action", `<form method="post" action="/action"></form>`, true},
 		"by test id":                  {"my-form", `<form data-testid="my-form" action="/submit"></form>`, true},
 		"by cypress id":               {"my-form", `<form data-cy="my-form" action="/submit"></form>`, true},
+		"by css selector":             {"form", `<form action="/submit"></form>`, true},
 		"multiple forms":              {"my-form", `<form name="my-form" method="post" action="/action"></form><form name="my-form-2" method="post" action="/action"></form>`, true},
 		"multiple forms same name":    {"my-form", `<form name="my-form" method="post" action="/action"></form><form name="my-form" method="post" action="/action"></form>`, false},
 		"htmx post":                   {"/action", `<form hx-post="/action"></form>`, true},
@@ -1524,7 +1525,7 @@ func TestPage_DumpHTML(t *testing.T) {
 	assert.Contains(t, dump, "hello")
 }
 
-func TestElement_HasText(t *testing.T) {
+func TestElement_Contains(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
@@ -1545,7 +1546,7 @@ func TestElement_HasText(t *testing.T) {
 			defer svr.Close()
 
 			elem := e2e.Test(new(testing.T)).Goto(svr.URL).Find("#el")
-			pass := elem.HasText(tt.text)
+			pass := elem.Contains(tt.text)
 			assert.Equal(t, tt.pass, pass)
 		})
 	}

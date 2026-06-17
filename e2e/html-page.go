@@ -221,7 +221,7 @@ type Form struct {
 }
 
 // Form finds a unique form element by name, id, action, or htmx action attribute.
-// Selector precedence (first unique match wins): name > id > action > hx-*
+// Selector precedence (first unique match wins): name > id > action > hx-* > css selector
 // Returns nil if no form or multiple forms match the given selector.
 func (p Page) Form(nameOrIDOrAction string) Form {
 	for _, selector := range []string{
@@ -235,6 +235,7 @@ func (p Page) Form(nameOrIDOrAction string) Form {
 		"[hx-delete='" + nameOrIDOrAction + "']",
 		"[data-testid='" + nameOrIDOrAction + "']",
 		"[data-cy='" + nameOrIDOrAction + "']",
+		nameOrIDOrAction,
 	} {
 		s := p.document.Find(selector)
 
@@ -1021,15 +1022,11 @@ func (e Element) Nth(i int) Element {
 
 // === Existence ===
 
-// func (e Element) Exists() bool    { panic("not implemented") }
 // func (e Element) NotExists() bool { panic("not implemented") }
 // func (e Element) IsVisible() bool { panic("not implemented") }
 // func (e Element) IsHidden() bool  { panic("not implemented") }
 // func (e Element) IsEnabled() bool { panic("not implemented") }
 // func (e Element) IsDisabled() bool {
-// 	panic("not implemented")
-// }
-// func (e Element) IsSelected() bool {
 // 	panic("not implemented")
 // }
 
@@ -1061,36 +1058,6 @@ func (e Element) Text() string {
 	}
 
 	return strings.TrimSpace(e.selection.Text())
-}
-
-func (e Element) HasText(text string, msgAndArgs ...any) bool {
-	e.t.Helper()
-
-	if strings.Contains(strings.TrimSpace(e.Text()), text) {
-		return true
-	}
-
-	return assert.Fail(e.t, "element does not contain: "+text, msgAndArgs...)
-}
-
-func (e Element) TextEquals(text string, msgAndArgs ...any) bool {
-	e.t.Helper()
-
-	if assert.Equal(e.t, text, strings.TrimSpace(e.Text())) {
-		return true
-	}
-
-	return assert.Fail(e.t, "element does not equal: "+text, msgAndArgs...)
-}
-
-func (e Element) TextContains(text string, msgAndArgs ...any) bool {
-	e.t.Helper()
-
-	if strings.Contains(strings.TrimSpace(e.Text()), text) {
-		return true
-	}
-
-	return assert.Fail(e.t, "element does not contain: "+text, msgAndArgs...)
 }
 
 // func (e Element) Attr(name, value string) bool  { panic("not implemented") }
@@ -1166,13 +1133,6 @@ func (e Element) HasAttr(name string, msgAndArgs ...any) bool {
 // func (e Element) IsCheckbox() bool { panic("not implemented") }
 // func (e Element) IsRadio() bool    { panic("not implemented") }
 // func (e Element) IsFile() bool     { panic("not implemented") }
-
-// === Collections ===
-
-// func (e Element) Length() int {
-// 	return e.Selection.Length()
-// }
-// func (e Element) Each(fn func(*Element)) { panic("not implemented") }
 
 func (e Element) Contains(contains string, msgAndArgs ...any) bool {
 	e.t.Helper()
