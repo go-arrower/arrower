@@ -43,7 +43,7 @@ test-unit:
 
 .PHONY: test-integration
 test-integration:
-	go test -race --tags="integration" -v ./... -coverprofile out/cover.out
+	go test -race -tags="integration" -v ./... -coverprofile out/cover.out
 
 .PHONY: test-e2e
 test-e2e: ## Run end to end tests
@@ -56,7 +56,7 @@ test-e2e: ## Run end to end tests
 
 	@# waiting server to be ready to accept connections
 	@until curl --output /dev/null --silent --fail http://localhost:9191 ; do \
-  		echo "Wait until GO server started..." ;\
+  		echo "Wait until Go server started..." ;\
         sleep 1 ; \
 	done
 
