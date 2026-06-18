@@ -34,6 +34,21 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, rec.Code)
 	})
 
+	t.Run("no session => redirect with query params", func(t *testing.T) {
+		t.Parallel()
+
+		echoRouter := newEnsureRouterToAssertOnHandler(func(c echo.Context) error {
+			return c.NoContent(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/auth/?my=param", nil)
+		rec := httptest.NewRecorder()
+
+		echoRouter.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusSeeOther, rec.Code)
+		assert.Equal(t, "/auth/login?my=param&returnUrl=%2Fauth%2F", rec.Header().Get("Location"))
+	})
+
 	t.Run("user is logged in", func(t *testing.T) {
 		t.Parallel()
 
@@ -146,7 +161,7 @@ func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 
 	echoRouter.Use(session.Middleware(sessions.NewFilesystemStore("", []byte("secret"))))
 
-	// endpoint to set an example cookie, that the middleware under test can work with.
+	// endpoint to set an example cookie that the middleware under test can work with
 	echoRouter.GET("/createSession", func(c echo.Context) error {
 		sess, _ := session.Get(auth.SessionName, c)
 
@@ -157,6 +172,11 @@ func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 
 		return c.NoContent(http.StatusOK)
 	})
+
+	// register the login route with name so middleware can reverse to it
+	echoRouter.GET("/auth/login", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	}).Name = auth.RouteLogin
 
 	authRoutes := echoRouter.Group("/auth")
 	authRoutes.Use(auth.EnsureUserIsLoggedInMiddleware)

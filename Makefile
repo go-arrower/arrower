@@ -40,6 +40,9 @@ test-update: # Update golden-files testdata
 	go test -tags="integration" ./arrower/internal/generate/... -update
 
 
+.PHONY: test-e2e
+test-e2e:
+	./tests/e2e/run-e2e.sh
 
 
 .PHONY: upgrade

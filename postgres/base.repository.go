@@ -10,7 +10,7 @@ import (
 var ErrQueryFailed = errors.New("query failed")
 
 // BaseRepository can be used in repository implementations.
-// Because sqlc generates an own Queries struct for each  corresponding models/db.go file,
+// Because sqlc generates an own Queries struct for each corresponding models/db.go file,
 // a generic approach is used, so each repo can create a BaseRepository with the fitting *models.Queries type.
 type BaseRepository[T interface{ WithTx(tx pgx.Tx) T }] struct {
 	queries T

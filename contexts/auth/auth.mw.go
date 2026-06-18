@@ -82,7 +82,10 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		query := c.QueryParams()
+		query.Add("returnUrl", c.Request().URL.Path)
+
+		return c.Redirect(http.StatusSeeOther, c.Echo().Reverse(RouteLogin)+"?"+query.Encode())
 	}
 }
 

@@ -1,0 +1,19 @@
+# Postgres-only stack for e2e tests. Started and stopped by scripts/e2e.sh.
+# Credentials mirror tests/postgres.integrationtest.go and tests/e2e/test.config.yaml.
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: arrower
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: arrower_test
+      LANG: en_US.UTF-8
+      LANGUAGE: en_US:en
+      LC_ALL: en_US.UTF-8
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arrower -d arrower_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30

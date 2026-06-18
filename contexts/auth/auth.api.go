@@ -31,6 +31,7 @@ const (
 	SessionName = "arrower.auth"
 )
 
+// Public route names. Use echo router to resolve to path.
 const (
 	RouteLogin      = "auth.login"
 	RouteLogout     = "auth.logout"

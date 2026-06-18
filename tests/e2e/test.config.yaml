@@ -1,0 +1,22 @@
+# Keys mirror the arrower.Config mapstructure tags (config.go).
+environment: test
+
+http:
+  port: 8080
+  cookie_secret: secret
+  status_endpoint_enabled: true
+  status_endpoint_port: 2223
+
+postgres:
+  user: arrower
+  password: secret
+  database: arrower_test
+  host: localhost
+  port: 5432
+  ssl_mode: disable
+  max_conns: 15
+
+otel:
+  host: localhost
+  port: 4317
+  hostname: ""
