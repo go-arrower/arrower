@@ -4,7 +4,10 @@ package e2e
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -47,7 +50,7 @@ func Test(t *testing.T, ops ...SuiteOption) *Suite {
 
 	suite := &Suite{
 		t:   t,
-		PGx: nil, // TODO: connectToDatabase(t.Context()), // todo fixme
+		PGx: connectToDatabaseOrNil(t.Context(), getProjectRoot()+"/tests/e2e/test.config.yaml"),
 		c: req.C().
 			SetBaseURL("http://localhost:8080").
 			SetCommonRetryCount(defaultRetryCount).
@@ -175,11 +178,15 @@ func (s *Suite) Download(url string, opts ...DownloadOption) Download {
 	return NewDownload(s.t, s.c, resp, err)
 }
 
-// todo review: does it load the proper configuration values.
-//
-//lint:ignore U1000 kept for future use
-func connectToDatabase(ctx context.Context) *pgxpool.Pool {
-	configData := getTestConfig() // todo review
+func connectToDatabaseOrNil(ctx context.Context, cfgFile string) *pgxpool.Pool {
+	if _, err := os.Stat(cfgFile); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+
+	configData, err := getTestConfig(cfgFile)
+	if err != nil {
+		panic(err)
+	}
 
 	pgx, err := postgres.Connect(ctx, postgres.Config{
 		Host:       configData.Postgres.Host,
@@ -188,7 +195,7 @@ func connectToDatabase(ctx context.Context) *pgxpool.Pool {
 		Password:   configData.Postgres.Password.Secret(),
 		Database:   configData.Postgres.Database,
 		MaxConns:   configData.Postgres.MaxConns,
-		Migrations: nil, // TODO: add migrations if needed
+		Migrations: nil, // no migrations on purpose: connect to running e2e test, not modify app
 		SSLMode:    "disable",
 	}, noop.NewTracerProvider())
 	if err != nil {
@@ -213,19 +220,22 @@ func getProjectRoot() string {
 }
 
 // getTestConfig loads the configuration file.
-//
-//lint:ignore U1000 kept for future use
-func getTestConfig() *arrower.Config {
-	// if err == nil {
-	// 	_ = godotenv.Load(getProjectRoot() + ".env")
-	// }
+func getTestConfig(cfgFile string) (arrower.Config, error) {
+	vip := arrower.DefaultViper()
+	if cfgFile != "" {
+		vip.SetConfigFile(cfgFile)
+	}
 
-	// return config.InitConfig(getProjectRoot() + "<example>_test.config.yaml")
-	config := arrower.Config{}
+	if err := vip.ReadInConfig(); err != nil {
+		return arrower.Config{}, fmt.Errorf("could not read config %q: %w", cfgFile, err)
+	}
 
-	_ = arrower.DefaultViper().Unmarshal(&config)
+	cfg := arrower.Config{}
+	if err := vip.Unmarshal(&cfg); err != nil {
+		return arrower.Config{}, fmt.Errorf("could not unmarshal into configuration: %w", err)
+	}
 
-	return &config
+	return cfg, nil
 }
 
 func assertTestCaseNamingConvention(t *testing.T) {
