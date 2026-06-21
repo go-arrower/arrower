@@ -2,6 +2,7 @@ package arepo
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/dbscan"
@@ -851,6 +853,19 @@ func tableName[E any](entity E) string {
 	return strings.ToLower(reflect.TypeOf(entity).Name())
 }
 
+// valuerType marks structs that act as a single scalar DB column (e.g. secret.Secret),
+// so they are stored as one value instead of being flattened field-by-field.
+var valuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+
+var timeType = reflect.TypeOf(time.Time{})
+
+// isScalarStruct reports whether a struct type is stored as a single DB column
+// instead of being flattened field-by-field: time.Time and driver.Valuer
+// implementations (e.g. secret.Secret).
+func isScalarStruct(ft reflect.Type) bool {
+	return ft == timeType || ft.Implements(valuerType) || reflect.PointerTo(ft).Implements(valuerType)
+}
+
 func entitiesFieldNameByColumnName[E any](name string) string {
 	name = strings.TrimPrefix(name, `"`)
 	name = strings.TrimSuffix(name, `"`)
@@ -968,8 +983,8 @@ func columnsAndValues(v reflect.Value, prefix string) ([]colVal, error) {
 			}
 		}
 
-		// Embedded struct ODER normales Struct-Feld -> flatten
-		if ft.Kind() == reflect.Struct {
+		// Structs implementing driver.Valuer are scalar columns (e.g. secret.Secret) and must not be flattened.
+		if ft.Kind() == reflect.Struct && !isScalarStruct(ft) {
 			// Bestimme Prefix
 			var newPrefix string
 

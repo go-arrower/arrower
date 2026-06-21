@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-arrower/arrower/arepo"
 	"github.com/go-arrower/arrower/arepo/testdata"
+	"github.com/go-arrower/arrower/secret"
 	"github.com/go-arrower/arrower/tests"
 )
 
@@ -210,6 +211,20 @@ func TestPostgresRepository_DbTags(t *testing.T) {
 
 		err = repo.Create(t.Context(), myType)
 		assert.NoError(t, err)
+	})
+
+	t.Run("detect arrower secret type correctly", func(t *testing.T) {
+		t.Parallel()
+
+		type MyType struct {
+			ID        string        `db:"id"`
+			CreatedAt time.Time     `db:"created_at"`
+			Key       secret.Secret `db:"key"`
+		}
+
+		repo, err := arepo.NewPostgresRepository[MyType, string](nil)
+		assert.NoError(t, err)
+		assert.Len(t, repo.Columns, 3)
 	})
 }
 
