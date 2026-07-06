@@ -18,6 +18,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/html"
 )
 
 type Page struct {
@@ -79,18 +80,20 @@ func (p Page) IsRedirected(msgAndArgs ...any) bool {
 		return true
 	}
 
-	return assert.Fail(p.t,
-		fmt.Sprintf("page has status code: %d, should be: 3xx (Redirect)", p.httpResp.StatusCode),
-		msgAndArgs...)
+	return fail(p.t, "expected redirect status (3xx)", []kv{
+		{"actual", fmt.Sprintf("%d (%s)", p.httpResp.StatusCode, http.StatusText(p.httpResp.StatusCode))},
+		{"expected", "3xx (Redirect)"},
+	}, msgAndArgs...)
 }
 
 func (p Page) RedirectsTo(path string, msgAndArgs ...any) bool {
 	p.t.Helper()
 
 	if !p.IsRedirected() || p.httpResp.Header.Get("Location") != path {
-		return assert.Fail(p.t,
-			fmt.Sprintf("page redirects to: %s, should be: %s", fmtEmpty(p.httpResp.Header.Get("Location")), path),
-			msgAndArgs...)
+		return fail(p.t, "redirect location mismatch", []kv{
+			{"actual", fmtEmpty(p.httpResp.Header.Get("Location"))},
+			{"expected", path},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -128,7 +131,11 @@ func (p Page) TestID(id string) Element {
 		return Element{t: p.t, selection: matches.First()}
 	}
 
-	assert.Fail(p.t, "no element found with test id: "+id)
+	fail(p.t, "no element found with test id", []kv{
+		{"testid", id},
+		{"data-testid", formatList(collectAttrValues(p.document, "[data-testid]", "data-testid"))},
+		{"data-cy", formatList(collectAttrValues(p.document, "[data-cy]", "data-cy"))},
+	})
 
 	return Element{t: p.t, selection: nil}
 }
@@ -137,10 +144,11 @@ func (p Page) HasQueryParam(key, value string, msgAndArgs ...any) bool {
 	p.t.Helper()
 
 	if p.httpResp.Response.Request.URL.Query().Get(key) != value {
-		return assert.Fail(p.t,
-			fmt.Sprintf("query param %s is: %s, should be: %s",
-				key, fmtEmpty(p.httpResp.Response.Request.URL.Query().Get(key)), value),
-			msgAndArgs...)
+		return fail(p.t, "query param mismatch", []kv{
+			{"param", key},
+			{"actual", fmtEmpty(p.httpResp.Response.Request.URL.Query().Get(key))},
+			{"expected", value},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -152,7 +160,10 @@ func (p Page) Title(title string, msgAndArgs ...any) bool {
 	actual := p.document.Find("title").Text()
 
 	if actual != title {
-		return assert.Fail(p.t, fmt.Sprintf("page title is: %s, should be: %s", fmtEmpty(actual), title), msgAndArgs...)
+		return fail(p.t, "page title mismatch", []kv{
+			{"actual", fmtEmpty(actual)},
+			{"expected", title},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -173,7 +184,10 @@ func (p Page) HasLink(text, href string, msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(p.t, fmt.Sprintf("page has no link with text %q and href %q", text, href), msgAndArgs...)
+	return fail(p.t, "no link with text and href", []kv{
+		{"text", text},
+		{"href", href},
+	}, msgAndArgs...)
 }
 
 // DumpHTML returns the full HTML of the page for debugging.
@@ -249,7 +263,10 @@ func (p Page) Form(nameOrIDOrAction string) Form {
 	}
 
 	p.t.Helper()
-	assert.Fail(p.t, "no unique form found with name, id, or action: "+nameOrIDOrAction)
+	fail(p.t, "no unique form found", []kv{
+		{"selector", nameOrIDOrAction},
+		{"forms", formatList(collectFormIdentifiers(p.document))},
+	})
 
 	return Form{t: p.t, page: Page{}, selection: nil}
 }
@@ -271,7 +288,7 @@ func (f Form) Exists(msgAndArgs ...any) bool {
 	f.t.Helper()
 
 	if f.selection == nil || f.selection.Length() == 0 {
-		return assert.Fail(f.t, "form does not exist", msgAndArgs...)
+		return fail(f.t, "form does not exist", nil, msgAndArgs...)
 	}
 
 	return true
@@ -285,9 +302,10 @@ func (f Form) Method(method string, msgAndArgs ...any) bool {
 	}
 
 	if m, ok := f.selection.Attr("method"); !ok || !strings.EqualFold(m, method) {
-		return assert.Fail(f.t,
-			fmt.Sprintf("form method is: %s, should be: %s", m, method),
-			msgAndArgs...)
+		return fail(f.t, "form method mismatch", []kv{
+			{"actual", fmtEmpty(m)},
+			{"expected", method},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -301,9 +319,10 @@ func (f Form) Action(action string, msgAndArgs ...any) bool {
 	}
 
 	if a, ok := f.selection.Attr("action"); !ok || a != action {
-		return assert.Fail(f.t,
-			fmt.Sprintf("form action is: %s, should be: %s", a, action),
-			msgAndArgs...)
+		return fail(f.t, "form action mismatch", []kv{
+			{"actual", fmtEmpty(a)},
+			{"expected", action},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -317,9 +336,10 @@ func (f Form) Total(total int, msgAndArgs ...any) bool {
 	}
 
 	if s := f.selection.Find("input, textarea, select, button"); s.Length() != total {
-		return assert.Fail(f.t,
-			fmt.Sprintf("form has %d elements, should have %d", s.Length(), total),
-			msgAndArgs...)
+		return fail(f.t, "form element count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", s.Length())},
+			{"expected", fmt.Sprintf("%d", total)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -340,7 +360,10 @@ func (f Form) HasField(name string, msgAndArgs ...any) bool {
 		return true
 	}
 
-	return assert.Fail(f.t, "form has no field: "+name, msgAndArgs...)
+	return fail(f.t, "form has no field", []kv{
+		{"field", name},
+		{"fields", formatList(collectFieldNames(f.selection))},
+	}, msgAndArgs...)
 }
 
 func (f Form) HasSubmit(msgAndArgs ...any) bool {
@@ -352,7 +375,9 @@ func (f Form) HasSubmit(msgAndArgs ...any) bool {
 
 	submits := f.selection.Find("input[type='submit'], input[type='SUBMIT'], button[type='submit'], button[type='SUBMIT']")
 	if submits.Length() == 0 {
-		return assert.Fail(f.t, "form has no submit button", msgAndArgs...)
+		return fail(f.t, "form has no submit button", []kv{
+			{"controls", formatList(collectButtons(f.selection))},
+		}, msgAndArgs...)
 	}
 
 	// check for duplicate unnamed submits (more than 1 unnamed submit is ambiguous)
@@ -365,9 +390,10 @@ func (f Form) HasSubmit(msgAndArgs ...any) bool {
 	})
 
 	if unnamedCount > 1 {
-		return assert.Fail(f.t,
-			fmt.Sprintf("form has %d unnamed submit buttons (must be unique or named)", unnamedCount),
-			msgAndArgs...)
+		return fail(f.t, "form has ambiguous unnamed submit buttons", []kv{
+			{"count", fmt.Sprintf("%d", unnamedCount)},
+			{"hint", "submit buttons must be unique or named"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -408,9 +434,9 @@ func (f Form) HasNoErrors(msgAndArgs ...any) bool {
 
 	for _, selector := range errorSelectors {
 		if f.selection.Is(selector) || f.selection.Find(selector).Length() > 0 {
-			return assert.Fail(f.t,
-				fmt.Sprintf("form has validation errors (found: %s), should not have any", selector),
-				msgAndArgs...)
+			return fail(f.t, "form has validation errors but should not", []kv{
+				{"matched", selector},
+			}, msgAndArgs...)
 		}
 	}
 
@@ -430,7 +456,7 @@ func (f Form) HasErrors(msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(f.t, "form has no validation errors, should have", msgAndArgs...)
+	return fail(f.t, "form has no validation errors but should", nil, msgAndArgs...)
 }
 
 func (f Form) HasFieldError(name string, msgAndArgs ...any) bool { //nolint:gocognit,gocyclo,cyclop
@@ -442,7 +468,10 @@ func (f Form) HasFieldError(name string, msgAndArgs ...any) bool { //nolint:goco
 
 	field := f.selection.Find(fmt.Sprintf("[name='%s']", name))
 	if field.Length() != 1 {
-		return assert.Fail(f.t, "field not found: "+name, msgAndArgs...)
+		return fail(f.t, "field not found in form", []kv{
+			{"field", name},
+			{"fields", formatList(collectFieldNames(f.selection))},
+		}, msgAndArgs...)
 	}
 
 	// check if selection matches any error selector
@@ -502,7 +531,9 @@ func (f Form) HasFieldError(name string, msgAndArgs ...any) bool { //nolint:goco
 		}
 	}
 
-	return assert.Fail(f.t, fmt.Sprintf("field '%s' has no validation errors", name), msgAndArgs...)
+	return fail(f.t, "field has no validation errors but should", []kv{
+		{"field", name},
+	}, msgAndArgs...)
 }
 
 func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool { //nolint:gocognit,gocyclo,cyclop
@@ -514,7 +545,10 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 
 	fields := f.selection.Find(fmt.Sprintf("[name='%s']", name))
 	if fields.Length() == 0 {
-		return assert.Fail(f.t, "field not found: "+name, msgAndArgs...)
+		return fail(f.t, "field not found in form", []kv{
+			{"field", name},
+			{"fields", formatList(collectFieldNames(f.selection))},
+		}, msgAndArgs...)
 	}
 
 	allValues := make([]string, len(fields.Nodes))
@@ -560,9 +594,11 @@ func (f Form) HasFieldValue(name string, value string, msgAndArgs ...any) bool {
 		valuesStr = fmt.Sprintf("'%s'", allValues[0])
 	}
 
-	return assert.Fail(f.t,
-		fmt.Sprintf("field '%s' has value(s) %s, should be '%s'", name, valuesStr, value),
-		msgAndArgs...)
+	return fail(f.t, "field value mismatch", []kv{
+		{"field", name},
+		{"actual", valuesStr},
+		{"expected", value},
+	}, msgAndArgs...)
 }
 
 type SubmitOption func(request *req.Request)
@@ -782,9 +818,10 @@ func (s Scripts) Total(total int, msgAndArgs ...any) bool {
 	s.t.Helper()
 
 	if s.page.document.Find("script[src]").Size() != total {
-		return assert.Fail(s.t,
-			fmt.Sprintf("expected %d script tags, found %d", total, s.page.document.Find("script[src]").Size()),
-			msgAndArgs...)
+		return fail(s.t, "script tag count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", s.page.document.Find("script[src]").Size())},
+			{"expected", fmt.Sprintf("%d", total)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -809,7 +846,10 @@ func (s Scripts) HasLibrary(searchLib string, msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(s.t, fmt.Sprintf("libraries %v do not contain: %s", libraries, searchLib), msgAndArgs...)
+	return fail(s.t, "loaded libraries do not contain expected", []kv{
+		{"actual", fmt.Sprintf("%v", libraries)},
+		{"expected", searchLib},
+	}, msgAndArgs...)
 }
 
 // HasOnlyLibraries asserts that ONLY the specified libraries are loaded.
@@ -841,7 +881,9 @@ func (s Scripts) HasOnlyLocal(msgAndArgs ...any) bool {
 	sources := s.sources()
 	for _, src := range sources {
 		if !s.isLocalScript(src) {
-			return assert.Fail(s.t, "external script found: "+src, msgAndArgs...)
+			return fail(s.t, "external script found but should be local only", []kv{
+				{"src", src},
+			}, msgAndArgs...)
 		}
 	}
 
@@ -948,7 +990,7 @@ func (e Element) Exists(msgAndArgs ...any) bool {
 	e.t.Helper()
 
 	if e.selection == nil || e.selection.Length() == 0 {
-		return assert.Fail(e.t, "element does not exist", msgAndArgs...)
+		return fail(e.t, "element does not exist", nil, msgAndArgs...)
 	}
 
 	return true
@@ -963,9 +1005,10 @@ func (e Element) Total(expected int, msgAndArgs ...any) bool {
 	}
 
 	if e.selection.Length() != expected {
-		return assert.Fail(e.t,
-			fmt.Sprintf("element count is %d, should be %d", e.selection.Length(), expected),
-			msgAndArgs...)
+		return fail(e.t, "element count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", e.selection.Length())},
+			{"expected", fmt.Sprintf("%d", expected)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -985,10 +1028,10 @@ func (e Element) assertSingle() bool {
 	}
 
 	if e.selection.Length() > 1 {
-		assert.Fail(e.t, fmt.Sprintf(
-			"selector matched %d elements, expected 1. Use .First(), .Last(), or .Nth() to disambiguate.",
-			e.selection.Length(),
-		))
+		fail(e.t, "selector matched multiple elements, expected 1", []kv{
+			{"count", fmt.Sprintf("%d", e.selection.Length())},
+			{"hint", "use .First(), .Last(), or .Nth() to disambiguate"},
+		})
 
 		return false
 	}
@@ -1013,7 +1056,10 @@ func (e Element) Nth(i int) Element {
 
 	sel := e.selection.Eq(i)
 	if sel.Length() == 0 {
-		assert.Fail(e.t, fmt.Sprintf("index %d out of range (selection has %d elements)", i, e.selection.Length()))
+		fail(e.t, "index out of range", []kv{
+			{"index", fmt.Sprintf("%d", i)},
+			{"length", fmt.Sprintf("%d", e.selection.Length())},
+		})
 		return Element{}
 	}
 
@@ -1078,7 +1124,10 @@ func (e Element) HasAttr(name string, msgAndArgs ...any) bool {
 	}
 
 	if _, ok := e.selection.Attr(name); !ok {
-		return assert.Fail(e.t, "element does not have attribute: "+name, msgAndArgs...)
+		return fail(e.t, "element does not have attribute", []kv{
+			{"attribute", name},
+			{"element", outerHTML(e.selection)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1137,18 +1186,26 @@ func (e Element) HasAttr(name string, msgAndArgs ...any) bool {
 func (e Element) Contains(contains string, msgAndArgs ...any) bool {
 	e.t.Helper()
 
-	if strings.Contains(strings.TrimSpace(e.Text()), contains) {
+	actual := e.Text()
+	if strings.Contains(actual, contains) {
 		return true
 	}
 
-	return assert.Fail(e.t, "selection does not contain: "+contains, msgAndArgs...)
+	return fail(e.t, "selection does not contain expected text", []kv{
+		{"actual", fmt.Sprintf("%q", actual)},
+		{"expected", fmt.Sprintf("%q", contains)},
+		{"element", outerHTML(e.selection)},
+	}, msgAndArgs...)
 }
 
 func (e Element) NotContains(notContains string, msgAndArgs ...any) bool {
 	e.t.Helper()
 
-	if strings.Contains(strings.TrimSpace(e.Text()), notContains) {
-		return assert.Fail(e.t, "selection contains: "+notContains+", should not be", msgAndArgs...)
+	if strings.Contains(e.Text(), notContains) {
+		return fail(e.t, "selection contains text but should not", []kv{
+			{"text", fmt.Sprintf("%q", notContains)},
+			{"element", outerHTML(e.selection)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1157,8 +1214,13 @@ func (e Element) NotContains(notContains string, msgAndArgs ...any) bool {
 func (e Element) Equals(expected string, msgAndArgs ...any) bool {
 	e.t.Helper()
 
-	if expected != strings.TrimSpace(e.Text()) {
-		return assert.Fail(e.t, "selection does not equal: "+expected, msgAndArgs...)
+	actual := e.Text()
+	if expected != actual {
+		return fail(e.t, "selection does not equal expected", []kv{
+			{"actual", fmt.Sprintf("%q", actual)},
+			{"expected", fmt.Sprintf("%q", expected)},
+			{"element", outerHTML(e.selection)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1167,8 +1229,12 @@ func (e Element) Equals(expected string, msgAndArgs ...any) bool {
 func (e Element) NotEquals(expected string, msgAndArgs ...any) bool {
 	e.t.Helper()
 
-	if expected == strings.TrimSpace(e.Text()) {
-		return assert.Fail(e.t, "selection does equal: "+expected+", should not", msgAndArgs...)
+	actual := e.Text()
+	if expected == actual {
+		return fail(e.t, "selection equals but should not", []kv{
+			{"actual", fmt.Sprintf("%q", actual)},
+			{"element", outerHTML(e.selection)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1186,7 +1252,9 @@ func (e Element) Is(elemType string, msgAndArgs ...any) bool {
 	}
 
 	if e.selection.Length() == 0 {
-		return assert.Fail(e.t, fmt.Sprintf("element %s not found", elemType), msgAndArgs...)
+		return fail(e.t, "element not found", []kv{
+			{"expected", elemType},
+		}, msgAndArgs...)
 	}
 
 	actualTag := goquery.NodeName(e.selection)
@@ -1194,9 +1262,11 @@ func (e Element) Is(elemType string, msgAndArgs ...any) bool {
 		return true
 	}
 
-	return assert.Fail(e.t,
-		fmt.Sprintf("element is '%s', should be '%s'", actualTag, elemType),
-		msgAndArgs...)
+	return fail(e.t, "element tag mismatch", []kv{
+		{"actual", actualTag},
+		{"expected", elemType},
+		{"element", outerHTML(e.selection)},
+	}, msgAndArgs...)
 }
 
 func (e Element) AttrIs(attrName string, value string, msgAndArgs ...any) bool {
@@ -1210,7 +1280,12 @@ func (e Element) AttrIs(attrName string, value string, msgAndArgs ...any) bool {
 		return true
 	}
 
-	return assert.Fail(e.t, "selection does not contain attribute: "+attrName+"="+value, msgAndArgs...)
+	return fail(e.t, "attribute value mismatch", []kv{
+		{"attribute", attrName},
+		{"actual", fmt.Sprintf("%q", e.selection.AttrOr(attrName, ""))},
+		{"expected", fmt.Sprintf("%q", value)},
+		{"element", outerHTML(e.selection)},
+	}, msgAndArgs...)
 }
 
 type Table struct {
@@ -1233,7 +1308,10 @@ func (p Page) Table(idOrCaption string) Table {
 	}
 
 	p.t.Helper()
-	assert.Fail(p.t, "no unique table found with id, testid, or caption: "+idOrCaption)
+	fail(p.t, "no unique table found", []kv{
+		{"selector", idOrCaption},
+		{"tables", formatList(collectTableIdentifiers(p.document))},
+	})
 
 	return Table{t: p.t, table: nil}
 }
@@ -1242,7 +1320,7 @@ func (t Table) Exists(msgAndArgs ...any) bool {
 	t.t.Helper()
 
 	if t.table == nil || t.table.Length() == 0 {
-		return assert.Fail(t.t, "table does not exist", msgAndArgs...)
+		return fail(t.t, "table does not exist", nil, msgAndArgs...)
 	}
 
 	return true
@@ -1262,7 +1340,7 @@ func (t Table) Empty(msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(t.t, "table is not empty, should not be", msgAndArgs...)
+	return fail(t.t, "table is not empty but should be", nil, msgAndArgs...)
 }
 
 func (t Table) NotEmpty(msgAndArgs ...any) bool {
@@ -1270,12 +1348,12 @@ func (t Table) NotEmpty(msgAndArgs ...any) bool {
 
 	if rows := t.table.Find("tr"); rows.Length() >= 0 {
 		if strings.TrimSpace(rows.Text()) == "" {
-			return assert.Fail(t.t, "table is empty, should not be", msgAndArgs...)
+			return fail(t.t, "table is empty but should not be", nil, msgAndArgs...)
 		}
 
 		td := rows.Find("td")
 		if _, ok := td.Attr("colspan"); ok && td.Length() == 1 {
-			return assert.Fail(t.t, "table is empty, should not be", msgAndArgs...)
+			return fail(t.t, "table is empty but should not be", nil, msgAndArgs...)
 		}
 	}
 
@@ -1301,14 +1379,20 @@ func (t Table) Headers(headers ...string) bool {
 	}
 
 	if headerCells.Length() != len(headers) {
-		return assert.Fail(t.t,
-			fmt.Sprintf("table has %d header cells, expected %d", headerCells.Length(), len(headers)))
+		return fail(t.t, "table header cell count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", headerCells.Length())},
+			{"expected", fmt.Sprintf("%d", len(headers))},
+		})
 	}
 
 	for i, expected := range headers {
 		actual := strings.TrimSpace(headerCells.Eq(i).Text())
 		if actual != expected {
-			return assert.Fail(t.t, fmt.Sprintf("header[%d] is %q, expected %q", i, actual, expected))
+			return fail(t.t, "table header mismatch", []kv{
+				{"index", fmt.Sprintf("%d", i)},
+				{"actual", fmt.Sprintf("%q", actual)},
+				{"expected", fmt.Sprintf("%q", expected)},
+			})
 		}
 	}
 
@@ -1331,7 +1415,10 @@ func (t Table) Rows(n int, msgAndArgs ...any) bool { //nolint:varnamelen
 	}
 
 	if rows.Length() != n {
-		return assert.Fail(t.t, fmt.Sprintf("table has %d rows, expected %d", rows.Length(), n), msgAndArgs...)
+		return fail(t.t, "table row count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", rows.Length())},
+			{"expected", fmt.Sprintf("%d", n)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1353,7 +1440,10 @@ func (t Table) Cols(n int, msgAndArgs ...any) bool { //nolint:varnamelen
 	}
 
 	if cells.Length() != n {
-		return assert.Fail(t.t, fmt.Sprintf("table has %d columns, expected %d", cells.Length(), n), msgAndArgs...)
+		return fail(t.t, "table column count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", cells.Length())},
+			{"expected", fmt.Sprintf("%d", n)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -1455,6 +1545,133 @@ func (r Row) Col(col int) Element {
 // func (pg *Pagination) HasTotalPages(n int) bool {
 // 	panic("not implemented")
 // }
+
+// outerHTML renders the matched nodes' outer HTML, truncated for log output.
+// Returns "<no match>" for an empty selection so failures stay self-explanatory.
+func outerHTML(s *goquery.Selection) string {
+	if s == nil || s.Length() == 0 {
+		return "<no match>"
+	}
+
+	var b strings.Builder
+
+	s.Each(func(_ int, sel *goquery.Selection) {
+		_ = html.Render(&b, sel.Nodes[0])
+	})
+
+	return truncate(b.String(), 300)
+}
+
+// collectAttrValues returns the non-empty values of attr from every node
+// matching selector. Used to list present testids / data-cy in not-found output.
+func collectAttrValues(doc *goquery.Document, selector, attr string) []string {
+	var out []string
+
+	doc.Find(selector).Each(func(_ int, s *goquery.Selection) {
+		if v, ok := s.Attr(attr); ok && v != "" {
+			out = append(out, v)
+		}
+	})
+
+	return out
+}
+
+// formIdentifier returns the most useful identifier for a form: name, id,
+// data-testid, data-cy, action, or "<unnamed>".
+func formIdentifier(s *goquery.Selection) string {
+	for _, attr := range []string{"name", "id", "data-testid", "data-cy"} {
+		if v, ok := s.Attr(attr); ok && v != "" {
+			return v
+		}
+	}
+
+	if a, ok := s.Attr("action"); ok && a != "" {
+		return a
+	}
+
+	return "<unnamed>"
+}
+
+// collectFormIdentifiers lists every form on the page by identifier.
+func collectFormIdentifiers(doc *goquery.Document) []string {
+	var out []string
+
+	doc.Find("form").Each(func(_ int, s *goquery.Selection) {
+		out = append(out, formIdentifier(s))
+	})
+
+	return out
+}
+
+// collectFieldNames lists the [name] of every form field within the selection.
+func collectFieldNames(sel *goquery.Selection) []string {
+	var out []string
+
+	sel.Find("input[name], textarea[name], select[name], button[name]").Each(func(_ int, s *goquery.Selection) {
+		if v, ok := s.Attr("name"); ok && v != "" {
+			out = append(out, v)
+		}
+	})
+
+	return out
+}
+
+// tableIdentifier returns the most useful identifier for a table: id,
+// data-testid, data-cy, caption, or "<unnamed>".
+func tableIdentifier(s *goquery.Selection) string {
+	for _, attr := range []string{"id", "data-testid", "data-cy"} {
+		if v, ok := s.Attr(attr); ok && v != "" {
+			return v
+		}
+	}
+
+	if c := strings.TrimSpace(s.Find("caption").Text()); c != "" {
+		return c
+	}
+
+	return "<unnamed>"
+}
+
+// collectTableIdentifiers lists every table on the page by identifier.
+func collectTableIdentifiers(doc *goquery.Document) []string {
+	var out []string
+
+	doc.Find("table").Each(func(_ int, s *goquery.Selection) {
+		out = append(out, tableIdentifier(s))
+	})
+
+	return out
+}
+
+// describeControl renders a button/input as a short "<tag type=t name=n>" token.
+func describeControl(s *goquery.Selection) string {
+	tag := strings.ToLower(goquery.NodeName(s))
+	name, _ := s.Attr("name")
+	typ, _ := s.Attr("type")
+
+	switch {
+	case typ != "" && name != "":
+		return fmt.Sprintf("<%s type=%s name=%s>", tag, typ, name)
+	case typ != "":
+		return fmt.Sprintf("<%s type=%s>", tag, typ)
+	case name != "":
+		return fmt.Sprintf("<%s name=%s>", tag, name)
+	default:
+		return fmt.Sprintf("<%s>", tag)
+	}
+}
+
+// collectButtons lists every button/input within the selection, for "found:"
+// output when a form lacks a submit button.
+func collectButtons(sel *goquery.Selection) []string {
+	var out []string
+
+	sel.Find("button, input").Each(func(_ int, s *goquery.Selection) {
+		out = append(out, describeControl(s))
+	})
+
+	return out
+}
 
 func assertHTMLIsValid(t *testing.T, htmlBody *bytes.Buffer) {
 	t.Helper()

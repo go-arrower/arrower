@@ -30,14 +30,19 @@ func (r response) Contains(text string, msgAndArgs ...any) bool {
 		return true
 	}
 
-	return assert.Fail(r.t, "response does not contain: "+text, msgAndArgs...)
+	return fail(r.t, "response does not contain expected text", []kv{
+		{"expected", fmt.Sprintf("%q", text)},
+		{"body", truncate(r.httpResp.String(), 200)},
+	}, msgAndArgs...)
 }
 
 func (r response) NotContains(text string, msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if strings.Contains(r.httpResp.String(), text) {
-		return assert.Fail(r.t, "response contains: "+text+", should not", msgAndArgs...)
+		return fail(r.t, "response contains text but should not", []kv{
+			{"text", fmt.Sprintf("%q", text)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -47,9 +52,10 @@ func (r response) StatusCode(code int, msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != code {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: %d", r.httpResp.StatusCode, code),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", fmt.Sprintf("%d (%s)", code, http.StatusText(code))},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -59,9 +65,10 @@ func (r response) IsOK(msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != http.StatusOK {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: 200 (OK)", r.httpResp.StatusCode),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", "200 (OK)"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -71,9 +78,10 @@ func (r response) IsCreated(msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != http.StatusCreated {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: 201 (Created)", r.httpResp.StatusCode),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", "201 (Created)"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -83,9 +91,10 @@ func (r response) IsNotFound(msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != http.StatusNotFound {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: 404 (Not Found)", r.httpResp.StatusCode),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", "404 (Not Found)"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -95,9 +104,10 @@ func (r response) IsUnauthorized(msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != http.StatusUnauthorized {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: 401 (Unauthorized)", r.httpResp.StatusCode),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", "401 (Unauthorized)"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -107,9 +117,10 @@ func (r response) IsForbidden(msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.StatusCode != http.StatusForbidden {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has status code: %d, should be: 403 (Forbidden)", r.httpResp.StatusCode),
-			msgAndArgs...)
+		return fail(r.t, "status code mismatch", []kv{
+			{"actual", fmt.Sprintf("%d (%s)", r.httpResp.StatusCode, http.StatusText(r.httpResp.StatusCode))},
+			{"expected", "403 (Forbidden)"},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -127,7 +138,10 @@ func (r response) HasCookie(name string, msgAndArgs ...any) bool {
 		}
 	}
 
-	return assert.Fail(r.t, "response does not have cookie: "+name, msgAndArgs...)
+	return fail(r.t, "response does not have cookie", []kv{
+		{"cookie", name},
+		{"cookies", formatList(cookieNames(cookies))},
+	}, msgAndArgs...)
 }
 
 func (r response) HasCookies(names []string, msgAndArgs ...any) bool {
@@ -137,7 +151,9 @@ func (r response) HasCookies(names []string, msgAndArgs ...any) bool {
 	assert.NoError(r.t, err, "failed to get cookies from client jar")
 
 	if len(cookies) == 0 && len(names) > 0 {
-		return assert.Fail(r.t, "response does not have any cookies", msgAndArgs...)
+		return fail(r.t, "response has no cookies", []kv{
+			{"expected", fmt.Sprintf("%v", names)},
+		}, msgAndArgs...)
 	}
 
 	var notFound []string
@@ -158,7 +174,9 @@ func (r response) HasCookies(names []string, msgAndArgs ...any) bool {
 	}
 
 	if len(notFound) > 0 {
-		return assert.Fail(r.t, fmt.Sprintf("response does not have cookies: %v", notFound), msgAndArgs...)
+		return fail(r.t, "response is missing cookies", []kv{
+			{"missing", fmt.Sprintf("%v", notFound)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -171,9 +189,10 @@ func (r response) HasCookieTotal(total int, msgAndArgs ...any) bool {
 	assert.NoError(r.t, err, "failed to get cookies from client jar")
 
 	if len(cookies) != total {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has %d cookies, should have %d", len(cookies), total),
-			msgAndArgs...)
+		return fail(r.t, "cookie count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", len(cookies))},
+			{"expected", fmt.Sprintf("%d", total)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -183,9 +202,10 @@ func (r response) IsPath(path string, msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.Response.Request.URL.Path != path {
-		return assert.Fail(r.t,
-			fmt.Sprintf("path is: %s, should be: %s", fmtEmpty(r.httpResp.Response.Request.URL.Path), path),
-			msgAndArgs...)
+		return fail(r.t, "path mismatch", []kv{
+			{"actual", fmtEmpty(r.httpResp.Response.Request.URL.Path)},
+			{"expected", path},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -199,9 +219,10 @@ func (r response) ContentType(ctype string, msgAndArgs ...any) bool {
 	r.t.Helper()
 
 	if r.httpResp.Header.Get("Content-Type") != ctype {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has content type: %s, should be: %s", r.httpResp.Header.Get("Content-Type"), ctype),
-			msgAndArgs...)
+		return fail(r.t, "content type mismatch", []kv{
+			{"actual", fmtEmpty(r.httpResp.Header.Get("Content-Type"))},
+			{"expected", ctype},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -223,7 +244,10 @@ func (h Header) Exists(msgAndArgs ...any) bool {
 	_, exists := h.resp.httpResp.Header[key]
 
 	if !exists {
-		return assert.Fail(h.resp.t, "header does not exist: "+h.key, msgAndArgs...)
+		return fail(h.resp.t, "header does not exist", []kv{
+			{"header", h.key},
+			{"headers", formatList(headerKeys(h.resp.httpResp.Header))},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -233,7 +257,9 @@ func (h Header) NotEmpty(msgAndArgs ...any) bool {
 	h.resp.t.Helper()
 
 	if h.resp.httpResp.Header.Get(h.key) == "" {
-		return assert.Fail(h.resp.t, fmt.Sprintf("header %s is empty, should not be", h.key), msgAndArgs...)
+		return fail(h.resp.t, "header is empty but should not be", []kv{
+			{"header", h.key},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -247,9 +273,11 @@ func (h Header) Is(value string, msgAndArgs ...any) bool {
 	actual := h.resp.httpResp.Header.Get(h.key)
 
 	if actual != value || !exists {
-		return assert.Fail(h.resp.t,
-			fmt.Sprintf("header is: %s, should be: %s", fmtEmpty(actual), fmtEmpty(value)),
-			msgAndArgs...)
+		return fail(h.resp.t, "header value mismatch", []kv{
+			{"header", h.key},
+			{"actual", fmtEmpty(actual)},
+			{"expected", fmtEmpty(value)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -259,7 +287,11 @@ func (h Header) Contains(value string, msgAndArgs ...any) bool {
 	h.resp.t.Helper()
 
 	if !strings.Contains(h.resp.httpResp.Header.Get(h.key), value) {
-		return assert.Fail(h.resp.t, "header does not contain: "+value+", should not", msgAndArgs...)
+		return fail(h.resp.t, "header does not contain expected value", []kv{
+			{"header", h.key},
+			{"actual", fmtEmpty(h.resp.httpResp.Header.Get(h.key))},
+			{"expected", value},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -269,7 +301,10 @@ func (h Header) NotContains(value string, msgAndArgs ...any) bool {
 	h.resp.t.Helper()
 
 	if strings.Contains(h.resp.httpResp.Header.Get(h.key), value) {
-		return assert.Fail(h.resp.t, "header does contain: "+value+", should not", msgAndArgs...)
+		return fail(h.resp.t, "header contains value but should not", []kv{
+			{"header", h.key},
+			{"value", value},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -346,4 +381,79 @@ func fmtEmpty(s string) string {
 	}
 
 	return s
+}
+
+// kv is a label/value pair rendered by fail for structured assertion output.
+type kv struct {
+	label string
+	value string
+}
+
+// fail reports an assertion failure as a structured, multi-line message:
+//
+//	selection does not equal expected
+//	    actual:    "Overview"
+//	    expected:  "Data Overview"
+//
+// headline describes the mismatch; pairs carry the values (actual/expected)
+// and context (selector/path/element/...). msgAndArgs is forwarded to testify.
+func fail(t *testing.T, headline string, pairs []kv, msgAndArgs ...any) bool {
+	t.Helper()
+
+	var b strings.Builder
+	b.WriteString(headline + "\n")
+
+	for _, p := range pairs {
+		b.WriteString(fmt.Sprintf("    %-12s %s\n", p.label+":", p.value))
+	}
+
+	return assert.Fail(t, b.String(), msgAndArgs...)
+}
+
+// truncate caps s to max bytes, appending "..." when truncated. Keeps failure
+// output readable when dumping large response bodies or HTML snippets.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+
+	return s[:max] + "..."
+}
+
+// formatList renders a string slice as ["a", "b"], or [] when empty. Used for
+// candidate lists in not-found failures so the developer sees the alternatives
+// present without opening the page in a browser.
+func formatList(items []string) string {
+	if len(items) == 0 {
+		return "[]"
+	}
+
+	quoted := make([]string, len(items))
+	for i, s := range items {
+		quoted[i] = fmt.Sprintf("%q", s)
+	}
+
+	return "[" + strings.Join(quoted, ", ") + "]"
+}
+
+// cookieNames collects the Name of every cookie, for "found:" candidate output.
+func cookieNames(cookies []*http.Cookie) []string {
+	out := make([]string, 0, len(cookies))
+
+	for i := range cookies {
+		out = append(out, cookies[i].Name)
+	}
+
+	return out
+}
+
+// headerKeys collects response header keys, for "found:" candidate output.
+func headerKeys(h http.Header) []string {
+	out := make([]string, 0, len(h))
+
+	for k := range h {
+		out = append(out, k)
+	}
+
+	return out
 }

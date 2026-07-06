@@ -179,6 +179,11 @@ func (s *Suite) Download(url string, opts ...DownloadOption) Download {
 }
 
 func connectToDatabaseOrNil(ctx context.Context, cfgFile string) *pgxpool.Pool {
+	// nil context means unit tests pass bare *testing.T, so t.Context() is nil
+	if ctx == nil {
+		return nil
+	}
+
 	if _, err := os.Stat(cfgFile); errors.Is(err, os.ErrNotExist) {
 		return nil
 	}

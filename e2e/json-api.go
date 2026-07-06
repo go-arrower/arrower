@@ -58,7 +58,9 @@ func (r Document) IsArray(msgAndArgs ...any) bool {
 
 	var arr []any
 	if err := json.Unmarshal(r.body, &arr); err != nil {
-		return assert.Fail(r.t, "response body is not a JSON array", msgAndArgs...)
+		return fail(r.t, "response body is not a JSON array", []kv{
+			{"body", truncate(string(r.body), 200)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -70,7 +72,9 @@ func (r Document) IsObject(msgAndArgs ...any) bool {
 
 	var obj map[string]any
 	if err := json.Unmarshal(r.body, &obj); err != nil {
-		return assert.Fail(r.t, "response body is not a JSON object", msgAndArgs...)
+		return fail(r.t, "response body is not a JSON object", []kv{
+			{"body", truncate(string(r.body), 200)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -83,7 +87,10 @@ func (r Document) HasField(path string, msgAndArgs ...any) bool {
 
 	_, ok := r.valueAtPath(path)
 	if !ok {
-		return assert.Fail(r.t, "response does not have field: "+path, msgAndArgs...)
+		return fail(r.t, "no field at path", []kv{
+			{"path", path},
+			{"keys", formatList(topLevelKeys(r.body))},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -96,7 +103,9 @@ func (r Document) NotHasField(path string, msgAndArgs ...any) bool {
 
 	_, ok := r.valueAtPath(path)
 	if ok {
-		return assert.Fail(r.t, "response has field: "+path+", should not", msgAndArgs...)
+		return fail(r.t, "field exists but should not", []kv{
+			{"path", path},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -110,13 +119,18 @@ func (r Document) FieldEquals(path string, expected any, msgAndArgs ...any) bool
 
 	actual, ok := r.valueAtPath(path)
 	if !ok {
-		return assert.Fail(r.t, "field not found at path: "+path, msgAndArgs...)
+		return fail(r.t, "no field at path", []kv{
+			{"path", path},
+			{"keys", formatList(topLevelKeys(r.body))},
+		}, msgAndArgs...)
 	}
 
 	if !jsonEqual(actual, expected) {
-		return assert.Fail(r.t,
-			fmt.Sprintf("field at %s is: %v, should be: %v", path, actual, expected),
-			msgAndArgs...)
+		return fail(r.t, "field value mismatch", []kv{
+			{"path", path},
+			{"actual", fmt.Sprintf("%v", actual)},
+			{"expected", fmt.Sprintf("%v", expected)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -128,18 +142,26 @@ func (r Document) FieldContains(path string, text string, msgAndArgs ...any) boo
 
 	actual, ok := r.valueAtPath(path)
 	if !ok {
-		return assert.Fail(r.t, "field not found at path: "+path, msgAndArgs...)
+		return fail(r.t, "no field at path", []kv{
+			{"path", path},
+			{"keys", formatList(topLevelKeys(r.body))},
+		}, msgAndArgs...)
 	}
 
 	str, isString := actual.(string)
 	if !isString {
-		return assert.Fail(r.t, fmt.Sprintf("field at %s is not a string", path), msgAndArgs...)
+		return fail(r.t, "field is not a string", []kv{
+			{"path", path},
+			{"actual", fmt.Sprintf("%v (%T)", actual, actual)},
+		}, msgAndArgs...)
 	}
 
 	if !strings.Contains(str, text) {
-		return assert.Fail(r.t,
-			fmt.Sprintf("field at %s does not contain: %s", path, text),
-			msgAndArgs...)
+		return fail(r.t, "field does not contain expected text", []kv{
+			{"path", path},
+			{"actual", fmt.Sprintf("%q", str)},
+			{"expected", fmt.Sprintf("%q", text)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -151,18 +173,26 @@ func (r Document) FieldLen(path string, expected int, msgAndArgs ...any) bool {
 
 	actual, ok := r.valueAtPath(path)
 	if !ok {
-		return assert.Fail(r.t, "field not found at path: "+path, msgAndArgs...)
+		return fail(r.t, "no field at path", []kv{
+			{"path", path},
+			{"keys", formatList(topLevelKeys(r.body))},
+		}, msgAndArgs...)
 	}
 
 	count, ok := countElements(actual)
 	if !ok {
-		return assert.Fail(r.t, fmt.Sprintf("field at %s is not an array or object", path), msgAndArgs...)
+		return fail(r.t, "field is not an array or object", []kv{
+			{"path", path},
+			{"actual", fmt.Sprintf("%T", actual)},
+		}, msgAndArgs...)
 	}
 
 	if count != expected {
-		return assert.Fail(r.t,
-			fmt.Sprintf("field at %s has %d elements, should have %d", path, count, expected),
-			msgAndArgs...)
+		return fail(r.t, "field length mismatch", []kv{
+			{"path", path},
+			{"actual", fmt.Sprintf("%d", count)},
+			{"expected", fmt.Sprintf("%d", expected)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -175,13 +205,16 @@ func (r Document) Total(expected int, msgAndArgs ...any) bool {
 
 	count, ok := r.countTopLevel()
 	if !ok {
-		return assert.Fail(r.t, "response body is not a JSON array or object", msgAndArgs...)
+		return fail(r.t, "response body is not a JSON array or object", []kv{
+			{"body", truncate(string(r.body), 200)},
+		}, msgAndArgs...)
 	}
 
 	if count != expected {
-		return assert.Fail(r.t,
-			fmt.Sprintf("response has %d elements, should have %d", count, expected),
-			msgAndArgs...)
+		return fail(r.t, "top-level element count mismatch", []kv{
+			{"actual", fmt.Sprintf("%d", count)},
+			{"expected", fmt.Sprintf("%d", expected)},
+		}, msgAndArgs...)
 	}
 
 	return true
@@ -263,6 +296,27 @@ func countElements(v any) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// topLevelKeys returns the keys of a top-level JSON object, for "found:"
+// candidate output when a field path is not found. Returns nil for non-objects.
+func topLevelKeys(body json.RawMessage) []string {
+	var data any
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil
+	}
+
+	obj, ok := data.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	out := make([]string, 0, len(obj))
+	for k := range obj {
+		out = append(out, k)
+	}
+
+	return out
 }
 
 // jsonEqual compares two values, handling JSON number coercion.
