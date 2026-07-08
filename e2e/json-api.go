@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -59,7 +60,7 @@ func (r Document) IsArray(msgAndArgs ...any) bool {
 	var arr []any
 	if err := json.Unmarshal(r.body, &arr); err != nil {
 		return fail(r.t, "response body is not a JSON array", []kv{
-			{"body", truncate(string(r.body), 200)},
+			{"body", truncate(string(r.body), bodySnippetLen)},
 		}, msgAndArgs...)
 	}
 
@@ -73,7 +74,7 @@ func (r Document) IsObject(msgAndArgs ...any) bool {
 	var obj map[string]any
 	if err := json.Unmarshal(r.body, &obj); err != nil {
 		return fail(r.t, "response body is not a JSON object", []kv{
-			{"body", truncate(string(r.body), 200)},
+			{"body", truncate(string(r.body), bodySnippetLen)},
 		}, msgAndArgs...)
 	}
 
@@ -190,8 +191,8 @@ func (r Document) FieldLen(path string, expected int, msgAndArgs ...any) bool {
 	if count != expected {
 		return fail(r.t, "field length mismatch", []kv{
 			{"path", path},
-			{"actual", fmt.Sprintf("%d", count)},
-			{"expected", fmt.Sprintf("%d", expected)},
+			{"actual", strconv.Itoa(count)},
+			{"expected", strconv.Itoa(expected)},
 		}, msgAndArgs...)
 	}
 
@@ -206,14 +207,14 @@ func (r Document) Total(expected int, msgAndArgs ...any) bool {
 	count, ok := r.countTopLevel()
 	if !ok {
 		return fail(r.t, "response body is not a JSON array or object", []kv{
-			{"body", truncate(string(r.body), 200)},
+			{"body", truncate(string(r.body), bodySnippetLen)},
 		}, msgAndArgs...)
 	}
 
 	if count != expected {
 		return fail(r.t, "top-level element count mismatch", []kv{
-			{"actual", fmt.Sprintf("%d", count)},
-			{"expected", fmt.Sprintf("%d", expected)},
+			{"actual", strconv.Itoa(count)},
+			{"expected", strconv.Itoa(expected)},
 		}, msgAndArgs...)
 	}
 
@@ -315,6 +316,8 @@ func topLevelKeys(body json.RawMessage) []string {
 	for k := range obj {
 		out = append(out, k)
 	}
+
+	sort.Strings(out)
 
 	return out
 }

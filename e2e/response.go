@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/textproto"
+	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -32,7 +34,7 @@ func (r response) Contains(text string, msgAndArgs ...any) bool {
 
 	return fail(r.t, "response does not contain expected text", []kv{
 		{"expected", fmt.Sprintf("%q", text)},
-		{"body", truncate(r.httpResp.String(), 200)},
+		{"body", truncate(r.httpResp.String(), bodySnippetLen)},
 	}, msgAndArgs...)
 }
 
@@ -190,8 +192,8 @@ func (r response) HasCookieTotal(total int, msgAndArgs ...any) bool {
 
 	if len(cookies) != total {
 		return fail(r.t, "cookie count mismatch", []kv{
-			{"actual", fmt.Sprintf("%d", len(cookies))},
-			{"expected", fmt.Sprintf("%d", total)},
+			{"actual", strconv.Itoa(len(cookies))},
+			{"expected", strconv.Itoa(total)},
 		}, msgAndArgs...)
 	}
 
@@ -389,6 +391,13 @@ type kv struct {
 	value string
 }
 
+// labelWidth is the column width for kv labels in failure/warning output. Set
+// above the longest label ("data-testid:") for headroom.
+const labelWidth = 14
+
+// bodySnippetLen caps how many runes of a response body are dumped in a failure.
+const bodySnippetLen = 200
+
 // fail reports an assertion failure as a structured, multi-line message:
 //
 //	selection does not equal expected
@@ -400,24 +409,41 @@ type kv struct {
 func fail(t *testing.T, headline string, pairs []kv, msgAndArgs ...any) bool {
 	t.Helper()
 
-	var b strings.Builder
-	b.WriteString(headline + "\n")
+	var buf strings.Builder
+	buf.WriteString(headline + "\n")
 
 	for _, p := range pairs {
-		b.WriteString(fmt.Sprintf("    %-12s %s\n", p.label+":", p.value))
+		fmt.Fprintf(&buf, "    %-*s %s\n", labelWidth, p.label+":", p.value)
 	}
 
-	return assert.Fail(t, b.String(), msgAndArgs...)
+	return assert.Fail(t, buf.String(), msgAndArgs...)
 }
 
-// truncate caps s to max bytes, appending "..." when truncated. Keeps failure
-// output readable when dumping large response bodies or HTML snippets.
-func truncate(s string, max int) string {
-	if len(s) <= max {
+// warn logs a structured warning (the test continues) in the same format as
+// fail. Used for non-fatal issues such as a duplicate testid.
+func warn(t *testing.T, headline string, pairs []kv) {
+	t.Helper()
+
+	var buf strings.Builder
+	buf.WriteString(headline + "\n")
+
+	for _, p := range pairs {
+		fmt.Fprintf(&buf, "    %-*s %s\n", labelWidth, p.label+":", p.value)
+	}
+
+	t.Log(buf.String())
+}
+
+// truncate caps s to limit runes, appending "..." when truncated. Rune-based so
+// it never splits a multibyte UTF-8 sequence. Keeps failure output readable
+// when dumping large response bodies or HTML snippets.
+func truncate(s string, limit int) string {
+	r := []rune(s)
+	if len(r) <= limit {
 		return s
 	}
 
-	return s[:max] + "..."
+	return string(r[:limit]) + "..."
 }
 
 // formatList renders a string slice as ["a", "b"], or [] when empty. Used for
@@ -436,7 +462,7 @@ func formatList(items []string) string {
 	return "[" + strings.Join(quoted, ", ") + "]"
 }
 
-// cookieNames collects the Name of every cookie, for "found:" candidate output.
+// cookieNames collects the Name of every cookie, sorted for deterministic output.
 func cookieNames(cookies []*http.Cookie) []string {
 	out := make([]string, 0, len(cookies))
 
@@ -444,10 +470,12 @@ func cookieNames(cookies []*http.Cookie) []string {
 		out = append(out, cookies[i].Name)
 	}
 
+	sort.Strings(out)
+
 	return out
 }
 
-// headerKeys collects response header keys, for "found:" candidate output.
+// headerKeys collects response header keys, sorted for deterministic output.
 func headerKeys(h http.Header) []string {
 	out := make([]string, 0, len(h))
 
@@ -455,5 +483,22 @@ func headerKeys(h http.Header) []string {
 		out = append(out, k)
 	}
 
+	sort.Strings(out)
+
 	return out
+}
+
+// pageContext returns URL + status pairs for the response an element, form, or
+// table came from, so failures name the page under test (catches the
+// "wrong page loaded" trap). Returns nil when there is no response, e.g. an
+// element built straight from an HTML string in a unit test.
+func pageContext(resp *req.Response) []kv {
+	if resp == nil || resp.Response == nil || resp.Response.Request == nil {
+		return nil
+	}
+
+	return []kv{
+		{"page", resp.Response.Request.URL.String()},
+		{"status", fmt.Sprintf("%d (%s)", resp.StatusCode, http.StatusText(resp.StatusCode))},
+	}
 }
