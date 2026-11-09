@@ -149,7 +149,7 @@ var (
 	}
 
 	defaultPGRunOptions = &dockertest.RunOptions{ //nolint:gochecknoglobals,exhaustruct // only set required configuration
-		Repository: "ghcr.io/go-arrower/postgres",
+		Repository: "postgres",
 		Tag:        "latest",
 		Env: []string{
 			"POSTGRES_USER=" + defaultPGConf.User,

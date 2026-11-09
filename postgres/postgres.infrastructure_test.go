@@ -17,7 +17,7 @@ import (
 )
 
 var runOptions = &dockertest.RunOptions{
-	Repository: "ghcr.io/go-arrower/postgres",
+	Repository: "postgres",
 	Tag:        "latest",
 	Env: []string{
 		"POSTGRES_PASSWORD=secret",
