@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -214,6 +215,10 @@ func TestWatchFolders(t *testing.T) {
 
 		dir1 := t.TempDir()
 		dir2 := t.TempDir()
+		dir1, err := filepath.EvalSymlinks(dir1)
+		assert.NoError(t, err)
+		dir2, err = filepath.EvalSymlinks(dir2)
+		assert.NoError(t, err)
 
 		wg.Add(1)
 		go func(wg *sync.WaitGroup) { //nolint:wsl_v5
@@ -224,30 +229,30 @@ func TestWatchFolders(t *testing.T) {
 			wg.Done()
 		}(&wg)
 
-		time.Sleep(10 * time.Millisecond) // wait until the goroutine has started WatchFolderss.
-
-		_, _ = os.Create(fmt.Sprintf("%s/%s", dir1, "file1.go"))
+		file1 := fmt.Sprintf("%s/%s", dir1, "file1.go")
+		var firstFile internal.File
+		assert.Eventually(t, func() bool {
+			_ = os.WriteFile(file1, []byte(time.Now().String()), 0o644) //nolint:gosec
+			select {
+			case firstFile = <-filesChanged:
+				return true
+			default:
+				return false
+			}
+		}, 3*time.Second, 50*time.Millisecond, "file1.go should be detected")
 
 		time.Sleep(350 * time.Millisecond) // wait for debounce interval to pass
 
-		_, _ = os.Create(fmt.Sprintf("%s/%s", dir2, "file2.go"))
-
-		const expected = 2
+		file2 := fmt.Sprintf("%s/%s", dir2, "file2.go")
+		_, err = os.Create(file2)
+		assert.NoError(t, err)
 
 		assert.Eventually(t, func() bool {
-			return len(filesChanged) == expected
-		}, time.Second, time.Millisecond*100, "expected to receive two file changes")
+			return len(filesChanged) > 0
+		}, time.Second, time.Millisecond*100, "file2.go should be detected")
 
-		// Verify both files were detected
-		detectedFiles := make(map[string]bool)
-
-		for range expected {
-			file := <-filesChanged
-			detectedFiles[string(file)] = true
-		}
-
-		assert.True(t, detectedFiles[dir1+"/file1.go"], "file1.go from dir1 should be detected")
-		assert.True(t, detectedFiles[dir2+"/file2.go"], "file2.go from dir2 should be detected")
+		assert.Equal(t, internal.File(file1), firstFile, "file1.go from dir1 should be detected")
+		assert.Equal(t, internal.File(file2), <-filesChanged, "file2.go from dir2 should be detected")
 
 		cancel()
 		wg.Wait()

@@ -3,13 +3,11 @@ package pages
 import (
 	"encoding/json"
 
-	"github.com/labstack/echo/v4"
-
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 )
 
-func PresentJobsExamplePayloads(queue, jobType string, payloads [][]byte) echo.Map {
+func PresentJobsExamplePayloads(queue, jobType string, payloads [][]byte) map[string]any {
 	prettyPayloads := make([]string, len(payloads))
 
 	for i, p := range payloads {
@@ -23,7 +21,7 @@ func PresentJobsExamplePayloads(queue, jobType string, payloads [][]byte) echo.M
 		queue = string(jobs.DefaultQueueName)
 	}
 
-	return echo.Map{
+	return map[string]any{
 		"Queue":    queue,
 		"JobType":  jobType,
 		"Payloads": prettyPayloads,

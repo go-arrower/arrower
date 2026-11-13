@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/arepo"
 )
@@ -23,8 +23,8 @@ type TestCasesController struct {
 // showTestCase is a fat controller rendering a specific testcase.
 // If no testcase is selected it shows the first one.
 // If no run of a testcase is selected it shows the most recent one.
-func (cont TestCasesController) showTestCase() func(c echo.Context) error { //nolint:funlen,gocognit,gocyclo,cyclop,lll // fat controller
-	return func(c echo.Context) error {
+func (cont TestCasesController) showTestCase() func(c *echo.Context) error { //nolint:funlen,gocognit,gocyclo,cyclop,lll // fat controller
+	return func(c *echo.Context) error {
 		tcName := strings.TrimSpace(c.QueryParam("tc"))
 		vParam := strings.TrimSpace(c.QueryParam("run"))
 
@@ -97,7 +97,7 @@ func (cont TestCasesController) showTestCase() func(c echo.Context) error { //no
 			curRunName = runNames[0]
 		}
 
-		return c.Render(http.StatusOK, "testcases", echo.Map{
+		return c.Render(http.StatusOK, "testcases", map[string]any{
 			"TestcaseNames":       tcNames,
 			"CurrentTestcaseName": test.Name,
 			"RunNames":            runNames,
@@ -111,7 +111,7 @@ func (cont TestCasesController) showTestCase() func(c echo.Context) error { //no
 
 // storeTestcase is a fat controller receiving new runs.
 // It implements an upsert semantic: creating a new testcase whenever it first sees a new run for it.
-func (cont TestCasesController) storeTestcase() func(c echo.Context) error {
+func (cont TestCasesController) storeTestcase() func(c *echo.Context) error {
 	type testRunBody struct {
 		TestName string
 
@@ -121,7 +121,7 @@ func (cont TestCasesController) storeTestcase() func(c echo.Context) error {
 		HTML     template.HTML
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		var testRun testRunBody
 
 		err := c.Bind(&testRun)
@@ -153,7 +153,7 @@ func (cont TestCasesController) storeTestcase() func(c echo.Context) error {
 }
 
 // storeAssertion stores individual assertions for an existing testcase and run.
-func (cont TestCasesController) storeAssertion() func(c echo.Context) error {
+func (cont TestCasesController) storeAssertion() func(c *echo.Context) error {
 	type testAssertion struct {
 		TestName string
 		RunName  string
@@ -163,7 +163,7 @@ func (cont TestCasesController) storeAssertion() func(c echo.Context) error {
 		Pass bool
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		var ass testAssertion
 
 		err := c.Bind(&ass)

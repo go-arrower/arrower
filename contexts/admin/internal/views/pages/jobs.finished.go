@@ -3,13 +3,11 @@ package pages
 import (
 	"encoding/json"
 
-	"github.com/labstack/echo/v4"
-
 	"github.com/go-arrower/arrower/contexts/admin/internal/application"
 	"github.com/go-arrower/arrower/contexts/admin/internal/domain/jobs"
 )
 
-func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) echo.Map {
+func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) map[string]any {
 	type finishedJob struct {
 		EnqueuedAtFmt string
 		FinishedAtFmt string
@@ -34,7 +32,7 @@ func NewFinishedJobs(jobs []jobs.Job, queues jobs.QueueNames) echo.Map {
 		fjobs[i].Queue = string(jobs[i].Queue)
 	}
 
-	return echo.Map{
+	return map[string]any{
 		"Jobs":   fjobs,
 		"Queues": queues,
 	}

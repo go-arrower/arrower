@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func NewSettingsController() *SettingsController {
@@ -12,8 +12,8 @@ func NewSettingsController() *SettingsController {
 
 type SettingsController struct{}
 
-func (ctrl *SettingsController) Index() func(c echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *SettingsController) Index() func(c *echo.Context) error {
+	return func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "settings.index", nil)
 	}
 }

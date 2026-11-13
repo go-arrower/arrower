@@ -3,7 +3,7 @@ package web_test
 import (
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/contexts/admin/internal/views"
 	"github.com/go-arrower/arrower/renderer"

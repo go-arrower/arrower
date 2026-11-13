@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -30,13 +31,19 @@ func TestNewEchoRenderer(t *testing.T) {
 
 		buf := bytes.Buffer{}
 		router := echo.New()
-		router.GET("/", func(c echo.Context) error { return c.NoContent(http.StatusOK) }).Name = "named-route"
+		router.AddRoute(echo.Route{
+			Method:  http.MethodGet,
+			Path:    "/",
+			Name:    "named-route",
+			Handler: func(c *echo.Context) error { return c.NoContent(http.StatusOK) },
+		})
 
 		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "", nil)
 		r, err := renderer.NewEchoRenderer(slog.New(slog.DiscardHandler), noop.NewTracerProvider(), router, testdata.FilesEcho, nil, true)
 		assert.NoError(t, err)
 
-		err = r.Render(&buf, "hello", nil, router.NewContext(req, nil))
+		context := router.NewContext(req, httptest.NewRecorder())
+		err = r.Render(context, &buf, "hello", nil)
 		assert.NoError(t, err)
 		assert.Contains(t, buf.String(), `<a href="/">Go to named route</a>`)
 	})

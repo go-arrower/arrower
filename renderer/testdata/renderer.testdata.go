@@ -12,7 +12,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 const (
@@ -177,7 +177,7 @@ var SingleNonDefaultLayout = fstest.MapFS{ // TODO remove?
 	"global.base.html":   {Data: []byte(BaseLayoutContent)},
 }
 
-func NewEchoContext(t *testing.T) echo.Context { // TODO rename to Test instead of new
+func NewEchoContext(t *testing.T) *echo.Context { // TODO rename to Test instead of new
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -186,7 +186,7 @@ func NewEchoContext(t *testing.T) echo.Context { // TODO rename to Test instead 
 	return echo.New().NewContext(req, rec)
 }
 
-func NewExampleContextEchoContext(t *testing.T) echo.Context { // TODO rename to Test instead of new
+func NewExampleContextEchoContext(t *testing.T) *echo.Context { // TODO rename to Test instead of new
 	t.Helper()
 
 	c := NewEchoContext(t)

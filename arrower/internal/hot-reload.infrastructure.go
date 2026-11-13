@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -11,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.opentelemetry.io/otel/trace/noop"
 	"golang.org/x/net/websocket"
 
@@ -31,7 +30,7 @@ const (
 
 func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 	router := echo.New()
-	router.Logger.SetOutput(io.Discard)
+	router.Logger = slog.New(slog.DiscardHandler)
 
 	logger := alog.New(
 		// alog.WithLevel(alog.LevelDebug),
@@ -60,7 +59,7 @@ func NewHotReloadServer(notify <-chan File) (*echo.Echo, error) {
 
 	cont := TestCasesController{repo: arepo.NewMemoryRepository[testcase, string](arepo.WithIDField("Name"))}
 	router.GET("/testcase", cont.showTestCase())
-	router.HEAD("/testcase", func(c echo.Context) error {
+	router.HEAD("/testcase", func(c *echo.Context) error {
 		return c.NoContent(http.StatusOK)
 	})
 	router.POST("/testcase", cont.storeTestcase())
@@ -115,7 +114,7 @@ func (l *browserSessions) notify(msg string) {
 	}
 }
 
-func HotReloadHandler(notify <-chan File) func(c echo.Context) error {
+func HotReloadHandler(notify <-chan File) func(c *echo.Context) error {
 	browsers := &browserSessions{
 		mu:              sync.Mutex{},
 		openConnections: map[string]browserTab{},
@@ -133,7 +132,7 @@ func HotReloadHandler(notify <-chan File) func(c echo.Context) error {
 
 	const idLength = 5
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		websocket.Handler(func(ws *websocket.Conn) {
 			defer ws.Close()
 

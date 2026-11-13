@@ -7,7 +7,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/contexts/admin/internal/views"
 )
@@ -15,53 +15,53 @@ import (
 func (c *AdminContext) registerAdminRoutes() {
 	c.shared.WebRouter.StaticFS("/static/admin/", echo.MustSubFS(views.PublicAssets, "static"))
 
-	c.shared.AdminRouter.GET("", func(c echo.Context) error {
+	addNamedRoute(c.shared.AdminRouter, "GET", "", "admin.home", func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "admin.home", nil)
-	}).Name = "admin.home"
+	})
 
-	c.shared.AdminRouter.GET("/", func(c echo.Context) error {
+	c.shared.AdminRouter.GET("/", func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "admin.home", nil)
 	})
 
 	jobs := c.shared.AdminRouter.Group("/jobs")
-	jobs.GET("", c.jobsController.Index()).Name = "admin.jobs"
+	addNamedRoute(jobs, "GET", "", "admin.jobs", c.jobsController.Index())
 	jobs.GET("/", c.jobsController.Index())
 	jobs.GET("/data/pending", c.jobsController.PendingJobsPieChartData())
 	jobs.GET("/data/processed/:interval", c.jobsController.ProcessedJobsLineChartData())
-	jobs.GET("/:queue", c.jobsController.ShowQueue()).Name = "admin.jobs.queue"
-	jobs.GET("/:queue/delete/:job_id", c.jobsController.DeleteJob()).Name = "admin.jobs.delete"
-	jobs.GET("/:queue/reschedule/:job_id", c.jobsController.RescheduleJob()).Name = "admin.jobs.reschedule"
-	jobs.GET("/schedule", c.jobsController.CreateJobs()).Name = "admin.jobs.schedule"
-	jobs.POST("/schedule", c.jobsController.ScheduleJobs()).Name = "admin.jobs.new"
-	jobs.GET("/jobTypes", c.jobsController.ShowJobTypes()).Name = "admin.jobs.jobTypes"
-	jobs.GET("/payloads", c.jobsController.PayloadExamples()).Name = "admin.jobs.payloads"
-	jobs.GET("/workers", c.jobsController.ListWorkers()).Name = "admin.jobs.workers"
-	jobs.GET("/maintenance", c.jobsController.ShowMaintenance()).Name = "admin.jobs.maintenance"
-	jobs.POST("/vacuum/:table", c.jobsController.VacuumJobTables()).Name = "admin.jobs.vacuum"
-	jobs.POST("/history", c.jobsController.DeleteHistory()).Name = "admin.jobs.history"
-	jobs.POST("/history/prune", c.jobsController.PruneHistory()).Name = "admin.jobs.history.prune"
-	jobs.GET("/history/size/", c.jobsController.EstimateHistorySize()).Name = "admin.jobs.history.size"
-	jobs.GET("/history/payload/size/", c.jobsController.EstimateHistoryPayloadSize()).Name = "admin.jobs.history.payload-size"
-	jobs.POST("/history/cron/", c.jobsController.UpdateCron()).Name = "admin.jobs.cron"
-	jobs.GET("/finished", c.jobsController.FinishedJobs()).Name = "admin.jobs.finished"
-	jobs.GET("/finished/total", c.jobsController.FinishedJobsTotal()).Name = "admin.jobs.finished_total"
-	jobs.GET("/job/:job_id", c.jobsController.JobShow()).Name = "admin.jobs.job.show"
+	addNamedRoute(jobs, "GET", "/:queue", "admin.jobs.queue", c.jobsController.ShowQueue())
+	addNamedRoute(jobs, "GET", "/:queue/delete/:job_id", "admin.jobs.delete", c.jobsController.DeleteJob())
+	addNamedRoute(jobs, "GET", "/:queue/reschedule/:job_id", "admin.jobs.reschedule", c.jobsController.RescheduleJob())
+	addNamedRoute(jobs, "GET", "/schedule", "admin.jobs.schedule", c.jobsController.CreateJobs())
+	addNamedRoute(jobs, "POST", "/schedule", "admin.jobs.new", c.jobsController.ScheduleJobs())
+	addNamedRoute(jobs, "GET", "/jobTypes", "admin.jobs.jobTypes", c.jobsController.ShowJobTypes())
+	addNamedRoute(jobs, "GET", "/payloads", "admin.jobs.payloads", c.jobsController.PayloadExamples())
+	addNamedRoute(jobs, "GET", "/workers", "admin.jobs.workers", c.jobsController.ListWorkers())
+	addNamedRoute(jobs, "GET", "/maintenance", "admin.jobs.maintenance", c.jobsController.ShowMaintenance())
+	addNamedRoute(jobs, "POST", "/vacuum/:table", "admin.jobs.vacuum", c.jobsController.VacuumJobTables())
+	addNamedRoute(jobs, "POST", "/history", "admin.jobs.history", c.jobsController.DeleteHistory())
+	addNamedRoute(jobs, "POST", "/history/prune", "admin.jobs.history.prune", c.jobsController.PruneHistory())
+	addNamedRoute(jobs, "GET", "/history/size/", "admin.jobs.history.size", c.jobsController.EstimateHistorySize())
+	addNamedRoute(jobs, "GET", "/history/payload/size/", "admin.jobs.history.payload-size", c.jobsController.EstimateHistoryPayloadSize())
+	addNamedRoute(jobs, "POST", "/history/cron/", "admin.jobs.cron", c.jobsController.UpdateCron())
+	addNamedRoute(jobs, "GET", "/finished", "admin.jobs.finished", c.jobsController.FinishedJobs())
+	addNamedRoute(jobs, "GET", "/finished/total", "admin.jobs.finished_total", c.jobsController.FinishedJobsTotal())
+	addNamedRoute(jobs, "GET", "/job/:job_id", "admin.jobs.job.show", c.jobsController.JobShow())
 
 	routes := c.shared.AdminRouter.Group("/routes")
-	routes.GET("", c.routesController.Index()).Name = "admin.routes"
-	routes.GET("/", c.routesController.Index()).Name = "admin.routes"
+	addNamedRoute(routes, "GET", "", "admin.routes", c.routesController.Index())
+	addNamedRoute(routes, "GET", "/", "admin.routes", c.routesController.Index())
 
 	settings := c.shared.AdminRouter.Group("/settings")
-	settings.GET("", c.settingsController.Index()).Name = "admin.settings"
-	settings.GET("/", c.settingsController.Index()).Name = "admin.settings"
+	addNamedRoute(settings, "GET", "", "admin.settings", c.settingsController.Index())
+	addNamedRoute(settings, "GET", "/", "admin.settings", c.settingsController.Index())
 
 	logs := c.shared.AdminRouter.Group("/logs")
-	logs.GET("", c.logsController.Index()).Name = "admin.logs"
+	addNamedRoute(logs, "GET", "", "admin.logs", c.logsController.Index())
 	logs.GET("/", c.logsController.Index())
-	logs.POST("/setting", c.logsController.Update()).Name = "admin.logs.setting"
+	addNamedRoute(logs, "POST", "/setting", "admin.logs.setting", c.logsController.Update())
 
 	//nolint:exhaustruct
-	c.shared.AdminRouter.GET("/charts/users", func(c echo.Context) error {
+	addNamedRoute(c.shared.AdminRouter, "GET", "/charts/users", "admin.charts.users", func(c *echo.Context) error {
 		chart := charts.NewGauge()
 		chart.SetGlobalOptions(
 			charts.WithTooltipOpts(opts.Tooltip{Formatter: "{b}: {c}"}),
@@ -89,6 +89,19 @@ func (c *AdminContext) registerAdminRoutes() {
 		page.SetPageTitle("Users Chart - Arrower")
 		page.SetLayout(components.PageNoneLayout)
 
-		return page.Render(c.Response().Writer)
-	}).Name = "admin.charts.users"
+		return page.Render(c.Response())
+	})
+}
+
+func addNamedRoute(group *echo.Group, method, path, name string, handler echo.HandlerFunc, middleware ...echo.MiddlewareFunc) {
+	_, err := group.AddRoute(echo.Route{
+		Method:      method,
+		Path:        path,
+		Name:        name,
+		Handler:     handler,
+		Middlewares: middleware,
+	})
+	if err != nil {
+		panic(err)
+	}
 }

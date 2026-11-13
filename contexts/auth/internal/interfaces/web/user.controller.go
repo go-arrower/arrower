@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/application"
@@ -45,13 +45,13 @@ type UserController struct {
 	knownDeviceKeyPairs []securecookie.Codec
 }
 
-func (ctrl *UserController) Login() func(echo.Context) error {
+func (ctrl *UserController) Login() func(*echo.Context) error {
 	type loginCredentials struct {
 		application.LoginUserRequest
 		RememberMe bool `form:"remember_me"`
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
@@ -136,7 +136,7 @@ func (ctrl *UserController) Login() func(echo.Context) error {
 	}
 }
 
-func setKnownDeviceCookie(knownDeviceKeyPairs []securecookie.Codec, c echo.Context) error {
+func setKnownDeviceCookie(knownDeviceKeyPairs []securecookie.Codec, c *echo.Context) error {
 	encoded, err := securecookie.EncodeMulti(
 		"arrower.auth.known_device",
 		map[string]bool{"known_device": true},
@@ -163,7 +163,7 @@ func setKnownDeviceCookie(knownDeviceKeyPairs []securecookie.Codec, c echo.Conte
 }
 
 // isUnknownDevice checks if this device is already known, as in has successfully logged in, and is unknown otherwise.
-func isUnknownDevice(knownDeviceKeyPairs []securecookie.Codec, c echo.Context) bool {
+func isUnknownDevice(knownDeviceKeyPairs []securecookie.Codec, c *echo.Context) bool {
 	for _, cookie := range c.Request().Cookies() {
 		if cookie.Name == "arrower.auth.known_device" {
 			val := map[string]bool{}
@@ -178,8 +178,8 @@ func isUnknownDevice(knownDeviceKeyPairs []securecookie.Codec, c echo.Context) b
 	return true
 }
 
-func (ctrl *UserController) Logout() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Logout() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		if !auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
@@ -209,10 +209,10 @@ func (ctrl *UserController) Logout() func(echo.Context) error {
 	}
 }
 
-func (ctrl *UserController) List() func(echo.Context) error {
+func (ctrl *UserController) List() func(*echo.Context) error {
 	const maxUsers = 50
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		query := c.QueryParam("q")
 		offset := c.QueryParam("offset")
 
@@ -228,7 +228,7 @@ func (ctrl *UserController) List() func(echo.Context) error {
 			c.Response().Header().Set("HX-Push-Url", "/admin/auth/users")
 		}
 
-		return c.Render(http.StatusOK, "users", echo.Map{
+		return c.Render(http.StatusOK, "users", map[string]any{
 			"Title":         "Alle Nutzer",
 			"users":         res.Users,
 			"currentUserID": auth.CurrentUserID(c.Request().Context()),
@@ -240,8 +240,8 @@ func (ctrl *UserController) List() func(echo.Context) error {
 	}
 }
 
-func (ctrl *UserController) Create() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Create() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
@@ -250,8 +250,8 @@ func (ctrl *UserController) Create() func(echo.Context) error {
 	}
 }
 
-func (ctrl *UserController) Register() func(echo.Context) error { //nolint:funlen
-	return func(c echo.Context) error {
+func (ctrl *UserController) Register() func(*echo.Context) error { //nolint:funlen
+	return func(c *echo.Context) error {
 		if auth.IsLoggedIn(c.Request().Context()) {
 			return c.Redirect(http.StatusSeeOther, "/")
 		}
@@ -321,8 +321,8 @@ func (ctrl *UserController) Register() func(echo.Context) error { //nolint:funle
 	}
 }
 
-func (ctrl *UserController) Verify() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Verify() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		userID := c.Param("userID")
 		t := c.Param("token")
 
@@ -343,8 +343,8 @@ func (ctrl *UserController) Verify() func(echo.Context) error {
 	}
 }
 
-func (ctrl *UserController) Show() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Show() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		userID := c.Param("userID")
 
 		res, err := ctrl.app.ShowUser.H(c.Request().Context(), application.ShowUserQuery{UserID: domain.ID(userID)})
@@ -352,15 +352,15 @@ func (ctrl *UserController) Show() func(echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "user.show", echo.Map{
+		return c.Render(http.StatusOK, "user.show", map[string]any{
 			"Title": "Nutzer Profil",
 			"User":  res.User,
 		})
 	}
 }
 
-func (ctrl *UserController) DestroySession(queries *models.Queries) func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) DestroySession(queries *models.Queries) func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		userID := c.Param("userID")
 		sessionID := c.Param("sessionKey")
 
@@ -373,14 +373,14 @@ func (ctrl *UserController) DestroySession(queries *models.Queries) func(echo.Co
 	}
 }
 
-func (ctrl *UserController) New() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) New() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "new", nil)
 	}
 }
 
-func (ctrl *UserController) Store() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Store() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		newUser := application.NewUserCommand{}
 
 		if err := c.Bind(&newUser); err != nil {
@@ -415,7 +415,7 @@ func (ctrl *UserController) Store() func(echo.Context) error {
 func (ctrl *UserController) BlockUser() {
 	true := true //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
-	ctrl.r.POST("/:userID/block", func(c echo.Context) error {
+	ctrl.r.POST("/:userID/block", func(c *echo.Context) error {
 		res, err := ctrl.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
 			UserID:     domain.ID(c.Param("userID")),
 			SetBlocked: &true,
@@ -424,7 +424,7 @@ func (ctrl *UserController) BlockUser() {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "users#user.blocked", echo.Map{
+		return c.Render(http.StatusOK, "users#user.blocked", map[string]any{
 			"ID":      uuid.MustParse(string(res.UserID)),
 			"Blocked": domain.BoolFlag(res.Blocked.At()),
 		})
@@ -434,7 +434,7 @@ func (ctrl *UserController) BlockUser() {
 func (ctrl *UserController) UnBlockUser() {
 	false := false //nolint:revive,predeclared // workaround to get pointer; upgrate to Go 1.26 and use new() TODO
 
-	ctrl.r.POST("/:userID/unblock", func(c echo.Context) error {
+	ctrl.r.POST("/:userID/unblock", func(c *echo.Context) error {
 		res, err := ctrl.app.BlockUser.H(c.Request().Context(), application.BlockUserRequest{
 			UserID:     domain.ID(c.Param("userID")),
 			SetBlocked: &false,
@@ -443,15 +443,15 @@ func (ctrl *UserController) UnBlockUser() {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "users#user.blocked", echo.Map{
+		return c.Render(http.StatusOK, "users#user.blocked", map[string]any{
 			"ID":      uuid.MustParse(string(res.UserID)),
 			"Blocked": domain.BoolFlag(res.Blocked.At()),
 		})
 	})
 }
 
-func (ctrl *UserController) Profile() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *UserController) Profile() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "profile", nil)
 	}
 }

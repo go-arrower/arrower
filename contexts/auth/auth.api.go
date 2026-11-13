@@ -40,7 +40,7 @@ const (
 )
 
 const (
-	// TenantIDKey is set in echo.Context to hand over the id from a middleware to a controller.
+	// TenantIDKey is set in *echo.Context to hand over the id from a middleware to a controller.
 	TenantIDKey = "auth.tenant_id"
 	UserIDKey   = "auth.user_id"
 )

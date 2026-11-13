@@ -64,9 +64,23 @@ const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!
 
 func generatePassword(length int) string {
 	password := make([]byte, length)
-	for i := range password {
+	charsets := [...]string{
+		"abcdefghijklmnopqrstuvwxyz",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		"0123456789",
+		"!@#$%^&*",
+	}
+	for i, characters := range charsets {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(characters))))
+		password[i] = characters[idx.Int64()]
+	}
+	for i := len(charsets); i < len(password); i++ {
 		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		password[i] = charset[idx.Int64()]
+	}
+	for i := len(password) - 1; i > 0; i-- {
+		idx, _ := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		password[i], password[idx.Int64()] = password[idx.Int64()], password[i]
 	}
 
 	return string(password)

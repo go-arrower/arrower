@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func NewRoutesController(echo *echo.Echo) *RoutesController {
@@ -19,16 +19,16 @@ type RoutesController struct {
 	echo *echo.Echo
 }
 
-func (ctrl *RoutesController) Index() func(e echo.Context) error {
+func (ctrl *RoutesController) Index() func(e *echo.Context) error {
 	type viewRoute struct {
-		*echo.Route
+		echo.RouteInfo
 		ColourCount int
 		Colour      string
 		HasParams   bool
 	}
 
-	return func(c echo.Context) error {
-		echoRoutes := ctrl.echo.Routes()
+	return func(c *echo.Context) error {
+		echoRoutes := ctrl.echo.Router().Routes()
 		routes := make([]*viewRoute, len(echoRoutes))
 
 		// sort routes by path and then by method
@@ -57,7 +57,7 @@ func (ctrl *RoutesController) Index() func(e echo.Context) error {
 				group++
 			}
 
-			routes[i] = &viewRoute{route, group, "", strings.Contains(route.Path, ":")}
+			routes[i] = &viewRoute{RouteInfo: route, ColourCount: group, HasParams: strings.Contains(route.Path, ":")}
 		}
 
 		// colours := generateColorsVibrant(group + 1)
@@ -67,7 +67,7 @@ func (ctrl *RoutesController) Index() func(e echo.Context) error {
 			routes[i].Colour = colours[routes[i].ColourCount]
 		}
 
-		return c.Render(http.StatusOK, "routes.index", echo.Map{
+		return c.Render(http.StatusOK, "routes.index", map[string]any{
 			"Flashes": nil,
 			"Routes":  routes,
 		})

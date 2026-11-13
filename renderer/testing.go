@@ -15,7 +15,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace/noop"
 )
@@ -129,7 +129,7 @@ func TestEcho(
 	}
 
 	mergedFM := template.FuncMap{
-		"route": echo.Reverse,
+		"route": reverseRoute(echo),
 	}
 
 	for name, fn := range funcs {
@@ -149,7 +149,7 @@ type TestEchoRenderer struct {
 
 var _ echo.Renderer = (*TestEchoRenderer)(nil)
 
-func (r *TestEchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
+func (r *TestEchoRenderer) Render(c *echo.Context, w io.Writer, templateName string, data any) error {
 	context := r.isRegisteredContext(c)
 
 	_, err := r.TestRenderer.Render(w, context, templateName, data)
@@ -158,7 +158,7 @@ func (r *TestEchoRenderer) Render(w io.Writer, templateName string, data interfa
 }
 
 // todo: see comments in EchoRenderer method of this.
-func (r *TestEchoRenderer) isRegisteredContext(c echo.Context) string {
+func (r *TestEchoRenderer) isRegisteredContext(c *echo.Context) string {
 	paths := strings.Split(c.Path(), "/")
 
 	isAdmin := false

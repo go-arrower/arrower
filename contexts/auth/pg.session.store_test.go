@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth"
@@ -236,7 +236,7 @@ func newTestRouter(ctx context.Context, pg *pgxpool.Pool) *echo.Echo {
 
 	queries := *models.New(pg)
 
-	echoRouter.GET("/", func(c echo.Context) error {
+	echoRouter.GET("/", func(c *echo.Context) error {
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -252,7 +252,7 @@ func newTestRouter(ctx context.Context, pg *pgxpool.Pool) *echo.Echo {
 		return c.NoContent(http.StatusOK)
 	})
 
-	echoRouter.GET("/login", func(c echo.Context) error { //nolint:contextcheck // fp, controller must use http Context instead of ctx param
+	echoRouter.GET("/login", func(c *echo.Context) error { //nolint:contextcheck // fp, controller must use http Context instead of ctx param
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -278,7 +278,7 @@ func newTestRouter(ctx context.Context, pg *pgxpool.Pool) *echo.Echo {
 		return c.NoContent(http.StatusOK)
 	})
 
-	echoRouter.GET("/destroy", func(c echo.Context) error {
+	echoRouter.GET("/destroy", func(c *echo.Context) error {
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
