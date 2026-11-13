@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func New{{ .Name }}Controller() *{{ .Name }}Controller {
@@ -12,8 +12,8 @@ func New{{ .Name }}Controller() *{{ .Name }}Controller {
 
 type {{ .Name }}Controller struct{}
 
-func (ctrl *{{ .Name }}Controller) Index() func(echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *{{ .Name }}Controller) Index() func(*echo.Context) error {
+	return func(c *echo.Context) error {
 		return c.Render(http.StatusOK, "home", nil)
 	}
 }

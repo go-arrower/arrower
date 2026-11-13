@@ -1,7 +1,7 @@
 package init
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/web"
 )
@@ -14,9 +14,9 @@ func (c *AuthContext) registerAdminRoutes(router *echo.Group, di localDI) {
 	router.GET("/as_user/:userID", sCont.AdminLoginAsUser())
 	router.GET("/leave_user", sCont.AdminLeaveUser())
 
-	router.GET("/settings", c.settingsController.List()).Name = "admin.users.settings"
+	addNamedRoute(router, "GET", "/settings", "admin.users.settings", c.settingsController.List())
 
-	router.GET("/users", c.userController.List()).Name = "admin.users"
+	addNamedRoute(router, "GET", "/users", "admin.users", c.userController.List())
 	router.POST("/users", c.userController.Register())
 	router.GET("/users/:userID", c.userController.Show())
 	router.GET("/users/:userID/sessions/:sessionKey", c.userController.DestroySession(di.queries))

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -143,9 +143,13 @@ func TestWatchBuildAndRunApp(t *testing.T) {
 func copyDir(t *testing.T, oldDir string, newDir string) {
 	t.Helper()
 
-	cmd := exec.CommandContext(t.Context(), "cp", "--recursive", oldDir, newDir)
-	err := cmd.Run()
-	assert.NoError(t, err)
+	target := filepath.Join(newDir, filepath.Base(oldDir))
+	if err := os.Mkdir(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.CopyFS(target, os.DirFS(oldDir)); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // wait until time for the example-server starts.
@@ -157,7 +161,7 @@ func waitUntilRunning(buf *syncBuffer) {
 	for retriesUntilServerStarted < maxTries {
 		time.Sleep(100 * time.Millisecond)
 
-		retriesUntilServerStarted--
+		retriesUntilServerStarted++
 
 		if strings.Contains(buf.String(), "running...") {
 			break

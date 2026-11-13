@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/contexts/auth"
@@ -19,7 +19,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 	t.Run("no session => redirect", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnsureRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnsureRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.False(t, auth.IsLoggedIn(ctx))
 			assert.Empty(t, auth.CurrentUserID(ctx))
@@ -37,7 +37,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 	t.Run("no session => redirect with query params", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnsureRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnsureRouterToAssertOnHandler(func(c *echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		})
 
@@ -52,7 +52,7 @@ func TestEnsureUserIsLoggedInMiddleware(t *testing.T) {
 	t.Run("user is logged in", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnsureRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnsureRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
 			assert.Equal(t, auth.UserID("1337"), auth.CurrentUserID(ctx))
@@ -76,7 +76,7 @@ func TestIsSuperuser(t *testing.T) {
 	t.Run("no session => redirect", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.False(t, auth.IsLoggedIn(ctx))
 			assert.False(t, auth.IsSuperuser(ctx))
@@ -95,7 +95,7 @@ func TestIsSuperuser(t *testing.T) {
 	t.Run("user is superuser", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnsureIsSuperuserRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
 			assert.True(t, auth.IsSuperuser(ctx))
@@ -120,7 +120,7 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 	t.Run("no session => no id", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnrichRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnrichRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.False(t, auth.IsLoggedIn(ctx))
 			assert.Empty(t, auth.CurrentUserID(ctx))
@@ -137,7 +137,7 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 	t.Run("logged in user", func(t *testing.T) {
 		t.Parallel()
 
-		echoRouter := newEnrichRouterToAssertOnHandler(func(c echo.Context) error {
+		echoRouter := newEnrichRouterToAssertOnHandler(func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			assert.True(t, auth.IsLoggedIn(ctx))
 			assert.Equal(t, auth.UserID("1337"), auth.CurrentUserID(ctx))
@@ -156,13 +156,13 @@ func TestEnrichCtxWithUserInfoMiddleware(t *testing.T) {
 	})
 }
 
-func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.Echo {
+func newEnsureRouterToAssertOnHandler(handler func(c *echo.Context) error) *echo.Echo {
 	echoRouter := echo.New()
 
 	echoRouter.Use(session.Middleware(sessions.NewFilesystemStore("", []byte("secret"))))
 
 	// endpoint to set an example cookie that the middleware under test can work with
-	echoRouter.GET("/createSession", func(c echo.Context) error {
+	echoRouter.GET("/createSession", func(c *echo.Context) error {
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true
@@ -174,9 +174,17 @@ func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 	})
 
 	// register the login route with name so middleware can reverse to it
-	echoRouter.GET("/auth/login", func(c echo.Context) error {
-		return c.NoContent(http.StatusOK)
-	}).Name = auth.RouteLogin
+	_, err := echoRouter.AddRoute(echo.Route{
+		Method: http.MethodGet,
+		Path:   "/auth/login",
+		Name:   auth.RouteLogin,
+		Handler: func(c *echo.Context) error {
+			return c.NoContent(http.StatusOK)
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	authRoutes := echoRouter.Group("/auth")
 	authRoutes.Use(auth.EnsureUserIsLoggedInMiddleware)
@@ -185,13 +193,13 @@ func newEnsureRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 	return echoRouter
 }
 
-func newEnsureIsSuperuserRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.Echo {
+func newEnsureIsSuperuserRouterToAssertOnHandler(handler func(c *echo.Context) error) *echo.Echo {
 	echoRouter := echo.New()
 
 	echoRouter.Use(session.Middleware(sessions.NewFilesystemStore("", []byte("secret"))))
 
 	// endpoint to set an example cookie, that the middleware under test can work with.
-	echoRouter.GET("/createSession", func(c echo.Context) error {
+	echoRouter.GET("/createSession", func(c *echo.Context) error {
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true
@@ -211,7 +219,7 @@ func newEnsureIsSuperuserRouterToAssertOnHandler(handler func(c echo.Context) er
 }
 
 // newEnrichRouterToAssertOnHandler is a helper for unit tests, by returning a valid web router.
-func newEnrichRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.Echo {
+func newEnrichRouterToAssertOnHandler(handler func(c *echo.Context) error) *echo.Echo {
 	echoRouter := echo.New()
 
 	echoRouter.Use(session.Middleware(sessions.NewFilesystemStore("", []byte("secret"))))
@@ -219,7 +227,7 @@ func newEnrichRouterToAssertOnHandler(handler func(c echo.Context) error) *echo.
 	echoRouter.GET("/", handler)
 
 	// endpoint to set an example cookie, that the middleware under test can work with.
-	echoRouter.GET("/createSession", func(c echo.Context) error {
+	echoRouter.GET("/createSession", func(c *echo.Context) error {
 		sess, _ := session.Get(auth.SessionName, c)
 
 		sess.Values[auth.SessKeyLoggedIn] = true

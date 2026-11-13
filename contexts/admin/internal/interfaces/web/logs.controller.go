@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/alog"
 	"github.com/go-arrower/arrower/alog/models"
@@ -37,7 +37,7 @@ type LogsController struct {
 }
 
 // Index pattern issue: how to add route with and without trailing slash?
-func (ctrl *LogsController) Index() func(c echo.Context) error {
+func (ctrl *LogsController) Index() func(c *echo.Context) error {
 	const defaultLogs = 1000
 
 	type logFilter struct {
@@ -58,7 +58,7 @@ func (ctrl *LogsController) Index() func(c echo.Context) error {
 	}
 
 	// todo refactor: this is a fat controller
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		timeParam := c.QueryParam("time")
 		searchMsgParam := c.QueryParam("msg")
 
@@ -128,7 +128,7 @@ func (ctrl *LogsController) Index() func(c echo.Context) error {
 			return c.String(http.StatusBadRequest, err.Error()+" HIER")
 		}
 
-		vals := echo.Map{
+		vals := map[string]any{
 			"Title":     "Logs",
 			"SearchMsg": searchMsgParam,
 			"Logs":      logs,
@@ -148,8 +148,8 @@ func (ctrl *LogsController) Index() func(c echo.Context) error {
 	}
 }
 
-func (ctrl *LogsController) Update() func(c echo.Context) error {
-	return func(c echo.Context) error {
+func (ctrl *LogsController) Update() func(c *echo.Context) error {
+	return func(c *echo.Context) error {
 		levelParam := c.FormValue("level")
 
 		level, err := strconv.Atoi(levelParam)
@@ -162,7 +162,7 @@ func (ctrl *LogsController) Update() func(c echo.Context) error {
 			return c.String(http.StatusBadRequest, err.Error())
 		}
 
-		return c.Render(http.StatusOK, "logs.index#level-setting", echo.Map{
+		return c.Render(http.StatusOK, "logs.index#level-setting", map[string]any{
 			"Level": getLevelName(slog.Level(level)),
 		})
 	}

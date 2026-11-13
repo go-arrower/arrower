@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -37,8 +38,10 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.Contains(t, buf.String(), arrowerCLIRun)
 
-		// wait so the example application can start & run
-		time.Sleep(50 * time.Millisecond)
+		assert.Eventually(t, func() bool {
+			output := buf.String()
+			return strings.Contains(output, "hello from fmt") && strings.Contains(output, "hello from log")
+		}, 5*time.Second, 10*time.Millisecond)
 
 		err = cleanup()
 		assert.NoError(t, err)
@@ -153,15 +156,15 @@ func TestBuildAndRunApp(t *testing.T) {
 		assert.Contains(t, buf.String(), arrowerCLIBuild)
 		assert.Contains(t, buf.String(), arrowerCLIRun)
 
-		// wait so the example application can start & run
-		time.Sleep(50 * time.Millisecond)
+		assert.Eventually(t, func() bool {
+			return strings.Contains(buf.String(), "Generated UUID: ")
+		}, 5*time.Second, 10*time.Millisecond)
 
 		err = cleanup()
 		assert.NoError(t, err)
 		assert.NoFileExists(t, binaryPath)
 
-		// ensure fmt and log output is written to the io.Writer
-		assert.Contains(t, buf.String(), "Generated UUID: ")
+		// ensure fmt output is written to the io.Writer
 	})
 
 	t.Run("stop if sigterm is ignored", func(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/app"
@@ -397,8 +397,7 @@ func TestUserController_Verify(t *testing.T) {
 
 		echoRouter := newTestRouter(t)
 		c := echoRouter.NewContext(req, rec)
-		c.SetParamNames("userID", "token")
-		c.SetParamValues(string(userID), validToken.String())
+		c.SetPathValues(echo.PathValues{{Name: "userID", Value: string(userID)}, {Name: "token", Value: validToken.String()}})
 
 		controller := web.NewUserController(application.UserApplication{
 			VerifyUser: app.TestCommandHandler(func(_ context.Context, in application.VerifyUserCommand) error {

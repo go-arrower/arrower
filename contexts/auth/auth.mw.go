@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/ctx"
 )
@@ -47,7 +47,7 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		hasUserID  bool
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		sess, err := session.Get(SessionName, c)
 		if err != nil {
 			return fmt.Errorf("%w", err)
@@ -85,7 +85,12 @@ func EnsureUserIsLoggedInMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		query := c.QueryParams()
 		query.Add("returnUrl", c.Request().URL.Path)
 
-		return c.Redirect(http.StatusSeeOther, c.Echo().Reverse(RouteLogin)+"?"+query.Encode())
+		loginURL, err := c.Echo().Router().Routes().Reverse(RouteLogin)
+		if err != nil {
+			return fmt.Errorf("reverse login route: %w", err)
+		}
+
+		return c.Redirect(http.StatusSeeOther, loginURL+"?"+query.Encode())
 	}
 }
 
@@ -96,7 +101,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		isSuperuser bool
 	}
 
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		sess, err := session.Get(SessionName, c)
 		if err != nil {
 			return fmt.Errorf("%w", err)
@@ -150,7 +155,7 @@ func EnsureUserIsSuperuserMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // so they are available in other parts of the app. For convenience use the helpers like: IsLoggedIn.
 // If you want to ensure only logged-in users can access a URL use EnsureUserIsLoggedInMiddleware instead.
 func EnrichCtxWithUserInfoMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		sess, err := session.Get(SessionName, c)
 		if err != nil {
 			return fmt.Errorf("%w", err)

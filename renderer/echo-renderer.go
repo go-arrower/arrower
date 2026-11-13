@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-arrower/arrower/alog"
@@ -22,7 +22,7 @@ func NewEchoRenderer(
 	hotReload bool,
 ) (*EchoRenderer, error) {
 	mergedFM := template.FuncMap{
-		"route": echo.Reverse,
+		"route": reverseRoute(echo),
 	}
 
 	for name, fn := range funcs {
@@ -44,15 +44,26 @@ type EchoRenderer struct {
 
 var _ echo.Renderer = (*EchoRenderer)(nil)
 
-func (r *EchoRenderer) Render(w io.Writer, templateName string, data interface{}, c echo.Context) error {
+func (r *EchoRenderer) Render(c *echo.Context, w io.Writer, templateName string, data any) error {
 	context := r.isRegisteredContext(c) // todo test how it is split
 
 	return r.Renderer.Render(c.Request().Context(), w, context, templateName, data)
 }
 
+func reverseRoute(e *echo.Echo) func(string, ...any) string {
+	return func(name string, pathValues ...any) string {
+		path, err := e.Router().Routes().Reverse(name, pathValues...)
+		if err != nil {
+			return ""
+		}
+
+		return path
+	}
+}
+
 const adminPathPrefix = "admin"
 
-func (r *EchoRenderer) isRegisteredContext(c echo.Context) string {
+func (r *EchoRenderer) isRegisteredContext(c *echo.Context) string {
 	paths := strings.Split(c.Path(), "/")
 
 	isAdmin := false

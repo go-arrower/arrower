@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/go-arrower/arrower/app"
@@ -122,8 +122,7 @@ func TestJobsController_DeleteJob(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 
 		c.SetPath("/:queue/delete/:job_id")
-		c.SetParamNames("queue", "job_id")
-		c.SetParamValues("Default", "1337")
+		c.SetPathValues(echo.PathValues{{Name: "queue", Value: "Default"}, {Name: "job_id", Value: "1337"}})
 
 		handler := web.NewJobsController(nil, nil, application.App{DeleteJob: app.TestSuccessCommandHandler[application.DeleteJobCommand]()}, nil, nil)
 
@@ -140,8 +139,7 @@ func TestJobsController_DeleteJob(t *testing.T) {
 		c := echoRouter.NewContext(req, rec)
 
 		c.SetPath("/:queue/delete/:job_id")
-		c.SetParamNames("queue", "job_id")
-		c.SetParamValues("Default", "1337")
+		c.SetPathValues(echo.PathValues{{Name: "queue", Value: "Default"}, {Name: "job_id", Value: "1337"}})
 
 		handler := web.NewJobsController(nil, nil, application.App{DeleteJob: app.TestFailureCommandHandler[application.DeleteJobCommand]()}, nil, nil)
 

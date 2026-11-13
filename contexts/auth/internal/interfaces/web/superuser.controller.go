@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo-contrib/v5/session"
+	"github.com/labstack/echo/v5"
 
 	"github.com/go-arrower/arrower/contexts/auth"
 	"github.com/go-arrower/arrower/contexts/auth/internal/interfaces/repository/models"
@@ -16,7 +16,7 @@ type SuperuserController struct {
 }
 
 func (ctrl *SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		userID := c.Param("userID")
 
 		user, err := ctrl.Queries.FindUserByID(c.Request().Context(), uuid.MustParse(userID))
@@ -47,7 +47,7 @@ func (ctrl *SuperuserController) AdminLoginAsUser() echo.HandlerFunc {
 }
 
 func (ctrl *SuperuserController) AdminLeaveUser() echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		sess, err := session.Get(auth.SessionName, c)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())

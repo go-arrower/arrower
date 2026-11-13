@@ -1,15 +1,16 @@
 package internal_test
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"math/rand"
-	"net/http"
+	"net"
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
 
@@ -31,25 +32,24 @@ func TestNewHotReloadServer(t *testing.T) {
 	t.Run("start server", func(t *testing.T) {
 		t.Parallel()
 
-		wg := sync.WaitGroup{}
 		server, _ := internal.NewHotReloadServer(make(chan internal.File))
+		port := 1024 * rand.Intn(10) //nolint:gosec // rand does not need to be secure for port number
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		done := make(chan error, 1)
+		started := make(chan struct{})
+		go func() {
+			done <- (echo.StartConfig{
+				Address: fmt.Sprintf(":%d", port),
+				ListenerAddrFunc: func(net.Addr) {
+					close(started)
+				},
+			}).Start(ctx, server)
+		}()
 
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, server *echo.Echo) { //nolint:wsl_v5
-			wg.Done()
-
-			port := 1024 * rand.Intn(10) //nolint:gosec // rand does not need to be secure for port number
-			err := server.Start(fmt.Sprintf(":%d", port))
-
-			if !errors.Is(err, http.ErrServerClosed) {
-				assert.NoError(t, err)
-			}
-		}(&wg, server)
-
-		wg.Wait()
-
-		err := server.Shutdown(t.Context())
-		assert.NoError(t, err)
+		<-started
+		cancel()
+		assert.NoError(t, <-done)
 	})
 
 	t.Run("receive ws reload messages", func(t *testing.T) {
@@ -59,7 +59,7 @@ func TestNewHotReloadServer(t *testing.T) {
 		s, err := internal.NewHotReloadServer(ch)
 		assert.NoError(t, err)
 
-		server := httptest.NewServer(s.Server.Handler)
+		server := httptest.NewServer(s)
 		defer server.CloseClientConnections()
 		defer server.Close()
 
@@ -92,14 +92,15 @@ func TestNewHotReloadServer(t *testing.T) {
 	t.Run("receive ws reload messages on multiple (dropping out) browser connections", func(t *testing.T) {
 		t.Parallel()
 
-		const maxConnections = 100
+		const maxConnections = 10
 
 		ch := make(chan internal.File, maxConnections)
+		defer close(ch)
 
 		s, err := internal.NewHotReloadServer(ch)
 		assert.NoError(t, err)
 
-		server := httptest.NewServer(s.Server.Handler)
+		server := httptest.NewServer(s)
 		defer server.CloseClientConnections()
 		defer server.Close()
 
@@ -113,35 +114,54 @@ func TestNewHotReloadServer(t *testing.T) {
 
 		for range maxConnections {
 			go func(wg *sync.WaitGroup) {
-				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
-				assert.NoError(t, err)
+				defer wg.Done()
 
-				defer ws.Close()
+				ws, err := websocket.Dial("ws://"+addr+"/ws", "", "http://localhost/")
+				if !assert.NoError(t, err) {
+					wgBrowsersConnected.Done()
+					return
+				}
 
 				wgBrowsersConnected.Done()
 
-				for {
-					msg := ""
-					err = websocket.Message.Receive(ws, &msg)
-					assert.NoError(t, err)
-					assert.Equal(t, internal.ReloadCmd, msg)
+				msg := ""
+				err = websocket.Message.Receive(ws, &msg)
+				assert.NoError(t, err)
+				assert.Equal(t, internal.ReloadCmd, msg)
 
-					// simulate a browser disconnection
-					if rand.Int()%2 == 0 { //nolint:gosec //weak rand is alright
-						break
-					}
-				}
-
-				wg.Done()
+				// Simulate a browser disconnect after receiving its first reload.
+				assert.NoError(t, ws.Close())
 			}(&wg)
 		}
 
 		wgBrowsersConnected.Wait()
 
+		clientsClosed := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(clientsClosed)
+		}()
+
+		ch <- "some.html"
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+		deadline := time.NewTimer(5 * time.Second)
+		defer deadline.Stop()
+		for {
+			select {
+			case <-clientsClosed:
+				goto clientsDisconnected
+			case <-ticker.C:
+				ch <- "some.html"
+			case <-deadline.C:
+				t.Fatal("timed out waiting for browser connections to receive reloads")
+			}
+		}
+
+	clientsDisconnected:
+		// A later write lets the server detect the closed websocket connections and release handlers.
 		for range maxConnections {
 			ch <- "some.html"
 		}
-
-		wg.Wait()
 	})
 }

@@ -27,8 +27,16 @@ func WatchFolders(
 	fsEvents := make(chan notify.EventInfo, 1)
 
 	for _, pi := range pathInfos {
+		if ctx.Err() != nil {
+			return nil
+		}
+
 		p := pi.AbsPath + "/..."
 		if err := notify.Watch(p, fsEvents, notify.All); err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+
 			return fmt.Errorf("%w: %v", ErrObserverFSFailed, err)
 		}
 	}

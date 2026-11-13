@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -18,14 +17,14 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo-contrib/echoprometheus"
-	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo-contrib/v5/echoprometheus"
+	"github.com/labstack/echo-contrib/v5/session"
+	otelecho "github.com/labstack/echo-otel/v5"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	prometheusSDK "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -74,6 +73,8 @@ type Container struct {
 	AuthContext auth.API
 
 	metricsEndpoint *http.Server
+	webServerCancel context.CancelFunc
+	webServerDone   chan struct{}
 }
 
 func New() (*Container, error) {
@@ -238,16 +239,18 @@ func InitialiseDefaultDependencies(
 
 	{ // web routers
 		router := echo.New()
-		router.HideBanner = true
-		router.Logger.SetOutput(io.Discard)
+		router.Logger = slog.New(slog.DiscardHandler)
 		router.Validator = &CustomValidator{validator: validator.New()}
 		router.IPExtractor = echo.ExtractIPFromXFFHeader() // see: https://echo.labstack.com/docs/ip-address
 
-		router.Use(otelecho.Middleware(conf.OTEL.Hostname, otelecho.WithTracerProvider(dc.TraceProvider)))
+		router.Use(otelecho.NewMiddlewareWithConfig(otelecho.Config{
+			ServerName:     conf.OTEL.Hostname,
+			TracerProvider: dc.TraceProvider,
+		}))
 		router.Use(echoprometheus.NewMiddleware(conf.ApplicationName))
 		router.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 			TargetHeader: "Request-Id",
-			RequestIDHandler: func(c echo.Context, rid string) {
+			RequestIDHandler: func(c *echo.Context, rid string) {
 				c.SetRequest(c.Request().WithContext(alog.AddAttr(
 					c.Request().Context(),
 					logging.RequestID(rid)),
@@ -257,7 +260,7 @@ func InitialiseDefaultDependencies(
 			Generator: nil,
 		}))
 		router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
+			return func(c *echo.Context) error {
 				if c.Request().Header.Get("Hx-Preloaded") == "true" {
 					c.Response().Header().Set("Cache-Control", "private, max-age=10")
 				}
@@ -269,7 +272,7 @@ func InitialiseDefaultDependencies(
 		var echoRenderer *renderer.EchoRenderer
 
 		if conf.Environment == LocalEnv {
-			router.Debug = true
+			router.HTTPErrorHandler = echo.DefaultHTTPErrorHandler(true)
 			echoRenderer, _ = renderer.NewEchoRenderer(
 				dc.Logger,
 				dc.TraceProvider,
@@ -347,8 +350,18 @@ func (c *Container) Start(ctx context.Context) error {
 		c.metricsEndpoint = serveMetrics(ctx, c)
 	}
 
+	serverCtx, cancel := context.WithCancel(ctx)
+	c.webServerCancel = cancel
+	c.webServerDone = make(chan struct{})
 	go func() {
-		_ = c.WebRouter.Start(fmt.Sprintf(":%d", c.Config.HTTP.Port))
+		defer close(c.webServerDone)
+		err := (echo.StartConfig{
+			Address:    fmt.Sprintf(":%d", c.Config.HTTP.Port),
+			HideBanner: true,
+		}).Start(serverCtx, c.WebRouter)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			c.Logger.LogAttrs(context.Background(), slog.LevelError, "web server stopped", logging.Error(err))
+		}
 	}()
 
 	return nil
@@ -357,7 +370,15 @@ func (c *Container) Start(ctx context.Context) error {
 func (c *Container) Shutdown(ctx context.Context) error {
 	c.Logger.LogAttrs(ctx, alog.LevelInfo, "shutting down all servers")
 
-	err := c.WebRouter.Shutdown(ctx)
+	var err error
+	if c.webServerCancel != nil {
+		c.webServerCancel()
+		select {
+		case <-c.webServerDone:
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
+	}
 
 	if c.Config.HTTP.StatusEndpointEnabled {
 		err = errors.Join(err, c.metricsEndpoint.Shutdown(ctx))
@@ -444,9 +465,9 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 }
 
 func injectMW(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		if err := next(c); err != nil {
-			c.Error(err)
+			c.Echo().HTTPErrorHandler(c, err)
 		}
 
 		// skip htmx requests, as the code is already present on the page from a previous load

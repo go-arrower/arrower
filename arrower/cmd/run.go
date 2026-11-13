@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fatih/color" //nolint:misspell
+	"github.com/labstack/echo/v5"
 	"github.com/spf13/cobra"
 
 	"github.com/go-arrower/arrower/arrower/hooks"
@@ -103,7 +104,10 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 			wg.Add(1)
 			go func() {
 				// log.Debug().Msg("start hot reload server")
-				_ = hotReloadServer.Start(fmt.Sprintf(":%d", config.Port))
+				_ = (echo.StartConfig{
+					Address:    fmt.Sprintf(":%d", config.Port),
+					HideBanner: true,
+				}).Start(ctx, hotReloadServer)
 
 				wg.Done()
 			}()
@@ -117,11 +121,6 @@ func newRunCmd(osSignal <-chan os.Signal, openBrowser internal.OpenBrowserFunc) 
 				hooks.OnShutdown()
 
 				cancel()
-
-				err = hotReloadServer.Shutdown(context.Background())
-				if err != nil {
-					panic(err)
-				}
 
 				wg.Wait()
 
